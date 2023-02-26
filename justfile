@@ -7,6 +7,9 @@ priv *args:
 bundle-grammar:
   cat internal/parsing/grammar.ohm | ./scripts/input-to-json-string.ts > internal/parsing/grammar.json
 
+deno *args: pre-run
+  deno {{args}}
+
 run-demo: pre-run
   deno run demo.ts
 
