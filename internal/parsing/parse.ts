@@ -1,5 +1,6 @@
 import ohm from "https://unpkg.com/ohm-js@16/dist/ohm.esm.js";
 import { Unreachable } from "../../errors.ts";
+import { ActionDictForTransformationBuilder } from "./action_dict_builder.ts";
 
 import {
   captured,
@@ -36,164 +37,99 @@ export function parse(code: string, opts?: ParseOptions): Node {
   return semantics(parsed).transform() as Node;
 }
 
+const actionDict = (new ActionDictForTransformationBuilder()).addOperators({
+  "-4": [
+    { op: "||", opText: "or", types: "binary" },
+  ],
+  "-3": [
+    { op: "&&", opText: "and", types: "binary" },
+  ],
+  "-2": [
+    { op: "==", opText: "eq", types: "binary" },
+    { op: "!=", opText: "not_eq", types: "binary" },
+  ],
+  "-1": [
+    { op: "<", opText: "lt", types: "binary" },
+    { op: ">", opText: "gt", types: "binary" },
+    { op: "<=", opText: "lte", types: "binary" },
+    { op: ">=", opText: "gte", types: "binary" },
+  ],
+  0: [
+    { op: "|>", opText: "pipe", types: "binary" },
+  ],
+  0.1: [
+    { op: "#", opText: "repeat", types: "binary" },
+  ],
+  1: [
+    { op: "~", opText: "range", types: ["binary", "prefix"] },
+  ],
+  2: [
+    { op: "+", opText: "add", types: "binary" },
+    { op: "-", opText: "sub", types: "binary" },
+    { op: "+", opText: "noop", types: "prefix" },
+    { op: "-", opText: "negate", types: "prefix" },
+  ],
+  3: [
+    { op: "*", opText: "mul", types: "binary" },
+    { op: "//", opText: "div_int", types: "binary" },
+    { op: "%", opText: "mod_non_negative_int", types: "binary" },
+  ],
+  5: [
+    { op: "d", opText: "roll", types: ["binary", "prefix"] },
+    { op: "d%", opText: "roll_dao", types: ["binary", "prefix"] },
+  ],
+  6: [
+    { op: "^", opText: "exponent", types: "binary" },
+  ],
+  10: [
+    { op: "~", opText: "range", types: "prefix" },
+    { op: "+", opText: "noop", types: "prefix" },
+    { op: "-", opText: "negate", types: "prefix" },
+    { op: "d", opText: "roll", types: "prefix" },
+    { op: "d%", opText: "roll_dao", types: "prefix" },
+
+    { op: "!", opText: "not", types: "prefix" },
+  ],
+})
+  .add("RollGrouping_grouping", (_lp, exp, _rp) => exp.transform())
+  .add("GroupingExp_grouping", (_lp, exp, _rp) => exp.transform())
+  .addWithInlines("FunctionCallExp", {
+    "regular": (ident, args) =>
+      functionCall(ident.transform(), args.transform(), "regular"),
+    "with_closure_argument": (ident, closure) =>
+      functionCall(ident.transform(), [closure.transform()], "regular"),
+    "closure": (closure, args) =>
+      closureCall(closure.transform(), args.transform()),
+    "operator": (operator, args) => {
+      const nodeOp = operator.transform() as Node_Captured;
+      return functionCall(
+        nodeOp.identifier,
+        args.transform(),
+        "regular",
+        nodeOp.forceArity,
+      );
+    },
+  })
+  .add(
+    "asFunctionExp",
+    (_amp, ident_terminal, _slash, arity) =>
+      captured(ident_terminal.sourceString, Number(arity.sourceString)),
+  )
+  .add("ArgumentList", (_lp, exps, _rp) => evalList(exps))
+  .add("ListExp", (_lp, exps, _rp) => list(evalList(exps)))
+  .add(
+    "ClosureExp",
+    (_back_slash_and_lp, identifiers, _arrow, body, _rp) =>
+      closure(evalList(identifiers), body.transform()),
+  )
+  .addForSourceString("ident", [1, 2], (s) => s)
+  .addForSourceString("literalInteger", [1, 2], (s) => parseInteger(s))
+  .addForSourceString("literalBoolean", [1], (s) => parseBoolean(s))
+  .build();
+
 semantics.addOperation("transform", {
-  Exp(exp) {
-    return exp.transform();
-  },
-
-  BinOpExpPn4_or(left, _op, right) {
-    return transformBinaryOperator("||", left, right);
-  },
-  BinOpExpPn3_and(left, _op, right) {
-    return transformBinaryOperator("&&", left, right);
-  },
-  BinOpExpPn2_eq(left, _op, right) {
-    return transformBinaryOperator("==", left, right);
-  },
-  BinOpExpPn2_not_eq(left, _op, right) {
-    return transformBinaryOperator("!=", left, right);
-  },
-  BinOpExpPn1_lt(left, _op, right) {
-    return transformBinaryOperator("<", left, right);
-  },
-  BinOpExpPn1_gt(left, _op, right) {
-    return transformBinaryOperator(">", left, right);
-  },
-  BinOpExpPn1_lte(left, _op, right) {
-    return transformBinaryOperator("<=", left, right);
-  },
-  BinOpExpPn1_gte(left, _op, right) {
-    return transformBinaryOperator(">=", left, right);
-  },
-  BinOpExpP0_pipe(left, _op, right) {
-    return transformBinaryOperator("|>", left, right);
-  },
-  BinOpExpP0p1_repeat(left, _op, right) {
-    return transformBinaryOperator("#", left, right);
-  },
-  BinOpExpP1_range(left, _op, right) {
-    return transformBinaryOperator("~", left, right);
-  },
-  UnOpExpP1_range_short(_op, right) {
-    return functionCall("~", [right.transform()], "operator");
-  },
-  BinOpExpP2_add(left, _op, right) {
-    return transformBinaryOperator("+", left, right);
-  },
-  BinOpExpP2_sub(left, _op, right) {
-    return transformBinaryOperator("-", left, right);
-  },
-  UnOpExpP2_noop(_op, right) {
-    return functionCall("+", [right.transform()], "operator");
-  },
-  UnOpExpP2_negate(_op, right) {
-    return functionCall("-", [right.transform()], "operator");
-  },
-  BinOpExpP3_mul(left, _op, right) {
-    return transformBinaryOperator("*", left, right);
-  },
-  BinOpExpP3_div_int(left, _op, right) {
-    return transformBinaryOperator("//", left, right);
-  },
-  BinOpExpP3_mod_non_negative_int(left, _op, right) {
-    return transformBinaryOperator("%", left, right);
-  },
-  // 暂无 P5
-  BinOpExpP5_roll(left, _op, right) {
-    return transformBinaryOperator("d", left, right);
-  },
-  BinOpExpP5_roll_dao(left, _op, right) {
-    return transformBinaryOperator("d%", left, right);
-  },
-  UnOpExpP5_roll_short(_op, right) {
-    return functionCall("d", [right.transform()], "operator");
-  },
-  UnOpExpP5_roll_dao_short(_op, right) {
-    return functionCall("d%", [right.transform()], "operator");
-  },
-  BinOpExpP6_exponent(left, _op, right) {
-    return transformBinaryOperator("^", left, right);
-  },
-
-  UnOpExpP10_range_short(_op, right) {
-    return functionCall("~", [right.transform()], "operator");
-  },
-  UnOpExpP10_noop(_op, right) {
-    return functionCall("+", [right.transform()], "operator");
-  },
-  UnOpExpP10_negate(_op, right) {
-    return functionCall("-", [right.transform()], "operator");
-  },
-  UnOpExpP10_roll_short(_op, right) {
-    return functionCall("d", [right.transform()], "operator");
-  },
-  UnOpExpP10_roll_dao_short(_op, right) {
-    return functionCall("d%", [right.transform()], "operator");
-  },
-  UnOpExpP10_not(_op, right) {
-    return functionCall("!", [right.transform()], "operator");
-  },
-
-  RollGrouping_grouping(_lp, exp, _rp) {
-    return exp.transform();
-  },
-  GroupingExp_grouping(_lp, exp, _rp) {
-    return exp.transform();
-  },
-
-  FunctionCallExp_regular(ident, args) {
-    return functionCall(ident.transform(), args.transform(), "regular");
-  },
-  FunctionCallExp_with_closure_argument(ident, closure) {
-    return functionCall(ident.transform(), [closure.transform()], "regular");
-  },
-  FunctionCallExp_closure(closure, args) {
-    return closureCall(closure.transform(), args.transform());
-  },
-  FunctionCallExp_operator(operator, args) {
-    const nodeOp = operator.transform() as Node_Captured;
-    return functionCall(
-      nodeOp.identifier,
-      args.transform(),
-      "regular",
-      nodeOp.forceArity,
-    );
-  },
-
-  asFunctionExp(_amp, ident_terminal, _slash, arity) {
-    return captured(ident_terminal.sourceString, Number(arity.sourceString));
-  },
-
-  ArgumentList(_lp, exps, _rp) {
-    return evalList(exps);
-  },
-
-  ListExp(_lp, exps, _rp) {
-    return list(evalList(exps));
-  },
-
-  ClosureExp(_back_slash_and_lp, identifiers, _arrow, body, _rp) {
-    return closure(evalList(identifiers), body.transform());
-  },
-
-  ident(_1, _2) {
-    return this.sourceString;
-  },
-
-  literalInteger(_1, _2) {
-    return parseInteger(this.sourceString);
-  },
-
-  literalBoolean(_) {
-    switch (this.sourceString) {
-      case "true":
-        return value(true);
-      case "false":
-        return value(false);
-      default:
-        throw new Unreachable();
-    }
-  },
+  ...actionDict,
+  // 留下一片地方用于实验规则
 });
 
 function evalList(exps: ohm.Node) {
@@ -216,6 +152,13 @@ export function parseInteger(sourceString: string, replacesDash = true) {
   return value(int);
 }
 
-function transformBinaryOperator(op: string, left: ohm.Node, right: ohm.Node) {
-  return functionCall(op, [left.transform(), right.transform()], "operator");
+export function parseBoolean(sourceString: string) {
+  switch (sourceString) {
+    case "true":
+      return value(true);
+    case "false":
+      return value(false);
+    default:
+      throw new Unreachable();
+  }
 }

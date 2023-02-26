@@ -31,7 +31,7 @@ Dicexp {
     = BinOpExpP1 "~" UnOpExpP1 -- range
     | UnOpExpP1
   UnOpExpP1
-    = "~" BinOpExpP2 -- range_short
+    = "~" BinOpExpP2 -- range
     | BinOpExpP2
   BinOpExpP2
     = BinOpExpP2 "+" UnOpExpP2  -- add
@@ -53,8 +53,8 @@ Dicexp {
     | RollGrouping "d%" RollGrouping  -- roll_dao
     | UnOpExpP5
   UnOpExpP5
-    = "d" BinOpExpP6 -- roll_short
-    | "d%" BinOpExpP6 -- roll_dao_short
+    = "d" BinOpExpP6 -- roll
+    | "d%" BinOpExpP6 -- roll_dao
     | BinOpExpP6
   BinOpExpP6
     = BinOpExpP6 "^" UnOpExpP10 -- exponent
@@ -62,11 +62,11 @@ Dicexp {
   
   // unary operators
   UnOpExpP10
-    = "~" UnOpExpP10 -- range_short
+    = "~" UnOpExpP10 -- range
     | "+" UnOpExpP10 -- noop
     | "-" UnOpExpP10 -- negate
-    | "d" RollGrouping  -- roll_short
-    | "d%" RollGrouping -- roll_dao_short
+    | "d" RollGrouping  -- roll
+    | "d%" RollGrouping -- roll_dao
     // 虽然没搞清楚原理，
     // 但是上下重复定义两遍就能在保证优先级正确的情况下还解析 `1 ~ -10` 这样的代码
 
