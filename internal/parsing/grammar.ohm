@@ -1,100 +1,100 @@
 Dicexp {
-  Exp = spaces BinOpExpPn4 spaces
+  Exp = BinOpExpPn4
 
   // binary operators
   // P<x> == Precedence <x>
   // P<x>p<y> == Precedence <x>.<y>
   // Pn<x> == Precedence negative <x>
   BinOpExpPn4
-    = BinOpExpPn4 spaces "||" spaces BinOpExpPn3  -- or
+    = BinOpExpPn4 "||" BinOpExpPn3  -- or
     | BinOpExpPn3
   BinOpExpPn3
-    = BinOpExpPn3 spaces "&&" spaces BinOpExpPn2  -- and
+    = BinOpExpPn3 "&&" BinOpExpPn2  -- and
     | BinOpExpPn2
   BinOpExpPn2
-    = BinOpExpPn2 spaces "==" spaces BinOpExpPn1  -- eq
-    | BinOpExpPn2 spaces "!=" spaces BinOpExpPn1  -- not_eq
+    = BinOpExpPn2 "==" BinOpExpPn1  -- eq
+    | BinOpExpPn2 "!=" BinOpExpPn1  -- not_eq
     | BinOpExpPn1
   BinOpExpPn1
-    = BinOpExpPn1 spaces "<" spaces BinOpExpP0  -- lt
-    | BinOpExpPn1 spaces ">" spaces BinOpExpP0  -- gt
-    | BinOpExpPn1 spaces "<=" spaces BinOpExpP0 -- lte
-    | BinOpExpPn1 spaces ">=" spaces BinOpExpP0 -- gte
+    = BinOpExpPn1 "<" BinOpExpP0  -- lt
+    | BinOpExpPn1 ">" BinOpExpP0  -- gt
+    | BinOpExpPn1 "<=" BinOpExpP0 -- lte
+    | BinOpExpPn1 ">=" BinOpExpP0 -- gte
     | BinOpExpP0
   BinOpExpP0
-    = BinOpExpP0 spaces "|>" spaces BinOpExpP0p1  -- pipe
+    = BinOpExpP0 "|>" BinOpExpP0p1  -- pipe
     | BinOpExpP0p1
   BinOpExpP0p1
-    = BinOpExpP0p1 spaces "#" spaces BinOpExpP1 -- repeat
+    = BinOpExpP0p1 "#" BinOpExpP1 -- repeat
     | BinOpExpP1
   BinOpExpP1
-    = BinOpExpP1 spaces "~" spaces UnOpExpP1 -- range
+    = BinOpExpP1 "~" UnOpExpP1 -- range
     | UnOpExpP1
   UnOpExpP1
-    = "~" spaces BinOpExpP2 -- range_short
+    = "~" BinOpExpP2 -- range_short
     | BinOpExpP2
   BinOpExpP2
-    = BinOpExpP2 spaces "+" spaces UnOpExpP2  -- add
-    | BinOpExpP2 spaces "-" spaces UnOpExpP2  -- sub
+    = BinOpExpP2 "+" UnOpExpP2  -- add
+    | BinOpExpP2 "-" UnOpExpP2  -- sub
     | UnOpExpP2
   UnOpExpP2
-    = "+" spaces BinOpExpP3 -- noop
-    | "-" spaces BinOpExpP3 -- negate
+    = "+" BinOpExpP3 -- noop
+    | "-" BinOpExpP3 -- negate
     | BinOpExpP3
   BinOpExpP3
-    = BinOpExpP3 spaces "*" spaces BinOpExpP4   -- mul
-    | BinOpExpP3 spaces "//" spaces BinOpExpP4  -- div_int
-    | BinOpExpP3 spaces "%" spaces BinOpExpP4   -- mod_non_negative_int
+    = BinOpExpP3 "*" BinOpExpP4   -- mul
+    | BinOpExpP3 "//" BinOpExpP4  -- div_int
+    | BinOpExpP3 "%" BinOpExpP4   -- mod_non_negative_int
     | BinOpExpP4
   BinOpExpP4
     = BinOpExpP5 // FIXME: 什么时候把优先级位置挪一下
   BinOpExpP5
-    = RollGrouping spaces "d" spaces RollGrouping   -- roll
-    | RollGrouping spaces "d%" spaces RollGrouping  -- roll_dao
+    = RollGrouping "d" RollGrouping   -- roll
+    | RollGrouping "d%" RollGrouping  -- roll_dao
     | UnOpExpP5
   UnOpExpP5
-    = "d" spaces BinOpExpP6 -- roll_short
-    | "d%" spaces BinOpExpP6 -- roll_dao_short
+    = "d" BinOpExpP6 -- roll_short
+    | "d%" BinOpExpP6 -- roll_dao_short
     | BinOpExpP6
   BinOpExpP6
-    = BinOpExpP6 spaces "^" spaces UnOpExpP10 -- exponent
+    = BinOpExpP6 "^" UnOpExpP10 -- exponent
     | UnOpExpP10
   
   // unary operators
   UnOpExpP10
-    = "~" spaces UnOpExpP10 -- range_short
-    | "+" spaces UnOpExpP10 -- noop
-    | "-" spaces UnOpExpP10 -- negate
-    | "d" spaces RollGrouping  -- roll_short
-    | "d%" spaces RollGrouping -- roll_dao_short
+    = "~" UnOpExpP10 -- range_short
+    | "+" UnOpExpP10 -- noop
+    | "-" UnOpExpP10 -- negate
+    | "d" RollGrouping  -- roll_short
+    | "d%" RollGrouping -- roll_dao_short
     // 虽然没搞清楚原理，
     // 但是上下重复定义两遍就能在保证优先级正确的情况下还解析 `1 ~ -10` 这样的代码
 
-    | "!" spaces UnOpExpP10 -- not
+    | "!" UnOpExpP10 -- not
     | GroupingExp
 
   RollGrouping
-    = "(" spaces Exp spaces ")" -- grouping
-    | LiteralInteger
+    = "(" Exp ")" -- grouping
+    | literalInteger
   
   GroupingExp
-    = "(" spaces Exp spaces ")" -- grouping
+    = "(" Exp ")" -- grouping
     | FunctionCallExp
-    | AsFunctionExp
+    | asFunctionExp
     | ListExp
     | ClosureExp
     // | SubscriptExp
-    | Ident
-    | Literal
+    | ident
+    | literal
 
   FunctionCallExp
-    = Ident spaces ArgumentList                 -- regular
-    | Ident spaces ClosureExp                   -- with_closure_argument
-    | ClosureExp spaces ArgumentList            -- closure
-    | AsFunctionExp spaces ArgumentList -- operator
+    = ident ArgumentList                 -- regular
+    | ident ClosureExp                   -- with_closure_argument
+    | ClosureExp ArgumentList            -- closure
+    | asFunctionExp ArgumentList -- operator
 
-  AsFunctionExp
-    = "&" Ident "/" LiteralInteger
+  asFunctionExp
+    = "&" ident "/" literalInteger
     | "&" ("-" | "!" | "~" | "d" | "d%") "/" "1"
     | "&" ( "~" | "+" | "-" | "*" | "//" | "%" | "d" | "d%" | "^") "/" "2"
       // 不含 `|>`、`#`
@@ -103,23 +103,23 @@ Dicexp {
   
   ListExp = "[" ListOf<Exp, ","> "]"
   
-  ClosureExp = "\\(" ListOf<Ident, ","> "->" Exp ")"
+  ClosureExp = "\\(" ListOf<ident, ","> "->" Exp ")"
   
   // SubscriptExp
-  //   = Ident spaces "[" spaces LiteralInteger spaces "]"
+  //   = ident spaces "[" spaces literalInteger spaces "]"
   
-  Ident
-    = IdentHead IdentRestChar*
-  IdentHead
+  ident
+    = identHead identRestChar*
+  identHead
     = "_" | letter
-  IdentRestChar
-    = IdentHead | digit
+  identRestChar
+    = identHead | digit
   
-  Literal
-    = LiteralInteger | LiteralBoolean
-  LiteralInteger
+  literal
+    = literalInteger | literalBoolean
+  literalInteger
     = digit ("_" | digit) *
-  LiteralBoolean
+  literalBoolean
     = "true" | "false"
  
 }

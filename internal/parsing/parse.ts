@@ -37,120 +37,120 @@ export function parse(code: string, opts?: ParseOptions): Node {
 }
 
 semantics.addOperation("transform", {
-  Exp(_spaces_l, exp, _spaces_r) {
+  Exp(exp) {
     return exp.transform();
   },
 
-  BinOpExpPn4_or(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpPn4_or(left, _op, right) {
     return transformBinaryOperator("||", left, right);
   },
-  BinOpExpPn3_and(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpPn3_and(left, _op, right) {
     return transformBinaryOperator("&&", left, right);
   },
-  BinOpExpPn2_eq(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpPn2_eq(left, _op, right) {
     return transformBinaryOperator("==", left, right);
   },
-  BinOpExpPn2_not_eq(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpPn2_not_eq(left, _op, right) {
     return transformBinaryOperator("!=", left, right);
   },
-  BinOpExpPn1_lt(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpPn1_lt(left, _op, right) {
     return transformBinaryOperator("<", left, right);
   },
-  BinOpExpPn1_gt(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpPn1_gt(left, _op, right) {
     return transformBinaryOperator(">", left, right);
   },
-  BinOpExpPn1_lte(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpPn1_lte(left, _op, right) {
     return transformBinaryOperator("<=", left, right);
   },
-  BinOpExpPn1_gte(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpPn1_gte(left, _op, right) {
     return transformBinaryOperator(">=", left, right);
   },
-  BinOpExpP0_pipe(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP0_pipe(left, _op, right) {
     return transformBinaryOperator("|>", left, right);
   },
-  BinOpExpP0p1_repeat(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP0p1_repeat(left, _op, right) {
     return transformBinaryOperator("#", left, right);
   },
-  BinOpExpP1_range(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP1_range(left, _op, right) {
     return transformBinaryOperator("~", left, right);
   },
-  UnOpExpP1_range_short(_op, _spaces_r, right) {
+  UnOpExpP1_range_short(_op, right) {
     return functionCall("~", [right.transform()], "operator");
   },
-  BinOpExpP2_add(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP2_add(left, _op, right) {
     return transformBinaryOperator("+", left, right);
   },
-  BinOpExpP2_sub(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP2_sub(left, _op, right) {
     return transformBinaryOperator("-", left, right);
   },
-  UnOpExpP2_noop(_op, _spaces_r, right) {
+  UnOpExpP2_noop(_op, right) {
     return functionCall("+", [right.transform()], "operator");
   },
-  UnOpExpP2_negate(_op, _spaces_r, right) {
+  UnOpExpP2_negate(_op, right) {
     return functionCall("-", [right.transform()], "operator");
   },
-  BinOpExpP3_mul(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP3_mul(left, _op, right) {
     return transformBinaryOperator("*", left, right);
   },
-  BinOpExpP3_div_int(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP3_div_int(left, _op, right) {
     return transformBinaryOperator("//", left, right);
   },
-  BinOpExpP3_mod_non_negative_int(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP3_mod_non_negative_int(left, _op, right) {
     return transformBinaryOperator("%", left, right);
   },
   // 暂无 P5
-  BinOpExpP5_roll(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP5_roll(left, _op, right) {
     return transformBinaryOperator("d", left, right);
   },
-  BinOpExpP5_roll_dao(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP5_roll_dao(left, _op, right) {
     return transformBinaryOperator("d%", left, right);
   },
-  UnOpExpP5_roll_short(_op, _spaces_r, right) {
+  UnOpExpP5_roll_short(_op, right) {
     return functionCall("d", [right.transform()], "operator");
   },
-  UnOpExpP5_roll_dao_short(_op, _spaces_r, right) {
+  UnOpExpP5_roll_dao_short(_op, right) {
     return functionCall("d%", [right.transform()], "operator");
   },
-  BinOpExpP6_exponent(left, _spaces_l, _op, _spaces_r, right) {
+  BinOpExpP6_exponent(left, _op, right) {
     return transformBinaryOperator("^", left, right);
   },
 
-  UnOpExpP10_range_short(_op, _spaces_r, right) {
+  UnOpExpP10_range_short(_op, right) {
     return functionCall("~", [right.transform()], "operator");
   },
-  UnOpExpP10_noop(_op, _spaces_r, right) {
+  UnOpExpP10_noop(_op, right) {
     return functionCall("+", [right.transform()], "operator");
   },
-  UnOpExpP10_negate(_op, _spaces_r, right) {
+  UnOpExpP10_negate(_op, right) {
     return functionCall("-", [right.transform()], "operator");
   },
-  UnOpExpP10_roll_short(_op, _spaces_r, right) {
+  UnOpExpP10_roll_short(_op, right) {
     return functionCall("d", [right.transform()], "operator");
   },
-  UnOpExpP10_roll_dao_short(_op, _spaces_r, right) {
+  UnOpExpP10_roll_dao_short(_op, right) {
     return functionCall("d%", [right.transform()], "operator");
   },
-  UnOpExpP10_not(_op, _spaces_r, right) {
+  UnOpExpP10_not(_op, right) {
     return functionCall("!", [right.transform()], "operator");
   },
 
-  RollGrouping_grouping(_lp, _spaces_l, exp, _spaces_r, _rp) {
+  RollGrouping_grouping(_lp, exp, _rp) {
     return exp.transform();
   },
-  GroupingExp_grouping(_lp, _spaces_l, exp, _spaces_r, _rp) {
+  GroupingExp_grouping(_lp, exp, _rp) {
     return exp.transform();
   },
 
-  FunctionCallExp_regular(ident, _spaces, args) {
+  FunctionCallExp_regular(ident, args) {
     return functionCall(ident.transform(), args.transform(), "regular");
   },
-  FunctionCallExp_with_closure_argument(ident, _spaces, closure) {
+  FunctionCallExp_with_closure_argument(ident, closure) {
     return functionCall(ident.transform(), [closure.transform()], "regular");
   },
-  FunctionCallExp_closure(closure, _spaces, args) {
+  FunctionCallExp_closure(closure, args) {
     return closureCall(closure.transform(), args.transform());
   },
-  FunctionCallExp_operator(operator, _spaces, args) {
+  FunctionCallExp_operator(operator, args) {
     const nodeOp = operator.transform() as Node_Captured;
     return functionCall(
       nodeOp.identifier,
@@ -160,7 +160,7 @@ semantics.addOperation("transform", {
     );
   },
 
-  AsFunctionExp(_amp, ident_terminal, _slash, arity) {
+  asFunctionExp(_amp, ident_terminal, _slash, arity) {
     return captured(ident_terminal.sourceString, Number(arity.sourceString));
   },
 
@@ -176,15 +176,15 @@ semantics.addOperation("transform", {
     return closure(evalList(identifiers), body.transform());
   },
 
-  Ident(_1, _2) {
+  ident(_1, _2) {
     return this.sourceString;
   },
 
-  LiteralInteger(_1, _2) {
+  literalInteger(_1, _2) {
     return parseInteger(this.sourceString);
   },
 
-  LiteralBoolean(_) {
+  literalBoolean(_) {
     switch (this.sourceString) {
       case "true":
         return value(true);
