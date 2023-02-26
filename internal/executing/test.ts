@@ -31,7 +31,7 @@ describe("值", () => {
   describe("布尔", () => {
     it("可以解析布尔", () => {
       assertExecutionOk("true", true);
-      assertExecutionOk("false", true);
+      assertExecutionOk("false", false);
     });
   });
 
@@ -170,22 +170,30 @@ describe("运算符", () => {
 
     describe("优先级=-2", () => {
       describe("==/2 与 !=/2", () => {
-        it("比较是否相等", () => {
+        const table = [
+          ["1", "1", true],
+          ["-1", "-1", true],
+          ["1", "-1", false],
+        ];
+        describe("相同类型之间比较是否相等", () => {
+          for (const [l, r, eqExpected] of table) {
+            const eqCode = `${l} == ${r}`;
+            it(`${eqCode} => ${eqExpected}`, () => {
+              assertExecutionOk(eqCode, eqExpected, eqCode);
+            });
+            const neCode = `${l} != ${r}`;
+            it(`${neCode} => ${!eqExpected}`, () => {
+              assertExecutionOk(neCode, !eqExpected, neCode);
+            });
+          }
+        });
+        describe("不同类型之间不能相互比较", () => {
           const table = [
-            ["1", "1", true],
-            ["-1", "-1", true],
-            ["1", "-1", false],
             ["1", "true", false],
             ["0", "false", false],
             ["false", "false", true],
           ];
-          for (const [l, r, eqExpected] of table) {
-            const eqCode = `${l} == ${r}`;
-            assertExecutionOk(eqCode, eqExpected);
-
-            const neCode = `${l} == ${r}`;
-            assertExecutionOk(neCode, !eqExpected);
-          }
+          // TODO
         });
       });
     });
@@ -290,7 +298,7 @@ describe("运算符", () => {
         it("将两数相乘", () => {
           assertExecutionOk("10*2", 20);
           assertExecutionOk("10*-2", -20);
-          assertExecutionOk("-1*-1", 2);
+          assertExecutionOk("-1*-1", 1);
         });
         binaryOperatorOnlyAcceptsNumbers("*");
       });
@@ -300,8 +308,8 @@ describe("运算符", () => {
           assertExecutionOk("2//2", 1);
           assertExecutionOk("3//2", 1);
           assertExecutionOk("-3//2", -1);
-          assertExecutionOk("3//-2", 1);
-          assertExecutionOk("-3//-2", -1);
+          assertExecutionOk("3//-2", -1);
+          assertExecutionOk("-3//-2", 1);
         });
         binaryOperatorOnlyAcceptsNumbers("//");
       });
@@ -312,11 +320,11 @@ describe("运算符", () => {
           assertExecutionOk("3%2", 1);
         });
         it("任何操作数都不能是负数", () => {
-          assertExecutionThrows("-3//2", "TODO: error");
-          assertExecutionThrows("3//-2", "TODO: error");
-          assertExecutionThrows("-3//-2", "TODO: error");
+          assertExecutionThrows("-3%2", "TODO: error");
+          assertExecutionThrows("3%-2", "TODO: error");
+          assertExecutionThrows("-3%-2", "TODO: error");
         });
-        binaryOperatorOnlyAcceptsNumbers("//");
+        binaryOperatorOnlyAcceptsNumbers("%");
       });
     });
 

@@ -133,4 +133,8 @@ export const builtinScope: Scope = {
     const [lV, rV] = [left.value, right.value] as [number, number];
     return lV ** rV;
   }),
+  "!/1": makeFunction("-", ["boolean"], ([right]) => {
+    const [rV] = [right.value] as [boolean];
+    return !rV;
+  }),
 };

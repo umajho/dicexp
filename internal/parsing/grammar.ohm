@@ -84,8 +84,8 @@ Dicexp {
     | ListExp
     | ClosureExp
     // | SubscriptExp
-    | ident
     | literal
+    | ident
 
   FunctionCallExp
     = ident ArgumentList                 -- regular
