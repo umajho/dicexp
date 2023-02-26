@@ -36,11 +36,11 @@ export function makeFunction(
   types: AllowedParameterTypes[],
   logic: (args: EvaluatedValue[]) => EvaluatedValue["value"],
 ): Function {
-  return (evalFn, params, style) => {
+  return (params, style, runtime) => {
     const [
       evaluatedParams,
       error,
-    ] = evaluateParameters(evalFn, functionName, params, types);
+    ] = evaluateParameters(runtime.evaluate, functionName, params, types);
 
     if (error !== null) {
       if (evaluatedParams !== null) {

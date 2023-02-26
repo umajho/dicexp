@@ -4,8 +4,12 @@ import { builtinScope } from "./builtin_functions.ts";
 import { EvaluatedValue, evaluatedValue } from "./evaluated_values.ts";
 import { invokeAll } from "./helpers.ts";
 
+export interface RandomGenerator {
+  int32(): number;
+}
+
 export interface RuntimeOptions {
-  random: { bigIntArray: (size: number) => BigInt[] };
+  rng: RandomGenerator;
   // TODO: timeout
 }
 
@@ -14,8 +18,11 @@ export class Runtime {
 
   executed = false;
 
+  rng: RandomGenerator;
+
   constructor(root: Node, opts: RuntimeOptions) {
     this.root = root;
+    this.rng = opts.rng;
   }
 
   executeAndTranslate(): number | boolean | (number | boolean)[] {
@@ -84,10 +91,11 @@ export class Runtime {
             } else if (typeof fn !== "function") {
               throw new Unimplemented();
             }
+            const evalFn = (node: Node) => this.#eval(scope, node);
             const executed = fn(
-              (node) => this.#eval(scope, node),
               args,
               node.style,
+              makeFunctionRuntime(scope, evalFn, this.rng),
             );
             return executed.result;
           },
@@ -107,7 +115,25 @@ export class Runtime {
 export type Scope = { [ident: string]: Function | EvaluatedValue };
 
 export type Function = (
-  evalFn: (node: Node) => EvaluatedValue,
   params: Node[],
   style: FunctionCallStyle,
+  runtime: FunctionRuntime,
 ) => { result: EvaluatedValue };
+
+export interface FunctionRuntime {
+  evaluate: (node: Node) => EvaluatedValue;
+  scope: Scope;
+  random: RandomGenerator;
+}
+
+function makeFunctionRuntime(
+  scope: Scope,
+  evalFn: (node: Node) => EvaluatedValue,
+  randomGenerator: RandomGenerator,
+): FunctionRuntime {
+  return {
+    evaluate: evalFn,
+    scope,
+    random: randomGenerator,
+  };
+}
