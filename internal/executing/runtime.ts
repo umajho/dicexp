@@ -18,7 +18,7 @@ export class Runtime {
     this.root = root;
   }
 
-  executeAndTranslate(): number | boolean {
+  executeAndTranslate(): number | boolean | (number | boolean)[] {
     const result = this.execute();
 
     switch (typeof result.value) {
@@ -26,6 +26,13 @@ export class Runtime {
       case "boolean":
         return result.value;
       default:
+        if (Array.isArray(result.value)) {
+          return result.value.map((evaluatedValue) => {
+            const v = evaluatedValue.value;
+            if (typeof v === "number" || typeof v === "boolean") return v;
+            throw new Unimplemented();
+          });
+        }
         throw new Unimplemented();
     }
   }
@@ -46,7 +53,18 @@ export class Runtime {
         if (typeof node.value === "number" || typeof node.value === "boolean") {
           return evaluatedValue(node.value, [`${node.value}`]);
         }
-        throw new Unimplemented();
+        switch (node.value.valueKind) {
+          case "list": {
+            const listEvaluated = node.value.member.map((node) =>
+              this.#eval(scope, node)
+            );
+            return evaluatedValue(listEvaluated, ["TODO: step for list"]);
+          }
+          case "closure":
+            throw new Unimplemented();
+          default:
+            throw new Unreachable();
+        }
       }
       case "function_call": {
         // FIXME: 如果 `evaluatedArgs` 中存在错误，则应不 eval 其他部分直接返回。
