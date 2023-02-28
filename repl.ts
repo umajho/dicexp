@@ -7,7 +7,7 @@ while (1) {
   try {
     const parsed = parse(code);
     const result = execute(parsed);
-    console.log(`%c=> ${result}`, "color: green");
+    console.log(`%c=> ${Deno.inspect(result)}`, "color: green");
   } catch (e) {
     console.error(e);
   }
