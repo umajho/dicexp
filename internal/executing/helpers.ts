@@ -6,14 +6,15 @@ import {
 } from "../parsing/building_blocks.ts";
 import {
   asLazy,
-  errored,
+  ConcreteValue,
+  concreteValue,
+  ErrorValue,
+  errorValue,
   EvaluatedValue,
-  evaluatedValue,
   EvaluatedValueTypes,
   getTypeName,
-  isErrored,
+  LazyValue,
   Step,
-  unevaluated,
 } from "./evaluated_values.ts";
 import {
   RuntimeError,
@@ -32,42 +33,57 @@ export type AllowedParameterTypes =
  * TODO: types 应该允许同一个参数可以是指定的多种类型
  *
  * @param functionName
- * @param types
+ * @param paramTypes
  * @param logic
  * @returns
  */
 export function makeFunction(
   functionName: string,
-  types: AllowedParameterTypes[],
+  paramTypes: AllowedParameterTypes[],
   logic: (
-    args: EvaluatedValue[],
+    args: ConcreteValue[],
     runtime: FunctionRuntime,
-  ) => EvaluatedValue["value"],
+  ) => ConcreteValue["value"] | ErrorValue["error"] | LazyValue,
 ): Function {
   return (params, style, runtime) => {
     const [
       evaluatedParams,
       error,
-    ] = evaluateParameters(runtime.evaluate, functionName, params, types);
+    ] = evaluateParameters(runtime.evaluate, functionName, params, paramTypes);
 
     if (error !== null) {
       if (evaluatedParams !== null) {
         // FIXME: 这里感觉有些乱，`makeFunction` 与 `evaluateParameters` 耦合得很紧。
         return {
-          result: errored(
+          result: errorValue(
             error,
-            renderFunctionStep(functionName, evaluatedParams, style),
+            renderFunctionStep(
+              functionName,
+              evaluatedParams,
+              style,
+            ),
           ),
         };
       }
-      return { result: errored(error) };
+      return { result: errorValue(error) };
     }
 
-    const result = logic(evaluatedParams, runtime);
-    // TODO: 数字超过范围要不要也在这里处理，还是调用这个闭包的函数处理？
-    const step = renderFunctionStep(functionName, evaluatedParams, style);
-    const evaluatedResult = evaluatedValue(result, step);
-    return { result: evaluatedResult };
+    const resultValue = logic(evaluatedParams, runtime);
+    let result: EvaluatedValue;
+    if (resultValue instanceof RuntimeError) {
+      const step = renderFunctionStep(functionName, evaluatedParams, style);
+      result = errorValue(resultValue, step);
+    } else if (
+      typeof resultValue === "object" && "kind" in resultValue
+    ) {
+      if (resultValue.kind !== "lazy") throw new Unreachable();
+      result = resultValue;
+    } else {
+      // TODO: 数字超过范围要不要也在这里处理，还是调用这个闭包的函数处理？
+      const step = renderFunctionStep(functionName, evaluatedParams, style);
+      result = concreteValue(resultValue, step);
+    }
+    return { result };
   };
 }
 
@@ -82,19 +98,33 @@ export function makeUnaryRedirection(
       "operator",
       2,
     );
-    const { value, step } = runtime.evaluate(redirected);
-    return {
-      result: evaluatedValue(value, ["TODO: redirection step", step]),
-    };
+    const binaryResult = invokeAll(runtime.evaluate(redirected));
+    let result: EvaluatedValue;
+    if (binaryResult.kind === "concrete") {
+      result = concreteValue(binaryResult.value, [
+        "TODO: redirection step",
+        binaryResult.step,
+      ]);
+    } else {
+      result = errorValue(binaryResult.error, [
+        "TODO: redirection step",
+        binaryResult.step,
+      ]);
+    }
+    return { result };
   };
 }
+
+type ListElementWithError = ConcreteValue | ErrorValue | Unevaluated;
 
 export function evaluateParameters(
   evalFn: (node: Node) => EvaluatedValue,
   functionName: string,
   params: Node[],
   types: AllowedParameterTypes[],
-): [EvaluatedValue[] | null, RuntimeError] | [EvaluatedValue[], null] {
+):
+  | [ListElementWithError[] | null, RuntimeError]
+  | [ConcreteValue[], null] {
   if (params.length != types.length) {
     return [
       null,
@@ -102,7 +132,7 @@ export function evaluateParameters(
     ];
   }
 
-  const evaluatedParams: EvaluatedValue[] = [];
+  const evaluatedParams: ListElementWithError[] = [];
   let paramError: RuntimeError | null = null;
   for (const [i, param] of params.entries()) {
     if (paramError) {
@@ -110,15 +140,15 @@ export function evaluateParameters(
       continue;
     }
     const evaluated = invokeAll(evalFn(param));
-    if (isErrored(evaluated)) {
+    if (evaluated.kind === "error") {
       evaluatedParams.push(evaluated);
-      paramError = evaluated.value as unknown as RuntimeError;
+      paramError = evaluated.error;
       continue;
     }
 
     const typeError = checkTypes(types[i], evaluated);
     if (typeError) {
-      evaluatedParams.push(errored(typeError));
+      evaluatedParams.push(errorValue(typeError));
       paramError = typeError;
       continue;
     }
@@ -128,9 +158,21 @@ export function evaluateParameters(
 
   if (paramError) {
     return [evaluatedParams, paramError];
+  } else {
+    const checked = evaluatedParams.map((v) => {
+      if (v.kind === "concrete") return v;
+      throw new Unreachable();
+    });
+    return [checked, null];
   }
+}
 
-  return [evaluatedParams, null];
+interface Unevaluated {
+  kind: "unevaluated";
+  step: Step;
+}
+function unevaluated(): Unevaluated {
+  return { kind: "unevaluated", step: ["_"] };
 }
 
 /**
@@ -138,13 +180,14 @@ export function evaluateParameters(
  * TODO: 函数如果执行成功，结果也应该包含在这里。
  *
  * @param functionName
- * @param params
+ * @param params 可以不够 `paramLength` 的长度，没有传入代表没有 evaluate。
+ * @param paramLength
  * @param style
  * @returns
  */
 function renderFunctionStep(
   functionName: string,
-  params: EvaluatedValue[],
+  params: ListElementWithError[],
   style: FunctionCallStyle,
 ): Step {
   if (style === "operator") {
@@ -157,7 +200,7 @@ function renderFunctionStep(
     }
   }
 
-  const [step, paramsRest]: [Step, EvaluatedValue[]] = (() => {
+  const [step, paramsRest]: [Step, ListElementWithError[]] = (() => {
     if (style === "piped") {
       return [["(", params[0].step, ` |> ${functionName}(`], params.slice(1)];
     } else {
@@ -174,11 +217,13 @@ function renderFunctionStep(
   return step;
 }
 
-export function invokeAll(evaluated: EvaluatedValue): EvaluatedValue {
+export function invokeAll(
+  evaluated: EvaluatedValue,
+): ConcreteValue | ErrorValue {
   const lazy = asLazy(evaluated);
-  if (!lazy) return evaluated;
+  if (!lazy) return evaluated as (ConcreteValue | ErrorValue);
 
-  const actuallyEvaluated = lazy.invoke(lazy.args);
+  const actuallyEvaluated = lazy.execute(lazy.args);
 
   return invokeAll(actuallyEvaluated);
 }

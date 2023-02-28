@@ -1,3 +1,4 @@
+import { Unreachable } from "../../errors.ts";
 import { Node, NodeValue_Closure } from "../parsing/building_blocks.ts";
 import { RuntimeError } from "./runtime_errors.ts";
 
@@ -19,67 +20,80 @@ export function typeDisplayText(t: EvaluatedValueTypes) {
   }
 }
 
-export interface EvaluatedValue {
-  value:
-    | number
-    | boolean
-    | EvaluatedValue[]
-    | NodeValue_Closure
-    | Lazy
-    | RuntimeError
-    | null; // null 代表未被 eval。（比如之前的哪个值出错了时。）
+export type EvaluatedValue = ConcreteValue | LazyValue | ErrorValue;
 
-  /** 当前步骤 */
+export interface ConcreteValue {
+  kind: "concrete";
+  value: number | boolean | ConcreteValue[] | NodeValue_Closure;
+  step: Step;
+}
+
+export interface LazyValue {
+  kind: "lazy";
+  execute: (args: Node[]) => EvaluatedValue;
+  args: Node[];
+  /**
+   * 是否不能修改 args。
+   */
+  frozen: boolean;
+}
+
+export interface ErrorValue {
+  kind: "error";
+  error: RuntimeError;
   step: Step;
 }
 
 export type Step = (string | Step)[];
 
-export function evaluatedValue(
-  value: EvaluatedValue["value"],
+export function getTypeName(v: EvaluatedValue) {
+  switch (v.kind) {
+    case "concrete":
+      switch (typeof v.value) {
+        case "number":
+          return "number";
+        case "boolean":
+          return "boolean";
+        default:
+          if (Array.isArray(v.value)) return "list";
+          if (v.value.valueKind === "closure") return "closure";
+          throw new Unreachable();
+      }
+    case "lazy":
+      return "lazy";
+    case "error":
+      return "error";
+    default:
+      throw new Unreachable();
+  }
+}
+
+export function concreteValue(
+  value: ConcreteValue["value"],
   step: Step,
-): EvaluatedValue {
+): ConcreteValue {
   return {
+    kind: "concrete",
     value,
     step,
   };
 }
 
-export function getTypeName(v: EvaluatedValue) {
-  switch (typeof v.value) {
-    case "number":
-      return "number";
-    case "boolean":
-      return "boolean";
-    case "object":
-      if (Array.isArray(v.value)) return "list";
-      if (v.value === null) return "unevaluated";
-      if (v.value instanceof RuntimeError) return "errored";
-      return v.value.valueKind;
-  }
+export function lazyValue(
+  fn: LazyValue["execute"],
+  args: LazyValue["args"],
+  isFrozen: boolean,
+): LazyValue {
+  return {
+    kind: "lazy",
+    execute: fn,
+    args,
+    frozen: isFrozen,
+  };
 }
 
-/**
- * 确保 `|>` 的功能。
- */
-export interface Lazy {
-  valueKind: "lazy";
-
-  pipeable: boolean;
-
-  invoke: (args: Node[]) => EvaluatedValue;
-
-  args: Node[];
-}
-
-export function asLazy(v: EvaluatedValue): Lazy | null {
-  if (
-    typeof v.value === "object" && v.value !== null &&
-    !Array.isArray(v.value) && !(v.value instanceof RuntimeError) &&
-    v.value.valueKind === "lazy"
-  ) {
-    return v.value;
-  }
+export function asLazy(v: EvaluatedValue): LazyValue | null {
+  if (v.kind === "lazy") return v;
   return null;
 }
 
@@ -91,17 +105,13 @@ export function asLazy(v: EvaluatedValue): Lazy | null {
  * @param step
  * @returns
  */
-export function errored(
+export function errorValue(
   error: RuntimeError,
   step: Step | null = null,
-): EvaluatedValue {
-  return evaluatedValue(error, step ?? [`【${error.message}】`]);
-}
-
-export function isErrored(v: EvaluatedValue) {
-  return v.value instanceof RuntimeError;
-}
-
-export function unevaluated(): EvaluatedValue {
-  return evaluatedValue(null, ["_"]);
+): ErrorValue {
+  return {
+    kind: "error",
+    error,
+    step: step ?? [`【${error.message}】`],
+  };
 }

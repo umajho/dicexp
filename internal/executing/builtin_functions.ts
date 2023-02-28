@@ -1,6 +1,11 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
 import { value } from "../parsing/building_blocks.ts";
-import { evaluatedValue, getTypeName, Lazy } from "./evaluated_values.ts";
+import {
+  concreteValue,
+  getTypeName,
+  LazyValue,
+  lazyValue,
+} from "./evaluated_values.ts";
 import { makeFunction, makeUnaryRedirection } from "./helpers.ts";
 import { RandomGenerator, Scope } from "./runtime.ts";
 import {
@@ -153,15 +158,13 @@ function makeGeneratorWithRange(
   rng: RandomGenerator,
   n: number,
   bounds: [number, number],
-): Lazy {
+): LazyValue {
   if (bounds[0] > bounds[1]) {
     bounds = [bounds[1], bounds[0]];
   }
   const [lower, upper] = bounds;
-  return {
-    valueKind: "lazy",
-    pipeable: false,
-    invoke: (_args) => {
+  return lazyValue(
+    (_args) => {
       let result = 0;
       for (let i = 0; i < n; i++) {
         const sides = upper - lower + 1;
@@ -173,10 +176,11 @@ function makeGeneratorWithRange(
         const single = lower + (rn % sides);
         result += single;
       }
-      return evaluatedValue(result, ["TODO: step"]);
+      return concreteValue(result, ["TODO: step"]);
     },
-    args: [],
-  };
+    [],
+    true,
+  );
 }
 
 function ensureUpperBound(

@@ -1,7 +1,18 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
-import { FunctionCallStyle, Node } from "../parsing/building_blocks.ts";
+import {
+  FunctionCallStyle,
+  Node,
+  Node_FunctionCall,
+  NodeValue_List,
+} from "../parsing/building_blocks.ts";
 import { builtinScope } from "./builtin_functions.ts";
-import { EvaluatedValue, evaluatedValue } from "./evaluated_values.ts";
+import {
+  ConcreteValue,
+  concreteValue,
+  EvaluatedValue,
+  LazyValue,
+  lazyValue,
+} from "./evaluated_values.ts";
 import { invokeAll } from "./helpers.ts";
 import { RuntimeError } from "./runtime_errors.ts";
 
@@ -33,21 +44,27 @@ export class Runtime {
     | RuntimeError {
     const result = this.execute();
 
-    switch (typeof result.value) {
-      case "number":
-      case "boolean":
-        return result.value;
-      default:
-        if (Array.isArray(result.value)) {
-          return result.value.map((evaluatedValue) => {
-            const v = evaluatedValue.value;
-            if (typeof v === "number" || typeof v === "boolean") return v;
+    switch (result.kind) {
+      case "concrete":
+        switch (typeof result.value) {
+          case "number":
+          case "boolean":
+            return result.value;
+          default:
+            if (Array.isArray(result.value)) {
+              return result.value.map((evaluatedValue) => {
+                const v = evaluatedValue.value;
+                if (typeof v === "number" || typeof v === "boolean") return v;
+                throw new Unimplemented();
+              });
+            }
             throw new Unimplemented();
-          });
-        } else if (result.value instanceof RuntimeError) {
-          return result.value;
         }
-        throw new Unimplemented();
+        break;
+      case "lazy":
+        throw new Unreachable();
+      case "error":
+        return result.error;
     }
   }
 
@@ -65,14 +82,11 @@ export class Runtime {
     switch (node.kind) {
       case "value": {
         if (typeof node.value === "number" || typeof node.value === "boolean") {
-          return evaluatedValue(node.value, [`${node.value}`]);
+          return concreteValue(node.value, [`${node.value}`]);
         }
         switch (node.value.valueKind) {
           case "list": {
-            const listEvaluated = node.value.member.map((node) =>
-              this.#eval(scope, node)
-            );
-            return evaluatedValue(listEvaluated, ["TODO: step for list"]);
+            return this.#evalList(scope, node.value);
           }
           case "closure":
             throw new Unimplemented();
@@ -82,33 +96,7 @@ export class Runtime {
       }
       case "function_call": {
         // FIXME: 如果 `evaluatedArgs` 中存在错误，则应不 eval 其他部分直接返回。
-        return evaluatedValue({
-          valueKind: "lazy",
-          pipeable: true,
-          invoke: (args) => {
-            if (
-              node.forceArity !== undefined &&
-              node.forceArity !== args.length
-            ) {
-              throw new Unimplemented();
-            }
-
-            const fn = scope[`${node.identifier}/${args.length}`];
-            if (!fn) {
-              throw new Unimplemented();
-            } else if (typeof fn !== "function") {
-              throw new Unimplemented();
-            }
-            const evalFn = (node: Node) => this.#eval(scope, node);
-            const executed = fn(
-              args,
-              node.style,
-              makeFunctionRuntime(scope, evalFn, this.rng),
-            );
-            return executed.result;
-          },
-          args: node.args,
-        }, ["FIXME: lazy 的 step 在执行后才会有。"]);
+        return this.#evalFunctionCall(scope, node);
       }
       case "closure_call":
         throw new Unimplemented();
@@ -117,6 +105,47 @@ export class Runtime {
       default:
         throw new Unreachable();
     }
+  }
+
+  #evalList(scope: Scope, list: NodeValue_List): ConcreteValue {
+    const listEvaluated = [];
+    for (const elemNode of list.member) {
+      const elemEvaluated = invokeAll(this.#eval(scope, elemNode));
+      if (elemEvaluated.kind === "error") {
+        throw new Unimplemented();
+      }
+      listEvaluated.push(elemEvaluated);
+    }
+    return concreteValue(listEvaluated, ["TODO: step for list"]);
+  }
+
+  #evalFunctionCall(scope: Scope, call: Node_FunctionCall): LazyValue {
+    return lazyValue(
+      (args) => {
+        if (
+          call.forceArity !== undefined &&
+          call.forceArity !== args.length
+        ) {
+          throw new Unimplemented();
+        }
+
+        const fn = scope[`${call.identifier}/${args.length}`];
+        if (!fn) {
+          throw new Unimplemented();
+        } else if (typeof fn !== "function") {
+          throw new Unimplemented();
+        }
+        const evalFn = (node: Node) => this.#eval(scope, node);
+        const executed = fn(
+          args,
+          call.style,
+          makeFunctionRuntime(scope, evalFn, this.rng),
+        );
+        return executed.result;
+      },
+      call.args,
+      false,
+    );
   }
 }
 
