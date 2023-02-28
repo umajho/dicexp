@@ -78,7 +78,7 @@ export function makeUnaryRedirection(
   return (params, _style, runtime) => {
     const redirected = functionCall(
       functionName,
-      [params[0], leftValue],
+      [leftValue, params[0]],
       "operator",
       2,
     );

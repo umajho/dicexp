@@ -1,4 +1,7 @@
-import { assert } from "https://deno.land/std@0.178.0/testing/asserts.ts";
+import {
+  assert,
+  assertEquals,
+} from "https://deno.land/std@0.178.0/testing/asserts.ts";
 import {
   // afterEach,
   // beforeEach,
@@ -54,15 +57,22 @@ describe("值", () => {
       describe("~/2", () => {
         it("保证生成的数在范围内", () => {
           const lower = 10;
-          const code = `${lower}~${lower + 10}`;
+          const code = `${lower}~${lower * 2}`;
           for (let j = 0; j < 100; j++) {
             const result = assertNumber(execute(code));
 
             assert(
-              result >= lower && result <= lower + 1000,
+              result >= lower && result <= lower * 2,
               `\`${code}\` => ${result}`,
             );
           }
+        });
+        it("保证生成的是随机数", () => {
+          // 有可忽略的 1/1000000^10 的概率 false negative，后几个同名测试也是
+          const lower = 1000000;
+          const code = `${lower}~${lower * 2}`;
+          const results = Array(10).fill(null).map((_) => execute(code));
+          assert(new Set(results).size > 1);
         });
       });
       describe("~/1", () => {
@@ -77,14 +87,20 @@ describe("值", () => {
             );
           }
         });
+        it("保证生成的是随机数", () => {
+          const upper = 1000000;
+          const code = `~${upper}`;
+          const results = Array(10).fill(null).map((_) => execute(code));
+          assert(new Set(results).size > 1);
+        });
       });
 
       describe("d/1 与 d/2", () => {
         it("保证生成的数在范围内", () => {
           for (const isBinary of [false, true]) {
             const upper = 10;
-            const times = isBinary ? 3 : 1;
-            const code = `${isBinary ? 3 : ""}d${upper}`;
+            const times = isBinary ? 100 : 1;
+            const code = `${isBinary ? 100 : ""}d${upper}`;
 
             for (let j = 0; j < 100; j++) {
               const result = assertNumber(execute(code));
@@ -95,14 +111,20 @@ describe("值", () => {
             }
           }
         });
+        it("保证生成的是随机数", () => {
+          const upper = 1000000;
+          const code = `d${upper}`;
+          const results = Array(10).fill(null).map((_) => execute(code));
+          assert(new Set(results).size > 1);
+        });
       });
 
       describe("d%/1 与 d%/2", () => {
         it("保证生成的数在范围内", () => {
           for (const isBinary of [false, true]) {
             const upper = 10;
-            const times = isBinary ? 3 : 1;
-            const code = `${isBinary ? 3 : ""}d%${upper}`;
+            const times = isBinary ? 100 : 1;
+            const code = `${isBinary ? 100 : ""}d%${upper}`;
 
             for (let j = 0; j < 100; j++) {
               const result = assertNumber(execute(code));
@@ -113,6 +135,12 @@ describe("值", () => {
             }
           }
         });
+      });
+      it("保证生成的是随机数", () => {
+        const upper = 1000000;
+        const code = `d%${upper}`;
+        const results = Array(10).fill(null).map((_) => execute(code));
+        assert(new Set(results).size > 1);
       });
     });
   });
