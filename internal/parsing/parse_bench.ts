@@ -1,10 +1,13 @@
 import { parse } from "./parse.ts";
 import { simpleParse } from "./parse_simple.ts";
 
-const codes = [
-  "~10",
-  "1~10",
-  "d10 ~ 3d8+10",
+const codes: (string | [string, boolean])[] = [
+  ["~10", true],
+  ["1~10", true],
+  ["d10 ~ 3d8+10", true],
+  ["3#d10", true],
+  ["d4 # d10 ~ 3d8+10", true],
+
   "3#d10",
   "[1, 2, 3]",
   "sum([1, 2, 3])",
@@ -16,22 +19,21 @@ const codes = [
   "3#d10 |> map(&-/1)",
 ];
 
-for (const code of codes) {
+for (const codeRow of codes) {
+  let includesSimple = false;
+  let code: string;
+  if (Array.isArray(codeRow)) {
+    code = codeRow[0];
+    includesSimple = codeRow[1];
+  } else {
+    code = codeRow;
+  }
+  if (includesSimple) {
+    Deno.bench(`simple: ${code}`, () => {
+      parse(code, { optimizesForSimpleCases: true });
+    });
+  }
   Deno.bench(code, () => {
     parse(code, { optimizesForSimpleCases: false });
-  });
-}
-
-const codesSimple = [
-  "~10",
-  "1~10",
-  "d10 ~ 3d8+10",
-  "3#d10",
-  "d4 # d10 ~ 3d8+10",
-];
-
-for (const code of codesSimple) {
-  Deno.bench(`simple: ${code}`, () => {
-    simpleParse("code");
   });
 }
