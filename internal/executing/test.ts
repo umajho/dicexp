@@ -354,7 +354,7 @@ describe("运算符", () => {
 
     describe("优先级=4", () => {
       describe("#/1", () => {
-        it("将右侧右侧内容在 eval 前重复左侧次", () => {
+        it("将右侧内容在 eval 前重复左侧次", () => {
           assertExecutionOk("3#10", Array(3).fill(10));
 
           // NOTE: 有 1/10^30 的概率真的相同，忽略不计
