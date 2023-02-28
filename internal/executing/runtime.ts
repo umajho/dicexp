@@ -14,7 +14,11 @@ import {
   lazyValue,
 } from "./evaluated_values.ts";
 import { invokeAll } from "./helpers.ts";
-import { RuntimeError } from "./runtime_errors.ts";
+import {
+  RuntimeError,
+  RuntimeError_NotAFunction,
+  RuntimeError_UnknownIdentifier,
+} from "./runtime_errors.ts";
 
 export interface RandomGenerator {
   int32(): number;
@@ -24,6 +28,8 @@ export interface RuntimeOptions {
   rng: RandomGenerator;
   // TODO: timeout
 }
+
+export type ResultValue = number | boolean | ResultValue[];
 
 export class Runtime {
   root: Node;
@@ -37,35 +43,42 @@ export class Runtime {
     this.rng = opts.rng;
   }
 
-  executeAndTranslate():
-    | number
-    | boolean
-    | (number | boolean)[]
-    | RuntimeError {
+  executeAndTranslate(): ResultValue | RuntimeError {
     const result = this.execute();
+    if (result.kind === "error") return result.error;
+    return this.translate(result);
+  }
 
-    switch (result.kind) {
+  translate(evaluatedValue: EvaluatedValue): ResultValue {
+    switch (evaluatedValue.kind) {
       case "concrete":
-        switch (typeof result.value) {
+        switch (typeof evaluatedValue.value) {
           case "number":
           case "boolean":
-            return result.value;
+            return evaluatedValue.value;
           default:
-            if (Array.isArray(result.value)) {
-              return result.value.map((evaluatedValue) => {
-                const v = evaluatedValue.value;
-                if (typeof v === "number" || typeof v === "boolean") return v;
-                throw new Unimplemented();
-              });
+            if (Array.isArray(evaluatedValue.value)) {
+              return this.#translateList(evaluatedValue.value);
             }
             throw new Unimplemented();
         }
         break;
       case "lazy":
-        throw new Unreachable();
       case "error":
-        return result.error;
+        throw new Unreachable();
     }
+  }
+
+  #translateList(list: ConcreteValue[]): ResultValue {
+    const resultList: ResultValue = Array(list.length);
+    for (const [i, elem] of list.entries()) {
+      if (Array.isArray(elem)) {
+        resultList[i] = this.#translateList(elem);
+      } else {
+        resultList[i] = this.translate(elem);
+      }
+    }
+    return resultList;
   }
 
   execute(): EvaluatedValue {
@@ -129,11 +142,13 @@ export class Runtime {
           throw new Unimplemented();
         }
 
-        const fn = scope[`${call.identifier}/${args.length}`];
+        const fullIdent = `${call.identifier}/${args.length}`;
+        const fn = scope[fullIdent];
         if (!fn) {
-          throw new Unimplemented();
+          throw new RuntimeError_UnknownIdentifier(fullIdent);
         } else if (typeof fn !== "function") {
-          throw new Unimplemented();
+          // FIXME: 由于有 arity 标记，不可能会走到这里吧
+          throw new RuntimeError_NotAFunction(fullIdent);
         }
         const evalFn = (node: Node) => this.#eval(scope, node);
         const executed = fn(

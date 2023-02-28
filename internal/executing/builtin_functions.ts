@@ -1,14 +1,22 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
 import { value } from "../parsing/building_blocks.ts";
 import {
+  ConcreteValue,
   concreteValue,
   getTypeName,
   LazyValue,
   lazyValue,
+  typeDisplayText,
 } from "./evaluated_values.ts";
-import { makeFunction, makeUnaryRedirection } from "./helpers.ts";
+import {
+  flattenListAll,
+  makeFunction,
+  makeUnaryRedirection,
+  testFlattenListType,
+} from "./helpers.ts";
 import { RandomGenerator, Scope } from "./runtime.ts";
 import {
+  RuntimeError,
   RuntimeError_IllegalOperation,
   RuntimeError_TypeMismatch,
 } from "./runtime_errors.ts";
@@ -152,6 +160,65 @@ export const builtinScope: Scope = {
     const [rV] = [right.value] as [boolean];
     return !rV;
   }),
+  // 投骰子：
+  // reroll/2
+  // explode/2
+
+  // 实用：
+  "sum/1": makeFunction("sum", ["list"], ([list]) => {
+    const _flatten = flattenListAll(list);
+    if (!testFlattenListType(_flatten, "number")) {
+      return error_flattenListElementTypesMismatch("sum/1", "number");
+    } else {
+      return (_flatten as number[]).reduce((acc, cur) => acc + cur);
+    }
+  }),
+  "product/1": makeFunction("product", ["list"], ([list]) => {
+    const _flatten = flattenListAll(list);
+    if (!testFlattenListType(_flatten, "number")) {
+      return error_flattenListElementTypesMismatch("product/1", "number");
+    } else {
+      return (_flatten as number[]).reduce((acc, cur) => acc * cur);
+    }
+  }),
+  // min/1
+  // max/1
+  // all/1
+  // any
+  // sort/1
+  // sort/2
+  // reverse/1
+  // concat/2
+  // append/2
+  // at/2
+  // duplicate/2
+  // flatten
+
+  // 函数式：
+  // map/2
+  // flatMap/2
+  // filter/2
+  // foldl/3
+  // foldr/3
+  // head/1
+  // tail/1
+  // last/1
+  // init/1
+  // take/2
+  // takeWhile/2
+  // drop/2
+  // dropWhile/2
+  "zip/2": makeFunction("sum", ["list", "list"], ([l1_, l2_]) => {
+    const listA = l1_.value as ConcreteValue[];
+    const listB = l2_.value as ConcreteValue[];
+    const zippedLength = Math.min(listA.length, listB.length);
+    const result = Array(zippedLength);
+    for (let i = 0; i < zippedLength; i++) {
+      result[i] = [listA[i], listB[i]];
+    }
+    return result;
+  }),
+  // zipWith/3
 };
 
 function makeGeneratorWithRange(
@@ -210,4 +277,16 @@ function renderOperation(
     return `${left} ${op}`;
   }
   return `${left} ${op} ${right}`;
+}
+
+function error_flattenListElementTypesMismatch(
+  fnName: string,
+  expectedElemType: "number" | "boolean",
+  position = 1,
+) {
+  const expectedElemTypeDisplayText = typeDisplayText(expectedElemType);
+  return new RuntimeError(
+    `作为第 ${position} 个参数传入 \`${fnName}\` 的数组在扁平化后，` +
+      `其成员必须皆为${expectedElemTypeDisplayText}`,
+  );
 }

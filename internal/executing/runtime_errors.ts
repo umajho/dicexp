@@ -58,3 +58,31 @@ export class RuntimeError_IllegalOperation extends RuntimeError {
     return `操作 “${this.operation}” 非法：${this.reason}。`;
   }
 }
+
+// TODO: 给出可能的推荐，比如同名不同 arity 或名称相似的标识符。
+//       也许可以用 `npm:string-similarity`
+export class RuntimeError_UnknownIdentifier extends RuntimeError {
+  name: string;
+
+  constructor(name: string) {
+    super();
+    this.name = name;
+  }
+
+  get message() {
+    return `\`${this.name}\` 并不存在`;
+  }
+}
+
+export class RuntimeError_NotAFunction extends RuntimeError {
+  name: string;
+
+  constructor(name: string) {
+    super();
+    this.name = name;
+  }
+
+  get message() {
+    return `\`${this.name}\` 不是函数`;
+  }
+}

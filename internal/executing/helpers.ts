@@ -3,6 +3,7 @@ import {
   FunctionCallStyle,
   Node,
   Node_Value,
+  NodeValue_Closure,
 } from "../parsing/building_blocks.ts";
 import {
   asLazy,
@@ -240,4 +241,38 @@ function checkTypes(
   if ((expected as string[]).includes(actual)) return null;
 
   return new RuntimeError_TypeMismatch(expected, actual);
+}
+
+type FlattenList = (number | boolean | NodeValue_Closure)[];
+
+export function flattenListAll(
+  list: ConcreteValue,
+): FlattenList {
+  return (list.value as ConcreteValue[]).flatMap((v) => {
+    if (Array.isArray(v.value)) return flattenListAll(v);
+    return v.value;
+  });
+}
+
+export function testFlattenListType(
+  list: FlattenList,
+  expected: "number" | "boolean" | "closure",
+) {
+  for (const elem of list) {
+    switch (expected) {
+      case "number":
+        if (typeof elem !== "number") return false;
+        break;
+      case "boolean":
+        if (typeof elem !== "boolean") return false;
+        break;
+      case "closure":
+        if (typeof elem !== "object") return false;
+        if (elem.valueKind !== "closure") return false;
+        break;
+      default:
+        throw new Unreachable();
+    }
+  }
+  return true;
 }
