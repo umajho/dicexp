@@ -1,7 +1,4 @@
-import {
-  assert,
-  assertEquals,
-} from "https://deno.land/std@0.178.0/testing/asserts.ts";
+import { assert } from "https://deno.land/std@0.178.0/testing/asserts.ts";
 import {
   // afterEach,
   // beforeEach,
@@ -19,8 +16,6 @@ import {
   unaryOperatorOnlyAcceptsBoolean,
   unaryOperatorOnlyAcceptsNumbers,
 } from "./test_helpers.ts";
-
-import { random } from "npm:random-seedable@1";
 
 import { execute } from "./execute.ts";
 

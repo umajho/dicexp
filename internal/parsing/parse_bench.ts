@@ -1,5 +1,4 @@
 import { parse } from "./parse.ts";
-import { simpleParse } from "./parse_simple.ts";
 
 const codes: (string | [string, boolean])[] = [
   ["~10", true],

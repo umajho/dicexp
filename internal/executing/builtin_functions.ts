@@ -1,5 +1,5 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
-import { functionCall, value } from "../parsing/building_blocks.ts";
+import { value } from "../parsing/building_blocks.ts";
 import { evaluatedValue, getTypeName, Lazy } from "./evaluated_values.ts";
 import { makeFunction, makeUnaryRedirection } from "./helpers.ts";
 import { RandomGenerator, Scope } from "./runtime.ts";
