@@ -62,12 +62,15 @@ describe("值", () => {
             );
           }
         });
-        it("保证生成的是随机数", () => {
-          // 有可忽略的 1/1000000^10 的概率 false negative，后几个同名测试也是
-          const lower = 1000000;
-          const code = `${lower}~${lower * 2}`;
-          const results = Array(10).fill(null).map((_) => execute(code));
-          assert(new Set(results).size > 1);
+        it({ // FIXME: 应该检查生成的随机数符合均匀分布
+          name: "保证生成的是随机数",
+          fn: () => {
+            // 有可忽略的 1/1000000^10 的概率 false negative，后几个同名测试也是
+            const lower = 1000000;
+            const code = `${lower}~${lower * 2}`;
+            const results = Array(10).fill(null).map((_) => execute(code));
+            assert(new Set(results).size > 1);
+          },
         });
       });
       describe("~/1", () => {
@@ -438,3 +441,4 @@ describe("限制", () => {
 });
 
 // TODO: 同种子下结果相同
+// TODO: 运行时错误

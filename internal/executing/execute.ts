@@ -1,4 +1,4 @@
-import { XORWow } from "npm:random-seedable@1";
+import { MersenneTwister } from "npm:random-seedable@1";
 import { Node } from "../parsing/building_blocks.ts";
 import { parse } from "../parsing/parse.ts";
 import { RandomGenerator, Runtime, RuntimeOptions } from "./runtime.ts";
@@ -6,7 +6,7 @@ import { RandomGenerator, Runtime, RuntimeOptions } from "./runtime.ts";
 export function execute(node: string | Node, opts?: RuntimeOptions) {
   if (!opts) {
     opts = {
-      rng: new RandomGeneratorWrapper(new XORWow()),
+      rng: new RandomGeneratorWrapper(new MersenneTwister()),
     };
   }
 
