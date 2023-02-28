@@ -18,3 +18,6 @@ test: pre-run
 
 bench: pre-run
   deno bench
+
+repl: pre-run
+  deno run repl.ts
