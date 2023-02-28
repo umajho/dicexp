@@ -108,7 +108,6 @@ export class Runtime {
         }
       }
       case "function_call": {
-        // FIXME: 如果 `evaluatedArgs` 中存在错误，则应不 eval 其他部分直接返回。
         return this.#evalFunctionCall(scope, node);
       }
       case "closure_call":
