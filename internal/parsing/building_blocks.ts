@@ -1,6 +1,3 @@
-// FIXME: 不应该在这里导入 executing 那边的东西
-import { ConcreteValue } from "../executing/evaluated_values.ts";
-
 interface _Node {
   kind: string;
 }
@@ -31,12 +28,12 @@ export interface Node_FunctionCall extends _Node {
   style: FunctionCallStyle;
 
   forceArity: number | undefined;
-  args: (Node | ConcreteValue)[];
+  args: Node[];
 }
 
 export function functionCall(
   identifier: string,
-  args: (Node | ConcreteValue)[],
+  args: Node[],
   style: FunctionCallStyle = "regular",
   forceArity: number | undefined = undefined,
 ): Node_FunctionCall {

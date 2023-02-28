@@ -1,11 +1,10 @@
 import {
-  functionCall,
   FunctionCallStyle,
   type Node,
   Node_Value,
 } from "../parsing/building_blocks.ts";
 import {
-  asLazy,
+  asLazyValue,
   Callable,
   ConcreteValue,
   concreteValue,
@@ -22,7 +21,7 @@ import {
   RuntimeError_TypeMismatch,
   RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
-import { Function, FunctionRuntime } from "./runtime.ts";
+import { Function, FunctionRuntime, runtimeFunctionCall } from "./runtime.ts";
 import { Unreachable } from "../../errors.ts";
 
 export type AllowedParameterTypes =
@@ -93,7 +92,7 @@ export function makeUnaryRedirection(
   leftValue: Node_Value,
 ): Function {
   return (params, _style, runtime) => {
-    const redirected = functionCall(
+    const redirected = runtimeFunctionCall(
       functionName,
       [leftValue, params[0]],
       "operator",
@@ -221,7 +220,7 @@ function renderFunctionStep(
 export function invokeAll(
   evaluated: RuntimeValue,
 ): ConcreteValue | ErrorValue {
-  const lazy = asLazy(evaluated);
+  const lazy = asLazyValue(evaluated);
   if (!lazy) return evaluated as (ConcreteValue | ErrorValue);
 
   const actuallyEvaluated = lazy.execute(lazy.args);
@@ -229,7 +228,7 @@ export function invokeAll(
   return invokeAll(actuallyEvaluated);
 }
 
-function checkTypes(
+export function checkTypes(
   expected: AllowedParameterTypes,
   value: RuntimeValue,
 ): RuntimeError_TypeMismatch | null {

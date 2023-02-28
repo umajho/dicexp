@@ -1,15 +1,20 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
 import { value } from "../parsing/building_blocks.ts";
 import {
+  asCallable,
+  asLazyValue,
   Callable,
   ConcreteValue,
   concreteValue,
+  errorValue,
   getTypeName,
   LazyValue,
   lazyValue,
+  RuntimeValue,
   typeDisplayText,
 } from "./evaluated_values.ts";
 import {
+  evalIfIsNotRuntimeValue,
   flattenListAll,
   invokeAll,
   invokeCallableImmediately,
@@ -85,8 +90,43 @@ export const builtinScope: Scope = {
     const [lV, rV] = [left.value, right.value] as [number, number];
     return lV >= rV;
   }),
-  "|>/2": () => {
-    throw new Unimplemented();
+  "|>/2": (params, style, runtime) => {
+    if (style !== "operator") {
+      // TODO pipe 运算符严格要求以运算符的形式使用
+      throw new Unimplemented();
+    }
+    if (params.length != 2) {
+      return {
+        result: errorValue(new RuntimeError_WrongArity("|>", 2, params.length)),
+      };
+    }
+
+    const leftRtmValue = evalIfIsNotRuntimeValue(runtime.evaluate, params[0]);
+    const leftValue = invokeAll(leftRtmValue);
+    if (leftValue.kind === "error") return { result: leftValue }; // FIXME: step
+
+    const rightValue = evalIfIsNotRuntimeValue(runtime.evaluate, params[1]);
+    if (rightValue.kind === "error") return { result: rightValue }; // FIXME: step
+
+    let result: RuntimeValue;
+    const callable = asCallable(rightValue);
+    if (callable) {
+      result = callable.call([leftValue], "piped");
+    } else {
+      const origLazyValue = asLazyValue(rightValue);
+      if (origLazyValue) {
+        if (origLazyValue.frozen) {
+          throw new Unimplemented();
+        }
+        result = lazyValue(origLazyValue.execute, [
+          leftValue,
+          ...origLazyValue.args,
+        ], false);
+      } else {
+        throw new Unimplemented();
+      }
+    }
+    return { result };
   },
   "#/2": () => {
     throw new Unimplemented();
@@ -203,7 +243,7 @@ export const builtinScope: Scope = {
   "map/2": makeFunction("map", ["list", "callable"], ([list_, fn_]) => {
     const list = list_.value as ConcreteValue[];
     const fn = fn_.value as Callable;
-    if (fn.forceArity !== 1) {
+    if (fn.forceArity !== undefined && fn.forceArity !== 1) {
       const fnName = renderCallableName(fn);
       return new RuntimeError_WrongArity(fnName, 1, fn.forceArity);
     }
@@ -221,8 +261,16 @@ export const builtinScope: Scope = {
   // filter/2
   // foldl/3
   // foldr/3
-  // head/1
-  // tail/1
+  "head/1": makeFunction("head", ["list"], ([list_]) => {
+    const list = list_.value as ConcreteValue[];
+    if (list.length === 0) return new RuntimeError("数组为空");
+    return list[0].value;
+  }),
+  "tail/1": makeFunction("tail", ["list"], ([list_]) => {
+    const list = list_.value as ConcreteValue[];
+    if (list.length === 0) return new RuntimeError("数组为空");
+    return list.slice(1);
+  }),
   // last/1
   // init/1
   // take/2
@@ -246,7 +294,7 @@ export const builtinScope: Scope = {
       const listA = l1_.value as ConcreteValue[];
       const listB = l2_.value as ConcreteValue[];
       const fn = fn_.value as Callable;
-      if (fn.forceArity !== 2) {
+      if (fn.forceArity !== undefined && fn.forceArity !== 2) {
         const fnName = renderCallableName(fn);
         return new RuntimeError_WrongArity(fnName, 2, fn.forceArity);
       }

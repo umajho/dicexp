@@ -38,9 +38,9 @@ export interface ConcreteValue {
 export interface Callable {
   isRuntimeValue: true;
   kind: "callable";
-  callableKind: "closure" | "captured";
+  callableKind: "closure" | "captured" | "identifier";
   call: (args: ConcreteValue[], style: FunctionCallStyle) => RuntimeValue;
-  forceArity: number;
+  forceArity: number | undefined;
 }
 
 export interface LazyValue {
@@ -99,7 +99,7 @@ export function concreteValue(
 export function callableValue(
   kind: Callable["callableKind"],
   call: (args: ConcreteValue[], style: FunctionCallStyle) => RuntimeValue,
-  forceArity: number,
+  forceArity: number | undefined,
 ): ConcreteValue {
   return concreteValue({
     isRuntimeValue: true,
@@ -108,6 +108,14 @@ export function callableValue(
     call,
     forceArity,
   }, ["TODO: step for callable"]);
+}
+
+export function asCallable(v: RuntimeValue): Callable | null {
+  if (v.kind !== "concrete") return null;
+  if (typeof v.value !== "object") return null;
+  if (Array.isArray(v.value)) return null;
+  if (v.value.kind !== "callable") return null;
+  return v.value;
 }
 
 export function lazyValue(
@@ -124,7 +132,7 @@ export function lazyValue(
   };
 }
 
-export function asLazy(v: RuntimeValue): LazyValue | null {
+export function asLazyValue(v: RuntimeValue): LazyValue | null {
   if (v.kind === "lazy") return v;
   return null;
 }

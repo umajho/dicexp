@@ -9,7 +9,7 @@ import { Unreachable } from "../../errors.ts";
 import { RuntimeValueTypes } from "./evaluated_values.ts";
 
 import { execute } from "./execute.ts";
-import { RuntimeError_TypeMismatch } from "./runtime_errors.ts";
+import { RuntimeError, RuntimeError_TypeMismatch } from "./runtime_errors.ts";
 
 export function assertNumber(n: unknown): number {
   assertEquals(typeof n, "number");
@@ -33,9 +33,15 @@ export function assertExecutionOk(
   if (equal(actualResult, expectedResult)) return;
 
   if (!msg) {
-    msg = `${code} => ${JSON.stringify(actualResult)} != ${
-      JSON.stringify(expectedResult)
-    }`;
+    const expectedResultJSON = JSON.stringify(expectedResult);
+    if (actualResult instanceof RuntimeError) {
+      msg =
+        `${code} => 运行时错误：「${actualResult.message}」!= ${expectedResultJSON}`;
+    } else {
+      msg = `${code} => ${
+        JSON.stringify(actualResult)
+      } != ${expectedResultJSON}`;
+    }
   }
   throw new AssertionError(msg);
 }

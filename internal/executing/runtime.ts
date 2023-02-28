@@ -1,6 +1,5 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
 import {
-  functionCall,
   FunctionCallStyle,
   Node,
   Node_Captured,
@@ -12,6 +11,7 @@ import {
   callableValue,
   ConcreteValue,
   concreteValue,
+  errorValue,
   LazyValue,
   lazyValue,
   RuntimeValue,
@@ -95,8 +95,10 @@ export class Runtime {
     return invokeAll(outermost);
   }
 
-  #eval(scope: Scope, node: Node): RuntimeValue {
-    if (typeof node === "string") throw new Unimplemented();
+  #eval(scope: Scope, node: Node | FunctionCall): RuntimeValue {
+    if (typeof node === "string") {
+      return this.#evalIdentifier(scope, node);
+    }
     switch (node.kind) {
       case "value": {
         if (typeof node.value === "number" || typeof node.value === "boolean") {
@@ -112,7 +114,8 @@ export class Runtime {
             throw new Unreachable();
         }
       }
-      case "function_call": {
+      case "function_call":
+      case "runtime_function_call": {
         return this.#evalFunctionCall(scope, node);
       }
       case "closure_call":
@@ -121,6 +124,25 @@ export class Runtime {
         return this.#evalCaptured(scope, node);
       default:
         throw new Unreachable();
+    }
+  }
+
+  #evalIdentifier(scope: Scope, ident: string): RuntimeValue {
+    if (ident in scope) {
+      const value = scope[ident];
+      if ("isRuntimeValue" in value && value.isRuntimeValue) return value;
+      throw new Unreachable();
+    } else {
+      return callableValue("identifier", (args, style) => {
+        const fnFullName = `${ident}/${args.length}`;
+        if (fnFullName in scope) {
+          return this.#evalFunctionCall(
+            scope,
+            runtimeFunctionCall(ident, args, style, args.length),
+          );
+        }
+        return errorValue(new RuntimeError_UnknownIdentifier(ident));
+      }, undefined);
     }
   }
 
@@ -136,7 +158,10 @@ export class Runtime {
     return concreteValue(listEvaluated, ["TODO: step for list"]);
   }
 
-  #evalFunctionCall(scope: Scope, call: Node_FunctionCall): LazyValue {
+  #evalFunctionCall(
+    scope: Scope,
+    call: FunctionCall | Node_FunctionCall,
+  ): LazyValue {
     return lazyValue(
       (args) => {
         return this.#callFunction(
@@ -155,9 +180,10 @@ export class Runtime {
   #evalCaptured(scope: Scope, captured: Node_Captured): ConcreteValue {
     return callableValue("captured", (args, style) => {
       // FIXME: step
+      const ident = captured.identifier;
       return this.#evalFunctionCall(
         scope,
-        functionCall(captured.identifier, args, style, captured.forceArity),
+        runtimeFunctionCall(ident, args, style, captured.forceArity),
       );
     }, captured.forceArity);
   }
@@ -168,7 +194,7 @@ export class Runtime {
     args: (Node | ConcreteValue)[],
     style: FunctionCallStyle,
     forceArity: number | undefined,
-  ) {
+  ): RuntimeValue {
     if (forceArity !== undefined && forceArity !== args.length) {
       throw new Unimplemented();
     }
@@ -176,12 +202,12 @@ export class Runtime {
     const fullIdent = `${identifier}/${args.length}`;
     const fn = scope[fullIdent];
     if (!fn) {
-      throw new RuntimeError_UnknownIdentifier(fullIdent);
+      return errorValue(new RuntimeError_UnknownIdentifier(fullIdent));
     } else if (typeof fn !== "function") {
       // FIXME: 由于有 arity 标记，不可能会走到这里吧
-      throw new RuntimeError_NotAFunction(fullIdent);
+      return errorValue(new RuntimeError_NotAFunction(fullIdent));
     }
-    const evalFn = (node: Node) => this.#eval(scope, node);
+    const evalFn = (node: Node | FunctionCall) => this.#eval(scope, node);
     const executed = fn(
       args,
       style,
@@ -200,19 +226,42 @@ export type Function = (
 ) => { result: RuntimeValue };
 
 export interface FunctionRuntime {
-  evaluate: (node: Node) => RuntimeValue;
+  evaluate: (node: Node | FunctionCall) => RuntimeValue;
   scope: Scope;
   random: RandomGenerator;
 }
 
 function makeFunctionRuntime(
   scope: Scope,
-  evalFn: (node: Node) => RuntimeValue,
+  evalFn: (node: Node | FunctionCall) => RuntimeValue,
   randomGenerator: RandomGenerator,
 ): FunctionRuntime {
   return {
     evaluate: evalFn,
     scope,
     random: randomGenerator,
+  };
+}
+
+export interface FunctionCall {
+  kind: "runtime_function_call";
+  identifier: string;
+  style: FunctionCallStyle;
+  forceArity: number | undefined;
+  args: (Node | ConcreteValue)[];
+}
+
+export function runtimeFunctionCall(
+  identifier: string,
+  args: (Node | ConcreteValue)[],
+  style: FunctionCallStyle = "regular",
+  forceArity: number | undefined = undefined,
+): FunctionCall {
+  return {
+    kind: "runtime_function_call",
+    identifier,
+    forceArity,
+    args,
+    style,
   };
 }
