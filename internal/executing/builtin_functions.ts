@@ -165,7 +165,12 @@ function makeGeneratorWithRange(
       let result = 0;
       for (let i = 0; i < n; i++) {
         const sides = upper - lower + 1;
-        const single = lower + (rng.int32() % sides);
+        const maxUnbiased = (2 ** 32 / sides | 0) * sides - 1;
+        let rn = rng.int32();
+        while (rn > maxUnbiased) {
+          rn = rng.int32();
+        }
+        const single = lower + (rn % sides);
         result += single;
       }
       return evaluatedValue(result, ["TODO: step"]);
