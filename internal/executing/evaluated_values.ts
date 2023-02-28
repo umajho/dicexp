@@ -1,5 +1,5 @@
 import { Unreachable } from "../../errors.ts";
-import { Node } from "../parsing/building_blocks.ts";
+import { FunctionCallStyle, Node } from "../parsing/building_blocks.ts";
 import { RuntimeError } from "./runtime_errors.ts";
 
 export type RuntimeValueTypes = ReturnType<typeof getTypeName>;
@@ -12,10 +12,8 @@ export function typeDisplayText(t: RuntimeValueTypes) {
       return "布尔";
     case "list":
       return "列表";
-    case "closure":
-      return "闭包";
-    case "captured":
-      return "捕获";
+    case "callable": // FIXME: 应该区分 closure 和 captured
+      return "可调用的";
     case "lazy":
     case "error":
       return `${t}（内部实现泄漏）`;
@@ -28,30 +26,32 @@ export function typeDisplayText(t: RuntimeValueTypes) {
 export type RuntimeValue =
   | ConcreteValue
   | LazyValue
-  | CallableValue
   | ErrorValue;
 
 export interface ConcreteValue {
+  isRuntimeValue: true;
   kind: "concrete";
-  value: number | boolean | ConcreteValue[];
+  value: number | boolean | Callable | ConcreteValue[];
   step: Step;
 }
 
+export interface Callable {
+  isRuntimeValue: true;
+  kind: "callable";
+  callableKind: "closure" | "captured";
+  call: (args: ConcreteValue[], style: FunctionCallStyle) => RuntimeValue;
+  forceArity: number;
+}
+
 export interface LazyValue {
+  isRuntimeValue: true;
   kind: "lazy";
-  execute: (args: Node[]) => RuntimeValue;
-  args: Node[];
+  execute: (args: (Node | ConcreteValue)[]) => RuntimeValue;
+  args: (Node | ConcreteValue)[];
   /**
    * 是否不能修改 args。
    */
   frozen: boolean;
-}
-
-export interface CallableValue {
-  kind: "callable";
-  callableKind: "closure" | "captured";
-  call: (args: Node[]) => RuntimeValue;
-  forceArity: number;
 }
 
 export interface ErrorValue {
@@ -72,19 +72,11 @@ export function getTypeName(v: RuntimeValue) {
           return "boolean";
         default:
           if (Array.isArray(v.value)) return "list";
+          if (v.value.kind === "callable") return "callable";
           throw new Unreachable();
       }
     case "lazy":
       return "lazy";
-    case "callable":
-      switch (v.callableKind) {
-        case "closure":
-          return "closure";
-        case "captured":
-          return "captured";
-        default:
-          throw new Unreachable();
-      }
     case "error":
       return "error";
     default:
@@ -97,10 +89,25 @@ export function concreteValue(
   step: Step,
 ): ConcreteValue {
   return {
+    isRuntimeValue: true,
     kind: "concrete",
     value,
     step,
   };
+}
+
+export function callableValue(
+  kind: Callable["callableKind"],
+  call: (args: ConcreteValue[], style: FunctionCallStyle) => RuntimeValue,
+  forceArity: number,
+): ConcreteValue {
+  return concreteValue({
+    isRuntimeValue: true,
+    kind: "callable",
+    callableKind: kind,
+    call,
+    forceArity,
+  }, ["TODO: step for callable"]);
 }
 
 export function lazyValue(
@@ -109,6 +116,7 @@ export function lazyValue(
   isFrozen: boolean,
 ): LazyValue {
   return {
+    isRuntimeValue: true,
     kind: "lazy",
     execute: fn,
     args,

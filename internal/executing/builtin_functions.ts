@@ -1,6 +1,7 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
 import { value } from "../parsing/building_blocks.ts";
 import {
+  Callable,
   ConcreteValue,
   concreteValue,
   getTypeName,
@@ -10,8 +11,11 @@ import {
 } from "./evaluated_values.ts";
 import {
   flattenListAll,
+  invokeAll,
+  invokeCallableImmediately,
   makeFunction,
   makeUnaryRedirection,
+  renderCallableName,
   testFlattenListType,
 } from "./helpers.ts";
 import { RandomGenerator, Scope } from "./runtime.ts";
@@ -19,6 +23,7 @@ import {
   RuntimeError,
   RuntimeError_IllegalOperation,
   RuntimeError_TypeMismatch,
+  RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
 
 export const builtinScope: Scope = {
@@ -195,6 +200,22 @@ export const builtinScope: Scope = {
   // flatten
 
   // 函数式：
+  "map/2": makeFunction("map", ["list", "callable"], ([list_, fn_]) => {
+    const list = list_.value as ConcreteValue[];
+    const fn = fn_.value as Callable;
+    if (fn.forceArity !== 1) {
+      const fnName = renderCallableName(fn);
+      return new RuntimeError_WrongArity(fnName, 1, fn.forceArity);
+    }
+    const resultList: ConcreteValue[] = Array(list.length);
+    for (const [i, elem] of list.entries()) {
+      const args = [elem];
+      const result = invokeCallableImmediately(fn, args, "as-parameter");
+      if (result.kind === "error") return result.error; // FIXME: step 丢失了
+      resultList[i] = result;
+    }
+    return resultList;
+  }),
   // map/2
   // flatMap/2
   // filter/2
@@ -218,7 +239,29 @@ export const builtinScope: Scope = {
     }
     return result;
   }),
-  // zipWith/3
+  "zipWith/3": makeFunction(
+    "sum",
+    ["list", "list", "callable"],
+    ([l1_, l2_, fn_]) => {
+      const listA = l1_.value as ConcreteValue[];
+      const listB = l2_.value as ConcreteValue[];
+      const fn = fn_.value as Callable;
+      if (fn.forceArity !== 2) {
+        const fnName = renderCallableName(fn);
+        return new RuntimeError_WrongArity(fnName, 2, fn.forceArity);
+      }
+
+      const zippedLength = Math.min(listA.length, listB.length);
+      const resultList = Array(zippedLength);
+      for (let i = 0; i < zippedLength; i++) {
+        const args = [listA[i], listB[i]];
+        const result = invokeCallableImmediately(fn, args, "as-parameter");
+        if (result.kind === "error") return result.error; // FIXME: step 丢失了
+        resultList[i] = result;
+      }
+      return resultList;
+    },
+  ),
 };
 
 function makeGeneratorWithRange(

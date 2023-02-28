@@ -1,3 +1,6 @@
+// FIXME: 不应该在这里导入 executing 那边的东西
+import { ConcreteValue } from "../executing/evaluated_values.ts";
+
 interface _Node {
   kind: string;
 }
@@ -9,7 +12,11 @@ export type Node =
   | Node_Value
   | string; // 标识符
 
-export type FunctionCallStyle = "regular" | "piped" | "operator";
+export type FunctionCallStyle =
+  | "regular"
+  | "piped"
+  | "operator"
+  | "as-parameter";
 
 export interface Node_FunctionCall extends _Node {
   kind: "function_call";
@@ -24,12 +31,12 @@ export interface Node_FunctionCall extends _Node {
   style: FunctionCallStyle;
 
   forceArity: number | undefined;
-  args: Node[];
+  args: (Node | ConcreteValue)[];
 }
 
 export function functionCall(
   identifier: string,
-  args: Node[],
+  args: (Node | ConcreteValue)[],
   style: FunctionCallStyle = "regular",
   forceArity: number | undefined = undefined,
 ): Node_FunctionCall {
@@ -66,12 +73,12 @@ export interface Node_Captured extends _Node {
 
   identifier: string;
 
-  forceArity: number | undefined;
+  forceArity: number;
 }
 
 export function captured(
   identifier: string,
-  forceArity: number | undefined = undefined,
+  forceArity: number,
 ): Node_Captured {
   return {
     kind: "captured",

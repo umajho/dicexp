@@ -1,12 +1,15 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
 import {
+  functionCall,
   FunctionCallStyle,
   Node,
+  Node_Captured,
   Node_FunctionCall,
   NodeValue_List,
 } from "../parsing/building_blocks.ts";
 import { builtinScope } from "./builtin_functions.ts";
 import {
+  callableValue,
   ConcreteValue,
   concreteValue,
   LazyValue,
@@ -59,12 +62,12 @@ export class Runtime {
           default:
             if (Array.isArray(runtimeValue.value)) {
               return this.#translateList(runtimeValue.value);
+            } else if (runtimeValue.value.kind === "callable") {
+              throw new Unimplemented();
             }
-            throw new Unimplemented();
+            throw new Unreachable();
         }
         break;
-      case "callable":
-        throw new Unimplemented();
       case "lazy":
       case "error":
         throw new Unreachable();
@@ -115,7 +118,7 @@ export class Runtime {
       case "closure_call":
         throw new Unimplemented();
       case "captured":
-        throw new Unimplemented();
+        return this.#evalCaptured(scope, node);
       default:
         throw new Unreachable();
     }
@@ -136,39 +139,62 @@ export class Runtime {
   #evalFunctionCall(scope: Scope, call: Node_FunctionCall): LazyValue {
     return lazyValue(
       (args) => {
-        if (
-          call.forceArity !== undefined &&
-          call.forceArity !== args.length
-        ) {
-          throw new Unimplemented();
-        }
-
-        const fullIdent = `${call.identifier}/${args.length}`;
-        const fn = scope[fullIdent];
-        if (!fn) {
-          throw new RuntimeError_UnknownIdentifier(fullIdent);
-        } else if (typeof fn !== "function") {
-          // FIXME: 由于有 arity 标记，不可能会走到这里吧
-          throw new RuntimeError_NotAFunction(fullIdent);
-        }
-        const evalFn = (node: Node) => this.#eval(scope, node);
-        const executed = fn(
+        return this.#callFunction(
+          scope,
+          call.identifier,
           args,
           call.style,
-          makeFunctionRuntime(scope, evalFn, this.rng),
+          call.forceArity,
         );
-        return executed.result;
       },
       call.args,
       false,
     );
+  }
+
+  #evalCaptured(scope: Scope, captured: Node_Captured): ConcreteValue {
+    return callableValue("captured", (args, style) => {
+      // FIXME: step
+      return this.#evalFunctionCall(
+        scope,
+        functionCall(captured.identifier, args, style, captured.forceArity),
+      );
+    }, captured.forceArity);
+  }
+
+  #callFunction(
+    scope: Scope,
+    identifier: string,
+    args: (Node | ConcreteValue)[],
+    style: FunctionCallStyle,
+    forceArity: number | undefined,
+  ) {
+    if (forceArity !== undefined && forceArity !== args.length) {
+      throw new Unimplemented();
+    }
+
+    const fullIdent = `${identifier}/${args.length}`;
+    const fn = scope[fullIdent];
+    if (!fn) {
+      throw new RuntimeError_UnknownIdentifier(fullIdent);
+    } else if (typeof fn !== "function") {
+      // FIXME: 由于有 arity 标记，不可能会走到这里吧
+      throw new RuntimeError_NotAFunction(fullIdent);
+    }
+    const evalFn = (node: Node) => this.#eval(scope, node);
+    const executed = fn(
+      args,
+      style,
+      makeFunctionRuntime(scope, evalFn, this.rng),
+    );
+    return executed.result;
   }
 }
 
 export type Scope = { [ident: string]: Function | RuntimeValue };
 
 export type Function = (
-  params: Node[],
+  params: (Node | ConcreteValue)[],
   style: FunctionCallStyle,
   runtime: FunctionRuntime,
 ) => { result: RuntimeValue };

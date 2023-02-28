@@ -144,24 +144,45 @@ describe("值", () => {
   });
 
   describe("函数", () => {
-    it("可以用", () => {
-      assertExecutionOk("sum([1, 2, 3])", 6);
-      assertExecutionOk("zip([1, 2], [3, 4])", [[1, 3], [2, 4]]);
-      assertExecutionOk("[1, 2, 3] | head", 1);
-      assertExecutionOk("[1, 2, 3] | tail()", [2, 3]);
+    describe("可以用", () => {
+      const table: [string, unknown][] = [
+        ["sum([1, 2, 3])", 6],
+        ["zip([1, 2], [3, 4])", [[1, 3], [2, 4]]],
+        ["[1, 2, 3] |> head", 1],
+        ["[1, 2, 3] |> tail()", [2, 3]],
+      ];
+      for (const [i, [input, expectedOutput]] of table.entries()) {
+        it(`case ${i + 1}: ${input}`, () => {
+          assertExecutionOk(input, expectedOutput);
+        });
+      }
     });
 
     describe("运算符转函数", () => {
-      it("可以用", () => {
-        assertExecutionOk("map([1, 2], &-/1)", [[-1, -2]]);
-        assertExecutionOk("zipWith([1, 2], [3, 4], &*/2)", [[3, 8]]);
+      describe("可以用", () => {
+        const table: [string, unknown][] = [
+          ["map([1, 2], &-/1)", [-1, -2]],
+          ["zipWith([1, 2], [3, 4], &*/2)", [3, 8]],
+        ];
+        for (const [i, [input, expectedOutput]] of table.entries()) {
+          it(`case ${i + 1}: ${input}`, () => {
+            assertExecutionOk(input, expectedOutput);
+          });
+        }
       });
     });
 
     describe("闭包", () => {
-      it("可以用", () => {
-        assertExecutionOk("[2, 3, 5, 7] | filter(\\(x -> x >= 5))", [5, 7]);
-        assertExecutionOk("[2, 3, 5, 7] | filter \\(x -> x >= 5)", [5, 7]);
+      describe("可以用", () => {
+        const table: [string, unknown][] = [
+          ["[2, 3, 5, 7] |> filter(\\(x -> x >= 5))", [5, 7]],
+          ["[2, 3, 5, 7] |> filter \\(x -> x >= 5)", [5, 7]],
+        ];
+        for (const [i, [input, expectedOutput]] of table.entries()) {
+          it(`case ${i + 1}: ${input}`, () => {
+            assertExecutionOk(input, expectedOutput);
+          });
+        }
       });
     });
   });

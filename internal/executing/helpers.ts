@@ -1,12 +1,12 @@
 import {
   functionCall,
   FunctionCallStyle,
-  Node,
+  type Node,
   Node_Value,
-  NodeValue_Closure,
 } from "../parsing/building_blocks.ts";
 import {
   asLazy,
+  Callable,
   ConcreteValue,
   concreteValue,
   ErrorValue,
@@ -121,7 +121,7 @@ type ListElementWithError = ConcreteValue | ErrorValue | Unevaluated;
 export function evaluateParameters(
   evalFn: (node: Node) => RuntimeValue,
   functionName: string,
-  params: Node[],
+  params: (Node | ConcreteValue)[],
   types: AllowedParameterTypes[],
 ):
   | [ListElementWithError[] | null, RuntimeError]
@@ -140,7 +140,7 @@ export function evaluateParameters(
       evaluatedParams.push(unevaluated());
       continue;
     }
-    const evaluated = invokeAll(evalFn(param));
+    const evaluated = invokeAll(evalIfIsNotRuntimeValue(evalFn, param));
     if (evaluated.kind === "error") {
       evaluatedParams.push(evaluated);
       paramError = evaluated.error;
@@ -243,7 +243,7 @@ function checkTypes(
   return new RuntimeError_TypeMismatch(expected, actual);
 }
 
-type FlattenList = (number | boolean | NodeValue_Closure)[];
+type FlattenList = (number | boolean | Callable)[];
 
 export function flattenListAll(
   list: ConcreteValue,
@@ -268,11 +268,50 @@ export function testFlattenListType(
         break;
       case "closure":
         if (typeof elem !== "object") return false;
-        if (elem.valueKind !== "closure") return false;
+        if (elem.kind !== "callable") return false;
         break;
       default:
         throw new Unreachable();
     }
   }
   return true;
+}
+
+export function evalIfIsNotRuntimeValue(
+  evalFn: (Node: Node) => RuntimeValue,
+  param: Node | RuntimeValue,
+): RuntimeValue {
+  if (
+    typeof param === "object" && "isRuntimeValue" in param &&
+    param.isRuntimeValue
+  ) {
+    return param;
+  }
+  return evalFn(param as Node);
+}
+
+/**
+ * TODO
+ *
+ * @param callable
+ * @returns
+ */
+export function renderCallableName(callable: Callable) {
+  return "（TODO: 闭包名）";
+}
+
+/**
+ * 确保调用 Callable 不会返回 Lazy。
+ *
+ * @param fn
+ * @param args
+ * @param style
+ * @returns
+ */
+export function invokeCallableImmediately(
+  fn: Callable,
+  args: ConcreteValue[],
+  style: FunctionCallStyle,
+) {
+  return invokeAll(fn.call(args, style));
 }
