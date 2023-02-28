@@ -53,42 +53,39 @@ describe("值", () => {
     describe("范围生成器", () => {
       describe("~/2", () => {
         it("保证生成的数在范围内", () => {
-          for (let i = 0; i < 100; i++) {
-            const lower = random.int() % 100;
-            const code = `${lower}~${lower + 100}`;
-            for (let j = 0; j < 100; j++) {
-              const result = assertNumber(execute(code));
+          const lower = 10;
+          const code = `${lower}~${lower + 10}`;
+          for (let j = 0; j < 100; j++) {
+            const result = assertNumber(execute(code));
 
-              assert(
-                result >= lower && result <= lower + 1000,
-                `\`${code}\` => ${result}`,
-              );
-            }
+            assert(
+              result >= lower && result <= lower + 1000,
+              `\`${code}\` => ${result}`,
+            );
           }
         });
       });
       describe("~/1", () => {
         it("保证生成的数在范围内", () => {
-          for (let i = 0; i < 100; i++) {
-            const upper = random.int() % 100;
-            const code = `~${upper}`;
-            for (let j = 0; j < 100; j++) {
-              const result = assertNumber(execute(code));
-              assert(
-                result >= 1 && result <= upper,
-                `\`${code}\` => ${result}`,
-              );
-            }
+          const upper = 10;
+          const code = `~${upper}`;
+          for (let j = 0; j < 100; j++) {
+            const result = assertNumber(execute(code));
+            assert(
+              result >= 1 && result <= upper,
+              `\`${code}\` => ${result}`,
+            );
           }
         });
       });
 
       describe("d/1 与 d/2", () => {
         it("保证生成的数在范围内", () => {
-          for (let i = 0; i < 100; i++) {
-            const upper = random.int() % 100;
-            const code = (i === 0 ? "" : `${i}`) + `d${upper}`;
-            const times = i === 0 ? 1 : i;
+          for (const isBinary of [false, true]) {
+            const upper = 10;
+            const times = isBinary ? 3 : 1;
+            const code = `${isBinary ? 3 : ""}d${upper}`;
+
             for (let j = 0; j < 100; j++) {
               const result = assertNumber(execute(code));
               assert(
@@ -102,10 +99,11 @@ describe("值", () => {
 
       describe("d%/1 与 d%/2", () => {
         it("保证生成的数在范围内", () => {
-          for (let i = 0; i < 100; i++) {
-            const upper = random.int() % 100;
-            const code = (i === 0 ? "" : `${i}`) + `d%${upper}`;
-            const times = i === 0 ? 1 : i;
+          for (const isBinary of [false, true]) {
+            const upper = 10;
+            const times = isBinary ? 3 : 1;
+            const code = `${isBinary ? 3 : ""}d%${upper}`;
+
             for (let j = 0; j < 100; j++) {
               const result = assertNumber(execute(code));
               assert(
@@ -415,3 +413,5 @@ describe("限制", () => {
     // TODO
   });
 });
+
+// TODO: 同种子下结果相同

@@ -3,6 +3,7 @@ import { FunctionCallStyle, Node } from "../parsing/building_blocks.ts";
 import { builtinScope } from "./builtin_functions.ts";
 import { EvaluatedValue, evaluatedValue } from "./evaluated_values.ts";
 import { invokeAll } from "./helpers.ts";
+import { RuntimeError } from "./runtime_errors.ts";
 
 export interface RandomGenerator {
   int32(): number;
@@ -25,7 +26,11 @@ export class Runtime {
     this.rng = opts.rng;
   }
 
-  executeAndTranslate(): number | boolean | (number | boolean)[] {
+  executeAndTranslate():
+    | number
+    | boolean
+    | (number | boolean)[]
+    | RuntimeError {
     const result = this.execute();
 
     switch (typeof result.value) {
@@ -39,6 +44,8 @@ export class Runtime {
             if (typeof v === "number" || typeof v === "boolean") return v;
             throw new Unimplemented();
           });
+        } else if (result.value instanceof RuntimeError) {
+          return result.value;
         }
         throw new Unimplemented();
     }
@@ -77,6 +84,7 @@ export class Runtime {
         // FIXME: 如果 `evaluatedArgs` 中存在错误，则应不 eval 其他部分直接返回。
         return evaluatedValue({
           valueKind: "lazy",
+          pipeable: true,
           invoke: (args) => {
             if (
               node.forceArity !== undefined &&

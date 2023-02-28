@@ -5,10 +5,12 @@ import {
   assertThrows,
   equal,
 } from "https://deno.land/std@0.178.0/testing/asserts.ts";
-import { it } from "https://deno.land/std@0.178.0/testing/bdd.ts";
+import { describe, it } from "https://deno.land/std@0.178.0/testing/bdd.ts";
 import { Unreachable } from "../../errors.ts";
+import { EvaluatedValueTypes } from "./evaluated_values.ts";
 
 import { execute } from "./execute.ts";
+import { RuntimeError_TypeMismatch } from "./runtime_errors.ts";
 
 export function assertNumber(n: unknown): number {
   assertEquals(typeof n, "number");
@@ -83,31 +85,76 @@ export function assertExecutionThrows(
 }
 
 export function unaryOperatorOnlyAcceptsBoolean(op: string) {
-  it("只能用于布尔", () => {
-    assertThrows(() => execute(`${op}1`), "TODO: error");
-    assertThrows(() => execute(`${op}[1]`), "TODO: error");
+  describe("只能用于布尔", () => {
+    unaryOperatorOnlyAccepts(op, "boolean", [
+      ["1", "number"],
+      ["[1]", "list"],
+    ]);
   });
 }
 
 export function binaryOperatorOnlyAcceptsBoolean(op: string) {
-  it("只能用于布尔", () => {
-    assertThrows(() => execute(`1${op}true`), "TODO: error");
-    assertThrows(() => execute(`true${op}1`), "TODO: error");
-    assertThrows(() => execute(`[1] ${op} true`), "TODO: error");
+  describe("只能用于布尔", () => {
+    binaryOperatorOnlyAccepts(op, "boolean", [
+      [["1", "true"], "number"],
+      [["true", "1"], "number"],
+      [["[1]", "true"], "list"],
+    ]);
   });
 }
 
 export function unaryOperatorOnlyAcceptsNumbers(op: string) {
-  it("只能用于数字", () => {
-    assertThrows(() => execute(`${op}true`), "TODO: error");
-    assertThrows(() => execute(`${op}[1]`), "TODO: error");
+  describe("只能用于数字", () => {
+    unaryOperatorOnlyAccepts(op, "number", [
+      ["true", "boolean"],
+      ["[1]", "list"],
+    ]);
   });
 }
 
 export function binaryOperatorOnlyAcceptsNumbers(op: string) {
-  it("只能用于数字", () => {
-    assertThrows(() => execute(`1${op}true`), "TODO: error");
-    assertThrows(() => execute(`true${op}1`), "TODO: error");
-    assertThrows(() => execute(`[1] ${op} 1`), "TODO: error");
+  describe("只能用于数字", () => {
+    binaryOperatorOnlyAccepts(op, "number", [
+      [["1", "true"], "boolean"],
+      [["true", "1"], "boolean"],
+      [["[1]", "1"], "list"],
+    ]);
   });
+}
+
+function unaryOperatorOnlyAccepts(
+  op: string,
+  expected: EvaluatedValueTypes,
+  table: [string, EvaluatedValueTypes][],
+) {
+  for (const [i, [rightValue, rightType]] of table.entries()) {
+    const code = `${op}${rightValue}`;
+    it(`case ${i + 1}: ${code} => RuntimeError_TypeMismatch`, () => {
+      const result = execute(code);
+      assertEquals(
+        result,
+        new RuntimeError_TypeMismatch(expected, rightType),
+      );
+    });
+  }
+}
+
+function binaryOperatorOnlyAccepts(
+  op: string,
+  expected: EvaluatedValueTypes,
+  table: [[string, string], EvaluatedValueTypes][],
+) {
+  for (
+    const [i, [[leftValue, rightValue], mismatchedType]] of table
+      .entries()
+  ) {
+    const code = `${leftValue}${op}${rightValue}`;
+    it(`case ${i + 1}: ${code} => RuntimeError_TypeMismatch`, () => {
+      const result = execute(code);
+      assertEquals(
+        result,
+        new RuntimeError_TypeMismatch(expected, mismatchedType),
+      );
+    });
+  }
 }

@@ -65,6 +65,8 @@ export function getTypeName(v: EvaluatedValue) {
 export interface Lazy {
   valueKind: "lazy";
 
+  pipeable: boolean;
+
   invoke: (args: Node[]) => EvaluatedValue;
 
   args: Node[];

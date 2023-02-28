@@ -1,4 +1,9 @@
-import { FunctionCallStyle, Node } from "../parsing/building_blocks.ts";
+import {
+  functionCall,
+  FunctionCallStyle,
+  Node,
+  Node_Value,
+} from "../parsing/building_blocks.ts";
 import {
   asLazy,
   errored,
@@ -15,7 +20,7 @@ import {
   RuntimeError_TypeMismatch,
   RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
-import { Function } from "./runtime.ts";
+import { Function, FunctionRuntime } from "./runtime.ts";
 import { Unreachable } from "../../errors.ts";
 
 export type AllowedParameterTypes =
@@ -34,7 +39,10 @@ export type AllowedParameterTypes =
 export function makeFunction(
   functionName: string,
   types: AllowedParameterTypes[],
-  logic: (args: EvaluatedValue[]) => EvaluatedValue["value"],
+  logic: (
+    args: EvaluatedValue[],
+    runtime: FunctionRuntime,
+  ) => EvaluatedValue["value"],
 ): Function {
   return (params, style, runtime) => {
     const [
@@ -55,11 +63,29 @@ export function makeFunction(
       return { result: errored(error) };
     }
 
-    const result = logic(evaluatedParams);
+    const result = logic(evaluatedParams, runtime);
     // TODO: 数字超过范围要不要也在这里处理，还是调用这个闭包的函数处理？
     const step = renderFunctionStep(functionName, evaluatedParams, style);
     const evaluatedResult = evaluatedValue(result, step);
     return { result: evaluatedResult };
+  };
+}
+
+export function makeUnaryRedirection(
+  functionName: string,
+  leftValue: Node_Value,
+): Function {
+  return (params, _style, runtime) => {
+    const redirected = functionCall(
+      functionName,
+      [params[0], leftValue],
+      "operator",
+      2,
+    );
+    const { value, step } = runtime.evaluate(redirected);
+    return {
+      result: evaluatedValue(value, ["TODO: redirection step", step]),
+    };
   };
 }
 

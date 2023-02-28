@@ -45,20 +45,16 @@ export class RuntimeError_TypeMismatch extends RuntimeError {
 }
 
 export class RuntimeError_IllegalOperation extends RuntimeError {
-  operator: string;
-  left: string;
-  right: string;
+  operation: string;
   reason: string;
 
-  constructor(operator: string, left: string, right: string, reason: string) {
+  constructor(operation: string, reason: string) {
     super();
-    this.operator = operator;
-    this.left = left;
-    this.right = right;
+    this.operation = operation;
     this.reason = reason;
   }
 
   get message() {
-    return `操作 “${this.left} ${this.operator} ${this.right}” 非法：${this.reason}。`;
+    return `操作 “${this.operation}” 非法：${this.reason}。`;
   }
 }
