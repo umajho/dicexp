@@ -6,7 +6,7 @@ import {
 } from "https://deno.land/std@0.178.0/testing/asserts.ts";
 import { describe, it } from "https://deno.land/std@0.178.0/testing/bdd.ts";
 import { Unreachable } from "../../errors.ts";
-import { EvaluatedValueTypes } from "./evaluated_values.ts";
+import { RuntimeValueTypes } from "./evaluated_values.ts";
 
 import { execute } from "./execute.ts";
 import { RuntimeError_TypeMismatch } from "./runtime_errors.ts";
@@ -123,8 +123,8 @@ export function binaryOperatorOnlyAcceptsNumbers(op: string) {
 
 function unaryOperatorOnlyAccepts(
   op: string,
-  expected: EvaluatedValueTypes,
-  table: [string, EvaluatedValueTypes][],
+  expected: RuntimeValueTypes,
+  table: [string, RuntimeValueTypes][],
 ) {
   for (const [i, [rightValue, rightType]] of table.entries()) {
     const code = `${op}${rightValue}`;
@@ -140,8 +140,8 @@ function unaryOperatorOnlyAccepts(
 
 function binaryOperatorOnlyAccepts(
   op: string,
-  expected: EvaluatedValueTypes,
-  table: [[string, string], EvaluatedValueTypes][],
+  expected: RuntimeValueTypes,
+  table: [[string, string], RuntimeValueTypes][],
 ) {
   for (
     const [i, [[leftValue, rightValue], mismatchedType]] of table

@@ -1,10 +1,10 @@
 import { Unreachable } from "../../errors.ts";
-import { Node, NodeValue_Closure } from "../parsing/building_blocks.ts";
+import { Node } from "../parsing/building_blocks.ts";
 import { RuntimeError } from "./runtime_errors.ts";
 
-export type EvaluatedValueTypes = ReturnType<typeof getTypeName>;
+export type RuntimeValueTypes = ReturnType<typeof getTypeName>;
 
-export function typeDisplayText(t: EvaluatedValueTypes) {
+export function typeDisplayText(t: RuntimeValueTypes) {
   switch (t) {
     case "number":
       return "整数";
@@ -14,28 +14,44 @@ export function typeDisplayText(t: EvaluatedValueTypes) {
       return "列表";
     case "closure":
       return "闭包";
+    case "captured":
+      return "捕获";
+    case "lazy":
+    case "error":
+      return `${t}（内部实现泄漏）`;
     default:
       return `？（${t}）`;
       // throw new Unreachable();
   }
 }
 
-export type EvaluatedValue = ConcreteValue | LazyValue | ErrorValue;
+export type RuntimeValue =
+  | ConcreteValue
+  | LazyValue
+  | CallableValue
+  | ErrorValue;
 
 export interface ConcreteValue {
   kind: "concrete";
-  value: number | boolean | ConcreteValue[] | NodeValue_Closure;
+  value: number | boolean | ConcreteValue[];
   step: Step;
 }
 
 export interface LazyValue {
   kind: "lazy";
-  execute: (args: Node[]) => EvaluatedValue;
+  execute: (args: Node[]) => RuntimeValue;
   args: Node[];
   /**
    * 是否不能修改 args。
    */
   frozen: boolean;
+}
+
+export interface CallableValue {
+  kind: "callable";
+  callableKind: "closure" | "captured";
+  call: (args: Node[]) => RuntimeValue;
+  forceArity: number;
 }
 
 export interface ErrorValue {
@@ -46,7 +62,7 @@ export interface ErrorValue {
 
 export type Step = (string | Step)[];
 
-export function getTypeName(v: EvaluatedValue) {
+export function getTypeName(v: RuntimeValue) {
   switch (v.kind) {
     case "concrete":
       switch (typeof v.value) {
@@ -56,11 +72,19 @@ export function getTypeName(v: EvaluatedValue) {
           return "boolean";
         default:
           if (Array.isArray(v.value)) return "list";
-          if (v.value.valueKind === "closure") return "closure";
           throw new Unreachable();
       }
     case "lazy":
       return "lazy";
+    case "callable":
+      switch (v.callableKind) {
+        case "closure":
+          return "closure";
+        case "captured":
+          return "captured";
+        default:
+          throw new Unreachable();
+      }
     case "error":
       return "error";
     default:
@@ -92,7 +116,7 @@ export function lazyValue(
   };
 }
 
-export function asLazy(v: EvaluatedValue): LazyValue | null {
+export function asLazy(v: RuntimeValue): LazyValue | null {
   if (v.kind === "lazy") return v;
   return null;
 }

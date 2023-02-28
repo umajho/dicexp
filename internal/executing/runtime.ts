@@ -9,9 +9,9 @@ import { builtinScope } from "./builtin_functions.ts";
 import {
   ConcreteValue,
   concreteValue,
-  EvaluatedValue,
   LazyValue,
   lazyValue,
+  RuntimeValue,
 } from "./evaluated_values.ts";
 import { invokeAll } from "./helpers.ts";
 import {
@@ -49,20 +49,22 @@ export class Runtime {
     return this.translate(result);
   }
 
-  translate(evaluatedValue: EvaluatedValue): ResultValue {
-    switch (evaluatedValue.kind) {
+  translate(runtimeValue: RuntimeValue): ResultValue {
+    switch (runtimeValue.kind) {
       case "concrete":
-        switch (typeof evaluatedValue.value) {
+        switch (typeof runtimeValue.value) {
           case "number":
           case "boolean":
-            return evaluatedValue.value;
+            return runtimeValue.value;
           default:
-            if (Array.isArray(evaluatedValue.value)) {
-              return this.#translateList(evaluatedValue.value);
+            if (Array.isArray(runtimeValue.value)) {
+              return this.#translateList(runtimeValue.value);
             }
             throw new Unimplemented();
         }
         break;
+      case "callable":
+        throw new Unimplemented();
       case "lazy":
       case "error":
         throw new Unreachable();
@@ -81,7 +83,7 @@ export class Runtime {
     return resultList;
   }
 
-  execute(): EvaluatedValue {
+  execute(): RuntimeValue {
     if (this.executed) {
       throw new Unimplemented();
     }
@@ -90,7 +92,7 @@ export class Runtime {
     return invokeAll(outermost);
   }
 
-  #eval(scope: Scope, node: Node): EvaluatedValue {
+  #eval(scope: Scope, node: Node): RuntimeValue {
     if (typeof node === "string") throw new Unimplemented();
     switch (node.kind) {
       case "value": {
@@ -163,23 +165,23 @@ export class Runtime {
   }
 }
 
-export type Scope = { [ident: string]: Function | EvaluatedValue };
+export type Scope = { [ident: string]: Function | RuntimeValue };
 
 export type Function = (
   params: Node[],
   style: FunctionCallStyle,
   runtime: FunctionRuntime,
-) => { result: EvaluatedValue };
+) => { result: RuntimeValue };
 
 export interface FunctionRuntime {
-  evaluate: (node: Node) => EvaluatedValue;
+  evaluate: (node: Node) => RuntimeValue;
   scope: Scope;
   random: RandomGenerator;
 }
 
 function makeFunctionRuntime(
   scope: Scope,
-  evalFn: (node: Node) => EvaluatedValue,
+  evalFn: (node: Node) => RuntimeValue,
   randomGenerator: RandomGenerator,
 ): FunctionRuntime {
   return {

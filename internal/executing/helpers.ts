@@ -11,10 +11,10 @@ import {
   concreteValue,
   ErrorValue,
   errorValue,
-  EvaluatedValue,
-  EvaluatedValueTypes,
   getTypeName,
   LazyValue,
+  RuntimeValue,
+  RuntimeValueTypes,
   Step,
 } from "./evaluated_values.ts";
 import {
@@ -26,8 +26,8 @@ import { Function, FunctionRuntime } from "./runtime.ts";
 import { Unreachable } from "../../errors.ts";
 
 export type AllowedParameterTypes =
-  | EvaluatedValueTypes
-  | EvaluatedValueTypes[]
+  | RuntimeValueTypes
+  | RuntimeValueTypes[]
   | "*";
 
 /**
@@ -70,7 +70,7 @@ export function makeFunction(
     }
 
     const resultValue = logic(evaluatedParams, runtime);
-    let result: EvaluatedValue;
+    let result: RuntimeValue;
     if (resultValue instanceof RuntimeError) {
       const step = renderFunctionStep(functionName, evaluatedParams, style);
       result = errorValue(resultValue, step);
@@ -100,7 +100,7 @@ export function makeUnaryRedirection(
       2,
     );
     const binaryResult = invokeAll(runtime.evaluate(redirected));
-    let result: EvaluatedValue;
+    let result: RuntimeValue;
     if (binaryResult.kind === "concrete") {
       result = concreteValue(binaryResult.value, [
         "TODO: redirection step",
@@ -119,7 +119,7 @@ export function makeUnaryRedirection(
 type ListElementWithError = ConcreteValue | ErrorValue | Unevaluated;
 
 export function evaluateParameters(
-  evalFn: (node: Node) => EvaluatedValue,
+  evalFn: (node: Node) => RuntimeValue,
   functionName: string,
   params: Node[],
   types: AllowedParameterTypes[],
@@ -219,7 +219,7 @@ function renderFunctionStep(
 }
 
 export function invokeAll(
-  evaluated: EvaluatedValue,
+  evaluated: RuntimeValue,
 ): ConcreteValue | ErrorValue {
   const lazy = asLazy(evaluated);
   if (!lazy) return evaluated as (ConcreteValue | ErrorValue);
@@ -231,7 +231,7 @@ export function invokeAll(
 
 function checkTypes(
   expected: AllowedParameterTypes,
-  value: EvaluatedValue,
+  value: RuntimeValue,
 ): RuntimeError_TypeMismatch | null {
   if (expected === "*") return null;
 
