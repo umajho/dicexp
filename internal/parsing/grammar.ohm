@@ -71,6 +71,10 @@ Dicexp {
     // 但是上下重复定义两遍就能在保证优先级正确的情况下还解析 `1 ~ -10` 这样的代码
 
     | "!" UnOpExpP10 -- not
+    | BinOpCall
+
+  BinOpCall 
+    = BinOpCall "." ArgumentList -- call
     | GroupingExp
 
   RollGrouping
@@ -79,35 +83,36 @@ Dicexp {
   
   GroupingExp
     = "(" Exp ")" -- grouping
-    | FunctionCallExp
-    | asFunctionExp
+    | CallExp
     | ListExp
     | ClosureExp
-    // | SubscriptExp
+    | capture
     | literal
     | ident
 
-  FunctionCallExp
-    = ident ArgumentList                 -- regular
-    | ident ClosureExp                   -- with_closure_argument
-    | ClosureExp ArgumentList            -- closure
-    | asFunctionExp ArgumentList -- operator
-
-  asFunctionExp
-    = "&" ident "/" literalInteger
-    | "&" ("-" | "!" | "~" | "d" | "d%") "/" "1"
-    | "&" ( "~" | "+" | "-" | "*" | "//" | "%" | "d" | "d%" | "^") "/" "2"
-      // 不含 `|>`、`#`
+  CallExp
+    = ident ArgumentList  -- regular
+    | ident ClosureExp    -- closure_argument_short
 
   ArgumentList = "(" ListOf<Exp, ","> ")"
   
   ListExp = "[" ListOf<Exp, ","> "]"
   
   ClosureExp = "\\(" ListOf<ident, ","> "->" Exp ")"
-  
-  // SubscriptExp
-  //   = ident spaces "[" spaces literalInteger spaces "]"
-  
+
+  capture
+    = "&" ident "/" literalInteger
+    | "&" unarySymbol "/" "1"
+    | "&" binarySymbol "/" "2"
+
+  unarySymbol = "-" | "!" | "~" | "d" | "d%"
+  binarySymbol
+    = "||" | "&&" | "==" | "!=" | "<" | ">" | "<=" | ">="
+    // | "|>" | "#" // 这两个运算符比较特别，会改变代码结构，因此不允许被捕获
+    | "~" | "+" | "-" | "*" | "//" | "%"
+    | "d" | "d%"
+    | "^"
+
   ident
     = identHead identRestChar*
   identHead

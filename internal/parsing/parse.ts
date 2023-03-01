@@ -5,11 +5,9 @@ import { ActionDictForTransformationBuilder } from "./action_dict_builder.ts";
 import {
   captured,
   closure,
-  closureCall,
   functionCall,
   list,
   Node,
-  Node_Captured,
   value,
 } from "./building_blocks.ts";
 import { convertTextToHalfWidth } from "./fullwidth_convertion.ts";
@@ -57,9 +55,7 @@ const actionDict = (new ActionDictForTransformationBuilder()).addOperators({
     { op: "<=", opText: "lte", types: "binary" },
     { op: ">=", opText: "gte", types: "binary" },
   ],
-  0: [
-    { op: "|>", opText: "pipe", types: "binary" },
-  ],
+  // 0: pipe 见下
   0.1: [
     { op: "#", opText: "repeat", types: "binary" },
   ],
@@ -94,27 +90,28 @@ const actionDict = (new ActionDictForTransformationBuilder()).addOperators({
     { op: "!", opText: "not", types: "prefix" },
   ],
 })
-  .add("RollGrouping_grouping", (_lp, exp, _rp) => exp.transform())
-  .add("GroupingExp_grouping", (_lp, exp, _rp) => exp.transform())
-  .addWithInlines("FunctionCallExp", {
-    "regular": (ident, args) =>
-      functionCall(ident.transform(), args.transform(), "regular"),
-    "with_closure_argument": (ident, closure) =>
-      functionCall(ident.transform(), [closure.transform()], "regular"),
-    "closure": (closure, args) =>
-      closureCall(closure.transform(), args.transform()),
-    "operator": (operator, args) => {
-      const nodeOp = operator.transform() as Node_Captured;
-      return functionCall(
-        nodeOp.identifier,
-        args.transform(),
-        "regular",
-        nodeOp.forceArity,
-      );
-    },
+  .add("BinOpExpP0_pipe", (left, _op, right) => {
+    let [l, r] = [left.transform(), right.transform()] as [Node, Node];
+    if (typeof r === "string") {
+      r = functionCall("function", r, []);
+    }
+    return functionCall("function", "|>", [l, r], "operator");
   })
   .add(
-    "asFunctionExp",
+    "BinOpCall_call",
+    (node, _dot, args) =>
+      functionCall("variable", node.transform(), args.transform()),
+  )
+  .add("RollGrouping_grouping", (_lp, exp, _rp) => exp.transform())
+  .add("GroupingExp_grouping", (_lp, exp, _rp) => exp.transform())
+  .addWithInlines("CallExp", {
+    "regular": (ident, args) =>
+      functionCall("function", ident.transform(), args.transform()),
+    "closure_argument_short": (ident, closure) =>
+      functionCall("function", ident.transform(), [closure.transform()]),
+  })
+  .add(
+    "capture",
     (_amp, ident_terminal, _slash, arity) =>
       captured(ident_terminal.sourceString, Number(arity.sourceString)),
   )

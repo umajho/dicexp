@@ -4,7 +4,7 @@ interface _Node {
 
 export type Node =
   | Node_FunctionCall
-  | Node_ClosureCall
+  | Node_VariableCall
   | Node_Captured
   | Node_Value
   | string; // 标识符
@@ -18,7 +18,8 @@ export type FunctionCallStyle =
 export interface Node_FunctionCall extends _Node {
   kind: "function_call";
 
-  identifier: string;
+  calleeKind: "function" | "variable";
+  name: string;
 
   /**
    * - regular: `foo(bar)`
@@ -27,40 +28,33 @@ export interface Node_FunctionCall extends _Node {
    */
   style: FunctionCallStyle;
 
-  forceArity: number | undefined;
   args: Node[];
 }
 
 export function functionCall(
-  identifier: string,
+  calleeKind: Node_FunctionCall["calleeKind"],
+  name: string,
   args: Node[],
   style: FunctionCallStyle = "regular",
-  forceArity: number | undefined = undefined,
 ): Node_FunctionCall {
-  return {
-    kind: "function_call",
-    identifier,
-    forceArity,
-    args,
-    style,
-  };
+  return { kind: "function_call", calleeKind, name, args, style };
 }
 
-export interface Node_ClosureCall extends _Node {
-  kind: "closure_call";
+export interface Node_VariableCall extends _Node {
+  kind: "variable_call";
 
-  closure: NodeValue_Closure;
+  variable: Node;
 
   args: Node[];
 }
 
 export function closureCall(
-  closure: NodeValue_Closure,
+  variable: Node,
   args: Node[],
-): Node_ClosureCall {
+): Node_VariableCall {
   return {
-    kind: "closure_call",
-    closure,
+    kind: "variable_call",
+    variable,
     args,
   };
 }

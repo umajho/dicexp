@@ -20,8 +20,8 @@ import {
 import { invokeAll } from "./helpers.ts";
 import {
   RuntimeError,
-  RuntimeError_NotAFunction,
-  RuntimeError_UnknownIdentifier,
+  RuntimeError_UnknownFunction,
+  RuntimeError_UnknownVariable,
 } from "./runtime_errors.ts";
 
 export interface RandomGenerator {
@@ -119,8 +119,6 @@ export class Runtime {
       case "runtime_function_call": {
         return this.#evalFunctionCall(scope, node);
       }
-      case "closure_call":
-        throw new Unimplemented();
       case "captured":
         return this.#evalCaptured(scope, node);
       default:
@@ -134,16 +132,7 @@ export class Runtime {
       if ("isRuntimeValue" in value && value.isRuntimeValue) return value;
       throw new Unreachable();
     } else {
-      return callableValue("identifier", (args, style) => {
-        const fnFullName = `${ident}/${args.length}`;
-        if (fnFullName in scope) {
-          return this.#evalFunctionCall(
-            scope,
-            runtimeFunctionCall(ident, args, style, args.length),
-          );
-        }
-        return errorValue(new RuntimeError_UnknownIdentifier(ident));
-      }, undefined);
+      return errorValue(new RuntimeError_UnknownVariable(ident));
     }
   }
 
@@ -176,13 +165,21 @@ export class Runtime {
   ): LazyValue {
     return lazyValue(
       (args) => {
-        return this.#callFunction(
-          scope,
-          call.identifier,
-          args,
-          call.style,
-          call.forceArity,
-        );
+        let fullName = call.name;
+        if (call.calleeKind === "function") {
+          fullName += `/${args.length}`;
+        }
+        const fn = scope[fullName];
+        if (fn === undefined) {
+          return errorValue(new RuntimeError_UnknownFunction(fullName), [
+            "TODO: step",
+          ]);
+        } else if (typeof fn !== "function") {
+          throw new Unreachable();
+        }
+
+        // FIXME: style 应该是在真正执行时传进来的，这里暂时先用 `"regular"`
+        return this.#call(scope, fn, args, "regular");
       },
       call.args,
       false,
@@ -193,38 +190,23 @@ export class Runtime {
     return callableValue("captured", (args, style) => {
       // FIXME: step
       const ident = captured.identifier;
+      const forceArity = captured.forceArity;
       return this.#evalFunctionCall(
         scope,
-        runtimeFunctionCall(ident, args, style, captured.forceArity),
+        runtimeFunctionCall("function", ident, args, style, forceArity),
       );
     }, captured.forceArity);
   }
 
-  #callFunction(
+  #call(
     scope: Scope,
-    identifier: string,
+    fn: Function,
     args: (Node | ConcreteValue)[],
     style: FunctionCallStyle,
-    forceArity: number | undefined,
   ): RuntimeValue {
-    if (forceArity !== undefined && forceArity !== args.length) {
-      throw new Unimplemented();
-    }
-
-    const fullIdent = `${identifier}/${args.length}`;
-    const fn = scope[fullIdent];
-    if (!fn) {
-      return errorValue(new RuntimeError_UnknownIdentifier(fullIdent));
-    } else if (typeof fn !== "function") {
-      // FIXME: 由于有 arity 标记，不可能会走到这里吧
-      return errorValue(new RuntimeError_NotAFunction(fullIdent));
-    }
     const evalFn = (node: Node | FunctionCall) => this.#eval(scope, node);
-    const executed = fn(
-      args,
-      style,
-      makeFunctionRuntime(scope, evalFn, this.rng),
-    );
+    const rtm = makeFunctionRuntime(scope, evalFn, this.rng);
+    const executed = fn(args, style, rtm);
     return executed.result;
   }
 }
@@ -257,21 +239,24 @@ function makeFunctionRuntime(
 
 export interface FunctionCall {
   kind: "runtime_function_call";
-  identifier: string;
+  calleeKind: "function" | "variable";
+  name: string;
   style: FunctionCallStyle;
   forceArity: number | undefined;
   args: (Node | ConcreteValue)[];
 }
 
 export function runtimeFunctionCall(
-  identifier: string,
+  calleeKind: FunctionCall["calleeKind"],
+  name: string,
   args: (Node | ConcreteValue)[],
   style: FunctionCallStyle = "regular",
   forceArity: number | undefined = undefined,
 ): FunctionCall {
   return {
     kind: "runtime_function_call",
-    identifier,
+    calleeKind,
+    name,
     forceArity,
     args,
     style,

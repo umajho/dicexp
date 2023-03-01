@@ -38,7 +38,7 @@ export interface ConcreteValue {
 export interface Callable {
   isRuntimeValue: true;
   kind: "callable";
-  callableKind: "closure" | "captured" | "identifier";
+  callableKind: "closure" | "captured";
   call: (args: ConcreteValue[], style: FunctionCallStyle) => RuntimeValue;
   forceArity: number | undefined;
 }

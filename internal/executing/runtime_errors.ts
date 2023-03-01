@@ -61,7 +61,7 @@ export class RuntimeError_IllegalOperation extends RuntimeError {
 
 // TODO: 给出可能的推荐，比如同名不同 arity 或名称相似的标识符。
 //       也许可以用 `npm:string-similarity`
-export class RuntimeError_UnknownIdentifier extends RuntimeError {
+export class RuntimeError_UnknownFunction extends RuntimeError {
   name: string;
 
   constructor(name: string) {
@@ -70,11 +70,13 @@ export class RuntimeError_UnknownIdentifier extends RuntimeError {
   }
 
   get message() {
-    return `\`${this.name}\` 并不存在`;
+    return `名为 \`${this.name}\` 的函数并不存在`;
   }
 }
 
-export class RuntimeError_NotAFunction extends RuntimeError {
+// TODO: 给出可能的推荐，比如同名不同 arity 或名称相似的标识符。
+//       也许可以用 `npm:string-similarity`
+export class RuntimeError_UnknownVariable extends RuntimeError {
   name: string;
 
   constructor(name: string) {
@@ -83,6 +85,19 @@ export class RuntimeError_NotAFunction extends RuntimeError {
   }
 
   get message() {
-    return `\`${this.name}\` 不是函数`;
+    return `名为 \`${this.name}\` 的变量并不存在`;
+  }
+}
+
+export class RuntimeError_NotCallable extends RuntimeError {
+  name: string;
+
+  constructor(name: string) {
+    super();
+    this.name = name;
+  }
+
+  get message() {
+    return `\`${this.name}\` 不可调用`;
   }
 }

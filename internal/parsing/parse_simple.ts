@@ -31,13 +31,13 @@ function simpleParse_adds_subs(side: string): Node | false {
 
     if (!node) {
       if (op) {
-        node = functionCall(op, [cur], "operator");
+        node = functionCall("function", op, [cur], "operator");
       } else {
         node = cur;
       }
     } else {
       if (!op) return false;
-      node = functionCall(op, [node, cur]);
+      node = functionCall("function", op, [node, cur]);
     }
   }
   if (!node) return false;
@@ -61,11 +61,11 @@ function simpleParseOperatorExp(
     if (!parsedR) return false;
     if (l === "") { // <op> <right>
       if (!allowsUnary) return false;
-      return functionCall(op, [parsedR]);
+      return functionCall("function", op, [parsedR]);
     } else { // <left> <op> <right>
       const parsedL = parseInner(l);
       if (!parsedL) return false;
-      return functionCall(op, [parsedL, parsedR]);
+      return functionCall("function", op, [parsedL, parsedR]);
     }
   }
 }

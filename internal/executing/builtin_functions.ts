@@ -91,11 +91,8 @@ export const builtinScope: Scope = {
     const [lV, rV] = [left.value, right.value] as [number, number];
     return lV >= rV;
   }),
-  "|>/2": (params, style, runtime) => {
-    if (style !== "operator") {
-      // TODO pipe 运算符严格要求以运算符的形式使用
-      throw new Unimplemented();
-    }
+  "|>/2": (params, _style, runtime) => {
+    // FIXME: 将 style 改为 pipe
     if (params.length != 2) {
       return {
         result: errorValue(new RuntimeError_WrongArity("|>", 2, params.length)),

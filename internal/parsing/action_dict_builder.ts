@@ -100,7 +100,7 @@ export class ActionDictForTransformationBuilder {
 
     this.#dict[rule] = (left, _op, right) => {
       const args = [left.transform(), right.transform()];
-      return functionCall(op, args, "operator");
+      return functionCall("function", op, args, "operator");
     };
 
     return this;
@@ -113,7 +113,7 @@ export class ActionDictForTransformationBuilder {
 
     this.#dict[rule] = (_op, right) => {
       const args = [right.transform()];
-      return functionCall(op, args, "operator");
+      return functionCall("function", op, args, "operator");
     };
 
     return this;
