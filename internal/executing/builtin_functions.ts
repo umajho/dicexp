@@ -236,8 +236,20 @@ export const builtinScope: Scope = {
   // reverse/1
   // concat/2
   // prepend/2
-  // append/2
-  // at/2
+  "append/2": makeFunction("append", ["list", "*"], ([list_, el]) => {
+    const list = list_.value as ConcreteValue[];
+    return [...list, el];
+  }),
+  "at/2": makeFunction("at", ["list", "number"], ([list_, n_]) => {
+    const list = list_.value as ConcreteValue[];
+    const n = n_.value as number;
+    if (n >= list.length && n < 0) {
+      return new RuntimeError(
+        `访问数组越界：数组大小为 ${list.length}，提供的索引为 ${n}`,
+      );
+    }
+    return list[n].value;
+  }),
   // duplicate/2
   // flatten
 
@@ -267,7 +279,7 @@ export const builtinScope: Scope = {
       return new RuntimeError_WrongArity(fnName, 1, fn.forceArity);
     }
     const resultList: ConcreteValue[] = [];
-    for (const [i, elem] of list.entries()) {
+    for (const elem of list) {
       const args = [elem];
       const result = invokeCallableImmediately(fn, args, "as-parameter");
       if (result.kind === "error") return result.error; // FIXME: step 丢失了
