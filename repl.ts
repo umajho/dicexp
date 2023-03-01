@@ -9,6 +9,6 @@ while (1) {
     const result = execute(parsed);
     console.log(`%c=> ${Deno.inspect(result)}`, "color: green");
   } catch (e) {
-    console.error(e);
+    console.error("unknown error:", e);
   }
 }
