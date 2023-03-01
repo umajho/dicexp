@@ -11,6 +11,7 @@ import {
   LazyValue,
   lazyValue,
   RuntimeValue,
+  RuntimeValueTypes,
   typeDisplayText,
 } from "./evaluated_values.ts";
 import {
@@ -234,6 +235,7 @@ export const builtinScope: Scope = {
   // sort/2
   // reverse/1
   // concat/2
+  // prepend/2
   // append/2
   // at/2
   // duplicate/2
@@ -256,9 +258,33 @@ export const builtinScope: Scope = {
     }
     return resultList;
   }),
-  // map/2
   // flatMap/2
-  // filter/2
+  "filter/2": makeFunction("filter", ["list", "callable"], ([list_, fn_]) => {
+    const list = list_.value as ConcreteValue[];
+    const fn = fn_.value as Callable;
+    if (fn.forceArity !== undefined && fn.forceArity !== 1) {
+      const fnName = renderCallableName(fn);
+      return new RuntimeError_WrongArity(fnName, 1, fn.forceArity);
+    }
+    const resultList: ConcreteValue[] = [];
+    for (const [i, elem] of list.entries()) {
+      const args = [elem];
+      const result = invokeCallableImmediately(fn, args, "as-parameter");
+      if (result.kind === "error") return result.error; // FIXME: step 丢失了
+      if (typeof result.value !== "boolean") {
+        return error_inputFunctionReturnValueTypeMismatch(
+          "filter",
+          "boolean",
+          getTypeName(result),
+          2,
+        );
+      }
+      if (result.value) {
+        resultList.push(elem);
+      }
+    }
+    return resultList;
+  }),
   // foldl/3
   // foldr/3
   "head/1": makeFunction("head", ["list"], ([list_]) => {
@@ -379,5 +405,19 @@ function error_flattenListElementTypesMismatch(
   return new RuntimeError(
     `作为第 ${position} 个参数传入 \`${fnName}\` 的数组在扁平化后，` +
       `其成员必须皆为${expectedElemTypeDisplayText}`,
+  );
+}
+
+function error_inputFunctionReturnValueTypeMismatch(
+  fnName: string,
+  expectedReturnValueType: "number" | "boolean",
+  actualReturnValueType: RuntimeValueTypes,
+  position: number,
+) {
+  const expectedTypeText = typeDisplayText(expectedReturnValueType);
+  const actualTypeText = typeDisplayText(actualReturnValueType);
+  return new RuntimeError(
+    `作为第 ${position} 个参数传入 \`${fnName}\` 的函数的返回值类型与期待不符：` +
+      `期待「${expectedTypeText}」，实际「${actualTypeText}」。`,
   );
 }

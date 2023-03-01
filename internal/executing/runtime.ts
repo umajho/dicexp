@@ -4,6 +4,7 @@ import {
   Node,
   Node_Captured,
   Node_FunctionCall,
+  NodeValue_Closure,
   NodeValue_List,
 } from "../parsing/building_blocks.ts";
 import { builtinScope } from "./builtin_functions.ts";
@@ -109,7 +110,7 @@ export class Runtime {
             return this.#evalList(scope, node.value);
           }
           case "closure":
-            throw new Unimplemented();
+            return this.#evalClosure(scope, node.value);
           default:
             throw new Unreachable();
         }
@@ -156,6 +157,17 @@ export class Runtime {
       listEvaluated.push(elemEvaluated);
     }
     return concreteValue(listEvaluated, ["TODO: step for list"]);
+  }
+
+  #evalClosure(scope: Scope, closure: NodeValue_Closure): ConcreteValue {
+    return callableValue("closure", (args, _style) => {
+      // FIXME: step
+      const deeperScope: Scope = Object.setPrototypeOf({}, scope);
+      for (const [i, ident] of closure.parameterIdentifiers.entries()) {
+        deeperScope[ident] = args[i];
+      }
+      return this.#eval(deeperScope, closure.body);
+    }, closure.parameterIdentifiers.length);
   }
 
   #evalFunctionCall(
