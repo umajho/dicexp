@@ -12,6 +12,7 @@ import {
   Node_Captured,
   value,
 } from "./building_blocks.ts";
+import { convertTextToHalfWidth } from "./fullwidth_convertion.ts";
 
 import grammarRaw from "./grammar.json" assert { type: "json" };
 import { simpleParse } from "./parse_simple.ts";
@@ -25,6 +26,8 @@ export interface ParseOptions {
 }
 
 export function parse(code: string, opts?: ParseOptions): Node {
+  code = convertTextToHalfWidth(code);
+
   if (opts?.optimizesForSimpleCases ?? true) {
     const result = simpleParse(code);
     if (result) return result;
