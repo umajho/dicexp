@@ -290,7 +290,7 @@ describe("运算符", () => {
           assertExecutionOk("10 |> \\(x, y -> x*2)(20)", 20);
         });
         it("可以将值传给转为函数的运算符", () => { // 虽然意味不明…
-          assertExecutionOk("10 |> &-/1", 20);
+          assertExecutionOk("10 |> &-/1", -10);
           assertExecutionOk("10 |> &-/2(20)", -10);
         });
       });
