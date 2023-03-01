@@ -40,7 +40,7 @@ export class RuntimeError_TypeMismatch extends RuntimeError {
   get message() {
     const expected = this.expectedType.map((x) => `「${typeDisplayText(x)}」`);
     return `期待类型${expected}` +
-      `与实际类型「${typeDisplayText(this.actualType)}」不符。`;
+      `与实际类型「${typeDisplayText(this.actualType)}」不符`;
   }
 }
 
@@ -55,7 +55,7 @@ export class RuntimeError_IllegalOperation extends RuntimeError {
   }
 
   get message() {
-    return `操作 “${this.operation}” 非法：${this.reason}。`;
+    return `操作 “${this.operation}” 非法：${this.reason}`;
   }
 }
 
