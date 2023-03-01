@@ -3,9 +3,11 @@ import { Unreachable } from "../../errors.ts";
 import { ActionDictForTransformationBuilder } from "./action_dict_builder.ts";
 
 import {
+  call,
+  calleeFunction,
+  calleeValue,
   captured,
   closure,
-  functionCall,
   list,
   Node,
   value,
@@ -93,22 +95,21 @@ const actionDict = (new ActionDictForTransformationBuilder()).addOperators({
   .add("BinOpExpP0_pipe", (left, _op, right) => {
     let [l, r] = [left.transform(), right.transform()] as [Node, Node];
     if (typeof r === "string") {
-      r = functionCall("function", r, []);
+      r = call(calleeFunction(r), []);
     }
-    return functionCall("function", "|>", [l, r], "operator");
+    return call(calleeFunction("|>"), [l, r], "operator");
   })
   .add(
     "BinOpCall_call",
-    (node, _dot, args) =>
-      functionCall("variable", node.transform(), args.transform()),
+    (node, _dot, args) => call(calleeValue(node.transform()), args.transform()),
   )
   .add("RollGrouping_grouping", (_lp, exp, _rp) => exp.transform())
   .add("GroupingExp_grouping", (_lp, exp, _rp) => exp.transform())
   .addWithInlines("CallExp", {
     "regular": (ident, args) =>
-      functionCall("function", ident.transform(), args.transform()),
+      call(calleeFunction(ident.transform()), args.transform()),
     "closure_argument_short": (ident, closure) =>
-      functionCall("function", ident.transform(), [closure.transform()]),
+      call(calleeFunction(ident.transform()), [closure.transform()]),
   })
   .add(
     "capture",

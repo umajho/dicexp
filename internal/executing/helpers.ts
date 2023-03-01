@@ -1,4 +1,5 @@
 import {
+  calleeFunction,
   FunctionCallStyle,
   type Node,
   Node_Value,
@@ -21,7 +22,7 @@ import {
   RuntimeError_TypeMismatch,
   RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
-import { Function, FunctionRuntime, runtimeFunctionCall } from "./runtime.ts";
+import { Function, FunctionRuntime, runtimeCall } from "./runtime.ts";
 import { Unreachable } from "../../errors.ts";
 
 export type AllowedParameterTypes =
@@ -97,9 +98,8 @@ export function makeUnaryRedirection(
   leftValue: Node_Value,
 ): Function {
   return (params, _style, runtime) => {
-    const redirected = runtimeFunctionCall(
-      "function",
-      functionName,
+    const redirected = runtimeCall(
+      calleeFunction(functionName),
       [leftValue, params[0]],
       "operator",
       2,
@@ -127,11 +127,11 @@ export function evaluateParameters(
   evalFn: (node: Node) => RuntimeValue,
   functionName: string,
   params: (Node | ConcreteValue)[],
-  types: AllowedParameterTypes[],
+  types: AllowedParameterTypes[] | undefined,
 ):
   | [ListElementWithError[] | null, RuntimeError]
   | [ConcreteValue[], null] {
-  if (params.length != types.length) {
+  if (types !== undefined && params.length != types.length) {
     return [
       null,
       new RuntimeError_WrongArity(functionName, types.length, params.length),
@@ -152,11 +152,13 @@ export function evaluateParameters(
       continue;
     }
 
-    const typeError = checkTypes(types[i], evaluated);
-    if (typeError) {
-      evaluatedParams.push(errorValue(typeError));
-      paramError = typeError;
-      continue;
+    if (types !== undefined) {
+      const typeError = checkTypes(types[i], evaluated);
+      if (typeError) {
+        evaluatedParams.push(errorValue(typeError));
+        paramError = typeError;
+        continue;
+      }
     }
 
     evaluatedParams.push(evaluated);

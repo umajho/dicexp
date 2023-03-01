@@ -345,6 +345,12 @@ export const builtinScope: Scope = {
       return resultList;
     },
   ),
+
+  "inspect/1": makeFunction("inspect", ["*"], ([v]) => {
+    // FIXME: step
+    console.log(v);
+    return v.value;
+  }),
 };
 
 function makeGeneratorWithRange(

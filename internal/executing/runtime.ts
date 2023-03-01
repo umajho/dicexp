@@ -1,14 +1,17 @@
 import { Unimplemented, Unreachable } from "../../errors.ts";
 import {
+  calleeFunction,
   FunctionCallStyle,
   Node,
+  Node_Call,
   Node_Captured,
-  Node_FunctionCall,
   NodeValue_Closure,
   NodeValue_List,
 } from "../parsing/building_blocks.ts";
 import { builtinScope } from "./builtin_functions.ts";
 import {
+  asCallable,
+  Callable,
   callableValue,
   ConcreteValue,
   concreteValue,
@@ -17,9 +20,14 @@ import {
   lazyValue,
   RuntimeValue,
 } from "./evaluated_values.ts";
-import { invokeAll } from "./helpers.ts";
+import {
+  evaluateParameters,
+  invokeAll,
+  renderCallableName,
+} from "./helpers.ts";
 import {
   RuntimeError,
+  RuntimeError_NotCallable,
   RuntimeError_UnknownFunction,
   RuntimeError_UnknownVariable,
 } from "./runtime_errors.ts";
@@ -96,7 +104,7 @@ export class Runtime {
     return invokeAll(outermost);
   }
 
-  #eval(scope: Scope, node: Node | FunctionCall): RuntimeValue {
+  #eval(scope: Scope, node: Node | Call): RuntimeValue {
     if (typeof node === "string") {
       return this.#evalIdentifier(scope, node);
     }
@@ -115,8 +123,8 @@ export class Runtime {
             throw new Unreachable();
         }
       }
-      case "function_call":
-      case "runtime_function_call": {
+      case "call":
+      case "runtime_call": {
         return this.#evalFunctionCall(scope, node);
       }
       case "captured":
@@ -161,25 +169,31 @@ export class Runtime {
 
   #evalFunctionCall(
     scope: Scope,
-    call: FunctionCall | Node_FunctionCall,
+    call: Call | Node_Call,
   ): LazyValue {
     return lazyValue(
       (args) => {
-        let fullName = call.name;
-        if (call.calleeKind === "function") {
-          fullName += `/${args.length}`;
-        }
-        const fn = scope[fullName];
-        if (fn === undefined) {
-          return errorValue(new RuntimeError_UnknownFunction(fullName), [
-            "TODO: step",
-          ]);
-        } else if (typeof fn !== "function") {
-          throw new Unreachable();
+        const fn = this.#getFunctionFromCall(scope, call, args.length);
+        if (typeof fn === "object" && fn instanceof RuntimeError) {
+          return errorValue(fn);
         }
 
-        // FIXME: style 应该是在真正执行时传进来的，这里暂时先用 `"regular"`
-        return this.#call(scope, fn, args, "regular");
+        if (typeof fn === "function") {
+          // FIXME: style 应该是在真正执行时传进来的，这里暂时先用 `"regular"`
+          return this.#call(scope, fn, args, "regular");
+        } else {
+          const [evaluatedParams, error] = evaluateParameters(
+            this.#evalFn(scope),
+            renderCallableName(fn),
+            args,
+            undefined,
+          );
+          if (error) {
+            return errorValue(error, ["TODO: step"]);
+          }
+
+          return fn.call(evaluatedParams, "regular");
+        }
       },
       call.args,
       false,
@@ -193,9 +207,42 @@ export class Runtime {
       const forceArity = captured.forceArity;
       return this.#evalFunctionCall(
         scope,
-        runtimeFunctionCall("function", ident, args, style, forceArity),
+        runtimeCall(calleeFunction(ident), args, style, forceArity),
       );
     }, captured.forceArity);
+  }
+
+  #getFunctionFromCall(
+    scope: Scope,
+    call: Call | Node_Call,
+    arity: number,
+  ): Function | Callable | RuntimeError {
+    if (call.callee.calleeKind === "function") {
+      const fullName = `${call.callee.name}/${arity}`;
+      const fn = scope[fullName];
+      if (fn === undefined) {
+        return new RuntimeError_UnknownFunction(fullName);
+      }
+      if (typeof fn !== "function") {
+        throw new Unreachable();
+      }
+      return fn;
+    } else if (call.callee.calleeKind === "exp") {
+      const value = invokeAll(this.#eval(scope, call.callee.node));
+      if (value.kind === "error") {
+        return value.error; // FIXME: step
+      }
+      const callable = asCallable(value);
+      if (callable instanceof RuntimeError) {
+        return callable;
+      }
+      if (!callable) {
+        return new RuntimeError_NotCallable("（TODO: name）");
+      }
+      return callable;
+    } else {
+      throw new Unreachable();
+    }
   }
 
   #call(
@@ -204,10 +251,13 @@ export class Runtime {
     args: (Node | ConcreteValue)[],
     style: FunctionCallStyle,
   ): RuntimeValue {
-    const evalFn = (node: Node | FunctionCall) => this.#eval(scope, node);
-    const rtm = makeFunctionRuntime(scope, evalFn, this.rng);
+    const rtm = makeFunctionRuntime(scope, this.#evalFn(scope), this.rng);
     const executed = fn(args, style, rtm);
     return executed.result;
+  }
+
+  #evalFn(scope: Scope) {
+    return (node: Node | Call) => this.#eval(scope, node);
   }
 }
 
@@ -220,14 +270,14 @@ export type Function = (
 ) => { result: RuntimeValue };
 
 export interface FunctionRuntime {
-  evaluate: (node: Node | FunctionCall) => RuntimeValue;
+  evaluate: (node: Node | Call) => RuntimeValue;
   scope: Scope;
   random: RandomGenerator;
 }
 
 function makeFunctionRuntime(
   scope: Scope,
-  evalFn: (node: Node | FunctionCall) => RuntimeValue,
+  evalFn: (node: Node | Call) => RuntimeValue,
   randomGenerator: RandomGenerator,
 ): FunctionRuntime {
   return {
@@ -237,26 +287,23 @@ function makeFunctionRuntime(
   };
 }
 
-export interface FunctionCall {
-  kind: "runtime_function_call";
-  calleeKind: "function" | "variable";
-  name: string;
+export interface Call {
+  kind: "runtime_call";
+  callee: Node_Call["callee"];
   style: FunctionCallStyle;
   forceArity: number | undefined;
   args: (Node | ConcreteValue)[];
 }
 
-export function runtimeFunctionCall(
-  calleeKind: FunctionCall["calleeKind"],
-  name: string,
+export function runtimeCall(
+  callee: Call["callee"],
   args: (Node | ConcreteValue)[],
   style: FunctionCallStyle = "regular",
   forceArity: number | undefined = undefined,
-): FunctionCall {
+): Call {
   return {
-    kind: "runtime_function_call",
-    calleeKind,
-    name,
+    kind: "runtime_call",
+    callee,
     forceArity,
     args,
     style,

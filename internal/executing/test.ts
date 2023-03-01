@@ -175,8 +175,16 @@ describe("值", () => {
     describe("闭包", () => {
       describe("可以用", () => {
         const table: [string, unknown][] = [
-          ["[2, 3, 5, 7] |> filter(\\(x -> x >= 5))", [5, 7]],
-          ["[2, 3, 5, 7] |> filter \\(x -> x >= 5)", [5, 7]],
+          [String.raw`[2, 3, 5, 7] |> filter(\(x -> x >= 5))`, [5, 7]],
+          [String.raw`[2, 3, 5, 7] |> filter \(x -> x >= 5)`, [5, 7]],
+          [String.raw`\(a, b -> a + b).(1, 2)`, 3],
+          [String.raw`append(filter([10], \(_ -> false)), 100) |> head`, 100],
+          [String.raw`append(filter([10], \(_ -> true)), 100) |> head`, 10],
+          // [
+          //   String
+          //     .raw`\(f, n, l -> append(filter([l], \(_ -> n == 100)), f.(f, n+1, append(l, n))) |> head) |> \(f -> f.(f, 0, []))`,
+          //   Array(100).fill(null).map((_, i) => i), // 0..<100
+          // ],
         ];
         for (const [i, [input, expectedOutput]] of table.entries()) {
           it(`case ${i + 1}: ${input}`, () => {

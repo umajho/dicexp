@@ -3,7 +3,7 @@ interface _Node {
 }
 
 export type Node =
-  | Node_FunctionCall
+  | Node_Call
   | Node_VariableCall
   | Node_Captured
   | Node_Value
@@ -15,11 +15,10 @@ export type FunctionCallStyle =
   | "operator"
   | "as-parameter";
 
-export interface Node_FunctionCall extends _Node {
-  kind: "function_call";
+export interface Node_Call extends _Node {
+  kind: "call";
 
-  calleeKind: "function" | "variable";
-  name: string;
+  callee: Callee_Function | Callee_Value;
 
   /**
    * - regular: `foo(bar)`
@@ -31,13 +30,30 @@ export interface Node_FunctionCall extends _Node {
   args: Node[];
 }
 
-export function functionCall(
-  calleeKind: Node_FunctionCall["calleeKind"],
-  name: string,
+export interface Callee_Function {
+  calleeKind: "function";
+  name: string;
+}
+
+export function calleeFunction(name: string): Callee_Function {
+  return { calleeKind: "function", name };
+}
+
+export interface Callee_Value {
+  calleeKind: "exp";
+  node: Node;
+}
+
+export function calleeValue(node: Node): Callee_Value {
+  return { calleeKind: "exp", node };
+}
+
+export function call(
+  callee: Node_Call["callee"],
   args: Node[],
   style: FunctionCallStyle = "regular",
-): Node_FunctionCall {
-  return { kind: "function_call", calleeKind, name, args, style };
+): Node_Call {
+  return { kind: "call", callee, args, style };
 }
 
 export interface Node_VariableCall extends _Node {
