@@ -76,8 +76,13 @@ export function makeFunction(
     } else if (
       typeof resultValue === "object" && "kind" in resultValue
     ) {
-      if (resultValue.kind !== "lazy") throw new Unreachable();
-      result = resultValue;
+      if (resultValue.kind === "lazy") {
+        result = resultValue;
+      } else if (resultValue.kind === "callable") {
+        result = concreteValue(resultValue, ["TODO: ?"]);
+      } else {
+        throw new Unreachable();
+      }
     } else {
       // TODO: 数字超过范围要不要也在这里处理，还是调用这个闭包的函数处理？
       const step = renderFunctionStep(functionName, evaluatedParams, style);
