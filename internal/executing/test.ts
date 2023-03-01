@@ -338,7 +338,7 @@ describe("运算符", () => {
         unaryOperatorOnlyAcceptsNumbers("+");
       });
       describe("-/1", () => {
-        it("将数字取反", () => {
+        it("取数字的相反数", () => {
           assertExecutionOk("-1", -1);
           assertExecutionOk("--1", 1);
         });
