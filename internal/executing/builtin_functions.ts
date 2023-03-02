@@ -13,7 +13,7 @@ import {
   RuntimeValue,
   RuntimeValueTypes,
   typeDisplayText,
-} from "./evaluated_values.ts";
+} from "./values.ts";
 import {
   evalIfIsNotRuntimeValue,
   flattenListAll,

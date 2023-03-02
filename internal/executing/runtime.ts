@@ -19,7 +19,7 @@ import {
   LazyValue,
   lazyValue,
   RuntimeValue,
-} from "./evaluated_values.ts";
+} from "./values.ts";
 import {
   evaluateParameters,
   invokeAll,

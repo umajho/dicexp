@@ -1,4 +1,4 @@
-import { RuntimeValueTypes, typeDisplayText } from "./evaluated_values.ts";
+import { RuntimeValueTypes, typeDisplayText } from "./values.ts";
 
 export class RuntimeError extends Error {}
 
