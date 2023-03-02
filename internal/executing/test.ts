@@ -373,9 +373,10 @@ describe("运算符", () => {
           assertExecutionOk("3%2", 1);
         });
         it("任何操作数都不能是负数", () => {
-          assertExecutionThrows("-3%2", "TODO: error");
+          assertExecutionThrows("(-3)%2", "TODO: error");
           assertExecutionThrows("3%-2", "TODO: error");
-          assertExecutionThrows("-3%-2", "TODO: error");
+          assertExecutionThrows("(-3)%-2", "TODO: error");
+          assertExecutionOk("-3%2", -1); // 取模的优先级更高
         });
         binaryOperatorOnlyAcceptsNumbers("%");
       });
