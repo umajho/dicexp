@@ -171,11 +171,13 @@ export const builtinScope: Scope = {
   "%/2": makeFunction("%", ["number", "number"], ([left, right]) => {
     const [lV, rV] = [left.value, right.value] as [number, number];
     if (lV < 0) {
-      const opRendered = renderOperation("//", `${lV}`, `${rV}`);
+      const lVText = lV < 0 ? `(${lV})` : `${lV}`;
+      const opRendered = renderOperation("%", lVText, `${rV}`);
       const reason = "被除数不能为负数";
       return new RuntimeError_IllegalOperation(opRendered, reason);
     } else if (rV <= 0) {
-      const opRendered = renderOperation("//", `${lV}`, `${rV}`);
+      const lVText = lV < 0 ? `(${lV})` : `${lV}`;
+      const opRendered = renderOperation("%", lVText, `${rV}`);
       const reason = "除数必须为正数";
       return new RuntimeError_IllegalOperation(opRendered, reason);
     }

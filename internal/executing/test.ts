@@ -8,6 +8,7 @@ import {
 
 import {
   assertExecutionOk,
+  assertExecutionRuntimeError,
   assertExecutionThrows,
   assertNumber,
   assertNumberArray,
@@ -373,9 +374,18 @@ describe("运算符", () => {
           assertExecutionOk("3%2", 1);
         });
         it("任何操作数都不能是负数", () => {
-          assertExecutionThrows("(-3)%2", "TODO: error");
-          assertExecutionThrows("3%-2", "TODO: error");
-          assertExecutionThrows("(-3)%-2", "TODO: error");
+          assertExecutionRuntimeError(
+            "(-3) % 2",
+            "操作 “(-3) % 2” 非法：被除数不能为负数",
+          );
+          assertExecutionRuntimeError(
+            "3 % -2",
+            "操作 “3 % -2” 非法：除数必须为正数",
+          );
+          assertExecutionRuntimeError(
+            "(-3)%-2",
+            "操作 “(-3) % -2” 非法：被除数不能为负数",
+          );
           assertExecutionOk("-3%2", -1); // 取模的优先级更高
         });
         binaryOperatorOnlyAcceptsNumbers("%");

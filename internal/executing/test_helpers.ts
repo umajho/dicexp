@@ -46,6 +46,25 @@ export function assertExecutionOk(
   throw new AssertionError(msg);
 }
 
+export function assertExecutionRuntimeError(
+  code: string,
+  expectedError: string,
+) {
+  const actualResult = execute(code);
+  if (actualResult instanceof RuntimeError) {
+    if (actualResult.message === expectedError) {
+      return;
+    }
+    throw new AssertionError(
+      `${code} threw "${actualResult.message}", not "${expectedError}"`,
+    );
+  }
+  const actualResultJSON = JSON.stringify(actualResult);
+  throw new AssertionError(
+    `${code} => ${actualResultJSON}, did not threw "${expectedError}`,
+  );
+}
+
 export function assertExecutionThrows(
   code: string,
   expectedError: string | Error,
