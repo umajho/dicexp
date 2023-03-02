@@ -358,12 +358,14 @@ export const builtinScope: Scope = {
     },
   ),
 
+  // 调试：
   "inspect/1": makeFunction("inspect", ["*"], ([v]) => {
     // FIXME: step
     console.log(v);
     return v.value;
   }),
 
+  // 控制流：
   "if!/3": (params, _style, runtime) => {
     if (params.length != 3) {
       return {
