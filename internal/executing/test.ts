@@ -9,7 +9,6 @@ import {
 import {
   assertExecutionOk,
   assertExecutionRuntimeError,
-  assertExecutionThrows,
   assertNumber,
   assertNumberArray,
   binaryOperatorOnlyAcceptsBoolean,
@@ -448,15 +447,15 @@ describe("限制", () => {
       const safe = Number.MAX_SAFE_INTEGER;
 
       assertExecutionOk(`${safe}`, safe);
-      assertExecutionThrows(`${safe + 1}`, "TODO: error");
-      assertExecutionThrows(`${safe} + 1`, "TODO: error");
+      assertExecutionRuntimeError(`${safe + 1}`, "TODO: error");
+      assertExecutionRuntimeError(`${safe} + 1`, "TODO: error");
     });
     it("不能允许小于 `Number.MIN_SAFE_INTEGER` 的整数", () => {
       const safe = Number.MIN_SAFE_INTEGER;
 
       assertExecutionOk(`${safe}`, safe);
-      assertExecutionThrows(`${safe - 1}`, "TODO: error");
-      assertExecutionThrows(`${safe} - 1`, "TODO: error");
+      assertExecutionRuntimeError(`${safe - 1}`, "TODO: error");
+      assertExecutionRuntimeError(`${safe} - 1`, "TODO: error");
     });
   });
 
@@ -464,14 +463,14 @@ describe("限制", () => {
     // TODO:
     // it("作为结果不能有超过 32 个元素", () => {
     //   assertExecutionOk("32#1", Array(32).fill(1))
-    //   assertExecutionThrows("33#1", "TODO: error")
-    //   assertExecutionThrows("[[16#1], 17#1]", "TODO: error")
+    //   assertExecutionRuntimeError("33#1", "TODO: error")
+    //   assertExecutionRuntimeError("[[16#1], 17#1]", "TODO: error")
     // })
 
     // it("同一展开层级只能同时有 32 个数组元素", () => {
     //   assertExecutionOk("concat(16#1, 16#1) |> sum", 32)
     //   assertExecutionOk("append(16#1, 17#1 |> sum) |> sum", 33)
-    //   assertExecutionThrows("concat(16#1, 17#1) |> sum", "TODO: error")
+    //   assertExecutionRuntimeError("concat(16#1, 17#1) |> sum", "TODO: error")
     // })
   });
 

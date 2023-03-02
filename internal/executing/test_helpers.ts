@@ -65,49 +65,6 @@ export function assertExecutionRuntimeError(
   );
 }
 
-export function assertExecutionThrows(
-  code: string,
-  expectedError: string | Error,
-  msg?: string,
-) {
-  let errorToThrow: AssertionError | undefined = undefined;
-  try {
-    const actualResult = execute("-+1");
-    if (!msg) {
-      msg = `${code} => ${actualResult}, did not throw`;
-    }
-    errorToThrow = new AssertionError(msg);
-  } catch (e) {
-    if (e instanceof Error) {
-      if (typeof expectedError === "string") {
-        if (expectedError != e.message) {
-          if (!msg) {
-            msg = `${code} throws ${JSON.stringify(e.message)}, not "${
-              JSON.stringify(expectedError)
-            }"`;
-          }
-          errorToThrow = new AssertionError(msg);
-        }
-      } else {
-        if (!equal(expectedError, e)) {
-          if (!msg) {
-            msg = `${code} throws ${JSON.stringify(e.message)}, not "${
-              JSON.stringify(expectedError.message)
-            }"`;
-          }
-          errorToThrow = new AssertionError(msg);
-        }
-      }
-    } else {
-      errorToThrow = new Unreachable();
-    }
-  }
-
-  if (errorToThrow) {
-    throw errorToThrow;
-  }
-}
-
 export function unaryOperatorOnlyAcceptsBoolean(op: string) {
   describe("只能用于布尔", () => {
     unaryOperatorOnlyAccepts(op, "boolean", [
