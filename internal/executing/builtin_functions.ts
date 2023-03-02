@@ -15,6 +15,7 @@ import {
   ValueTypeName,
 } from "./values.ts";
 import {
+  checkTypes,
   evalIfIsNotRuntimeValue,
   flattenListAll,
   invokeAll,
@@ -362,6 +363,28 @@ export const builtinScope: Scope = {
     console.log(v);
     return v.value;
   }),
+
+  "if!/3": (params, _style, runtime) => {
+    if (params.length != 3) {
+      return {
+        result: errorValue(
+          new RuntimeError_WrongArity("if!", 2, params.length),
+        ),
+      };
+    }
+
+    const condRtmValue = evalIfIsNotRuntimeValue(runtime.evaluate, params[0]);
+    const condValue = invokeAll(condRtmValue);
+    if (condValue.kind === "error") return { result: condValue }; // FIXME: step
+    const condTypeError = checkTypes("boolean", condValue);
+    if (condTypeError) {
+      return { result: errorValue(condTypeError) };
+    }
+
+    const result = condValue.value ? params[1] : params[2];
+    const resultRtmValue = evalIfIsNotRuntimeValue(runtime.evaluate, result);
+    return { result: invokeAll(resultRtmValue) };
+  },
 };
 
 function makeGeneratorWithRange(

@@ -123,6 +123,7 @@ const actionDict = (new ActionDictForTransformationBuilder()).addOperators({
     (_back_slash_and_lp, identifiers, _arrow, body, _rp) =>
       closure(evalList(identifiers), body.transform()),
   )
+  .addForSourceString("functionIdent", [1, 2], (s) => s)
   .addForSourceString("ident", [1, 2], (s) => s)
   .addForSourceString("literalInteger", [1, 2], (s) => parseInteger(s))
   .addForSourceString("literalBoolean", [1], (s) => parseBoolean(s))

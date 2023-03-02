@@ -91,8 +91,8 @@ Dicexp {
     | ident
 
   CallExp
-    = ident ArgumentList  -- regular
-    | ident ClosureExp    -- closure_argument_short
+    = functionIdent ArgumentList  -- regular
+    | functionIdent ClosureExp    -- closure_argument_short
 
   ArgumentList = "(" ListOf<Exp, ","> ")"
   
@@ -112,6 +112,8 @@ Dicexp {
     | "~" | "+" | "-" | "*" | "//" | "%"
     | "d" | "d%"
     | "^"
+
+  functionIdent = ident "!"?
 
   ident
     = identHead identRestChar*
