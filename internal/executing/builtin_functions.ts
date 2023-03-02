@@ -228,7 +228,16 @@ export const builtinScope: Scope = {
   // max/1
   // all/1
   // any
-  // sort/1
+  "sort/1": makeFunction("sort", ["list"], ([list]) => {
+    const _flatten = flattenListAll(list);
+    if (!testFlattenListType(_flatten, "number")) {
+      return error_flattenListElementTypesMismatch("product/1", "number");
+    } else {
+      return (_flatten as number[]).sort().map((x) =>
+        concreteValue(x, ["TODO: step"])
+      );
+    }
+  }),
   // sort/2
   // reverse/1
   // concat/2
