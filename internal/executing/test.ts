@@ -18,33 +18,49 @@ import {
 } from "./test_helpers.ts";
 
 import { execute } from "./execute.ts";
+import { Unimplemented } from "../../errors.ts";
 
 describe("值", () => {
   describe("整数", () => {
-    it("可以解析整数", () => {
-      assertExecutionOk("1", 1);
+    describe("可以解析整数", () => {
+      const table: [string, number][] = [
+        ["1", 1],
+      ];
+      for (const [i, [input, expected]] of table.entries()) {
+        it(`case ${i + 1}: ${input}`, () => {
+          assertExecutionOk(input, expected);
+        });
+      }
     });
   });
 
   describe("布尔", () => {
-    it("可以解析布尔", () => {
-      assertExecutionOk("true", true);
-      assertExecutionOk("false", false);
+    describe("可以解析布尔", () => {
+      const table: [string, boolean][] = [
+        ["true", true],
+        ["false", false],
+      ];
+      for (const [i, [input, expected]] of table.entries()) {
+        it(`case ${i + 1}: ${input}`, () => {
+          assertExecutionOk(input, expected);
+        });
+      }
     });
   });
 
   describe("数组", () => {
-    it("可以解析数组", () => {
-      assertExecutionOk("[]", []);
-      assertExecutionOk("[true]", [true]);
-      assertExecutionOk("[1, 2, 3]", [1, 2, 3]);
+    describe("可以解析数组", () => {
+      const table: [string, unknown[]][] = [
+        ["[]", []],
+        ["[true]", [true]],
+        ["[1, 2, 3]", [1, 2, 3]],
+      ];
+      for (const [i, [input, expected]] of table.entries()) {
+        it(`case ${i + 1}: ${input}`, () => {
+          assertExecutionOk(input, expected);
+        });
+      }
     });
-
-    // TODO
-    // it("可以通过下标取数组值", () => {
-    //   assertExecutionOk("[1, 2, 3][0]", 1)
-    //   assertExecutionOk("([3, 2, 1] |> sort)[0]", 1)
-    // })
   });
 
   describe("生成器", () => {
@@ -200,22 +216,36 @@ describe("运算符", () => {
   describe("功能", () => { // 优先级从低到高排
     describe("优先级=-4", () => {
       describe("||/2", () => {
-        it("进行或运算", () => {
-          assertExecutionOk("false || false", false);
-          assertExecutionOk("false || true", true);
-          assertExecutionOk("true || false", true);
-          assertExecutionOk("true || true", true);
+        describe("进行或运算", () => {
+          const table: [string, boolean][] = [
+            ["false || false", false],
+            ["false || true", true],
+            ["true || false", true],
+            ["true || true", true],
+          ];
+          for (const [i, [input, expected]] of table.entries()) {
+            it(`case ${i + 1}: ${input}`, () => {
+              assertExecutionOk(input, expected);
+            });
+          }
         });
         binaryOperatorOnlyAcceptsBoolean("||");
       });
     });
     describe("优先级=-3", () => {
       describe("&&/2", () => {
-        it("进行与运算", () => {
-          assertExecutionOk("false && false", false);
-          assertExecutionOk("false && true", false);
-          assertExecutionOk("true && false", false);
-          assertExecutionOk("true || true", true);
+        describe("进行与运算", () => {
+          const table: [string, boolean][] = [
+            ["false && false", false],
+            ["false && true", false],
+            ["true && false", false],
+            ["true && true", true],
+          ];
+          for (const [i, [input, expected]] of table.entries()) {
+            it(`case ${i + 1}: ${input}`, () => {
+              assertExecutionOk(input, expected);
+            });
+          }
         });
         binaryOperatorOnlyAcceptsBoolean("&&");
       });
@@ -246,7 +276,9 @@ describe("运算符", () => {
             ["0", "false", false],
             ["false", "false", true],
           ];
-          // TODO
+          it(() => {
+            throw new Unimplemented("TODO: testing");
+          });
         });
       });
     });
@@ -419,7 +451,9 @@ describe("运算符", () => {
           assertExecutionOk("2^8", 256);
         });
 
-        // TODO: 只接受整数次幂
+        it(() => {
+          throw new Unimplemented("TODO: testing: 只接受整数次幂");
+        });
       });
     });
 
@@ -433,12 +467,16 @@ describe("运算符", () => {
   });
 
   describe("优先级", () => {
-    // TODO
+    it(() => {
+      throw new Unimplemented("TODO: testing");
+    });
   });
 });
 
 describe("自带函数", () => {
-  // TODO
+  it(() => {
+    throw new Unimplemented("TODO: testing");
+  });
 });
 
 describe("限制", () => {
@@ -460,7 +498,9 @@ describe("限制", () => {
   });
 
   describe("数组", () => {
-    // TODO:
+    it(() => {
+      throw new Unimplemented("TODO: testing");
+    });
     // it("作为结果不能有超过 32 个元素", () => {
     //   assertExecutionOk("32#1", Array(32).fill(1))
     //   assertExecutionRuntimeError("33#1", "TODO: error")
@@ -475,7 +515,9 @@ describe("限制", () => {
   });
 
   describe("生成器", () => {
-    // TODO
+    it(() => {
+      throw new Unimplemented("TODO: testing");
+    });
   });
 });
 

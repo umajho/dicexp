@@ -48,21 +48,24 @@ export function assertExecutionOk(
 
 export function assertExecutionRuntimeError(
   code: string,
-  expectedError: string,
+  expectedError: string | RuntimeError,
 ) {
   const actualResult = execute(code);
-  if (actualResult instanceof RuntimeError) {
-    if (actualResult.message === expectedError) {
-      return;
-    }
+  if (!(actualResult instanceof RuntimeError)) {
+    const actualResultJSON = JSON.stringify(actualResult);
     throw new AssertionError(
-      `${code} threw "${actualResult.message}", not "${expectedError}"`,
+      `${code} => ${actualResultJSON}, did not return error "${expectedError}`,
     );
   }
-  const actualResultJSON = JSON.stringify(actualResult);
-  throw new AssertionError(
-    `${code} => ${actualResultJSON}, did not threw "${expectedError}`,
-  );
+
+  if (expectedError instanceof RuntimeError) {
+    assertEquals(actualResult, expectedError);
+  } else {
+    if (actualResult.message === expectedError) return;
+    throw new AssertionError(
+      `${code} returned error "${actualResult.message}", not "${expectedError}"`,
+    );
+  }
 }
 
 export function unaryOperatorOnlyAcceptsBoolean(op: string) {
@@ -111,9 +114,8 @@ function unaryOperatorOnlyAccepts(
   for (const [i, [rightValue, rightType]] of table.entries()) {
     const code = `${op}${rightValue}`;
     it(`case ${i + 1}: ${code} => RuntimeError_TypeMismatch`, () => {
-      const result = execute(code);
-      assertEquals(
-        result,
+      assertExecutionRuntimeError(
+        code,
         new RuntimeError_TypeMismatch(expected, rightType),
       );
     });
@@ -131,9 +133,8 @@ function binaryOperatorOnlyAccepts(
   ) {
     const code = `${leftValue}${op}${rightValue}`;
     it(`case ${i + 1}: ${code} => RuntimeError_TypeMismatch`, () => {
-      const result = execute(code);
-      assertEquals(
-        result,
+      assertExecutionRuntimeError(
+        code,
         new RuntimeError_TypeMismatch(expected, mismatchedType),
       );
     });
