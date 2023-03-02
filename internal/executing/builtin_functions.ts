@@ -10,9 +10,9 @@ import {
   getTypeName,
   LazyValue,
   lazyValue,
-  RuntimeValue,
-  RuntimeValueTypes,
   typeDisplayText,
+  Value,
+  ValueTypeName,
 } from "./values.ts";
 import {
   evalIfIsNotRuntimeValue,
@@ -106,7 +106,7 @@ export const builtinScope: Scope = {
     const rightValue = evalIfIsNotRuntimeValue(runtime.evaluate, params[1]);
     if (rightValue.kind === "error") return { result: rightValue }; // FIXME: step
 
-    let result: RuntimeValue;
+    let result: Value;
     const callable = asCallable(rightValue);
     if (callable) {
       result = callable.call([leftValue], "piped");
@@ -437,7 +437,7 @@ function error_flattenListElementTypesMismatch(
 function error_inputFunctionReturnValueTypeMismatch(
   fnName: string,
   expectedReturnValueType: "number" | "boolean",
-  actualReturnValueType: RuntimeValueTypes,
+  actualReturnValueType: ValueTypeName,
   position: number,
 ) {
   const expectedTypeText = typeDisplayText(expectedReturnValueType);

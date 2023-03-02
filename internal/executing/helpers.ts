@@ -13,9 +13,9 @@ import {
   errorValue,
   getTypeName,
   LazyValue,
-  RuntimeValue,
-  RuntimeValueTypes,
   Step,
+  Value,
+  ValueTypeName,
 } from "./values.ts";
 import {
   RuntimeError,
@@ -26,8 +26,8 @@ import { Function, FunctionRuntime, runtimeCall } from "./runtime.ts";
 import { Unreachable } from "../../errors.ts";
 
 export type AllowedParameterTypes =
-  | RuntimeValueTypes
-  | RuntimeValueTypes[]
+  | ValueTypeName
+  | ValueTypeName[]
   | "*";
 
 /**
@@ -70,7 +70,7 @@ export function makeFunction(
     }
 
     const resultValue = logic(evaluatedParams, runtime);
-    let result: RuntimeValue;
+    let result: Value;
     if (resultValue instanceof RuntimeError) {
       const step = renderFunctionStep(functionName, evaluatedParams, style);
       result = errorValue(resultValue, step);
@@ -105,7 +105,7 @@ export function makeUnaryRedirection(
       2,
     );
     const binaryResult = invokeAll(runtime.evaluate(redirected));
-    let result: RuntimeValue;
+    let result: Value;
     if (binaryResult.kind === "concrete") {
       result = concreteValue(binaryResult.value, [
         "TODO: redirection step",
@@ -124,7 +124,7 @@ export function makeUnaryRedirection(
 type ListElementWithError = ConcreteValue | ErrorValue | Unevaluated;
 
 export function evaluateParameters(
-  evalFn: (node: Node) => RuntimeValue,
+  evalFn: (node: Node) => Value,
   functionName: string,
   params: (Node | ConcreteValue)[],
   types: AllowedParameterTypes[] | undefined,
@@ -226,7 +226,7 @@ function renderFunctionStep(
 }
 
 export function invokeAll(
-  evaluated: RuntimeValue,
+  evaluated: Value,
 ): ConcreteValue | ErrorValue {
   const lazy = asLazyValue(evaluated);
   if (!lazy) return evaluated as (ConcreteValue | ErrorValue);
@@ -238,7 +238,7 @@ export function invokeAll(
 
 export function checkTypes(
   expected: AllowedParameterTypes,
-  value: RuntimeValue,
+  value: Value,
 ): RuntimeError_TypeMismatch | null {
   if (expected === "*") return null;
 
@@ -285,9 +285,9 @@ export function testFlattenListType(
 }
 
 export function evalIfIsNotRuntimeValue(
-  evalFn: (Node: Node) => RuntimeValue,
-  param: Node | RuntimeValue,
-): RuntimeValue {
+  evalFn: (Node: Node) => Value,
+  param: Node | Value,
+): Value {
   if (
     typeof param === "object" && "isRuntimeValue" in param &&
     param.isRuntimeValue

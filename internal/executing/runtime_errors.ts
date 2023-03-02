@@ -1,4 +1,4 @@
-import { RuntimeValueTypes, typeDisplayText } from "./values.ts";
+import { typeDisplayText, ValueTypeName } from "./values.ts";
 
 export class RuntimeError extends Error {}
 
@@ -23,12 +23,12 @@ export class RuntimeError_WrongArity extends RuntimeError {
  * FIXME: 应该把实际值也包含上。
  */
 export class RuntimeError_TypeMismatch extends RuntimeError {
-  expectedType: RuntimeValueTypes[];
-  actualType: RuntimeValueTypes;
+  expectedType: ValueTypeName[];
+  actualType: ValueTypeName;
 
   constructor(
-    expectedType: RuntimeValueTypes | RuntimeValueTypes[],
-    actualType: RuntimeValueTypes,
+    expectedType: ValueTypeName | ValueTypeName[],
+    actualType: ValueTypeName,
   ) {
     super();
     this.expectedType = Array.isArray(expectedType)

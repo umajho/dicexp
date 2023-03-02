@@ -18,7 +18,7 @@ import {
   errorValue,
   LazyValue,
   lazyValue,
-  RuntimeValue,
+  Value,
 } from "./values.ts";
 import {
   evaluateParameters,
@@ -63,7 +63,7 @@ export class Runtime {
     return this.translate(result);
   }
 
-  translate(runtimeValue: RuntimeValue): ResultValue {
+  translate(runtimeValue: Value): ResultValue {
     switch (runtimeValue.kind) {
       case "concrete":
         switch (typeof runtimeValue.value) {
@@ -97,7 +97,7 @@ export class Runtime {
     return resultList;
   }
 
-  execute(): RuntimeValue {
+  execute(): Value {
     if (this.executed) {
       throw new Unimplemented();
     }
@@ -106,7 +106,7 @@ export class Runtime {
     return invokeAll(outermost);
   }
 
-  #eval(scope: Scope, node: Node | Call): RuntimeValue {
+  #eval(scope: Scope, node: Node | Call): Value {
     if (typeof node === "string") {
       return this.#evalIdentifier(scope, node);
     }
@@ -136,7 +136,7 @@ export class Runtime {
     }
   }
 
-  #evalIdentifier(scope: Scope, ident: string): RuntimeValue {
+  #evalIdentifier(scope: Scope, ident: string): Value {
     // FIXME: 为什么 `_` 有可能在 scope 里（虽然是 `undefined`）？
     if (ident in scope && scope[ident] !== undefined) {
       const value = scope[ident];
@@ -272,7 +272,7 @@ export class Runtime {
     fn: Function,
     args: (Node | ConcreteValue)[],
     style: FunctionCallStyle,
-  ): RuntimeValue {
+  ): Value {
     const rtm = makeFunctionRuntime(scope, this.#evalFn(scope), this.rng);
     const executed = fn(args, style, rtm);
     return executed.result;
@@ -283,23 +283,23 @@ export class Runtime {
   }
 }
 
-export type Scope = { [ident: string]: Function | RuntimeValue };
+export type Scope = { [ident: string]: Function | Value };
 
 export type Function = (
   params: (Node | ConcreteValue)[],
   style: FunctionCallStyle,
   runtime: FunctionRuntime,
-) => { result: RuntimeValue };
+) => { result: Value };
 
 export interface FunctionRuntime {
-  evaluate: (node: Node | Call) => RuntimeValue;
+  evaluate: (node: Node | Call) => Value;
   scope: Scope;
   random: RandomGenerator;
 }
 
 function makeFunctionRuntime(
   scope: Scope,
-  evalFn: (node: Node | Call) => RuntimeValue,
+  evalFn: (node: Node | Call) => Value,
   randomGenerator: RandomGenerator,
 ): FunctionRuntime {
   return {

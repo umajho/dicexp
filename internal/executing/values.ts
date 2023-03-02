@@ -2,9 +2,9 @@ import { Unreachable } from "../../errors.ts";
 import { FunctionCallStyle, Node } from "../parsing/building_blocks.ts";
 import { RuntimeError } from "./runtime_errors.ts";
 
-export type RuntimeValueTypes = ReturnType<typeof getTypeName>;
+export type ValueTypeName = ReturnType<typeof getTypeName>;
 
-export function typeDisplayText(t: RuntimeValueTypes) {
+export function typeDisplayText(t: ValueTypeName) {
   switch (t) {
     case "number":
       return "整数";
@@ -23,7 +23,7 @@ export function typeDisplayText(t: RuntimeValueTypes) {
   }
 }
 
-export type RuntimeValue =
+export type Value =
   | ConcreteValue
   | LazyValue
   | ErrorValue;
@@ -39,14 +39,14 @@ export interface Callable {
   isRuntimeValue: true;
   kind: "callable";
   callableKind: "closure" | "captured";
-  call: (args: ConcreteValue[], style: FunctionCallStyle) => RuntimeValue;
+  call: (args: ConcreteValue[], style: FunctionCallStyle) => Value;
   forceArity: number | undefined;
 }
 
 export interface LazyValue {
   isRuntimeValue: true;
   kind: "lazy";
-  execute: (args: (Node | ConcreteValue)[]) => RuntimeValue;
+  execute: (args: (Node | ConcreteValue)[]) => Value;
   args: (Node | ConcreteValue)[];
   /**
    * 是否不能修改 args。
@@ -62,7 +62,7 @@ export interface ErrorValue {
 
 export type Step = (string | Step)[];
 
-export function getTypeName(v: RuntimeValue) {
+export function getTypeName(v: Value) {
   switch (v.kind) {
     case "concrete":
       switch (typeof v.value) {
@@ -98,7 +98,7 @@ export function concreteValue(
 
 export function callableValue(
   kind: Callable["callableKind"],
-  call: (args: ConcreteValue[], style: FunctionCallStyle) => RuntimeValue,
+  call: (args: ConcreteValue[], style: FunctionCallStyle) => Value,
   forceArity: number | undefined,
 ): ConcreteValue {
   return concreteValue({
@@ -110,7 +110,7 @@ export function callableValue(
   }, ["TODO: step for callable"]);
 }
 
-export function asCallable(v: RuntimeValue): Callable | null {
+export function asCallable(v: Value): Callable | null {
   if (v.kind !== "concrete") return null;
   if (typeof v.value !== "object") return null;
   if (Array.isArray(v.value)) return null;
@@ -132,7 +132,7 @@ export function lazyValue(
   };
 }
 
-export function asLazyValue(v: RuntimeValue): LazyValue | null {
+export function asLazyValue(v: Value): LazyValue | null {
   if (v.kind === "lazy") return v;
   return null;
 }
