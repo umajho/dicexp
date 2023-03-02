@@ -101,3 +101,16 @@ export class RuntimeError_NotCallable extends RuntimeError {
     return `\`${this.name}\` 不可调用`;
   }
 }
+
+export class RuntimeError_DuplicateClosureParameterNames extends RuntimeError {
+  duplicateName: string;
+
+  constructor(name: string) {
+    super();
+    this.duplicateName = name;
+  }
+
+  get messsage() {
+    return `匿名函数存在重复的参数名 ${this.duplicateName}`;
+  }
+}

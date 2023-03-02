@@ -19,6 +19,11 @@ import {
 
 import { execute } from "./execute.ts";
 import { Unimplemented } from "../../errors.ts";
+import {
+  RuntimeError_DuplicateClosureParameterNames,
+  RuntimeError_UnknownVariable,
+  RuntimeError_WrongArity,
+} from "./runtime_errors.ts";
 
 describe("值", () => {
   describe("整数", () => {
@@ -201,6 +206,7 @@ describe("值", () => {
               .raw`\(f, n, l -> append(filter([\( -> l)], \(_ -> n == 100)), \( -> f.(f, n+1, append(l, n)))) |> head |> \(f -> f.())) |> \(f -> f.(f, 0, []))`,
             Array(100).fill(null).map((_, i) => i), // 0..<100
           ],
+          // 等到惰性求值时：
           // [
           //   String
           //     .raw`\(f, n, l -> append(filter([l], \(_ -> n == 100)), f.(f, n+1, append(l, n))) |> head) |> \(f -> f.(f, 0, []))`,
@@ -212,6 +218,43 @@ describe("值", () => {
             assertExecutionOk(input, expectedOutput);
           });
         }
+      });
+      describe("在参数数量不匹配时报错", () => {
+        const table: [string, number, number][] = [
+          [String.raw`\(x -> x).()`, 1, 0],
+          [String.raw`\( -> 1).(42)`, 0, 1],
+        ];
+        for (const [i, [code, expected, actual]] of table.entries()) {
+          it(`case ${i + 1}: ${code}`, () => {
+            assertExecutionRuntimeError(
+              code, // FIXME: 闭包名
+              new RuntimeError_WrongArity("（TODO: 闭包名）", expected, actual),
+            );
+          });
+        }
+      });
+      it("不能有重复的参数名", () => {
+        assertExecutionRuntimeError(
+          String.raw`\(foo, bar, foo -> 0).(1, 2, 3)`,
+          new RuntimeError_DuplicateClosureParameterNames("foo"),
+        );
+      });
+      it("内外同名参数不算重复", () => {
+        assertExecutionOk(
+          String.raw`\(x -> x |> \(x -> x)).(1)`,
+          1,
+        );
+      });
+      describe("无视名为 `_` 的参数", () => {
+        it("重复出现多次也没问题", () => {
+          assertExecutionOk(String.raw`\(_, x, _ -> x).(1, 2, 3)`, 2);
+        });
+        it("不会赋值给 `_`", () => {
+          assertExecutionRuntimeError(
+            String.raw`\(_ -> _).(1)`,
+            new RuntimeError_UnknownVariable("_"),
+          );
+        });
       });
     });
   });

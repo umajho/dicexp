@@ -27,9 +27,11 @@ import {
 } from "./helpers.ts";
 import {
   RuntimeError,
+  RuntimeError_DuplicateClosureParameterNames,
   RuntimeError_NotCallable,
   RuntimeError_UnknownFunction,
   RuntimeError_UnknownVariable,
+  RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
 
 export interface RandomGenerator {
@@ -135,7 +137,8 @@ export class Runtime {
   }
 
   #evalIdentifier(scope: Scope, ident: string): RuntimeValue {
-    if (ident in scope) {
+    // FIXME: 为什么 `_` 有可能在 scope 里（虽然是 `undefined`）？
+    if (ident in scope && scope[ident] !== undefined) {
       const value = scope[ident];
       if ("isRuntimeValue" in value && value.isRuntimeValue) return value;
       throw new Unreachable();
@@ -157,14 +160,33 @@ export class Runtime {
   }
 
   #evalClosure(scope: Scope, closure: NodeValue_Closure): ConcreteValue {
-    return callableValue("closure", (args, _style) => {
+    const value = callableValue("closure", (args, _style) => {
       // FIXME: step
+
+      if (closure.parameterIdentifiers.length !== args.length) {
+        return errorValue(
+          new RuntimeError_WrongArity(
+            renderCallableName(value.value as Callable), // FIXME: 太曲折了
+            closure.parameterIdentifiers.length,
+            args.length,
+          ),
+        );
+      }
+
       const deeperScope: Scope = Object.setPrototypeOf({}, scope);
       for (const [i, ident] of closure.parameterIdentifiers.entries()) {
+        if (ident === "_") continue;
+        if (Object.hasOwn(deeperScope, ident)) {
+          return errorValue(
+            new RuntimeError_DuplicateClosureParameterNames(ident),
+          );
+        }
         deeperScope[ident] = args[i];
       }
       return this.#eval(deeperScope, closure.body);
     }, closure.parameterIdentifiers.length);
+
+    return value;
   }
 
   #evalFunctionCall(
