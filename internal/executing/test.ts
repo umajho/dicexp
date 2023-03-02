@@ -196,6 +196,11 @@ describe("值", () => {
           [String.raw`\(a, b -> a + b).(1, 2)`, 3],
           [String.raw`append(filter([10], \(_ -> false)), 100) |> head`, 100],
           [String.raw`append(filter([10], \(_ -> true)), 100) |> head`, 10],
+          [
+            String
+              .raw`\(f, n, l -> append(filter([\( -> l)], \(_ -> n == 100)), \( -> f.(f, n+1, append(l, n)))) |> head |> \(f -> f.())) |> \(f -> f.(f, 0, []))`,
+            Array(100).fill(null).map((_, i) => i), // 0..<100
+          ],
           // [
           //   String
           //     .raw`\(f, n, l -> append(filter([l], \(_ -> n == 100)), f.(f, n+1, append(l, n))) |> head) |> \(f -> f.(f, 0, []))`,
