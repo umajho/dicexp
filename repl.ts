@@ -3,10 +3,22 @@ import { RuntimeError } from "./internal/executing/runtime_errors.ts";
 import { parse } from "./internal/parsing/parse.ts";
 
 while (1) {
-  const code = prompt(">");
+  let code = prompt(">");
   if (!code) continue;
+
+  let parseOnly = false;
+  if (/^p\s/.test(code)) {
+    code = code.slice(1);
+    parseOnly = true;
+  }
+
   try {
     const parsed = parse(code);
+    if (parseOnly) {
+      console.log(Deno.inspect(parsed));
+      continue;
+    }
+
     const result = execute(parsed);
     if (result instanceof RuntimeError) {
       console.log(`runtime error:`, result);
