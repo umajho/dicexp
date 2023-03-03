@@ -1,76 +1,74 @@
 Dicexp {
-  Exp = BinOpExpPn4
+  Exp = BinOpExpP10
 
   // binary operators
   // P<x> == Precedence <x>
   // P<x>p<y> == Precedence <x>.<y>
   // Pn<x> == Precedence negative <x>
-  BinOpExpPn4
-    = BinOpExpPn4 "||" BinOpExpPn3  -- or
-    | BinOpExpPn3
-  BinOpExpPn3
-    = BinOpExpPn3 "&&" BinOpExpPn2  -- and
-    | BinOpExpPn2
-  BinOpExpPn2
-    = BinOpExpPn2 "==" BinOpExpPn1  -- eq
-    | BinOpExpPn2 "!=" BinOpExpPn1  -- not_eq
-    | BinOpExpPn1
-  BinOpExpPn1
-    = BinOpExpPn1 "<" BinOpExpP0  -- lt
-    | BinOpExpPn1 ">" BinOpExpP0  -- gt
-    | BinOpExpPn1 "<=" BinOpExpP0 -- lte
-    | BinOpExpPn1 ">=" BinOpExpP0 -- gte
-    | BinOpExpP0
-  BinOpExpP0
-    = BinOpExpP0 "|>" BinOpExpP0p1  -- pipe
-    | BinOpExpP0p1
-  BinOpExpP0p1
-    = BinOpExpP0p1 "#" BinOpExpP1 -- repeat
-    | BinOpExpP1
-  BinOpExpP1
-    = BinOpExpP1 "~" UnOpExpP1 -- range
-    | UnOpExpP1
-  UnOpExpP1
-    = "~" BinOpExpP2 -- range
-    | BinOpExpP2
-  BinOpExpP2
-    = BinOpExpP2 "+" UnOpExpP2  -- add
-    | BinOpExpP2 "-" UnOpExpP2  -- sub
-    | UnOpExpP2
-  UnOpExpP2
-    = "+" BinOpExpP3 -- noop
-    | "-" BinOpExpP3 -- negate
-    | BinOpExpP3
-  BinOpExpP3
-    = BinOpExpP3 "*" BinOpExpP4   -- mul
-    | BinOpExpP3 "//" BinOpExpP4  -- div_int
-    | BinOpExpP3 "%" BinOpExpP4   -- mod_non_negative_int
-    | BinOpExpP4
-  BinOpExpP4
-    = BinOpExpP5 // FIXME: 什么时候把优先级位置挪一下
-  BinOpExpP5
+  BinOpExpP10
+    = BinOpExpP10 "||" BinOpExpP11  -- or
+    | BinOpExpP11
+  BinOpExpP11
+    = BinOpExpP11 "&&" BinOpExpP20  -- and
+    | BinOpExpP20
+  BinOpExpP20
+    = BinOpExpP20 "==" BinOpExpP21  -- eq
+    | BinOpExpP20 "!=" BinOpExpP21  -- not_eq
+    | BinOpExpP21
+  BinOpExpP21
+    = BinOpExpP21 "<" BinOpExpP30  -- lt
+    | BinOpExpP21 ">" BinOpExpP30  -- gt
+    | BinOpExpP21 "<=" BinOpExpP30 -- lte
+    | BinOpExpP21 ">=" BinOpExpP30 -- gte
+    | BinOpExpP30
+  BinOpExpP30
+    = BinOpExpP30 "|>" BinOpExpP40  -- pipe
+    | BinOpExpP40
+  BinOpExpP40
+    = BinOpExpP40 "#" BinOpExpP50 -- repeat
+    | BinOpExpP50
+  BinOpExpP50
+    = BinOpExpP50 "~" UnOpExpP51 -- range
+    | UnOpExpP51
+  UnOpExpP51
+    = "~" BinOpExpP60 -- range
+    | BinOpExpP60
+  BinOpExpP60
+    = BinOpExpP60 "+" UnOpExpP61  -- add
+    | BinOpExpP60 "-" UnOpExpP61  -- sub
+    | UnOpExpP61
+  UnOpExpP61
+    = "+" BinOpExpP62 -- noop
+    | "-" BinOpExpP62 -- negate
+    | BinOpExpP62
+  BinOpExpP62
+    = BinOpExpP62 "*" BinOpExpP70   -- mul
+    | BinOpExpP62 "//" BinOpExpP70  -- div_int
+    | BinOpExpP62 "%" BinOpExpP70   -- mod_non_negative_int
+    | BinOpExpP70
+  BinOpExpP70
     = RollGrouping "d" RollGrouping   -- roll
     | RollGrouping "d%" RollGrouping  -- roll_dao
-    | UnOpExpP5
-  UnOpExpP5
-    = "d" BinOpExpP6 -- roll
-    | "d%" BinOpExpP6 -- roll_dao
-    | BinOpExpP6
-  BinOpExpP6
-    = BinOpExpP6 "^" UnOpExpP10 -- exponent
-    | UnOpExpP10
+    | UnOpExpP71
+  UnOpExpP71
+    = "d" BinOpExpP80 -- roll
+    | "d%" BinOpExpP80 -- roll_dao
+    | BinOpExpP80
+  BinOpExpP80
+    = BinOpExpP80 "^" UnOpExpP100 -- exponent
+    | UnOpExpP100
   
   // unary operators
-  UnOpExpP10
-    = "~" UnOpExpP10 -- range
-    | "+" UnOpExpP10 -- noop
-    | "-" UnOpExpP10 -- negate
+  UnOpExpP100
+    = "~" UnOpExpP100 -- range
+    | "+" UnOpExpP100 -- noop
+    | "-" UnOpExpP100 -- negate
     | "d" RollGrouping  -- roll
     | "d%" RollGrouping -- roll_dao
     // 虽然没搞清楚原理，
     // 但是上下重复定义两遍就能在保证优先级正确的情况下还解析 `1 ~ -10` 这样的代码
 
-    | "!" UnOpExpP10 -- not
+    | "!" UnOpExpP100 -- not
     | BinOpCall
 
   BinOpCall 

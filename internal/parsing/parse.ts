@@ -41,48 +41,57 @@ export function parse(code: string, opts?: ParseOptions): Node {
 }
 
 const actionDict = (new ActionDictForTransformationBuilder()).addOperators({
-  "-4": [
+  10: [
     { op: "||", opText: "or", types: "binary" },
   ],
-  "-3": [
+  11: [
     { op: "&&", opText: "and", types: "binary" },
   ],
-  "-2": [
+  20: [
     { op: "==", opText: "eq", types: "binary" },
     { op: "!=", opText: "not_eq", types: "binary" },
   ],
-  "-1": [
+  21: [
     { op: "<", opText: "lt", types: "binary" },
     { op: ">", opText: "gt", types: "binary" },
     { op: "<=", opText: "lte", types: "binary" },
     { op: ">=", opText: "gte", types: "binary" },
   ],
-  // 0: pipe 见下
-  0.1: [
+  // 30: pipe 见下
+  40: [
     { op: "#", opText: "repeat", types: "binary" },
   ],
-  1: [
-    { op: "~", opText: "range", types: ["binary", "prefix"] },
+  50: [
+    { op: "~", opText: "range", types: "binary" },
   ],
-  2: [
+  51: [
+    { op: "~", opText: "range", types: "prefix" },
+  ],
+  60: [
     { op: "+", opText: "add", types: "binary" },
     { op: "-", opText: "sub", types: "binary" },
+  ],
+  61: [
     { op: "+", opText: "noop", types: "prefix" },
     { op: "-", opText: "negate", types: "prefix" },
   ],
-  3: [
+  62: [
     { op: "*", opText: "mul", types: "binary" },
     { op: "//", opText: "div_int", types: "binary" },
     { op: "%", opText: "mod_non_negative_int", types: "binary" },
   ],
-  5: [
-    { op: "d", opText: "roll", types: ["binary", "prefix"] },
-    { op: "d%", opText: "roll_dao", types: ["binary", "prefix"] },
+  70: [
+    { op: "d", opText: "roll", types: "binary" },
+    { op: "d%", opText: "roll_dao", types: "binary" },
   ],
-  6: [
+  71: [
+    { op: "d", opText: "roll", types: "prefix" },
+    { op: "d%", opText: "roll_dao", types: "prefix" },
+  ],
+  80: [
     { op: "^", opText: "exponent", types: "binary" },
   ],
-  10: [
+  100: [
     { op: "~", opText: "range", types: "prefix" },
     { op: "+", opText: "noop", types: "prefix" },
     { op: "-", opText: "negate", types: "prefix" },
@@ -92,7 +101,7 @@ const actionDict = (new ActionDictForTransformationBuilder()).addOperators({
     { op: "!", opText: "not", types: "prefix" },
   ],
 })
-  .add("BinOpExpP0_pipe", (left, _op, right) => {
+  .add("BinOpExpP30_pipe", (left, _op, right) => {
     let [l, r] = [left.transform(), right.transform()] as [Node, Node];
     if (typeof r === "string") {
       r = call(calleeFunction(r), []);
