@@ -17,6 +17,10 @@ export class RuntimeError_WrongArity extends RuntimeError {
     this.expectedArity = expectedArity;
     this.actualArity = actualArity;
   }
+
+  get message() {
+    return `函数 \`${this.functionName}\` 期待 ${this.expectedArity} 个参数，实际有 ${this.actualArity} 个参数`;
+  }
 }
 
 /**
