@@ -1,4 +1,5 @@
-import { MersenneTwister } from "npm:random-seedable@1";
+// import { MersenneTwister } from "npm:random-seedable@1";
+import { prng_xorshift7 } from "https://cdn.jsdelivr.net/npm/esm-seedrandom@3.0.5/esm/index.mjs";
 import { Node } from "../parsing/building_blocks.ts";
 import { parse, ParseOptions } from "../parsing/parse.ts";
 import { RandomGenerator, Runtime, RuntimeOptions } from "./runtime.ts";
@@ -9,7 +10,7 @@ export type ExecuteOptions = Partial<RuntimeOptions> & {
 
 export function execute(node: string | Node, opts: ExecuteOptions = {}) {
   if (!opts.rng) {
-    opts.rng = new RandomGeneratorWrapper(new MersenneTwister());
+    opts.rng = new RandomGeneratorWrapper(prng_xorshift7(Math.random()));
   }
 
   if (typeof node == "string") {
@@ -20,13 +21,13 @@ export function execute(node: string | Node, opts: ExecuteOptions = {}) {
 }
 
 class RandomGeneratorWrapper implements RandomGenerator {
-  rng: { int: () => number };
+  rng: { int32: () => number };
 
-  constructor(rng: { int: () => number }) {
+  constructor(rng: { int32: () => number }) {
     this.rng = rng;
   }
 
-  int32(): number {
-    return this.rng.int();
+  uint32(): number {
+    return this.rng.int32() >>> 0;
   }
 }

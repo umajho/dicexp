@@ -35,7 +35,7 @@ import {
 } from "./runtime_errors.ts";
 
 export interface RandomGenerator {
-  int32(): number;
+  uint32(): number;
 }
 
 export interface RuntimeOptions {

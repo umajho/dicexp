@@ -1,6 +1,8 @@
 {
   "version": "2",
   "remote": {
+    "https://cdn.jsdelivr.net/npm/esm-seedrandom/esm/index.mjs": "780b1afc8432fa6b2cda5500c5ca8dc0b03d38cb2d3bd75680e01a9ebd8ec8b9",
+    "https://cdn.jsdelivr.net/npm/esm-seedrandom@3.0.5/esm/index.mjs": "780b1afc8432fa6b2cda5500c5ca8dc0b03d38cb2d3bd75680e01a9ebd8ec8b9",
     "https://deno.land/std@0.178.0/_util/asserts.ts": "178dfc49a464aee693a7e285567b3d0b555dc805ff490505a8aae34f9cfb1462",
     "https://deno.land/std@0.178.0/bytes/concat.ts": "d26d6f3d7922e6d663dacfcd357563b7bf4a380ce5b9c2bbe0c8586662f25ce2",
     "https://deno.land/std@0.178.0/bytes/copy.ts": "939d89e302a9761dcf1d9c937c7711174ed74c59eef40a1e4569a05c9de88219",

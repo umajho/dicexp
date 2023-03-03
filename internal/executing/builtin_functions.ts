@@ -404,9 +404,9 @@ function makeGeneratorWithRange(
       for (let i = 0; i < n; i++) {
         const sides = upper - lower + 1;
         const maxUnbiased = (2 ** 32 / sides | 0) * sides - 1;
-        let rn = rng.int32();
+        let rn = rng.uint32();
         while (rn > maxUnbiased) {
-          rn = rng.int32();
+          rn = rng.uint32();
         }
         const single = lower + (rn % sides);
         result += single;
