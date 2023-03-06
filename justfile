@@ -5,7 +5,7 @@ priv *args:
   just -f justfile_priv {{args}}
 
 bundle-grammar:
-  cat internal/parsing/grammar.ohm | ./scripts/input-to-json-string.ts > internal/parsing/grammar.json
+  pnpm exec peggy --format=es internal/parsing/parser.pegjs
 
 deno *args: pre-run
   deno {{args}}

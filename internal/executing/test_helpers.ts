@@ -118,7 +118,7 @@ function unaryOperatorOnlyAccepts(
   table: [string, ValueTypeName][],
 ) {
   for (const [i, [rightValue, rightType]] of table.entries()) {
-    const code = `${op}${rightValue}`;
+    const code = `${op}(${rightValue})`;
     it(`case ${i + 1}: ${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
       assertExecutionRuntimeError(
         code,
@@ -137,7 +137,7 @@ function binaryOperatorOnlyAccepts(
     const [i, [[leftValue, rightValue], wrongType, pos]] of table
       .entries()
   ) {
-    const code = `${leftValue}${op}${rightValue}`;
+    const code = `(${leftValue})${op}(${rightValue})`;
     it(`case ${i + 1}: ${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
       assertExecutionRuntimeError(
         code,

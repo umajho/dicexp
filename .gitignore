@@ -1,3 +1,5 @@
+node_modules
+
 /_
 /justfile_priv
 /demo.ts
