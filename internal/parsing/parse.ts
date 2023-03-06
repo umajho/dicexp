@@ -3,14 +3,13 @@ import { Unreachable } from "../../errors.ts";
 import { ActionDictForTransformationBuilder } from "./action_dict_builder.ts";
 
 import {
-  call,
-  calleeFunction,
-  calleeValue,
   captured,
   closure,
   list,
   Node,
+  regularCall,
   value,
+  valueCall,
 } from "./building_blocks.ts";
 import { convertTextToHalfWidth } from "./fullwidth_convertion.ts";
 
@@ -103,22 +102,22 @@ const actionDict = (new ActionDictForTransformationBuilder()).addOperators({
 })
   .add("BinOpExpP30_pipe", (left, _op, right) => {
     let [l, r] = [left.transform(), right.transform()] as [Node, Node];
-    if (typeof r === "string") {
-      r = call(calleeFunction(r), []);
+    if (typeof r === "string") { // 像是 "foo |> bar" 这种右侧只有一个名字没有括号情况
+      r = regularCall("function", r, []);
     }
-    return call(calleeFunction("|>"), [l, r], "operator");
+    return regularCall("operator", "|>", [l, r]);
   })
   .add(
     "BinOpCall_call",
-    (node, _dot, args) => call(calleeValue(node.transform()), args.transform()),
+    (node, _dot, args) => valueCall(node.transform(), args.transform()),
   )
   .add("RollGrouping_grouping", (_lp, exp, _rp) => exp.transform())
   .add("GroupingExp_grouping", (_lp, exp, _rp) => exp.transform())
   .addWithInlines("CallExp", {
     "regular": (ident, args) =>
-      call(calleeFunction(ident.transform()), args.transform()),
+      regularCall("function", ident.transform(), args.transform()),
     "closure_argument_short": (ident, closure) =>
-      call(calleeFunction(ident.transform()), [closure.transform()]),
+      regularCall("function", ident.transform(), [closure.transform()]),
   })
   .add(
     "capture",

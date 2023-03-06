@@ -1,7 +1,7 @@
 import ohm from "https://unpkg.com/ohm-js@16/dist/ohm.esm.js";
 import { Unreachable } from "../../errors.ts";
 
-import { call, calleeFunction, Node } from "./building_blocks.ts";
+import { Node, regularCall } from "./building_blocks.ts";
 
 type OperatorType = "binary" | "prefix";
 
@@ -100,7 +100,7 @@ export class ActionDictForTransformationBuilder {
 
     this.#dict[rule] = (left, _op, right) => {
       const args = [left.transform(), right.transform()];
-      return call(calleeFunction(op), args, "operator");
+      return regularCall("operator", op, args);
     };
 
     return this;
@@ -113,7 +113,7 @@ export class ActionDictForTransformationBuilder {
 
     this.#dict[rule] = (_op, right) => {
       const args = [right.transform()];
-      return call(calleeFunction(op), args, "operator");
+      return regularCall("operator", op, args);
     };
 
     return this;

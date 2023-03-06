@@ -19,11 +19,11 @@ while (1) {
       continue;
     }
 
-    const result = execute(parsed);
-    if (result instanceof RuntimeError) {
-      console.log(`runtime error:`, result);
+    const [finalValue, err] = execute(parsed);
+    if (err instanceof RuntimeError) {
+      console.log(`runtime error:`, err);
     } else {
-      console.log(`%c=> ${Deno.inspect(result)}`, "color: green");
+      console.log(`%c=> ${Deno.inspect(finalValue)}`, "color: green");
     }
   } catch (e) {
     if (e instanceof Error) {

@@ -1,4 +1,4 @@
-import { call, calleeFunction, Node } from "./building_blocks.ts";
+import { Node, regularCall } from "./building_blocks.ts";
 import { parseInteger } from "./parse.ts";
 
 /**
@@ -31,13 +31,13 @@ function simpleParse_adds_subs(side: string): Node | false {
 
     if (!node) {
       if (op) {
-        node = call(calleeFunction(op), [cur], "operator");
+        node = regularCall("operator", op, [cur]);
       } else {
         node = cur;
       }
     } else {
       if (!op) return false;
-      node = call(calleeFunction(op), [node, cur]);
+      node = regularCall("operator", op, [node, cur]);
     }
   }
   if (!node) return false;
@@ -61,11 +61,11 @@ function simpleParseOperatorExp(
     if (!parsedR) return false;
     if (l === "") { // <op> <right>
       if (!allowsUnary) return false;
-      return call(calleeFunction(op), [parsedR]);
+      return regularCall("operator", op, [parsedR]);
     } else { // <left> <op> <right>
       const parsedL = parseInner(l);
       if (!parsedL) return false;
-      return call(calleeFunction(op), [parsedL, parsedR]);
+      return regularCall("operator", op, [parsedL, parsedR]);
     }
   }
 }

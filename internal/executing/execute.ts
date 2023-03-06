@@ -2,13 +2,21 @@
 import { prng_xorshift7 } from "https://cdn.jsdelivr.net/npm/esm-seedrandom@3.0.5/esm/index.mjs";
 import { Node } from "../parsing/building_blocks.ts";
 import { parse, ParseOptions } from "../parsing/parse.ts";
-import { RandomGenerator, Runtime, RuntimeOptions } from "./runtime.ts";
+import {
+  EitherJSValueOrError,
+  RandomGenerator,
+  Runtime,
+  RuntimeOptions,
+} from "./runtime.ts";
 
 export type ExecuteOptions = Partial<RuntimeOptions> & {
   parseOpts?: ParseOptions;
 };
 
-export function execute(node: string | Node, opts: ExecuteOptions = {}) {
+export function execute(
+  node: string | Node,
+  opts: ExecuteOptions = {},
+): EitherJSValueOrError {
   if (!opts.rng) {
     opts.rng = new RandomGeneratorWrapper(prng_xorshift7(Math.random()));
   }

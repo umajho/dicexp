@@ -53,8 +53,8 @@ describe("值", () => {
     });
   });
 
-  describe("数组", () => {
-    describe("可以解析数组", () => {
+  describe("列表", () => {
+    describe("可以解析列表", () => {
       const table: [string, unknown[]][] = [
         ["[]", []],
         ["[true]", [true]],
@@ -203,7 +203,7 @@ describe("值", () => {
           [String.raw`append(filter([10], \(_ -> true)), 100) |> head`, 10],
           [
             String
-              .raw`\(f, n, l -> append(filter([\( -> l)], \(_ -> n == 100)), \( -> f.(f, n+1, append(l, n)))) |> head |> \(f -> f.())) |> \(f -> f.(f, 0, []))`,
+              .raw`\(f, n, l -> append(filter([\( -> l)], \(_ -> n == 100)), \( -> f.(f, n+1, append(l, n)))) |> head |> \(f -> f.()).()) |> \(f -> f.(f, 0, [])).()`,
             Array(100).fill(null).map((_, i) => i), // 0..<100
           ],
           // 等到惰性求值时：
@@ -228,7 +228,7 @@ describe("值", () => {
           it(`case ${i + 1}: ${code}`, () => {
             assertExecutionRuntimeError(
               code, // FIXME: 闭包名
-              new RuntimeError_WrongArity("（TODO: 闭包名）", expected, actual),
+              new RuntimeError_WrongArity(expected, actual),
             );
           });
         }
@@ -241,7 +241,7 @@ describe("值", () => {
       });
       it("内外同名参数不算重复", () => {
         assertExecutionOk(
-          String.raw`\(x -> x |> \(x -> x)).(1)`,
+          String.raw`\(x -> x |> \(x -> x).()).(1)`,
           1,
         );
       });
@@ -310,11 +310,11 @@ describe("运算符", () => {
           for (const [l, r, eqExpected] of table) {
             const eqCode = `${l} == ${r}`;
             it(`${eqCode} => ${eqExpected}`, () => {
-              assertExecutionOk(eqCode, eqExpected, eqCode);
+              assertExecutionOk(eqCode, eqExpected);
             });
             const neCode = `${l} != ${r}`;
             it(`${neCode} => ${!eqExpected}`, () => {
-              assertExecutionOk(neCode, !eqExpected, neCode);
+              assertExecutionOk(neCode, !eqExpected);
             });
           }
         });
@@ -499,8 +499,11 @@ describe("运算符", () => {
           assertExecutionOk("2^8", 256);
         });
 
-        it(() => {
-          throw new Unimplemented("TODO: testing: 只接受整数次幂");
+        it("只接受非负数次幂", () => {
+          assertExecutionRuntimeError(
+            "3 ^ -2",
+            "操作 “3 ^ -2” 非法：指数不能为负数",
+          );
         });
       });
     });
@@ -545,7 +548,7 @@ describe("限制", () => {
     });
   });
 
-  describe("数组", () => {
+  describe("列表", () => {
     it(() => {
       throw new Unimplemented("TODO: testing");
     });
@@ -555,7 +558,7 @@ describe("限制", () => {
     //   assertExecutionRuntimeError("[[16#1], 17#1]", "TODO: error")
     // })
 
-    // it("同一展开层级只能同时有 32 个数组元素", () => {
+    // it("同一展开层级只能同时有 32 个列表元素", () => {
     //   assertExecutionOk("concat(16#1, 16#1) |> sum", 32)
     //   assertExecutionOk("append(16#1, 17#1 |> sum) |> sum", 33)
     //   assertExecutionRuntimeError("concat(16#1, 17#1) |> sum", "TODO: error")

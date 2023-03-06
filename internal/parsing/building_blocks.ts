@@ -3,73 +3,48 @@ interface _Node {
 }
 
 export type Node =
-  | Node_Call
-  | Node_VariableCall
+  | Node_RegularCall
+  | Node_ValueCall
   | Node_Captured
   | Node_Value
   | string; // 标识符
 
-export type FunctionCallStyle =
-  | "regular"
-  | "piped"
-  | "operator"
-  | "as-parameter";
+export type RegularCallStyle = "function" | "operator";
 
-export interface Node_Call extends _Node {
-  kind: "call";
+/**
+ * 一般的函数调用和运算符都算在内
+ */
+export interface Node_RegularCall extends _Node {
+  kind: "regular_call";
+  style: RegularCallStyle;
 
-  callee: Callee_Function | Callee_Value;
-
-  /**
-   * - regular: `foo(bar)`
-   * - piped: `bar |> foo()`
-   * - operator `-bar` / `bar + baz`
-   */
-  style: FunctionCallStyle;
+  name: string;
 
   args: Node[];
 }
 
-export interface Callee_Function {
-  calleeKind: "function";
-  name: string;
-}
-
-export function calleeFunction(name: string): Callee_Function {
-  return { calleeKind: "function", name };
-}
-
-export interface Callee_Value {
-  calleeKind: "exp";
-  node: Node;
-}
-
-export function calleeValue(node: Node): Callee_Value {
-  return { calleeKind: "exp", node };
-}
-
-export function call(
-  callee: Node_Call["callee"],
+export function regularCall(
+  style: RegularCallStyle,
+  name: string,
   args: Node[],
-  style: FunctionCallStyle = "regular",
-): Node_Call {
-  return { kind: "call", callee, args, style };
+): Node_RegularCall {
+  return { kind: "regular_call", style, name, args };
 }
 
-export interface Node_VariableCall extends _Node {
-  kind: "variable_call";
+export interface Node_ValueCall extends _Node {
+  kind: "value_call";
 
   variable: Node;
 
   args: Node[];
 }
 
-export function closureCall(
+export function valueCall(
   variable: Node,
   args: Node[],
-): Node_VariableCall {
+): Node_ValueCall {
   return {
-    kind: "variable_call",
+    kind: "value_call",
     variable,
     args,
   };

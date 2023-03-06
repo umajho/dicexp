@@ -1,157 +1,225 @@
 import { Unreachable } from "../../errors.ts";
-import { FunctionCallStyle, Node } from "../parsing/building_blocks.ts";
-import { RuntimeError } from "./runtime_errors.ts";
+import { Node } from "../parsing/building_blocks.ts";
+import { FunctionRuntime, Scope } from "./runtime.ts";
+import {
+  RuntimeError,
+  RuntimeError_DuplicateClosureParameterNames,
+  RuntimeError_UnknownFunction,
+  RuntimeError_WrongArity,
+} from "./runtime_errors.ts";
+import { EitherValueOrError, Step, Step_Plain, ws } from "./steps.ts";
 
-export type ValueTypeName = ReturnType<typeof getTypeName>;
+export type Value =
+  | number
+  | boolean
+  | Step[]
+  | Value_Closure
+  | Value_Captured
+  | Value_Calling;
+export type ValueTypeName = ReturnType<typeof getTypeNameOfValue>;
 
-export function typeDisplayText(t: ValueTypeName) {
-  switch (t) {
-    case "number":
-      return "整数";
-    case "boolean":
-      return "布尔";
-    case "list":
-      return "列表";
-    case "callable": // FIXME: 应该区分 closure 和 captured
-      return "可调用的";
-    case "lazy":
-    case "error":
-      return `${t}（内部实现泄漏）`;
-    default:
-      return `？（${t}）`;
-      // throw new Unreachable();
+export abstract class Value_Callable {
+  abstract name: string;
+  abstract arity: number | undefined;
+  abstract makeCalling(args: Step[]): Value_Calling;
+}
+
+export type Evaluator = (args: Step[]) => [Step, null] | [null, RuntimeError];
+
+export class Value_Closure extends Value_Callable {
+  get name() {
+    return `《闭包：${getClosureId(this)}》`;
+  }
+
+  readonly arity;
+
+  #f: Evaluator;
+
+  constructor(
+    scope: Scope,
+    parameterIdentifiers: string[],
+    body: Node,
+    runtime: FunctionRuntime,
+  ) {
+    super();
+    this.arity = parameterIdentifiers.length;
+
+    this.#f = (args) => {
+      // 在 Value_Calling.call 中已经检查过了
+      if (args.length !== this.arity) throw new Unreachable();
+
+      const deeperScope: Scope = Object.setPrototypeOf({}, scope);
+      for (const [i, ident] of parameterIdentifiers.entries()) {
+        if (ident === "_") continue;
+        if (Object.hasOwn(deeperScope, ident)) {
+          return [null, new RuntimeError_DuplicateClosureParameterNames(ident)];
+        }
+        deeperScope[ident] = args[i];
+      }
+
+      return [runtime.evaluate(deeperScope, body), null];
+    };
+  }
+
+  makeCalling(args: Step[]): Value_Calling {
+    return new Value_Calling(
+      this.#f,
+      this.arity,
+      args,
+    );
   }
 }
 
-export type Value =
-  | ConcreteValue
-  | LazyValue
-  | ErrorValue;
+export class Value_Captured extends Value_Callable {
+  readonly identifier: string;
+  readonly arity: number;
 
-export interface ConcreteValue {
-  isRuntimeValue: true;
-  kind: "concrete";
-  value: number | boolean | Callable | ConcreteValue[];
-  step: Step;
+  get name() {
+    return `&${this.identifier}/${this.arity}`;
+  }
+
+  #f: Evaluator;
+
+  constructor(
+    scope: Scope,
+    identifier: string,
+    arity: number,
+    runtime: FunctionRuntime,
+  ) {
+    super();
+    this.identifier = identifier;
+    this.arity = arity;
+
+    this.#f = makeRegularCallEvaluator(scope, identifier, arity, runtime);
+  }
+
+  makeCalling(args: Step[]): Value_Calling {
+    return new Value_Calling(
+      this.#f,
+      this.arity,
+      args,
+    );
+  }
 }
 
-export interface Callable {
-  isRuntimeValue: true;
-  kind: "callable";
-  callableKind: "closure" | "captured";
-  call: (args: ConcreteValue[], style: FunctionCallStyle) => Value;
-  forceArity: number | undefined;
+export class Value_Calling {
+  #f: Evaluator;
+
+  readonly expectedParameters?: number;
+  args: Step[];
+
+  constructor(
+    f: Evaluator,
+    expectedParameters: number | undefined,
+    args: Step[],
+  ) {
+    this.#f = f;
+    this.expectedParameters = expectedParameters;
+    this.args = args;
+  }
+
+  withArgs(args: Step[]) {
+    return new Value_Calling(
+      this.#f,
+      this.expectedParameters,
+      args,
+    );
+  }
+
+  call(): EitherValueOrError {
+    if (
+      this.expectedParameters !== undefined &&
+      this.expectedParameters !== this.args.length
+    ) {
+      const err = new RuntimeError_WrongArity(
+        this.expectedParameters,
+        this.args.length,
+      );
+      return [null, err];
+    }
+    const [step, err] = this.#f(this.args);
+    if (err) return [null, err];
+    return step.result;
+  }
 }
 
-export interface LazyValue {
-  isRuntimeValue: true;
-  kind: "lazy";
-  execute: (args: (Node | ConcreteValue)[]) => Value;
-  args: (Node | ConcreteValue)[];
-  /**
-   * 是否不能修改 args。
-   */
-  frozen: boolean;
+export function getTypeNameOfValue(v: Value) {
+  switch (typeof v) {
+    case "number":
+      return "number";
+    case "boolean":
+      return "boolean";
+    default:
+      if (Array.isArray(v)) return "list";
+      if (v instanceof Value_Closure) return "closure";
+      if (v instanceof Value_Captured) return "captured";
+      if (v instanceof Value_Calling) return "calling";
+      throw new Unreachable();
+  }
 }
 
-export interface ErrorValue {
-  kind: "error";
-  error: RuntimeError;
-  step: Step;
-}
-
-export type Step = (string | Step)[];
-
-export function getTypeName(v: Value) {
-  switch (v.kind) {
-    case "concrete":
-      switch (typeof v.value) {
-        case "number":
-          return "number";
-        case "boolean":
-          return "boolean";
-        default:
-          if (Array.isArray(v.value)) return "list";
-          if (v.value.kind === "callable") return "callable";
-          throw new Unreachable();
-      }
-    case "lazy":
-      return "lazy";
-    case "error":
-      return "error";
+export function renderValue(value: Value): string {
+  switch (getTypeNameOfValue(value)) {
+    case "number":
+    case "boolean":
+      return String(value);
+    case "list": {
+      const list = value as Step[];
+      // NOTE: 返回列表的步骤没有错误，列表元素就也没有错误，因此不会是 null
+      // TODO: 限制显示长度
+      return "[" +
+        list.map((s) => s.renderResultText()!).join(`,${ws}`) +
+        "]";
+    }
+    case "closure":
+      return (value as Value_Closure).name;
+    case "captured": {
+      const capture = value as Value_Captured;
+      return `&${capture.identifier}/${capture.arity}`;
+    }
+    case "calling":
+      throw new Unreachable();
+      // TODO: 未来还会有 `valueGenerator` 和 `listGenerator`，但也都是 unreachable
     default:
       throw new Unreachable();
   }
 }
 
-export function concreteValue(
-  value: ConcreteValue["value"],
-  step: Step,
-): ConcreteValue {
-  return {
-    isRuntimeValue: true,
-    kind: "concrete",
-    value,
-    step,
-  };
-}
-
-export function callableValue(
-  kind: Callable["callableKind"],
-  call: (args: ConcreteValue[], style: FunctionCallStyle) => Value,
+export function makeRegularCallEvaluator(
+  scope: Scope,
+  identifier: string,
   forceArity: number | undefined,
-): ConcreteValue {
-  return concreteValue({
-    isRuntimeValue: true,
-    kind: "callable",
-    callableKind: kind,
-    call,
-    forceArity,
-  }, ["TODO: step for callable"]);
-}
+  runtime: FunctionRuntime,
+): Evaluator {
+  return (args) => {
+    const fullName = `${identifier}/${args.length}`;
 
-export function asCallable(v: Value): Callable | null {
-  if (v.kind !== "concrete") return null;
-  if (typeof v.value !== "object") return null;
-  if (Array.isArray(v.value)) return null;
-  if (v.value.kind !== "callable") return null;
-  return v.value;
-}
+    if (forceArity !== undefined && args.length !== forceArity) {
+      // 在 Value_Calling.call 中已经检查过了
+      throw new Unreachable();
+    }
 
-export function lazyValue(
-  fn: LazyValue["execute"],
-  args: LazyValue["args"],
-  isFrozen: boolean,
-): LazyValue {
-  return {
-    isRuntimeValue: true,
-    kind: "lazy",
-    execute: fn,
-    args,
-    frozen: isFrozen,
+    const fn = scope[fullName];
+    if (fn === undefined) { // FIXME: 这种情况在调用外层函数时就能发现了，应该在那时处理
+      return [null, new RuntimeError_UnknownFunction(fullName)];
+    }
+    if (typeof fn !== "function") throw new Unreachable();
+
+    const [value, err] = fn(args, runtime);
+    if (err) return [null, err];
+    return [new Step_Plain(value), null];
   };
 }
 
-export function asLazyValue(v: Value): LazyValue | null {
-  if (v.kind === "lazy") return v;
-  return null;
-}
+const getClosureId = (() => { // from https://stackoverflow.com/a/43963612
+  let currentId = 0;
+  const map = new WeakMap();
 
-/**
- * 如果是导致错误的地方，则 `step` 应为 null；
- * 如果是是传播过程中，应该自定义 `step` 包装错误。
- *
- * @param error
- * @param step
- * @returns
- */
-export function errorValue(
-  error: RuntimeError,
-  step: Step | null = null,
-): ErrorValue {
-  return {
-    kind: "error",
-    error,
-    step: step ?? [`【${error.message}】`],
+  return (closure: Value_Closure) => {
+    if (!map.has(closure)) {
+      map.set(closure, ++currentId);
+    }
+
+    return map.get(closure);
   };
-}
+})();
