@@ -12,7 +12,7 @@ import {
   RuntimeError,
   RuntimeError_CallArgumentTypeMismatch,
 } from "./runtime_errors.ts";
-import { EitherJSValueOrError } from "./runtime.ts";
+import { EitherJSValueOrError, JSValue } from "./runtime.ts";
 
 export function assertNumber(x: EitherJSValueOrError): number {
   const [result, err] = x;
@@ -143,6 +143,14 @@ function binaryOperatorOnlyAccepts(
         code,
         new RuntimeError_CallArgumentTypeMismatch(pos, expected, wrongType),
       );
+    });
+  }
+}
+
+export function theyAreOk<T extends JSValue = JSValue>(table: [string, T][]) {
+  for (const [i, [code, expected]] of table.entries()) {
+    it(`case ${i + 1}: ${code}`, () => {
+      assertExecutionOk(code, expected);
     });
   }
 }

@@ -13,6 +13,7 @@ import {
   assertNumberArray,
   binaryOperatorOnlyAcceptsBoolean,
   binaryOperatorOnlyAcceptsNumbers,
+  theyAreOk,
   unaryOperatorOnlyAcceptsBoolean,
   unaryOperatorOnlyAcceptsNumbers,
 } from "./test_helpers.ts";
@@ -24,47 +25,33 @@ import {
   RuntimeError_UnknownVariable,
   RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
+import { JSValue } from "./runtime.ts";
 
 describe("值", () => {
   describe("整数", () => {
     describe("可以解析整数", () => {
-      const table: [string, number][] = [
+      theyAreOk<number>([
         ["1", 1],
-      ];
-      for (const [i, [input, expected]] of table.entries()) {
-        it(`case ${i + 1}: ${input}`, () => {
-          assertExecutionOk(input, expected);
-        });
-      }
+      ]);
     });
   });
 
   describe("布尔", () => {
     describe("可以解析布尔", () => {
-      const table: [string, boolean][] = [
+      theyAreOk<boolean>([
         ["true", true],
         ["false", false],
-      ];
-      for (const [i, [input, expected]] of table.entries()) {
-        it(`case ${i + 1}: ${input}`, () => {
-          assertExecutionOk(input, expected);
-        });
-      }
+      ]);
     });
   });
 
   describe("列表", () => {
     describe("可以解析列表", () => {
-      const table: [string, unknown[]][] = [
+      theyAreOk<JSValue[]>([
         ["[]", []],
         ["[true]", [true]],
         ["[1, 2, 3]", [1, 2, 3]],
-      ];
-      for (const [i, [input, expected]] of table.entries()) {
-        it(`case ${i + 1}: ${input}`, () => {
-          assertExecutionOk(input, expected);
-        });
-      }
+      ]);
     });
   });
 
@@ -166,36 +153,26 @@ describe("值", () => {
 
   describe("函数", () => {
     describe("可以用", () => {
-      const table: [string, unknown][] = [
+      theyAreOk<JSValue>([
         ["sum([1, 2, 3])", 6],
         ["zip([1, 2], [3, 4])", [[1, 3], [2, 4]]],
         ["[1, 2, 3] |> head", 1],
         ["[1, 2, 3] |> tail()", [2, 3]],
-      ];
-      for (const [i, [input, expectedOutput]] of table.entries()) {
-        it(`case ${i + 1}: ${input}`, () => {
-          assertExecutionOk(input, expectedOutput);
-        });
-      }
+      ]);
     });
 
     describe("运算符转函数", () => {
       describe("可以用", () => {
-        const table: [string, unknown][] = [
+        theyAreOk([
           ["map([1, 2], &-/1)", [-1, -2]],
           ["zipWith([1, 2], [3, 4], &*/2)", [3, 8]],
-        ];
-        for (const [i, [input, expectedOutput]] of table.entries()) {
-          it(`case ${i + 1}: ${input}`, () => {
-            assertExecutionOk(input, expectedOutput);
-          });
-        }
+        ]);
       });
     });
 
     describe("闭包", () => {
       describe("可以用", () => {
-        const table: [string, unknown][] = [
+        theyAreOk<JSValue>([
           [String.raw`[2, 3, 5, 7] |> filter(\(x -> x >= 5))`, [5, 7]],
           [String.raw`[2, 3, 5, 7] |> filter \(x -> x >= 5)`, [5, 7]],
           [String.raw`\(a, b -> a + b).(1, 2)`, 3],
@@ -212,12 +189,7 @@ describe("值", () => {
           //     .raw`\(f, n, l -> append(filter([l], \(_ -> n == 100)), f.(f, n+1, append(l, n))) |> head) |> \(f -> f.(f, 0, []))`,
           //   Array(100).fill(null).map((_, i) => i), // 0..<100
           // ],
-        ];
-        for (const [i, [input, expectedOutput]] of table.entries()) {
-          it(`case ${i + 1}: ${input}`, () => {
-            assertExecutionOk(input, expectedOutput);
-          });
-        }
+        ]);
       });
       describe("在参数数量不匹配时报错", () => {
         const table: [string, number, number][] = [
@@ -265,17 +237,12 @@ describe("运算符", () => {
     describe("优先级=-4", () => {
       describe("||/2", () => {
         describe("进行或运算", () => {
-          const table: [string, boolean][] = [
+          theyAreOk<boolean>([
             ["false || false", false],
             ["false || true", true],
             ["true || false", true],
             ["true || true", true],
-          ];
-          for (const [i, [input, expected]] of table.entries()) {
-            it(`case ${i + 1}: ${input}`, () => {
-              assertExecutionOk(input, expected);
-            });
-          }
+          ]);
         });
         binaryOperatorOnlyAcceptsBoolean("||");
       });
@@ -283,17 +250,12 @@ describe("运算符", () => {
     describe("优先级=-3", () => {
       describe("&&/2", () => {
         describe("进行与运算", () => {
-          const table: [string, boolean][] = [
+          theyAreOk<boolean>([
             ["false && false", false],
             ["false && true", false],
             ["true && false", false],
             ["true && true", true],
-          ];
-          for (const [i, [input, expected]] of table.entries()) {
-            it(`case ${i + 1}: ${input}`, () => {
-              assertExecutionOk(input, expected);
-            });
-          }
+          ]);
         });
         binaryOperatorOnlyAcceptsBoolean("&&");
       });
@@ -363,23 +325,33 @@ describe("运算符", () => {
 
     describe("优先级=0", () => {
       describe("|>/2", () => {
-        it("可以将值传递给一元函数", () => {
-          assertExecutionOk("[2, 3, 1] |> sort", [1, 2, 3]);
-          assertExecutionOk("[2, 3, 1] |> sort()", [1, 2, 3]);
+        describe("可以将值传递给一元函数", () => {
+          theyAreOk([
+            ["[2, 3, 1] |> sort", [1, 2, 3]],
+            ["[2, 3, 1] |> sort()", [1, 2, 3]],
+          ]);
         });
-        it("可以将值传给多元函数", () => {
-          assertExecutionOk("[2, 3, 1] |> append(4)", [2, 3, 1, 4]);
+        describe("可以将值传给多元函数", () => {
+          theyAreOk([
+            ["[2, 3, 1] |> append(4)", [2, 3, 1, 4]],
+          ]);
         });
-        it("可以将值传给使用闭包简写的函数", () => {
-          assertExecutionOk("[2, 3, 1] |> map \\(x -> x^2)", [4, 9, 1]);
+        describe("可以将值传给使用闭包简写的函数", () => {
+          theyAreOk([
+            ["[2, 3, 1] |> map \\(x -> x^2)", [4, 9, 1]],
+          ]);
         });
-        it("可以将值传给闭包", () => {
-          assertExecutionOk("10 |> \\(x -> x*2).()", 20);
-          assertExecutionOk("10 |> \\(x, y -> x*2).(20)", 20);
+        describe("可以将值传给闭包", () => {
+          theyAreOk([
+            ["10 |> \\(x -> x*2).()", 20],
+            ["10 |> \\(x, y -> x*2).(20)", 20],
+          ]);
         });
-        it("可以将值传给转为函数的运算符", () => { // 虽然意味不明…
-          assertExecutionOk("10 |> &-/1.()", -10);
-          assertExecutionOk("10 |> &-/2.(20)", -10);
+        describe("可以将值传给转为函数的运算符", () => { // 虽然意味不明…
+          theyAreOk([
+            ["10 |> &-/1.()", -10],
+            ["10 |> &-/2.(20)", -10],
+          ]);
         });
       });
     });
@@ -394,33 +366,41 @@ describe("运算符", () => {
 
     describe("优先级=2", () => {
       describe("+/2", () => {
-        it("将两数相加", () => {
-          assertExecutionOk("1+1", 2);
-          assertExecutionOk("1+-1", 0);
-          assertExecutionOk("-1+-1", -2);
+        describe("将两数相加", () => {
+          theyAreOk([
+            ["1+1", 2],
+            ["1+-1", 0],
+            ["-1+-1", -2],
+          ]);
         });
         binaryOperatorOnlyAcceptsNumbers("+");
       });
       describe("-/2", () => {
-        it("将两数相减", () => {
-          assertExecutionOk("1-1", 0);
-          assertExecutionOk("1--1", 2);
-          assertExecutionOk("-1--1", 0);
+        describe("将两数相减", () => {
+          theyAreOk([
+            ["1-1", 0],
+            ["1--1", 2],
+            ["-1--1", 0],
+          ]);
         });
         binaryOperatorOnlyAcceptsNumbers("-");
       });
       describe("+/1", () => {
-        it("让数字保持原状", () => {
-          assertExecutionOk("+1", 1);
-          assertExecutionOk("+-1", -1);
-          assertExecutionOk("-+1", -1);
+        describe("让数字保持原状", () => {
+          theyAreOk([
+            ["+1", 1],
+            ["+-1", -1],
+            ["-+1", -1],
+          ]);
         });
         unaryOperatorOnlyAcceptsNumbers("+");
       });
       describe("-/1", () => {
-        it("取数字的相反数", () => {
-          assertExecutionOk("-1", -1);
-          assertExecutionOk("--1", 1);
+        describe("取数字的相反数", () => {
+          theyAreOk([
+            ["-1", -1],
+            ["--1", 1],
+          ]);
         });
         unaryOperatorOnlyAcceptsNumbers("-");
       });
@@ -428,29 +408,35 @@ describe("运算符", () => {
 
     describe("优先级=3", () => {
       describe("*/2", () => {
-        it("将两数相乘", () => {
-          assertExecutionOk("10*2", 20);
-          assertExecutionOk("10*-2", -20);
-          assertExecutionOk("-1*-1", 1);
+        describe("将两数相乘", () => {
+          theyAreOk([
+            ["10*2", 20],
+            ["10*-2", -20],
+            ["-1*-1", 1],
+          ]);
         });
         binaryOperatorOnlyAcceptsNumbers("*");
       });
       describe("///2", () => {
-        it("将两数相整除", () => {
-          assertExecutionOk("1//2", 0);
-          assertExecutionOk("2//2", 1);
-          assertExecutionOk("3//2", 1);
-          assertExecutionOk("-3//2", -1);
-          assertExecutionOk("3//-2", -1);
-          assertExecutionOk("-3//-2", 1);
+        describe("将两数相整除", () => {
+          theyAreOk([
+            ["1//2", 0],
+            ["2//2", 1],
+            ["3//2", 1],
+            ["-3//2", -1],
+            ["3//-2", -1],
+            ["-3//-2", 1],
+          ]);
         });
         binaryOperatorOnlyAcceptsNumbers("//");
       });
       describe("%/2", () => {
-        it("将两非负整数取模", () => {
-          assertExecutionOk("1%2", 1);
-          assertExecutionOk("2%2", 0);
-          assertExecutionOk("3%2", 1);
+        describe("将两非负整数取模", () => {
+          theyAreOk([
+            ["1%2", 1],
+            ["2%2", 0],
+            ["3%2", 1],
+          ]);
         });
         it("任何操作数都不能是负数", () => {
           assertExecutionRuntimeError(
@@ -495,8 +481,10 @@ describe("运算符", () => {
 
     describe("优先级=6", () => {
       describe("^", () => {
-        it("执行指数运算", () => {
-          assertExecutionOk("2^8", 256);
+        describe("执行指数运算", () => {
+          theyAreOk([
+            ["2^8", 256],
+          ]);
         });
 
         it("只接受非负数次幂", () => {
@@ -509,9 +497,11 @@ describe("运算符", () => {
     });
 
     describe("!/1", () => {
-      it("将布尔求非", () => {
-        assertExecutionOk("!true", false);
-        assertExecutionOk("!false", true);
+      describe("将布尔求非", () => {
+        theyAreOk([
+          ["!true", false],
+          ["!false", true],
+        ]);
       });
       unaryOperatorOnlyAcceptsBoolean("!");
     });
