@@ -1,22 +1,30 @@
 // import { MersenneTwister } from "npm:random-seedable@1";
 import { prng_xorshift7 } from "https://cdn.jsdelivr.net/npm/esm-seedrandom@3.0.5/esm/index.mjs";
+
 import { Node } from "../parsing/building_blocks.ts";
 import { parse, ParseOptions } from "../parsing/parse.ts";
 import {
-  EitherJSValueOrError,
+  JSValue,
   RandomGenerator,
   Runtime,
   RuntimeOptions,
 } from "./runtime.ts";
+import { RuntimeError } from "./runtime_errors.ts";
 
 export type ExecuteOptions = Partial<RuntimeOptions> & {
   parseOpts?: ParseOptions;
 };
 
+interface ExecutionResult {
+  value: JSValue | null;
+  runtimeError: RuntimeError | null;
+  // TODO: finalStep
+}
+
 export function execute(
   node: string | Node,
   opts: ExecuteOptions = {},
-): EitherJSValueOrError {
+): ExecutionResult {
   if (!opts.rng) {
     opts.rng = new RandomGeneratorWrapper(prng_xorshift7(Math.random()));
   }
@@ -25,7 +33,10 @@ export function execute(
     node = parse(node);
   }
 
-  return (new Runtime(node, opts as RuntimeOptions)).executeAndTranslate();
+  const runtime = new Runtime(node, opts as RuntimeOptions);
+  const [value, error] = runtime.executeAndTranslate();
+
+  return { value, runtimeError: error };
 }
 
 class RandomGeneratorWrapper implements RandomGenerator {

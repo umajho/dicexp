@@ -31,6 +31,7 @@ export interface RandomGenerator {
 export interface RuntimeOptions {
   rng: RandomGenerator;
   // TODO: timeout
+  // TODO: noSteps
 }
 
 export type JSValue = number | boolean | JSValue[];
