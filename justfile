@@ -5,7 +5,7 @@ priv *args:
   just -f justfile_priv {{args}}
 
 compile-grammar:
-  pnpm exec peggy --format=es internal/parsing/parser.pegjs
+  ./scripts/compile-peggy.ts internal/parsing/parser.pegjs > internal/parsing/parser.js
 
 deno *args: pre-run
   deno {{args}}

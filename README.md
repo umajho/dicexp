@@ -13,8 +13,6 @@ WIP / DO NOT USE.
 ## 预备工作
 
 - 安装 [just](https://just.systems)，用于执行命令。
-- 安装 [Node.js](https://nodejs.org)、[pnpm](https://pnpm.io)，运行
-  `pnpm i`，用于编译 peggy 代码。
 - 安装 [Deno](https://deno.land)，用于其他一切。
 
 ## REPL

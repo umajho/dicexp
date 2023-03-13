@@ -52,11 +52,29 @@
   },
   "npm": {
     "specifiers": {
+      "peggy@3": "peggy@3.0.1",
+      "peggy@3.0.1": "peggy@3.0.1",
+      "peggy@^3.0.1": "peggy@3.0.1",
       "random-seedable@1": "random-seedable@1.0.8"
     },
     "packages": {
+      "commander@10.0.0": {
+        "integrity": "sha512-zS5PnTI22FIRM6ylNW8G4Ap0IEOyk62fhLSD0+uHRT9McRCLGpkVNvao4bjimpK/GShynyQkFFxHhwMcETmduA==",
+        "dependencies": {}
+      },
+      "peggy@3.0.1": {
+        "integrity": "sha512-opG0pnfH5ZQvlqz8Ozmk1SvIer9Rz6op0nDSkVQ4kQnVL0+KOKtIocoidxOgpLoS82r+ZW8J16FjhL3rhH/MpA==",
+        "dependencies": {
+          "commander": "commander@10.0.0",
+          "source-map-generator": "source-map-generator@0.8.0"
+        }
+      },
       "random-seedable@1.0.8": {
         "integrity": "sha512-f6gzvNhAnZBht1Prn0e/tpukUNhkANntFF42uIdWDPriyEATYaRpyH8A9bYaGecUB3AL+dXeYtBUggy18fe3rw==",
+        "dependencies": {}
+      },
+      "source-map-generator@0.8.0": {
+        "integrity": "sha512-psgxdGMwl5MZM9S3FWee4EgsEaIjahYV5AzGnwUvPhWeITz/j6rKpysQHlQ4USdxvINlb8lKfWGIXwfkrgtqkA==",
         "dependencies": {}
       }
     }
