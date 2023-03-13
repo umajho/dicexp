@@ -12,7 +12,7 @@ import {
   RuntimeError,
   RuntimeError_CallArgumentTypeMismatch,
 } from "./runtime_errors.ts";
-import { EitherJSValueOrError, JSValue } from "./runtime.ts";
+import { JSValue } from "./runtime.ts";
 
 export function assertNumber(result: ExecutionResult): number {
   assertEquals(result.runtimeError, null);
