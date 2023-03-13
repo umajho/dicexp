@@ -234,277 +234,254 @@ describe("值", () => {
 
 describe("运算符", () => {
   describe("功能", () => { // 优先级从低到高排
-    describe("优先级=-4", () => {
-      describe("||/2", () => {
-        describe("进行或运算", () => {
-          theyAreOk<boolean>([
-            ["false || false", false],
-            ["false || true", true],
-            ["true || false", true],
-            ["true || true", true],
-          ]);
-        });
-        binaryOperatorOnlyAcceptsBoolean("||");
-      });
-    });
-    describe("优先级=-3", () => {
-      describe("&&/2", () => {
-        describe("进行与运算", () => {
-          theyAreOk<boolean>([
-            ["false && false", false],
-            ["false && true", false],
-            ["true && false", false],
-            ["true && true", true],
-          ]);
-        });
-        binaryOperatorOnlyAcceptsBoolean("&&");
-      });
-    });
-
-    describe("优先级=-2", () => {
-      describe("==/2 与 !=/2", () => {
-        const table = [
-          ["1", "1", true],
-          ["-1", "-1", true],
-          ["1", "-1", false],
-        ];
-        describe("相同类型之间比较是否相等", () => {
-          for (const [l, r, eqExpected] of table) {
-            const eqCode = `${l} == ${r}`;
-            it(`${eqCode} => ${eqExpected}`, () => {
-              assertExecutionOk(eqCode, eqExpected);
-            });
-            const neCode = `${l} != ${r}`;
-            it(`${neCode} => ${!eqExpected}`, () => {
-              assertExecutionOk(neCode, !eqExpected);
-            });
-          }
-        });
-        describe("不同类型之间不能相互比较", () => {
-          const table = [
-            ["1", "true", false],
-            ["0", "false", false],
-            ["false", "false", true],
-          ];
-          it(() => {
-            throw new Unimplemented("TODO: testing");
-          });
-        });
-      });
-    });
-
-    describe("优先级=-1", () => {
-      describe("</2、>/2、<=/2 与 >=/2", () => {
-        it("比较两数大小", () => {
-          const table = [
-            ["1", "<", "2"],
-            ["2", ">", "1"],
-            ["1", "==", "1"],
-            ["-1", ">", "-2"],
-          ];
-          for (const [l, relation, r] of table) {
-            assertExecutionOk(`${l} < ${r}`, relation == "<");
-            assertExecutionOk(`${l} > ${r}`, relation == ">");
-            assertExecutionOk(
-              `${l} <= ${r}`,
-              relation == "<" || relation == "==",
-            );
-            assertExecutionOk(
-              `${l} >= ${r}`,
-              relation == ">" || relation == "==",
-            );
-          }
-        });
-
-        binaryOperatorOnlyAcceptsNumbers("<");
-        binaryOperatorOnlyAcceptsNumbers(">");
-        binaryOperatorOnlyAcceptsNumbers("<=");
-        binaryOperatorOnlyAcceptsNumbers(">=");
-      });
-    });
-
-    describe("优先级=0", () => {
-      describe("|>/2", () => {
-        describe("可以将值传递给一元函数", () => {
-          theyAreOk([
-            ["[2, 3, 1] |> sort", [1, 2, 3]],
-            ["[2, 3, 1] |> sort()", [1, 2, 3]],
-          ]);
-        });
-        describe("可以将值传给多元函数", () => {
-          theyAreOk([
-            ["[2, 3, 1] |> append(4)", [2, 3, 1, 4]],
-          ]);
-        });
-        describe("可以将值传给使用闭包简写的函数", () => {
-          theyAreOk([
-            ["[2, 3, 1] |> map \\(x -> x^2)", [4, 9, 1]],
-          ]);
-        });
-        describe("可以将值传给闭包", () => {
-          theyAreOk([
-            ["10 |> \\(x -> x*2).()", 20],
-            ["10 |> \\(x, y -> x*2).(20)", 20],
-          ]);
-        });
-        describe("可以将值传给转为函数的运算符", () => { // 虽然意味不明…
-          theyAreOk([
-            ["10 |> &-/1.()", -10],
-            ["10 |> &-/2.(20)", -10],
-          ]);
-        });
-      });
-    });
-
-    describe("优先级=1", () => {
-      describe("~/1 与 ~/2", () => {
-        // 已在生成器处测试
-
-        binaryOperatorOnlyAcceptsNumbers("~");
-      });
-    });
-
-    describe("优先级=2", () => {
-      describe("+/2", () => {
-        describe("将两数相加", () => {
-          theyAreOk([
-            ["1+1", 2],
-            ["1+-1", 0],
-            ["-1+-1", -2],
-          ]);
-        });
-        binaryOperatorOnlyAcceptsNumbers("+");
-      });
-      describe("-/2", () => {
-        describe("将两数相减", () => {
-          theyAreOk([
-            ["1-1", 0],
-            ["1--1", 2],
-            ["-1--1", 0],
-          ]);
-        });
-        binaryOperatorOnlyAcceptsNumbers("-");
-      });
-      describe("+/1", () => {
-        describe("让数字保持原状", () => {
-          theyAreOk([
-            ["+1", 1],
-            ["+-1", -1],
-            ["-+1", -1],
-          ]);
-        });
-        unaryOperatorOnlyAcceptsNumbers("+");
-      });
-      describe("-/1", () => {
-        describe("取数字的相反数", () => {
-          theyAreOk([
-            ["-1", -1],
-            ["--1", 1],
-          ]);
-        });
-        unaryOperatorOnlyAcceptsNumbers("-");
-      });
-    });
-
-    describe("优先级=3", () => {
-      describe("*/2", () => {
-        describe("将两数相乘", () => {
-          theyAreOk([
-            ["10*2", 20],
-            ["10*-2", -20],
-            ["-1*-1", 1],
-          ]);
-        });
-        binaryOperatorOnlyAcceptsNumbers("*");
-      });
-      describe("///2", () => {
-        describe("将两数相整除", () => {
-          theyAreOk([
-            ["1//2", 0],
-            ["2//2", 1],
-            ["3//2", 1],
-            ["-3//2", -1],
-            ["3//-2", -1],
-            ["-3//-2", 1],
-          ]);
-        });
-        binaryOperatorOnlyAcceptsNumbers("//");
-      });
-      describe("%/2", () => {
-        describe("将两非负整数取模", () => {
-          theyAreOk([
-            ["1%2", 1],
-            ["2%2", 0],
-            ["3%2", 1],
-          ]);
-        });
-        it("任何操作数都不能是负数", () => {
-          assertExecutionRuntimeError(
-            "(-3) % 2",
-            "操作 “(-3) % 2” 非法：被除数不能为负数",
-          );
-          assertExecutionRuntimeError(
-            "3 % -2",
-            "操作 “3 % -2” 非法：除数必须为正数",
-          );
-          assertExecutionRuntimeError(
-            "(-3)%-2",
-            "操作 “(-3) % -2” 非法：被除数不能为负数",
-          );
-          assertExecutionOk("-3%2", -1); // 取模的优先级更高
-        });
-        binaryOperatorOnlyAcceptsNumbers("%");
-      });
-    });
-
-    describe("优先级=4", () => {
-      describe("#/1", () => {
-        it("将右侧内容在 eval 前重复左侧次", () => {
-          assertExecutionOk("3#10", Array(3).fill(10));
-
-          // NOTE: 有 1/10^30 的概率真的相同，忽略不计
-          const result = assertNumberArray(execute("10#d1000"));
-          assert((new Set(result)).size > 1, `${result}`);
-        });
-      });
-    });
-
-    describe("优先级=5", () => {
-      describe("d/1 与 d%/1", () => {
-        // 已在生成器处测试
-
-        unaryOperatorOnlyAcceptsNumbers("~");
-        unaryOperatorOnlyAcceptsNumbers("d");
-        unaryOperatorOnlyAcceptsNumbers("d%");
-      });
-    });
-
-    describe("优先级=6", () => {
-      describe("^", () => {
-        describe("执行指数运算", () => {
-          theyAreOk([
-            ["2^8", 256],
-          ]);
-        });
-
-        it("只接受非负数次幂", () => {
-          assertExecutionRuntimeError(
-            "3 ^ -2",
-            "操作 “3 ^ -2” 非法：指数不能为负数",
-          );
-        });
-      });
-    });
-
-    describe("!/1", () => {
-      describe("将布尔求非", () => {
-        theyAreOk([
-          ["!true", false],
-          ["!false", true],
+    describe("||/2", () => {
+      describe("进行或运算", () => {
+        theyAreOk<boolean>([
+          ["false || false", false],
+          ["false || true", true],
+          ["true || false", true],
+          ["true || true", true],
         ]);
       });
-      unaryOperatorOnlyAcceptsBoolean("!");
+      binaryOperatorOnlyAcceptsBoolean("||");
     });
+
+    describe("&&/2", () => {
+      describe("进行与运算", () => {
+        theyAreOk<boolean>([
+          ["false && false", false],
+          ["false && true", false],
+          ["true && false", false],
+          ["true && true", true],
+        ]);
+      });
+      binaryOperatorOnlyAcceptsBoolean("&&");
+    });
+
+    describe("==/2 与 !=/2", () => {
+      const table = [
+        ["1", "1", true],
+        ["-1", "-1", true],
+        ["1", "-1", false],
+      ];
+      describe("相同类型之间比较是否相等", () => {
+        for (const [l, r, eqExpected] of table) {
+          const eqCode = `${l} == ${r}`;
+          it(`${eqCode} => ${eqExpected}`, () => {
+            assertExecutionOk(eqCode, eqExpected);
+          });
+          const neCode = `${l} != ${r}`;
+          it(`${neCode} => ${!eqExpected}`, () => {
+            assertExecutionOk(neCode, !eqExpected);
+          });
+        }
+      });
+      describe("不同类型之间不能相互比较", () => {
+        const table = [
+          ["1", "true", false],
+          ["0", "false", false],
+          ["false", "false", true],
+        ];
+        it(() => {
+          throw new Unimplemented("TODO: testing");
+        });
+      });
+    });
+
+    describe("</2、>/2、<=/2 与 >=/2", () => {
+      it("比较两数大小", () => {
+        const table = [
+          ["1", "<", "2"],
+          ["2", ">", "1"],
+          ["1", "==", "1"],
+          ["-1", ">", "-2"],
+        ];
+        for (const [l, relation, r] of table) {
+          assertExecutionOk(`${l} < ${r}`, relation == "<");
+          assertExecutionOk(`${l} > ${r}`, relation == ">");
+          assertExecutionOk(
+            `${l} <= ${r}`,
+            relation == "<" || relation == "==",
+          );
+          assertExecutionOk(
+            `${l} >= ${r}`,
+            relation == ">" || relation == "==",
+          );
+        }
+      });
+
+      binaryOperatorOnlyAcceptsNumbers("<");
+      binaryOperatorOnlyAcceptsNumbers(">");
+      binaryOperatorOnlyAcceptsNumbers("<=");
+      binaryOperatorOnlyAcceptsNumbers(">=");
+    });
+
+    describe("|>/2", () => {
+      describe("可以将值传递给一元函数", () => {
+        theyAreOk([
+          ["[2, 3, 1] |> sort", [1, 2, 3]],
+          ["[2, 3, 1] |> sort()", [1, 2, 3]],
+        ]);
+      });
+      describe("可以将值传给多元函数", () => {
+        theyAreOk([
+          ["[2, 3, 1] |> append(4)", [2, 3, 1, 4]],
+        ]);
+      });
+      describe("可以将值传给使用闭包简写的函数", () => {
+        theyAreOk([
+          ["[2, 3, 1] |> map \\(x -> x^2)", [4, 9, 1]],
+        ]);
+      });
+      describe("可以将值传给闭包", () => {
+        theyAreOk([
+          ["10 |> \\(x -> x*2).()", 20],
+          ["10 |> \\(x, y -> x*2).(20)", 20],
+        ]);
+      });
+      describe("可以将值传给转为函数的运算符", () => { // 虽然意味不明…
+        theyAreOk([
+          ["10 |> &-/1.()", -10],
+          ["10 |> &-/2.(20)", -10],
+        ]);
+      });
+    });
+
+    describe("~/1 与 ~/2", () => {
+      // 已在生成器处测试
+
+      binaryOperatorOnlyAcceptsNumbers("~");
+    });
+
+    describe("+/2", () => {
+      describe("将两数相加", () => {
+        theyAreOk([
+          ["1+1", 2],
+          ["1+-1", 0],
+          ["-1+-1", -2],
+        ]);
+      });
+      binaryOperatorOnlyAcceptsNumbers("+");
+    });
+    describe("-/2", () => {
+      describe("将两数相减", () => {
+        theyAreOk([
+          ["1-1", 0],
+          ["1--1", 2],
+          ["-1--1", 0],
+        ]);
+      });
+      binaryOperatorOnlyAcceptsNumbers("-");
+    });
+    describe("+/1", () => {
+      describe("让数字保持原状", () => {
+        theyAreOk([
+          ["+1", 1],
+          ["+-1", -1],
+          ["-+1", -1],
+        ]);
+      });
+      unaryOperatorOnlyAcceptsNumbers("+");
+    });
+    describe("-/1", () => {
+      describe("取数字的相反数", () => {
+        theyAreOk([
+          ["-1", -1],
+          ["--1", 1],
+        ]);
+      });
+      unaryOperatorOnlyAcceptsNumbers("-");
+    });
+
+    describe("*/2", () => {
+      describe("将两数相乘", () => {
+        theyAreOk([
+          ["10*2", 20],
+          ["10*-2", -20],
+          ["-1*-1", 1],
+        ]);
+      });
+      binaryOperatorOnlyAcceptsNumbers("*");
+    });
+    describe("///2", () => {
+      describe("将两数相整除", () => {
+        theyAreOk([
+          ["1//2", 0],
+          ["2//2", 1],
+          ["3//2", 1],
+          ["-3//2", -1],
+          ["3//-2", -1],
+          ["-3//-2", 1],
+        ]);
+      });
+      binaryOperatorOnlyAcceptsNumbers("//");
+    });
+    describe("%/2", () => {
+      describe("将两非负整数取模", () => {
+        theyAreOk([
+          ["1%2", 1],
+          ["2%2", 0],
+          ["3%2", 1],
+        ]);
+      });
+      it("任何操作数都不能是负数", () => {
+        assertExecutionRuntimeError(
+          "(-3) % 2",
+          "操作 “(-3) % 2” 非法：被除数不能为负数",
+        );
+        assertExecutionRuntimeError(
+          "3 % -2",
+          "操作 “3 % -2” 非法：除数必须为正数",
+        );
+        assertExecutionRuntimeError(
+          "(-3)%-2",
+          "操作 “(-3) % -2” 非法：被除数不能为负数",
+        );
+        assertExecutionOk("-3%2", -1); // 取模的优先级更高
+      });
+      binaryOperatorOnlyAcceptsNumbers("%");
+    });
+
+    describe("#/1", () => {
+      it("将右侧内容在 eval 前重复左侧次", () => {
+        assertExecutionOk("3#10", Array(3).fill(10));
+
+        // NOTE: 有 1/10^30 的概率真的相同，忽略不计
+        const result = assertNumberArray(execute("10#d1000"));
+        assert((new Set(result)).size > 1, `${result}`);
+      });
+    });
+
+    describe("d/1 与 d%/1", () => {
+      // 已在生成器处测试
+
+      unaryOperatorOnlyAcceptsNumbers("~");
+      unaryOperatorOnlyAcceptsNumbers("d");
+      unaryOperatorOnlyAcceptsNumbers("d%");
+    });
+
+    describe("^", () => {
+      describe("执行指数运算", () => {
+        theyAreOk([
+          ["2^8", 256],
+        ]);
+      });
+
+      it("只接受非负数次幂", () => {
+        assertExecutionRuntimeError(
+          "3 ^ -2",
+          "操作 “3 ^ -2” 非法：指数不能为负数",
+        );
+      });
+    });
+
+    describe("将布尔求非", () => {
+      theyAreOk([
+        ["!true", false],
+        ["!false", true],
+      ]);
+    });
+    unaryOperatorOnlyAcceptsBoolean("!");
   });
 
   describe("优先级", () => {
