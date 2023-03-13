@@ -163,9 +163,11 @@ BinarySymbol "双目运算符" = $(
     "^"
   )
 
-FunctionIdent "函数标识符" = $(Ident "!"?)
+FunctionIdent "函数标识符" = $(BaseIdent "!"?)
 
-Ident "标识符" = $(IdentHead IdentRestChar*)
+// 单独的 “d” 是运算符，不能用作标识符
+Ident "标识符" = @id:BaseIdent &{ return id !== "d"; }
+BaseIdent = $(IdentHead IdentRestChar*)
 IdentHead = $("_" / [a-zA-Z])
 IdentRestChar = $(IdentHead / [0-9])
 
