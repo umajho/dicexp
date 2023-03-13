@@ -263,6 +263,7 @@ describe("运算符", () => {
         ["1", "1", true],
         ["-1", "-1", true],
         ["1", "-1", false],
+        ["false", "false", true],
       ];
       describe("相同类型之间比较是否相等", () => {
         for (const [l, r, eqExpected] of table) {
@@ -278,13 +279,20 @@ describe("运算符", () => {
       });
       describe("不同类型之间不能相互比较", () => {
         const table = [
-          ["1", "true", false],
-          ["0", "false", false],
-          ["false", "false", true],
+          ["1", "true"],
+          ["0", "false"],
         ];
-        it(() => {
-          throw new Unimplemented("TODO: testing");
-        });
+        for (const [l, r] of table) {
+          for (const op of ["==", "!="]) {
+            const code = `${l} ${op} ${r}`;
+            it(`${l} ${op} ${r} => error`, () => {
+              assertExecutionRuntimeError(
+                code,
+                `操作 “${op}” 非法：两侧操作数的类型不相同`,
+              );
+            });
+          }
+        }
       });
     });
 

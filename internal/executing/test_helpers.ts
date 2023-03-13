@@ -33,10 +33,13 @@ export function assertNumberArray(result: ExecutionResult): number[] {
 
 export function assertExecutionOk(
   code: string,
-  expectedResult: unknown,
+  expectedResult?: unknown,
 ) {
   const result = execute(code);
-  if (!result.runtimeError && equal(result.value, expectedResult)) return;
+  if (!result.runtimeError) {
+    if (expectedResult === undefined) return;
+    if (equal(result.value, expectedResult)) return;
+  }
 
   const expectedResultInspected = Deno.inspect(expectedResult);
   let msg: string;
