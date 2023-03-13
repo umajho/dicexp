@@ -103,18 +103,23 @@ BinaryOperator$Call
     { return buildCallOperator(head, tail); }
 
 BinaryOperator$210
-  = head:RollGrouping last:(_ ("d%" / "d") _ RollGrouping) _
+  = head:RollGroupingBefore last:(_ ("d%" / "d") _ RollGroupingAfter) _
     { return buildBinaryOperator(head, [last]); }
   / UnaryOperator$211
 
 UnaryOperator$211
-  = op:("d%" / "d") _ exp:RollGrouping
+  = op:("d%" / "d") _ exp:RollGroupingAfter
     { return buildUnaryOperator(op, exp); }
   / Grouping
 
-RollGrouping
+RollGroupingBefore
   = "(" @Expression ")" _
   / @LiteralInteger _
+
+RollGroupingAfter
+  = RollGroupingBefore
+  / op:("+"/"-") exp:LiteralInteger
+    { return buildUnaryOperator(op, exp); }
 
 Grouping
   = "(" @Expression ")"

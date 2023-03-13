@@ -44,6 +44,8 @@ describe("掷骰的操作数", () => {
       "d4",
       "3d4",
       "2+3d4*5",
+      "d-4",
+      "3d+4",
     ];
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}: ${code}`, () => {
