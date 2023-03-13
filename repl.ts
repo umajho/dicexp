@@ -20,7 +20,7 @@ while (1) {
       continue;
     }
 
-    const [finalValue, err] = execute(parsed);
+    const { value: finalValue, runtimeError: err } = execute(parsed);
     if (err instanceof RuntimeError) {
       console.log(`runtime error:`, err);
     } else {

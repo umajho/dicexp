@@ -15,7 +15,7 @@ export type ExecuteOptions = Partial<RuntimeOptions> & {
   parseOpts?: ParseOptions;
 };
 
-interface ExecutionResult {
+export interface ExecutionResult {
   value: JSValue | null;
   runtimeError: RuntimeError | null;
   // TODO: finalStep

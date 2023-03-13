@@ -7,46 +7,44 @@ import {
 import { describe, it } from "https://deno.land/std@0.178.0/testing/bdd.ts";
 
 import { ValueTypeName } from "./values.ts";
-import { execute } from "./execute.ts";
+import { execute, ExecutionResult } from "./execute.ts";
 import {
   RuntimeError,
   RuntimeError_CallArgumentTypeMismatch,
 } from "./runtime_errors.ts";
 import { EitherJSValueOrError, JSValue } from "./runtime.ts";
 
-export function assertNumber(x: EitherJSValueOrError): number {
-  const [result, err] = x;
-  assertEquals(err, null);
+export function assertNumber(result: ExecutionResult): number {
+  assertEquals(result.runtimeError, null);
 
-  assertEquals(typeof result, "number");
-  return result as number;
+  assertEquals(typeof result.value, "number");
+  return result.value as number;
 }
 
-export function assertNumberArray(x: EitherJSValueOrError): number[] {
-  const [result, err] = x;
-  assertEquals(err, null);
+export function assertNumberArray(result: ExecutionResult): number[] {
+  assertEquals(result.runtimeError, null);
 
-  assert(Array.isArray(result));
-  for (const [i, item] of (result as Array<unknown>).entries()) {
+  assert(Array.isArray(result.value));
+  for (const [i, item] of (result.value as Array<unknown>).entries()) {
     assertEquals(typeof item, "number", `arr[${i}]`);
   }
-  return result as number[];
+  return result.value as number[];
 }
 
 export function assertExecutionOk(
   code: string,
   expectedResult: unknown,
 ) {
-  const [actualResult, err] = execute(code);
-  if (!err && equal(actualResult, expectedResult)) return;
+  const result = execute(code);
+  if (!result.runtimeError && equal(result.value, expectedResult)) return;
 
   const expectedResultInspected = Deno.inspect(expectedResult);
   let msg: string;
-  if (err) {
+  if (result.runtimeError) {
     msg = `${code} => 运行时错误：` +
-      `「${err.message}」!= ${expectedResultInspected}`;
+      `「${result.runtimeError.message}」!= ${expectedResultInspected}`;
   } else {
-    const actualResultInspected = Deno.inspect(actualResult);
+    const actualResultInspected = Deno.inspect(result.value);
     msg = `${code} => ${actualResultInspected} != ${expectedResultInspected}`;
   }
   throw new AssertionError(msg);
@@ -56,20 +54,20 @@ export function assertExecutionRuntimeError(
   code: string,
   expectedError: string | RuntimeError,
 ) {
-  const [actualResult, err] = execute(code);
-  if (!err) {
-    const actualResultInspected = Deno.inspect(actualResult);
+  const result = execute(code);
+  if (!result.runtimeError) {
+    const actualResultInspected = Deno.inspect(result.value);
     throw new AssertionError(
       `${code} => ${actualResultInspected}, did not return error "${expectedError}`,
     );
   }
 
   if (expectedError instanceof RuntimeError) {
-    assertEquals(err, expectedError);
+    assertEquals(result.runtimeError, expectedError);
   } else {
-    if (err.message === expectedError) return;
+    if (result.runtimeError.message === expectedError) return;
     throw new AssertionError(
-      `${code} returned error "${err.message}", not "${expectedError}"`,
+      `${code} returned error "${result.runtimeError.message}", not "${expectedError}"`,
     );
   }
 }
