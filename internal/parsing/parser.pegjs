@@ -103,8 +103,8 @@ BinaryOperator$Call
     { return buildCallOperator(head, tail); }
 
 BinaryOperator$210
-  = head:RollGrouping tail:(_ ("d%" / "d") _ RollGrouping)* _
-    { return buildBinaryOperator(head, tail); }
+  = head:RollGrouping last:(_ ("d%" / "d") _ RollGrouping) _
+    { return buildBinaryOperator(head, [last]); }
   / UnaryOperator$211
 
 UnaryOperator$211

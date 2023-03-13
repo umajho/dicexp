@@ -483,12 +483,6 @@ describe("运算符", () => {
     });
     unaryOperatorOnlyAcceptsBoolean("!");
   });
-
-  describe("优先级", () => {
-    it(() => {
-      throw new Unimplemented("TODO: testing");
-    });
-  });
 });
 
 describe("自带函数", () => {

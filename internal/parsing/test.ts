@@ -1,4 +1,7 @@
-import { assertEquals } from "https://deno.land/std@0.178.0/testing/asserts.ts";
+import {
+  assertEquals,
+  assertThrows,
+} from "https://deno.land/std@0.178.0/testing/asserts.ts";
 import { describe, it } from "https://deno.land/std@0.178.0/testing/bdd.ts";
 
 import { parse } from "./parse.ts";
@@ -33,4 +36,70 @@ describe("全角/半角", () => {
       });
     }
   });
+});
+
+describe("掷骰的操作数", () => {
+  describe("一般情况没问题", () => {
+    const table = [
+      "d4",
+      "3d4",
+      "2+3d4*5",
+    ];
+    for (const [i, code] of table.entries()) {
+      it(`case ${i + 1}: ${code}`, () => {
+        parse(code);
+      });
+    }
+  });
+
+  describe("但是连用需要用括号确定优先级", () => {
+    const table = [
+      "(d4)d4",
+      "3d(4d5)",
+    ];
+    for (const [i, code] of table.entries()) {
+      it(`case ${i + 1}a: ${code} => ok`, () => {
+        parse(code);
+      });
+      const codeWithoutParens = code.replaceAll(/[()]/g, "");
+      it(`case ${i + 1}b: ${codeWithoutParens} => error`, () => {
+        assertThrows(() => parse(codeWithoutParens));
+      });
+    }
+  });
+});
+
+describe("优先级", () => {
+  const table: string[] = [
+    "(3d4)^(5d6)",
+    "(d4)^(5d6)",
+    "(!true) ^ true",
+    "3*(4^5)//(6^7)%8",
+    "(((3*4)//5)%6)",
+    "(((6%5)//4)*3)",
+    "-(3*2)",
+    "+(3//2)",
+    "(-3)-2",
+    "(+3)+2",
+    "(1+2)-3",
+    "(1-2)+3",
+    "(1+2)~(3-4)",
+    "(~3)~(~2)",
+    "(1~2)#(3~4)",
+    "(1#2)|>(3#4)",
+    "(1|>2)<(3|>4)",
+    "(((1<2)>3)<=4)>=5",
+    "(((1>=2)<=3)>4)<5",
+    "(1<2)==(3<4)",
+    "(1==2)!=3",
+    "(1!=2)==3",
+    "(1==2)&&(3==4)",
+    "(1&&2)||(3&&4)",
+  ];
+  for (const [i, withParens] of table.entries()) {
+    const withoutParens = withParens.replaceAll(/[()]/g, "");
+    it(`case ${i + 1}: \`${withoutParens}\` == \`${withParens}\``, () => {
+      assertEquals(parse(withoutParens), parse(withParens));
+    });
+  }
 });
