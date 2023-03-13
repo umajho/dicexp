@@ -175,11 +175,11 @@ Literal
 
 LiteralInteger "整数常量"
   = value:$([0-9] ([0-9_])*) !{ return value.at(-1) === "_" }
-  { return parseInteger(value); }
+    { return parseInteger(value); }
 
 LiteralBoolean "布尔值常量"
   = value:("true" / "false")
-  { return parseBoolean(value); }
+    { return parseBoolean(value); }
 
 _ "空白"
   = [ \t\n\r]*
