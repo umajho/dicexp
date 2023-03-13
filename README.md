@@ -2,9 +2,29 @@
 
 > In memory of ADNMB.
 
-使用 deno 编写的骰子表达式执行器。
+使用 deno 编写的 <ruby>Dicexp<rt>骰子表达式</rt><ruby>&#160;执行器。
 
 WIP / DO NOT USE.
+
+## 骰子表达式 Dicexp
+
+简单的介绍文档见[这里](./docs/Dicexp.md)。
+
+## 预备工作
+
+- 安装 [just](https://just.systems)，用于执行命令。
+- 安装 [Node.js](https://nodejs.org)、[pnpm](https://pnpm.io)，运行
+  `pnpm i`，用于编译 peggy 代码。
+- 安装 [Deno](https://deno.land)，用于其他一切。
+
+## REPL
+
+本项目仍处于早期开发阶段，暂不在文档中提供作为库使用的方式。如想尝试，可以在命令行执行以下命令进入
+REPL：
+
+```shell
+just repl
+```
 
 ## TODO
 
