@@ -191,10 +191,14 @@ export class Runtime {
 
 export type Scope = { [ident: string]: RegularFunction | Step };
 
+export type RegularFunctionReturnValue =
+  | EitherStepOrError
+  | { result: EitherStepOrError; replacingStep: Step };
+
 export type RegularFunction = (
   args: Step[],
   rtm: FunctionRuntime,
-) => EitherStepOrError;
+) => RegularFunctionReturnValue;
 
 export interface FunctionRuntime {
   evaluate: (scope: Scope, node: Node) => Step; // TODO: 似乎没必要？

@@ -16,6 +16,7 @@ import {
   Value_Calling,
   Value_Captured,
   Value_Closure,
+  Value_Generating,
   ValueTypeName,
 } from "./values.ts";
 
@@ -52,6 +53,11 @@ export abstract class Step {
   }
 
   /**
+   * 如果不为 null，则要渲染当前 step 时用这里的值代替渲染。
+   */
+  replacedBy: Step | null = null;
+
+  /**
    * 初始过程
    */
   abstract getInitialSteps?(): TextStepPair[];
@@ -78,19 +84,31 @@ export abstract class Step {
     throw new Unimplemented();
   }
 
-  protected abstract evaluate?(): EitherValueOrError;
+  protected abstract evaluate(): EitherValueOrError;
   #evaluateAndMemorize(evaluatesCalling: boolean): EitherValueOrError {
-    if (!this.evaluate) throw new Unimplemented();
     if (this.#result === undefined) {
       this.#result = this.evaluate();
     }
     if (evaluatesCalling) {
+      OUT:
       while (true) {
         const [value, error] = this.#result;
         if (error) break;
-        if (getTypeNameOfValue(value) !== "calling") break;
-        const calling = value as Value_Calling;
-        this.#result = calling.call();
+        switch (getTypeNameOfValue(value)) {
+          case "calling": {
+            const calling = value as Value_Calling;
+            this.#result = calling.call();
+            break;
+          }
+          case "generating": { // TODO
+            const step = (value as Value_Generating).makeStep();
+            // FIXME: 步骤丢失
+            this.#result = step.evaluate();
+            break OUT;
+          }
+          default:
+            break OUT;
+        }
       }
     }
     return this.#result;
@@ -260,7 +278,11 @@ export class Step_RegularCall extends Step {
   getIntermediateSteps = undefined;
 
   protected evaluate(): EitherValueOrError {
-    return [new Value_Calling(this.#f, undefined, this.#args), null];
+    const replacingCb = (step: Step) => this.replacedBy = step;
+    return [
+      new Value_Calling(this.#f, undefined, this.#args, replacingCb),
+      null,
+    ];
   }
 }
 
@@ -297,9 +319,84 @@ export class Step_ValueCall extends Step {
   }
 }
 
-// TODO: 检查右侧 Node 是否直接是 call
-// export class Step_Pipe extends Step {
-// }
+export class Step_CreateGenerator extends Step {
+  protected evaluate(): EitherValueOrError {
+    throw new Unreachable();
+  }
+
+  getInitialSteps(): TextStepPair[] {
+    throw new Unimplemented();
+  }
+  getIntermediateSteps = undefined;
+}
+
+export type GeneratorCallback =
+  | { kind: "simple_number"; fn: () => number }
+  | { kind: "step"; fn: () => EitherStepOrError };
+
+export class Step_Generate extends Step {
+  readonly outputForm: "sum" | "sequence";
+  readonly elementCount: number;
+  readonly elementType: "integer";
+  readonly #elementGenerator: GeneratorCallback;
+  readonly elementRange: [number, number] | null;
+
+  constructor(
+    form: Value_Generating["outputForm"],
+    count: number,
+    type: Value_Generating["elementType"],
+    generator: GeneratorCallback,
+    range: [number, number] | null,
+  ) {
+    super();
+
+    this.outputForm = form;
+    this.elementCount = count;
+    this.elementType = type;
+    this.#elementGenerator = generator;
+    this.elementRange = range;
+  }
+
+  getInitialSteps(): TextStepPair[] {
+    throw new Unimplemented(); // TODO
+  }
+  getIntermediateSteps(): TextStepPair[] {
+    throw new Unimplemented(); // TODO
+  }
+
+  evaluate(): EitherValueOrError {
+    const seq: number[] = Array(this.elementCount);
+    for (let i = 0; i < this.elementCount; i++) {
+      const [n, err] = this.generateNumberElement();
+      if (err) {
+        return [null, err];
+      }
+      seq[i] = n;
+    }
+
+    switch (this.outputForm) {
+      case "sum": {
+        return [seq.reduce((acc, cur) => acc + cur), null];
+      }
+      case "sequence":
+        return [seq.map((el) => new Step_Plain(el)), null];
+      default:
+        throw new Unreachable();
+    }
+  }
+
+  generateNumberElement(): [number, null] | [null, RuntimeError] {
+    if (this.#elementGenerator.kind === "simple_number") {
+      return [this.#elementGenerator.fn(), null];
+    }
+    const [step, errStep] = this.#elementGenerator.fn();
+    if (errStep) return [null, errStep];
+    const [value, errValue] = step.number;
+    if (errValue instanceof RuntimeError) return [null, errValue];
+    if (errValue) throw new Unreachable();
+    return [value, null];
+  }
+}
 
 // export class Step_Repeat extends Step {
 // }

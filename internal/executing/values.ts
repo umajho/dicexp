@@ -1,12 +1,23 @@
 import { Unreachable } from "../../errors.ts";
 import { Node } from "../parsing/building_blocks.ts";
-import { FunctionRuntime, Scope } from "./runtime.ts";
 import {
+  FunctionRuntime,
+  RegularFunctionReturnValue,
+  Scope,
+} from "./runtime.ts";
+import {
+  RuntimeError,
   RuntimeError_DuplicateClosureParameterNames,
   RuntimeError_UnknownFunction,
   RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
-import { EitherStepOrError, EitherValueOrError, Step, ws } from "./steps.ts";
+import {
+  EitherValueOrError,
+  GeneratorCallback,
+  Step,
+  Step_Generate,
+  ws,
+} from "./steps.ts";
 
 export type Value =
   | number
@@ -14,7 +25,8 @@ export type Value =
   | Step[]
   | Value_Closure
   | Value_Captured
-  | Value_Calling;
+  | Value_Calling
+  | Value_Generating;
 export type ValueTypeName = ReturnType<typeof getTypeNameOfValue>;
 
 export abstract class Value_Callable {
@@ -23,7 +35,7 @@ export abstract class Value_Callable {
   abstract makeCalling(args: Step[]): Value_Calling;
 }
 
-export type Evaluator = (args: Step[]) => EitherStepOrError;
+export type Evaluator = (args: Step[]) => RegularFunctionReturnValue;
 
 export class Value_Closure extends Value_Callable {
   get name() {
@@ -107,14 +119,18 @@ export class Value_Calling {
   readonly expectedParameters?: number;
   args: Step[];
 
+  #replaceStep: ((step: Step) => void) | null;
+
   constructor(
     f: Evaluator,
     expectedParameters: number | undefined,
     args: Step[],
+    replaceStep: ((step: Step) => void) | null = null,
   ) {
     this.#f = f;
     this.expectedParameters = expectedParameters;
     this.args = args;
+    this.#replaceStep = replaceStep;
   }
 
   withArgs(args: Step[]) {
@@ -136,9 +152,50 @@ export class Value_Calling {
       );
       return [null, err];
     }
-    const [step, err] = this.#f(this.args);
+
+    const result = this.#f(this.args);
+    let step: Step | null, err: RuntimeError | null;
+    if (Array.isArray(result)) {
+      [step, err] = result;
+    } else { // 只有通常函数才可能
+      [step, err] = result.result;
+      this.#replaceStep!(result.replacingStep);
+    }
+
     if (err) return [null, err];
-    return step.result;
+    return step!.result;
+  }
+}
+
+export class Value_Generating {
+  readonly outputForm: "sum" | "sequence";
+  readonly elementCount: number;
+  readonly elementType: "integer";
+  readonly #elementGenerator: GeneratorCallback;
+  readonly elementRange: [number, number] | null;
+
+  constructor(
+    form: Value_Generating["outputForm"],
+    count: number,
+    type: Value_Generating["elementType"],
+    generator: GeneratorCallback,
+    range: [number, number] | null,
+  ) {
+    this.outputForm = form;
+    this.elementCount = count;
+    this.elementType = type;
+    this.#elementGenerator = generator;
+    this.elementRange = range;
+  }
+
+  makeStep() {
+    return new Step_Generate(
+      this.outputForm,
+      this.elementCount,
+      this.elementType,
+      this.#elementGenerator,
+      this.elementRange,
+    );
   }
 }
 
@@ -153,6 +210,7 @@ export function getTypeNameOfValue(v: Value) {
       if (v instanceof Value_Closure) return "closure";
       if (v instanceof Value_Captured) return "captured";
       if (v instanceof Value_Calling) return "calling";
+      if (v instanceof Value_Generating) return "generating";
       throw new Unreachable();
   }
 }
@@ -177,8 +235,8 @@ export function renderValue(value: Value): string {
       return `&${capture.identifier}/${capture.arity}`;
     }
     case "calling":
+    case "generating":
       throw new Unreachable();
-      // TODO: 未来还会有 `valueGenerator` 和 `listGenerator`，但也都是 unreachable
     default:
       throw new Unreachable();
   }

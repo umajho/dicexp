@@ -12,6 +12,7 @@ import {
   EitherStepOrError,
   EitherValueOrError,
   EitherValuesOrError,
+  GeneratorCallback,
   Step,
   Step_Plain,
 } from "./steps.ts";
@@ -19,6 +20,7 @@ import {
   getTypeNameOfValue,
   Value,
   Value_Callable,
+  Value_Generating,
   ValueTypeName,
 } from "./values.ts";
 
@@ -87,15 +89,28 @@ export const builtinScope: Scope = {
   // #/2
 
   "~/2": makeFunction(["number", "number"], (args, rtm) => {
-    const [left, right] = args as [number, number];
-    const g = generateRandomNumber(rtm.random, 1, [left, right]);
+    const bounds = args.sort() as [number, number];
+
+    const cb: GeneratorCallback = {
+      kind: "simple_number",
+      fn: () => generateRandomNumber(rtm.random, bounds),
+    };
+    const g = new Value_Generating("sum", 1, "integer", cb, bounds);
+    // FIXME: replacingStep: new Step_CreateGenerator(…)
+    //        包括 ~/1、d/2、d%/2、d/1、d%/1 也都需要。
     return [g, null];
   }),
   "~/1": makeFunction(["number"], (args, rtm) => {
     const [right] = args as [number];
     const errRange = ensureUpperBound("~", null, 1, right);
     if (errRange) return [null, errRange];
-    const g = generateRandomNumber(rtm.random, 1, [1, right]);
+    const bounds: [number, number] = [1, right];
+
+    const cb: GeneratorCallback = {
+      kind: "simple_number",
+      fn: () => generateRandomNumber(rtm.random, bounds),
+    };
+    const g = new Value_Generating("sum", 1, "integer", cb, bounds);
     return [g, null];
   }),
 
@@ -146,25 +161,43 @@ export const builtinScope: Scope = {
   }),
 
   "d/2": makeFunction(["number", "number"], (args, rtm) => {
-    const [left, right] = args as [number, number];
+    const [n, right] = args as [number, number];
     const errRange = ensureUpperBound("d", 1, 1, right);
     if (errRange) return [null, errRange];
-    const g = generateRandomNumber(rtm.random, left, [1, right]);
+    const bounds: [number, number] = [1, right];
+
+    const cb: GeneratorCallback = {
+      kind: "simple_number",
+      fn: () => generateRandomNumber(rtm.random, bounds),
+    };
+    const g = new Value_Generating("sum", n, "integer", cb, bounds);
     return [g, null];
   }),
   "d/1": makeFunction(["number"], (args, rtm) => { // TODO: makeUnaryRedirection("d", 1)
     const [right] = args as [number];
     const errRange = ensureUpperBound("d", 1, 1, right);
     if (errRange) return [null, errRange];
-    const g = generateRandomNumber(rtm.random, 1, [1, right]);
+    const bounds: [number, number] = [1, right];
+
+    const cb: GeneratorCallback = {
+      kind: "simple_number",
+      fn: () => generateRandomNumber(rtm.random, bounds),
+    };
+    const g = new Value_Generating("sum", 1, "integer", cb, bounds);
     return [g, null];
   }),
   "d%/2": makeFunction(["number", "number"], (args, rtm) => {
-    const [left, right] = args as [number, number];
+    const [n, right] = args as [number, number];
     const actualText = `${right}-1=${right - 1}`;
     const errRange = ensureUpperBound("d%", 1, 0, right - 1, actualText);
     if (errRange) return [null, errRange];
-    const g = generateRandomNumber(rtm.random, left, [0, right - 1]);
+    const bounds: [number, number] = [0, right - 1];
+
+    const cb: GeneratorCallback = {
+      kind: "simple_number",
+      fn: () => generateRandomNumber(rtm.random, bounds),
+    };
+    const g = new Value_Generating("sum", n, "integer", cb, bounds);
     return [g, null];
   }),
   "d%/1": makeFunction(["number"], (args, rtm) => { // TODO: makeUnaryRedirection("d%", 1)
@@ -172,7 +205,13 @@ export const builtinScope: Scope = {
     const actualText = `${right}-1=${right - 1}`;
     const errRange = ensureUpperBound("d%", 1, 0, right - 1, actualText);
     if (errRange) return [null, errRange];
-    const g = generateRandomNumber(rtm.random, 1, [0, right - 1]);
+    const bounds: [number, number] = [0, right - 1];
+
+    const cb: GeneratorCallback = {
+      kind: "simple_number",
+      fn: () => generateRandomNumber(rtm.random, bounds),
+    };
+    const g = new Value_Generating("sum", 1, "integer", cb, bounds);
     return [g, null];
   }),
 
