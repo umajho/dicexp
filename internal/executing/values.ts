@@ -2,12 +2,11 @@ import { Unreachable } from "../../errors.ts";
 import { Node } from "../parsing/building_blocks.ts";
 import { FunctionRuntime, Scope } from "./runtime.ts";
 import {
-  RuntimeError,
   RuntimeError_DuplicateClosureParameterNames,
   RuntimeError_UnknownFunction,
   RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
-import { EitherValueOrError, Step, Step_Plain, ws } from "./steps.ts";
+import { EitherStepOrError, EitherValueOrError, Step, ws } from "./steps.ts";
 
 export type Value =
   | number
@@ -24,7 +23,7 @@ export abstract class Value_Callable {
   abstract makeCalling(args: Step[]): Value_Calling;
 }
 
-export type Evaluator = (args: Step[]) => [Step, null] | [null, RuntimeError];
+export type Evaluator = (args: Step[]) => EitherStepOrError;
 
 export class Value_Closure extends Value_Callable {
   get name() {
@@ -205,9 +204,7 @@ export function makeRegularCallEvaluator(
     }
     if (typeof fn !== "function") throw new Unreachable();
 
-    const [value, err] = fn(args, runtime);
-    if (err) return [null, err];
-    return [new Step_Plain(value), null];
+    return fn(args, runtime);
   };
 }
 

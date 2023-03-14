@@ -9,6 +9,7 @@ import {
   RuntimeError_WrongArity,
 } from "./runtime_errors.ts";
 import {
+  EitherStepOrError,
   EitherValueOrError,
   EitherValuesOrError,
   Step,
@@ -69,7 +70,6 @@ export const builtinScope: Scope = {
     return [left >= right, null];
   }),
 
-  // TODO?: Step_Pipe
   "|>/2": (_args, _rtm) => {
     const [calling, errCalling] = _args[1].calling;
     if (errCalling instanceof RuntimeError) return [null, errCalling];
@@ -80,7 +80,8 @@ export const builtinScope: Scope = {
       ];
     }
     const newCalling = calling.withArgs([_args[0], ...calling.args]);
-    return [newCalling, null];
+    // TODO?: Step_Pipe
+    return [new Step_Plain(newCalling), null];
   },
 
   // #/2
@@ -308,13 +309,14 @@ export const builtinScope: Scope = {
   // TODO: rtm.inspect 之类的
   // FIXME: 失去了 laziness
   "inspect!/1": (args_, _rtm) => {
-    const [value, error] = unwrapValue("*", args_[0]);
+    const [target] = args_;
+    const [value, error] = unwrapValue("*", target);
     if (error) {
       console.log(Deno.inspect({ error }));
     } else {
       console.log(Deno.inspect({ value }));
     }
-    return [value, error] as EitherValueOrError;
+    return [target, error] as EitherStepOrError;
   },
 
   "if!/3": (args_, _rtm) => { // FIXME 失去了 laziness
@@ -322,9 +324,9 @@ export const builtinScope: Scope = {
     if (errCond) return [null, errCond];
 
     if (cond) {
-      return unwrapValue("*", args_[1]);
+      return [args_[1], null];
     } else {
-      return unwrapValue("*", args_[2]);
+      return [args_[2], null];
     }
   },
 };
@@ -339,7 +341,12 @@ function makeFunction(
   return (args_, rtm) => {
     const [args, errUnwrap] = unwrapArguments(spec, args_);
     if (errUnwrap) return [null, errUnwrap];
-    return logic(args, rtm);
+    const [resultValue, resultError] = logic(args, rtm);
+    if (resultError) {
+      return [null, resultError];
+    } else {
+      return [new Step_Plain(resultValue), null];
+    }
   };
 }
 

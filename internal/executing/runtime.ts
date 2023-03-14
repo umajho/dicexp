@@ -13,6 +13,7 @@ import {
   RuntimeError_UnknownVariable,
 } from "./runtime_errors.ts";
 import {
+  EitherStepOrError,
   EitherValueOrError,
   Step,
   Step_Final,
@@ -193,7 +194,7 @@ export type Scope = { [ident: string]: RegularFunction | Step };
 export type RegularFunction = (
   args: Step[],
   rtm: FunctionRuntime,
-) => EitherValueOrError;
+) => EitherStepOrError;
 
 export interface FunctionRuntime {
   evaluate: (scope: Scope, node: Node) => Step; // TODO: 似乎没必要？

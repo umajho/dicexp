@@ -26,6 +26,8 @@ export type EitherValueOrErrorOrMismatch<T extends Value> =
 
 export type EitherValuesOrError = [Value[], null] | [null, RuntimeError];
 
+export type EitherStepOrError = [Step, null] | [null, RuntimeError];
+
 // FIXME: 应该使用精瘦后的 Step，否则只有在完全执行完这些对象才会被垃圾回收
 type TextStepPair = [string, Step | null];
 
