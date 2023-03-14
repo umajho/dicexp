@@ -122,22 +122,51 @@ describe("优先级", () => {
   }
 });
 
-describe("不能把单独的 `d` 作为标识符", () => {
-  it("`d` 不能作为匿名函数形式参数", () => {
-    assertThrows(() => parse(String.raw`\(d -> 1).(1)`));
-  });
-  describe("更长的名称则没问题", () => {
-    const table = [
-      "da",
-      "dd",
-      "ad",
-      "ada",
-      "a",
+describe("标识符", () => {
+  describe("一般", () => {
+    const table: { id: string; var: boolean; fn: boolean }[] = [
+      { id: "foo", var: true, fn: true },
+      { id: "foo!", var: false, fn: true },
+      { id: "foo?", var: false, fn: true },
+      { "id": "_a1", var: true, fn: true },
+      { "id": "1a", var: false, fn: false },
     ];
-    for (const [i, id] of table.entries()) {
-      it(`case ${i + 1}: ${id}`, () => {
-        parse(String.raw`\(${id} -> 1).(1)`);
+    for (const [i, { id, var: varOk, fn: fnOk }] of table.entries()) {
+      it(`case ${i + 1} for var: ${id} => ${varOk ? "ok" : "error"}`, () => {
+        if (varOk) {
+          parse(id);
+        } else {
+          assertThrows(() => parse(id));
+        }
+      });
+      const fnCode = `${id}()`;
+      it(`case ${i + 1} for fn: ${fnCode} => ${fnOk ? "ok" : "error"}`, () => {
+        if (fnOk) {
+          parse(fnCode);
+        } else {
+          assertThrows(() => parse(fnCode));
+        }
       });
     }
+  });
+
+  describe("不能把单独的 `d` 作为标识符", () => {
+    it("`d` 不能作为匿名函数形式参数", () => {
+      assertThrows(() => parse(String.raw`\(d -> 1).(1)`));
+    });
+    describe("更长的名称则没问题", () => {
+      const table = [
+        "da",
+        "dd",
+        "ad",
+        "ada",
+        "a",
+      ];
+      for (const [i, id] of table.entries()) {
+        it(`case ${i + 1}: ${id}`, () => {
+          parse(String.raw`\(${id} -> 1).(1)`);
+        });
+      }
+    });
   });
 });

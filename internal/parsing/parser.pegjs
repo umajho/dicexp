@@ -165,7 +165,7 @@ BinarySymbol "双目运算符" = $(
     "^"
   )
 
-FunctionIdent "函数标识符" = $(BaseIdent "!"?)
+FunctionIdent "函数标识符" = $(BaseIdent [!?]?)
 
 // 单独的 “d” 是运算符，不能用作标识符
 Ident "标识符" = @id:BaseIdent &{ return id !== "d"; }

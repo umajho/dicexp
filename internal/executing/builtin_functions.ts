@@ -197,6 +197,9 @@ export const builtinScope: Scope = {
   // explode/2
 
   // 实用：
+  // abs/1
+  // count/1
+  // has?/2
   "sum/1": makeFunction(["list"], ([list_], _rtm) => {
     const [flatten_, err] = flattenListAll("number", list_ as Step[]);
     if (err) return [null, err];
@@ -240,6 +243,7 @@ export const builtinScope: Scope = {
   // flatten/2
   // flattenAll/1
 
+  // 函数式：
   "map/2": makeFunction(["list", "callable"], (args, _rtm) => { // FIXME: 步骤丢失
     const [list, callable] = args as [Step[], Value_Callable];
     const result = list.map((el) => new Step_Plain(callable.makeCalling([el])));
