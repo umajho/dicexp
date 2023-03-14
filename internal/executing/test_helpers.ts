@@ -13,6 +13,7 @@ import {
   RuntimeError_CallArgumentTypeMismatch,
 } from "./runtime_errors.ts";
 import { JSValue } from "./runtime.ts";
+import { Unreachable } from "../../errors.ts";
 
 export function assertNumber(result: ExecutionResult): number {
   assertEquals(result.runtimeError, null);
@@ -34,11 +35,12 @@ export function assertNumberArray(result: ExecutionResult): number[] {
 export function assertExecutionOk(
   code: string,
   expectedResult?: unknown,
-) {
+): JSValue {
   const result = execute(code);
   if (!result.runtimeError) {
-    if (expectedResult === undefined) return;
-    if (equal(result.value, expectedResult)) return;
+    if (result.value === null) throw new Unreachable();
+    if (expectedResult === undefined) return result.value!;
+    if (equal(result.value, expectedResult)) return result.value!;
   }
 
   const expectedResultInspected = Deno.inspect(expectedResult);

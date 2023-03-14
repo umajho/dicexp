@@ -1,4 +1,7 @@
-import { assert } from "https://deno.land/std@0.178.0/testing/asserts.ts";
+import {
+  assert,
+  assertEquals,
+} from "https://deno.land/std@0.178.0/testing/asserts.ts";
 import {
   // afterEach,
   // beforeEach,
@@ -227,6 +230,12 @@ describe("值", () => {
             new RuntimeError_UnknownVariable("_"),
           );
         });
+      });
+      it("传入的调用结果保持一致", () => {
+        const result = assertExecutionOk(
+          String.raw`\(->d100000).() |> \(x -> [x, x, x, x, x, x, x, x, x]).()`,
+        );
+        assertEquals((new Set(result as number[])).size, 1);
       });
     });
   });
