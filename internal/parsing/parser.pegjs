@@ -11,7 +11,7 @@
     regularCall,
     valueCall,
   } from "./building_blocks.ts";
-  import { parseBoolean, parseInteger } from "./parse.ts";
+  import { negateInteger, parseBoolean, parseInteger } from "./parse.ts";
 
   function buildBinaryOperator(head, tail) {
     return tail.reduce((left, el) => {
@@ -118,8 +118,10 @@ RollGroupingBefore
 
 RollGroupingAfter
   = RollGroupingBefore
-  / op:("+"/"-") exp:LiteralInteger
-    { return buildUnaryOperator(op, exp); }
+  / "+" int:LiteralInteger
+    { return int; }
+  / "-" int:LiteralInteger
+    { return negateInteger(int); }
 
 Grouping
   = "(" @Expression ")"

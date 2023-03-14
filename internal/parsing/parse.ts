@@ -1,6 +1,6 @@
 import { Unreachable } from "../../errors.ts";
 
-import { Node, value } from "./building_blocks.ts";
+import { Node, Node_Value, value } from "./building_blocks.ts";
 import { convertTextToHalfWidth } from "./fullwidth_convertion.ts";
 
 import { parse as pegParse } from "./parser.js";
@@ -34,6 +34,11 @@ export function parseInteger(sourceString: string, replacesDash = true) {
     return value(Infinity);
   }
   return value(int);
+}
+
+export function negateInteger(target: Node_Value) {
+  if (typeof target.value !== "number") throw new Unreachable();
+  return value(-target.value);
 }
 
 export function parseBoolean(sourceString: string) {

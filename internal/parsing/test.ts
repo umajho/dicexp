@@ -3,6 +3,7 @@ import {
   assertThrows,
 } from "https://deno.land/std@0.178.0/testing/asserts.ts";
 import { describe, it } from "https://deno.land/std@0.178.0/testing/bdd.ts";
+import { Node, regularCall, value } from "./building_blocks.ts";
 
 import { parse } from "./parse.ts";
 
@@ -66,6 +67,21 @@ describe("掷骰的操作数", () => {
       const codeWithoutParens = code.replaceAll(/[()]/g, "");
       it(`case ${i + 1}b: ${codeWithoutParens} => error`, () => {
         assertThrows(() => parse(codeWithoutParens));
+      });
+    }
+  });
+
+  describe("右操作数是整数时，该操作数之前的正负号不会产生多余的节点", () => {
+    const table: [string, string | Node][] = [
+      ["d+10", "d10"],
+      ["3d+10", "3d10"],
+      ["d-10", regularCall("operator", "d", [value(-10)])],
+      ["3d-10", regularCall("operator", "d", [value(3), value(-10)])],
+    ];
+    for (const [i, [l, r]] of table.entries()) {
+      it(`case ${i + 1}: ${l}`, () => {
+        const rResult = typeof r === "string" ? parse(r) : r;
+        assertEquals(parse(l), rResult);
       });
     }
   });
