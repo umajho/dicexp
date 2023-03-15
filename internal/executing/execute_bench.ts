@@ -20,22 +20,27 @@ const codesSimple = [
     .raw`\(f, n, l -> if!(n == 100, l, f.(f, n+1, append(l, n)))) |> \(f -> f.(f, 0, []))`,
 
   ...(() => {
-    const yCombinator = String
-      .raw`\(fn -> \(f -> fn.(\(x -> f.(f).(x)))).(\(f -> fn.(\(x -> f.(f).(x))))))`;
-
-    return [
-      // 两例 Y 组合子：
-      // see: https://zhuanlan.zhihu.com/p/51856257
+    const yCombinators = [
       String
-        .raw`\(if -> \(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if.(n == 0, \(-> 0), \(-> n + f.(n-1))))))).(\(cond, t, f -> head(append(filter([t], \(_ -> cond)), f)).()))`,
-      // 用真正的 if-else：
-      String
-        .raw`\(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if!(n == 0, 0, n + f.(n-1)))))`,
-
-      // 0..<99，但是用 Y 组合子：
-      String
-        .raw`\(Y, g -> Y.(g).([0, []])).(${yCombinator}, \(f -> \(nl -> if!((nl|>at(0)) == 100, nl|>at(1), f.([(nl|>at(0))+1, append((nl|>at(1)), nl|>at(0))])))))`,
+        .raw`\(fn -> \(f -> fn.(\(x -> f.(f).(x)))).(\(f -> fn.(\(x -> f.(f).(x))))))`,
+      String.raw`\(f -> \(x -> x.(x))).(\(x -> f.(\(y -> x.(x).(y)))))`,
     ];
+    return yCombinators.flatMap((yCombinator) => {
+      return [
+        // 两例 Y 组合子：
+        // see: https://zhuanlan.zhihu.com/p/51856257
+        // see: https://blog.klipse.tech/lambda/2016/08/10/pure-y-combinator-javascript.html
+        String
+          .raw`\(if -> \(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if.(n == 0, \(-> 0), \(-> n + f.(n-1))))))).(\(cond, t, f -> head(append(filter([t], \(_ -> cond)), f)).()))`,
+        // 用真正的 if-else：
+        String
+          .raw`\(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if!(n == 0, 0, n + f.(n-1)))))`,
+
+        // 0..<99，但是用 Y 组合子：
+        String
+          .raw`\(Y, g -> Y.(g).([0, []])).(${yCombinator}, \(f -> \(nl -> if!((nl|>at(0)) == 100, nl|>at(1), f.([(nl|>at(0))+1, append((nl|>at(1)), nl|>at(0))])))))`,
+      ];
+    });
   })(),
 ];
 
