@@ -169,4 +169,21 @@ describe("标识符", () => {
       }
     });
   });
+
+  describe("名称中含有关键词", () => {
+    const table: string[] = [
+      "true1",
+      "trueA",
+      "_true",
+    ];
+    for (const [i, id] of table.entries()) {
+      it(`case ${i + 1} for var: ${id}`, () => {
+        assertEquals(parse(id), id);
+      });
+      const fnCode = `${id}()`;
+      it(`case ${i + 1} for fn: ${fnCode}`, () => {
+        assertEquals(parse(fnCode), regularCall("function", id, []));
+      });
+    }
+  });
 });

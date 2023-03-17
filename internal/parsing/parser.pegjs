@@ -129,8 +129,8 @@ Grouping
   / List
   / Closure
   / Capture
-  / Literal
   / Ident
+  / Literal
 
 Call "通常函数调用"
   = ident:FunctionIdent _ args:ArgumentList
@@ -168,7 +168,7 @@ BinarySymbol "双目运算符" = $(
 FunctionIdent "函数标识符" = $(BaseIdent [!?]?)
 
 // 单独的 “d” 是运算符，不能用作标识符
-Ident "标识符" = @id:BaseIdent &{ return id !== "d"; }
+Ident "标识符" = @id:BaseIdent &{ return ["d", "true", "false"].indexOf(id) === -1; }
 BaseIdent = $(IdentHead IdentRestChar*)
 IdentHead = $("_" / [a-zA-Z])
 IdentRestChar = $(IdentHead / [0-9])
