@@ -243,28 +243,28 @@ describe("值", () => {
 
 describe("运算符", () => {
   describe("功能", () => { // 优先级从低到高排
-    describe("||/2", () => {
+    describe("or/2", () => {
       describe("进行或运算", () => {
         theyAreOk<boolean>([
-          ["false || false", false],
-          ["false || true", true],
-          ["true || false", true],
-          ["true || true", true],
+          ["false or false", false],
+          ["false or true", true],
+          ["true or false", true],
+          ["true or true", true],
         ]);
       });
-      binaryOperatorOnlyAcceptsBoolean("||");
+      binaryOperatorOnlyAcceptsBoolean("or");
     });
 
-    describe("&&/2", () => {
+    describe("and/2", () => {
       describe("进行与运算", () => {
         theyAreOk<boolean>([
-          ["false && false", false],
-          ["false && true", false],
-          ["true && false", false],
-          ["true && true", true],
+          ["false and false", false],
+          ["false and true", false],
+          ["true and false", false],
+          ["true and true", true],
         ]);
       });
-      binaryOperatorOnlyAcceptsBoolean("&&");
+      binaryOperatorOnlyAcceptsBoolean("and");
     });
 
     describe("==/2 与 !=/2", () => {
@@ -494,11 +494,11 @@ describe("运算符", () => {
 
     describe("将布尔求非", () => {
       theyAreOk([
-        ["!true", false],
-        ["!false", true],
+        ["not true", false],
+        ["not false", true],
       ]);
     });
-    unaryOperatorOnlyAcceptsBoolean("!");
+    unaryOperatorOnlyAcceptsBoolean("not");
   });
 });
 

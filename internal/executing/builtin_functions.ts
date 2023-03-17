@@ -25,11 +25,11 @@ import {
 } from "./values.ts";
 
 export const builtinScope: Scope = {
-  "||/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
+  "or/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
     const [left, right] = args as [boolean, boolean];
     return [left || right, null];
   }),
-  "&&/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
+  "and/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
     const [left, right] = args as [boolean, boolean];
     return [left && right, null];
   }),
@@ -225,7 +225,7 @@ export const builtinScope: Scope = {
     return [left ** right, null];
   }),
 
-  "!/1": makeFunction(["boolean"], (args, _rtm) => {
+  "not/1": makeFunction(["boolean"], (args, _rtm) => {
     const [right] = args as [boolean];
     return [!right, null];
   }),

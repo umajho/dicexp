@@ -44,11 +44,11 @@ Expression
   = _ @BinaryOperator$10 _
 
 BinaryOperator$10
-  = head:BinaryOperator$11 tail:(_ "||" _ BinaryOperator$11)*
+  = head:BinaryOperator$11 tail:(_ "or" _ BinaryOperator$11)*
     { return buildBinaryOperator(head, tail); }
 
 BinaryOperator$11
-  = head:BinaryOperator$20 tail:(_ "&&" _ BinaryOperator$20)*
+  = head:BinaryOperator$20 tail:(_ "and" _ BinaryOperator$20)*
     { return buildBinaryOperator(head, tail); }
 
 BinaryOperator$20
@@ -94,7 +94,9 @@ BinaryOperator$80
     { return buildBinaryOperator(head, tail); }
 
 UnaryOperator$100
-  = op:("~" / "+" / "-" / "!") _ exp:BinaryOperator$Call
+  = op:("~" / "+" / "-" ) _ exp:BinaryOperator$Call
+    { return buildUnaryOperator(op, exp); }
+  / op:("not") ws+ exp:BinaryOperator$Call
     { return buildUnaryOperator(op, exp); }
   / BinaryOperator$Call
 
@@ -156,9 +158,9 @@ Capture "通常函数捕获"
   / "&" ident:BinarySymbol "/" "2"
     { return captured(ident, 2); }
 
-UnarySymbol "单目运算符" = $("-" / "!" / "~" / "d" / "d%")
+UnarySymbol "单目运算符" = $("-" / "not" / "~" / "d" / "d%")
 BinarySymbol "双目运算符" = $(
-    "||" / "&&" / "==" / "!=" / "<=" / ">=" / "<" / ">" / 
+    "or" / "and" / "==" / "!=" / "<=" / ">=" / "<" / ">" / 
     // “|>” 和 “#” 比较特殊，会改变代码结构，因此不允许被捕获
     "~" / "+" / "-" / "*" / "//" / "%" /
     "d%" / "d" /
@@ -187,3 +189,6 @@ LiteralBoolean "布尔值常量"
 
 _ "空白"
   = [ \t\n\r]*
+
+ws "空白字符"
+  = [ \t\n\r]

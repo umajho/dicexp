@@ -91,7 +91,7 @@ describe("优先级", () => {
   const table: string[] = [
     "(3d4)^(5d6)",
     "(d4)^(5d6)",
-    "(!true) ^ true",
+    "(not true) ^ true",
     "3*(4^5)//(6^7)%8",
     "(((3*4)//5)%6)",
     "(((6%5)//4)*3)",
@@ -111,8 +111,8 @@ describe("优先级", () => {
     "(1<2)==(3<4)",
     "(1==2)!=3",
     "(1!=2)==3",
-    "(1==2)&&(3==4)",
-    "(1&&2)||(3&&4)",
+    "(1==2) and (3==4)",
+    "(1 and 2) or (3 and 4)",
   ];
   for (const [i, withParens] of table.entries()) {
     const withoutParens = withParens.replaceAll(/[()]/g, "");
@@ -175,6 +175,8 @@ describe("标识符", () => {
       "true1",
       "trueA",
       "_true",
+      "trueortrue",
+      "nottrue",
     ];
     for (const [i, id] of table.entries()) {
       it(`case ${i + 1} for var: ${id}`, () => {
