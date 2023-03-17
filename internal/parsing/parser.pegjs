@@ -41,34 +41,34 @@
 }}
 
 Expression
-  = _ @BinaryOperator$10
+  = _ @BinaryOperator$10 _
 
 BinaryOperator$10
-  = head:BinaryOperator$11 tail:(_ "||" _ BinaryOperator$11)* _
+  = head:BinaryOperator$11 tail:(_ "||" _ BinaryOperator$11)*
     { return buildBinaryOperator(head, tail); }
 
 BinaryOperator$11
-  = head:BinaryOperator$20 tail:(_ "&&" _ BinaryOperator$20)* _
+  = head:BinaryOperator$20 tail:(_ "&&" _ BinaryOperator$20)*
     { return buildBinaryOperator(head, tail); }
 
 BinaryOperator$20
-  = head:BinaryOperator$21 tail:(_ ("==" / "!=") _ BinaryOperator$21)* _
+  = head:BinaryOperator$21 tail:(_ ("==" / "!=") _ BinaryOperator$21)*
     { return buildBinaryOperator(head, tail); }
 
 BinaryOperator$21
-  = head:BinaryOperator$30 tail:(_ ("<=" / ">=" / "<" / ">") _ BinaryOperator$30)* _
+  = head:BinaryOperator$30 tail:(_ ("<=" / ">=" / "<" / ">") _ BinaryOperator$30)*
     { return buildBinaryOperator(head, tail); }
 
 BinaryOperator$30
-  = head:BinaryOperator$40 tail:(_ "|>" _ BinaryOperator$40)* _
+  = head:BinaryOperator$40 tail:(_ "|>" _ BinaryOperator$40)*
     { return buildPipeOperator(head, tail); }
 
 BinaryOperator$40
-  = head:BinaryOperator$50 tail:(_ "#" _ BinaryOperator$50)* _
+  = head:BinaryOperator$50 tail:(_ "#" _ BinaryOperator$50)*
     { return buildBinaryOperator(head, tail); }
 
 BinaryOperator$50
-  = head:UnaryOperator$51 tail:(_ "~" _ UnaryOperator$51)* _
+  = head:UnaryOperator$51 tail:(_ "~" _ UnaryOperator$51)*
   { return buildBinaryOperator(head, tail); }
 
 UnaryOperator$51
@@ -77,7 +77,7 @@ UnaryOperator$51
   / BinaryOperator$60
 
 BinaryOperator$60
-  = head:UnaryOperator$61 tail:(_ ("+" / "-") _ UnaryOperator$61)* _
+  = head:UnaryOperator$61 tail:(_ ("+" / "-") _ UnaryOperator$61)*
     { return buildBinaryOperator(head, tail); }
 
 UnaryOperator$61
@@ -86,11 +86,11 @@ UnaryOperator$61
   / BinaryOperator$62
 
 BinaryOperator$62
-  = head:BinaryOperator$80 tail:(_ ("*" / "//" / "%") _ BinaryOperator$80)* _
+  = head:BinaryOperator$80 tail:(_ ("*" / "//" / "%") _ BinaryOperator$80)*
     { return buildBinaryOperator(head, tail); }
 
 BinaryOperator$80
-  = head:UnaryOperator$100 tail:(_ "^" _ UnaryOperator$100)* _
+  = head:UnaryOperator$100 tail:(_ "^" _ UnaryOperator$100)*
     { return buildBinaryOperator(head, tail); }
 
 UnaryOperator$100
@@ -99,11 +99,11 @@ UnaryOperator$100
   / BinaryOperator$Call
 
 BinaryOperator$Call
-  = head:BinaryOperator$210 tail:(_ "." _ ArgumentList)* _
+  = head:BinaryOperator$210 tail:(_ "." _ ArgumentList)*
     { return buildCallOperator(head, tail); }
 
 BinaryOperator$210
-  = head:RollGroupingBefore last:(_ ("d%" / "d") _ RollGroupingAfter) _
+  = head:RollGroupingBefore last:(_ ("d%" / "d") _ RollGroupingAfter)
     { return buildBinaryOperator(head, [last]); }
   / UnaryOperator$211
 
@@ -113,8 +113,8 @@ UnaryOperator$211
   / Grouping
 
 RollGroupingBefore
-  = "(" @Expression ")" _
-  / @LiteralInteger _
+  = "(" @Expression ")"
+  / @LiteralInteger
 
 RollGroupingAfter
   = RollGroupingBefore
@@ -133,19 +133,19 @@ Grouping
   / Ident
 
 Call "通常函数调用"
-  = ident:FunctionIdent _ args:ArgumentList _
+  = ident:FunctionIdent _ args:ArgumentList
     { return regularCall("function", ident, args); }
-  / ident:FunctionIdent _ closure:Closure _
+  / ident:FunctionIdent _ closure:Closure
     { return regularCall("function", ident, [closure]); }
 
-ArgumentList "参数列表" = "(" _ @Expression|.., _ ","| ")" _
+ArgumentList "参数列表" = "(" @Expression|.., ","| ")"
 
 List "列表"
-  = "[" _ exps:Expression|.., _ ","| "]" _
+  = "[" exps:Expression|.., ","| "]"
     { return list(exps) }
 
 Closure "闭包"
-  = "\\(" _ idents:Ident|.., _ "," _ | _ "->" _ body:Expression ")" _
+  = "\\(" _ idents:Ident|.., _ "," _ | _ "->" body:Expression ")"
     { return closure(idents, body); }
 
 Capture "通常函数捕获"
