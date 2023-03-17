@@ -251,8 +251,8 @@ export const builtinScope: Scope = {
   }),
   // min/1
   // max/1
-  // all/1
-  // any/1
+  // all?/1
+  // any?/1
   "sort/1": makeFunction(["list"], ([list_], _rtm) => {
     const allowedTypes = ["number", "boolean"] as ValueTypeName[];
     const [unwrappedList, err] = unwrapListOneOf(allowedTypes, list_ as Step[]);
