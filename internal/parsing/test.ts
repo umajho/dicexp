@@ -128,8 +128,8 @@ describe("标识符", () => {
       { id: "foo", var: true, fn: true },
       { id: "foo!", var: false, fn: true },
       { id: "foo?", var: false, fn: true },
-      { "id": "_a1", var: true, fn: true },
-      { "id": "1a", var: false, fn: false },
+      { id: "_a1", var: true, fn: true },
+      { id: "1a", var: false, fn: false },
     ];
     for (const [i, { id, var: varOk, fn: fnOk }] of table.entries()) {
       it(`case ${i + 1} for var: ${id} => ${varOk ? "ok" : "error"}`, () => {
