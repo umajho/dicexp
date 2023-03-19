@@ -1,6 +1,6 @@
 import { execute } from "./internal/executing/execute.ts";
 import { RuntimeError } from "./internal/executing/runtime_errors.ts";
-import { parse } from "./internal/parsing/parser.js";
+import { parse } from "./internal/parsing/parse.ts";
 
 while (1) {
   let code = prompt(">");

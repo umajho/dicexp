@@ -6,7 +6,9 @@
     "files": {
       "exclude": [
         "dist/", // 打包输出
-        "internal/parsing/parser.js" // 由 PEG.js 生成
+        "internal/parsing/parser.js", // 由 PEG.js 生成
+        "internal/parsing/dicexp.grammar.js", // 由 Lezer 生成
+        "internal/parsing/dicexp.grammar.term.js" // 由 Lezer 生成
       ]
     }
   }

@@ -5,7 +5,7 @@ priv *args:
   just -f justfile_priv {{args}}
 
 compile-grammar:
-  ./scripts/compile-peggy.ts internal/parsing/parser.pegjs > internal/parsing/parser.js
+  ./scripts/compile-lezer.ts internal/parsing/dicexp.grammar
 
 deno *args: pre-run
   deno {{args}}

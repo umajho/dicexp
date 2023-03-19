@@ -3,7 +3,8 @@ import { Unreachable } from "../../errors.ts";
 import { Node, Node_Value, value } from "./building_blocks.ts";
 import { convertTextToHalfWidth } from "./fullwidth_convertion.ts";
 
-import { parse as pegParse } from "./parser.js";
+import { parser as lezerParser } from "./dicexp.grammar.js";
+import { Transformer } from "./transformer.ts";
 import { simpleParse } from "./parse_simple.ts";
 
 export interface ParseOptions {
@@ -18,7 +19,10 @@ export function parse(code: string, opts?: ParseOptions): Node {
     if (result) return result;
   }
 
-  return pegParse(code);
+  const tree = lezerParser.parse(code);
+  // @ts-ignore "@lezer/lr@1.3.3" 和 "@lezer/common@1.0.2" 的 Tree 不兼容？
+  const transformer = new Transformer(tree, code);
+  return transformer.transform();
 }
 
 export function parseInteger(sourceString: string, replacesDash = true) {

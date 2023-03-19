@@ -1,0 +1,175 @@
+@top Top { expression }
+
+@precedence {
+  diceRollUnary,
+  diceRoll @left,
+  call @left,
+  not,
+  exp @left,
+  times @left,
+  negate,
+  plus @left,
+  rangeRollUnary,
+  rangeRoll @left,
+  repeat @left,
+  pipe @left,
+  compare @left,
+  equal @left,
+  and @left,
+  or @left
+}
+
+expression {
+  BinaryExpression |
+  UnaryExpression |
+  Grouping |
+  RegularCall |
+  List |
+  Closure |
+  Capture |
+  Variable { identifier } |
+  literal
+}
+
+BinaryExpression {
+  beforeDiceRoll !diceRoll binaryOperatorDiceRoll afterDiceRoll |
+  beforeDiceRoll !diceRoll binaryOperatorDiceRoll afterDiceRoll |
+  
+  expression !call BinaryOperator<"."> ArgumentList |
+
+  expression !exp BinaryOperator<"^"> expression |
+  expression !times BinaryOperator<"*" | "//" | "%"> expression |
+  expression !plus BinaryOperator<"+" | "-"> expression |
+  expression !rangeRoll BinaryOperator<"~"> expression |
+  expression !repeat BinaryOperator<"#"> expression |
+  expression !pipe BinaryOperator<"|>"> expression |
+  expression !compare BinaryOperator<$[<>] "="?> expression |
+  expression !equal BinaryOperator<"==" | "!="> expression |
+  expression !and operatorKeyword<BinaryOperator, "and"> expression |
+  expression !or operatorKeyword<BinaryOperator, "or"> expression
+}
+
+beforeDiceRoll[@dynamicPrecedence=1] {
+  Grouping |
+  LiteralInteger
+}
+afterDiceRoll {
+  beforeDiceRoll |
+  UnaryExpression { UnaryOperator<"+" | "-"> LiteralInteger }
+}
+
+binaryOperatorDiceRoll {
+  BinaryOperator { keywordD | keywordDRemainder }
+}
+
+UnaryExpression {
+  !diceRollUnary unaryOperatorDiceRoll afterDiceRoll |
+
+  !not operatorKeyword<UnaryOperator, "not"> expression |
+  !negate (UnaryOperator<"+" | "-">) expression |
+  !rangeRollUnary UnaryOperator<"~"> expression |
+  FakeWorkaroundUnaryOperator<
+    "^" |
+    "*" | "//" | "%" |
+    ("<"|">") "="? |
+    "==" | "!="
+    >
+}
+
+unaryOperatorDiceRoll {
+  UnaryOperator { keywordD } |
+  UnaryOperator { keywordDRemainder }
+}
+FakeWorkaroundUnaryOperator[@name="⚠"]<term> {
+  /*
+    不知道怎么回事，在 Capture 那里加上对应的运算符（如 “*”）后，
+    像是 “3 *3” 这样的双目运算符表达式会解析失败。（但 “3*3”“3* 3” 这些却可以。）
+    例外：如果这个运算符同时也是单目运算符，或者包含 Capture 中 arity 前面的 “/”。
+
+    感觉分析真正的原因可能花很长时间也没能搞明白，
+    所以还是先这样把其他受影响的双目运算符也当成假的单目运算符好了。
+  */
+  term
+}
+
+Grouping {
+  "(" expression ")"
+}
+
+RegularCall {
+  Name { identifier ("!" | "?")? } (ArgumentList | Closure)
+}
+
+ArgumentList {
+  "(" commaSeparated<expression> ")"
+}
+
+List {
+  "[" commaSeparated<expression> "]"
+}
+
+Closure {
+  "\\" "(" ParameterList { commaSeparated<identifier> } "->" expression ")"
+}
+
+@skip {} {
+  Capture {
+    "&" Identifier { identifier } "/" LiteralInteger |
+    "&" Identifier {
+      keywordD | keywordDRemainder |
+      "^" |
+      "*" | "//" | "%" |
+      "+" | "-" |
+      "~" |
+      // "#" | "|>" | // 比较特殊，会改变代码结构，因此不允许被捕获
+      ("<"|">") "="? 
+      "==" | "!="
+    } "/" LiteralInteger
+  }
+}
+
+literal {
+  LiteralInteger |
+  literalBoolean
+}
+
+literalBoolean {
+  literalKeyword<"LiteralBoolean", "true"> | literalKeyword<"LiteralBoolean", "false">
+}
+
+literalKeyword<expr, term> { @specialize[@name={expr}]<identifier, term> }
+operatorKeyword<expr, term> { @specialize[@name={expr}]<identifier, term> }
+
+commaSeparated<item> {
+  "" | (Item { item } ("," Item {item})*)
+}
+
+@tokens {
+
+  BinaryOperator<term> { term }
+  UnaryOperator<term> { term }
+
+  // "(" ")" "\\" ","
+
+  keywordD { "d" }
+  keywordDRemainder { "d%" }
+
+  @precedence{ keywordDRemainder, keywordD }
+
+  identifier {
+    ($[_a-ce-zA-Z] $[_a-zA-Z0-9]*) |
+    ("d" $[_a-zA-Z] $[_a-zA-Z0-9]*)
+  }
+
+  @precedence { identifier, keywordDRemainder, keywordD }
+
+  LiteralInteger {
+    $[0-9] ($[0-9_]* $[0-9])?
+  }
+
+  ws { $[ \t\r\n] }
+}
+
+@skip {
+  ws+
+}
