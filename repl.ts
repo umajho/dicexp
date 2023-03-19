@@ -1,6 +1,5 @@
 import { execute } from "./internal/executing/execute.ts";
 import { RuntimeError } from "./internal/executing/runtime_errors.ts";
-import { parse as oldParse } from "./internal/parsing/parse.ts";
 import { parse } from "./internal/parsing/parser.js";
 
 while (1) {
