@@ -9,6 +9,8 @@ import {
   it,
 } from "https://deno.land/std@0.178.0/testing/bdd.ts";
 
+// import { spawn, Thread, Worker } from "npm:threads";
+
 import {
   assertExecutionOk,
   assertExecutionRuntimeError,
@@ -125,6 +127,21 @@ describe("值", () => {
           const code = `d${upper}`;
           const results = Array(10).fill(null).map((_) => execute(code));
           assert(new Set(results).size > 1);
+        });
+        it("`d2` 不会死循环", /*async*/ () => {
+          throw new Unimplemented("TODO: testing");
+          // const d2 = await spawn(new Worker("./test_workers/d2.ts"));
+          // let stopped = false;
+          // Promise.race([
+          //   new Promise((resolve) => setTimeout(() => resolve(null), 100)),
+          //   new Promise((resolve) => {
+          //     d2().then(() => {
+          //       stopped = true;
+          //       resolve(null);
+          //     });
+          //   }),
+          // ]);
+          // assert(stopped);
         });
       });
 

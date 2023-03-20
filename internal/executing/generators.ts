@@ -10,7 +10,12 @@ export function generateRandomNumber(
   const [lower, upper] = bounds;
 
   const sides = upper - lower + 1;
-  const maxUnbiased = (2 ** 32 / sides | 0) * sides - 1;
+  let maxUnbiased: number;
+  if (sides <= 2) {
+    maxUnbiased = 2 ** 32;
+  } else {
+    maxUnbiased = (2 ** 32 / sides | 0) * sides - 1;
+  }
   let rn = rng.uint32();
   while (rn > maxUnbiased) {
     rn = rng.uint32();

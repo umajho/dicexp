@@ -14,7 +14,9 @@ run-demo: pre-run
   deno run demo.ts
 
 test: pre-run
-  deno test
+  # 由于莫名其妙的原因，Deno 内部出现了各种 “Duplicate identifier” 错误，
+  # checkout (stash push --include-untracked) 到先前也无济于事。
+  deno test --no-check
 
 bench: pre-run
   deno bench
