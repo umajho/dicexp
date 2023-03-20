@@ -45,8 +45,8 @@ BinaryExpression {
   expression !pipe BinaryOperator<"|>"> expression |
   expression !compare BinaryOperator<$[<>] "="?> expression |
   expression !equal BinaryOperator<"==" | "!="> expression |
-  expression !and operatorKeyword<BinaryOperator, "and"> expression |
-  expression !or operatorKeyword<BinaryOperator, "or"> expression
+  expression !and @specialize[@name=BinaryOperator]<identifier, "and"> expression |
+  expression !or @specialize[@name=BinaryOperator]<identifier, "or"> expression
 }
 
 beforeDiceRoll[@dynamicPrecedence=1] {
@@ -65,7 +65,7 @@ binaryOperatorDiceRoll {
 UnaryExpression {
   !diceRollUnary unaryOperatorDiceRoll afterDiceRoll |
 
-  !not operatorKeyword<UnaryOperator, "not"> expression |
+  !not @specialize[@name=UnaryOperator]<identifier, "not"> expression |
   !negate (UnaryOperator<"+" | "-">) expression |
   !rangeRollUnary UnaryOperator<"~"> expression |
   FakeWorkaroundUnaryOperator<
@@ -114,7 +114,7 @@ Closure {
 
 @skip {} {
   Capture {
-    "&" Identifier { identifier } "/" LiteralInteger |
+    "&" Identifier { identifier "?"? } "/" LiteralInteger |
     "&" Identifier {
       keywordD | keywordDRemainder |
       "^" |
@@ -123,7 +123,10 @@ Closure {
       "~" |
       // "#" | "|>" | // 比较特殊，会改变代码结构，因此不允许被捕获
       ("<"|">") "="? 
-      "==" | "!="
+      "==" | "!=" |
+      @specialize[@name=BinaryOperator]<identifier, "and"> |
+      @specialize[@name=BinaryOperator]<identifier, "or"> |
+      @specialize[@name=UnaryOperator]<identifier, "not">
     } "/" LiteralInteger
   }
 }

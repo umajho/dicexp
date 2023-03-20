@@ -3,7 +3,7 @@ import { assert, describe, it } from "vitest";
 import { parse } from "../src/parse";
 import { simpleParse } from "src/parse_simple";
 
-import { Node, regularCall, value } from "@dicexp/nodes";
+import { captured, Node, regularCall, value } from "@dicexp/nodes";
 
 describe("空白", () => {
   describe("空白不影响解析", () => {
@@ -191,5 +191,29 @@ describe("标识符", () => {
         assert.deepEqual(parse(fnCode), regularCall("function", id, []));
       });
     }
+  });
+});
+
+describe("捕获", () => {
+  describe("能捕获同时作为关键词的通常函数", () => {
+    const table = [
+      ["and", 2],
+      ["or", 2],
+      ["not", 1],
+    ];
+    for (const [i, [kw, arity]] of table.entries()) {
+      const code = `&${kw}/${arity}`;
+      it(`case ${i + 1}: ${code}`, () => {
+        assert.deepEqual(parse(code), captured(kw, arity));
+      });
+    }
+  });
+
+  it("能捕获以 `?` 结尾的通常函数", () => {
+    assert.deepEqual(parse("&foo?/1"), captured("foo?", 1));
+  });
+
+  it("不能捕获以 `!` 结尾的特殊函数", () => {
+    assert.throw(() => parse("&foo!/1"));
   });
 });
