@@ -35,19 +35,21 @@ type TextStepPair = [string, Step | null];
 export const ws = "{s}";
 
 export abstract class Step {
-  /**
-   * - Value: 已经 evaluate 到了值
-   * - undefined: 尚未 evaluate
-   * - null: evaluate 返回了错误
-   */
-  #result: undefined | EitherValueOrError;
+  constructor(
+    /**
+     * - Value: 已经 evaluate 到了值
+     * - undefined: 尚未 evaluate
+     * - null: evaluate 返回了错误
+     */
+    private _result?: EitherValueOrError,
+  ) {}
 
   get result(): EitherValueOrError {
-    return this.#evaluateAndMemorize(true);
+    return this._evaluateAndMemorize(true);
   }
   renderResultText(): string | null {
-    if (this.#result === undefined) return "_";
-    const [value, _] = this.#result;
+    if (this._result === undefined) return "_";
+    const [value, _] = this.result;
     if (value === null) return null;
     return renderValue(value);
   }
@@ -85,25 +87,25 @@ export abstract class Step {
   }
 
   protected abstract evaluate(): EitherValueOrError;
-  #evaluateAndMemorize(evaluatesCalling: boolean): EitherValueOrError {
-    if (this.#result === undefined) {
-      this.#result = this.evaluate();
+  private _evaluateAndMemorize(evaluatesCalling: boolean): EitherValueOrError {
+    if (this._result === undefined) {
+      this._result = this.evaluate();
     }
     if (evaluatesCalling) {
       OUT:
       while (true) {
-        const [value, error] = this.#result;
+        const [value, error] = this._result;
         if (error) break;
         switch (getTypeNameOfValue(value)) {
           case "calling": {
             const calling = value as Value_Calling;
-            this.#result = calling.call();
+            this._result = calling.call();
             break;
           }
           case "generating": { // TODO
             const step = (value as Value_Generating).makeStep();
             // FIXME: 步骤丢失
-            this.#result = step.evaluate();
+            this._result = step.evaluate();
             break OUT;
           }
           default:
@@ -111,7 +113,7 @@ export abstract class Step {
         }
       }
     }
-    return this.#result;
+    return this._result;
   }
 
   get number(): EitherValueOrErrorOrMismatch<number> {
@@ -155,7 +157,7 @@ export abstract class Step {
   }
 
   get calling(): EitherValueOrErrorOrMismatch<Value_Calling> {
-    const result = this.#evaluateAndMemorize(false);
+    const result = this._evaluateAndMemorize(false);
     const [value, _] = result;
     if (value === null) return result;
     const valueType = getTypeNameOfValue(value);
@@ -170,18 +172,17 @@ export abstract class Step {
  * 用于包装通常函数的返回值
  */
 export class Step_Plain extends Step {
-  #value: Value;
-
-  constructor(value: Value) {
+  constructor(
+    private _value: Value,
+  ) {
     super();
-    this.#value = value;
   }
 
   getInitialSteps = undefined;
   getIntermediateSteps = undefined;
 
   protected evaluate(): EitherValueOrError {
-    return [this.#value, null];
+    return [this._value, null];
   }
 }
 
@@ -189,29 +190,26 @@ export class Step_Plain extends Step {
 
 type LiteralValue = number | boolean | Value_Closure | Value_Captured;
 export class Step_Literal extends Step {
-  #value: LiteralValue;
-
-  constructor(value: LiteralValue) {
+  constructor(
+    private _value: LiteralValue,
+  ) {
     super();
-    this.#value = value;
   }
 
   getInitialSteps = undefined;
   getIntermediateSteps = undefined;
 
   protected evaluate(): EitherValueOrError {
-    return [this.#value, null];
+    return [this._value, null];
   }
 }
 
 export class Step_Identifier extends Step {
-  identifier: string;
-  #stepOrError: Step | RuntimeError;
-
-  constructor(identifier: string, stepOrError: Step | RuntimeError) {
+  constructor(
+    public identifier: string,
+    private _stepOrError: Step | RuntimeError,
+  ) {
     super();
-    this.identifier = identifier;
-    this.#stepOrError = stepOrError;
   }
 
   getInitialSteps(): TextStepPair[] {
@@ -220,24 +218,23 @@ export class Step_Identifier extends Step {
   getIntermediateSteps = undefined;
 
   protected evaluate(): EitherValueOrError {
-    if (this.#stepOrError instanceof RuntimeError) {
-      return [null, this.#stepOrError];
+    if (this._stepOrError instanceof RuntimeError) {
+      return [null, this._stepOrError];
     }
-    return this.#stepOrError.result;
+    return this._stepOrError.result;
   }
 }
 
 export class Step_LiteralList extends Step {
-  #value: Step[];
-
-  constructor(value: Step[]) {
+  constructor(
+    private _value: Step[],
+  ) {
     super();
-    this.#value = value;
   }
 
   getInitialSteps(): TextStepPair[] {
-    if (!this.#value.length) return [["[]", null]];
-    const body = this.#value
+    if (!this._value.length) return [["[]", null]];
+    const body = this._value
       .map((elem) => [`,${ws}`, elem]) as TextStepPair[];
     body[0][0] = "[";
     body.push(["]", null]);
@@ -246,115 +243,92 @@ export class Step_LiteralList extends Step {
   getIntermediateSteps = undefined;
 
   protected evaluate(): EitherValueOrError {
-    return [this.#value, null];
+    return [this._value, null];
   }
 }
 
 export class Step_RegularCall extends Step {
-  #name: string;
-  #args: Step[];
-  #style: RegularCallStyle;
-
-  #f: Evaluator;
+  private _f: Evaluator;
 
   constructor(
     scope: Scope,
-    name: string,
-    args: Step[],
-    style: RegularCallStyle,
+    private _name: string, // FIXME: 这时就可以确认函数是否存在了，应该 eager
+    private _args: Step[],
+    private _style: RegularCallStyle,
     runtime: FunctionRuntime,
   ) {
     super();
-    this.#name = name; // FIXME: 这时就可以确认函数是否存在了，应该 eager
-    this.#args = args;
-    this.#style = style;
 
-    this.#f = makeRegularCallEvaluator(scope, this.#name, undefined, runtime);
+    this._f = makeRegularCallEvaluator(scope, this._name, undefined, runtime);
   }
 
   getInitialSteps(): TextStepPair[] {
-    return getCallingInitialSteps(this.#name, this.#args, this.#style);
+    return getCallingInitialSteps(this._name, this._args, this._style);
   }
   getIntermediateSteps = undefined;
 
   protected evaluate(): EitherValueOrError {
     const replacingCb = (step: Step) => this.replacedBy = step;
     return [
-      new Value_Calling(this.#f, undefined, this.#args, replacingCb),
+      new Value_Calling(this._f, undefined, this._args, replacingCb),
       null,
     ];
   }
 }
 
 export class Step_ValueCall extends Step {
-  #callee: Step;
-  #calleeName: string | undefined = undefined;
-  #args: Step[];
+  private _calleeName: string | undefined = undefined;
 
   constructor(
-    callee: Step,
-    args: Step[],
+    private _callee: Step,
+    private _args: Step[],
   ) {
     super();
-    this.#callee = callee;
-    this.#args = args;
   }
 
   getInitialSteps(): TextStepPair[] {
-    const calleeName = this.#calleeName ?? "_";
-    return getCallingInitialSteps(calleeName, this.#args, "value");
+    const calleeName = this._calleeName ?? "_";
+    return getCallingInitialSteps(calleeName, this._args, "value");
   }
   getIntermediateSteps = undefined;
 
   protected evaluate(): EitherValueOrError {
-    const [value, err] = this.#callee.result;
+    const [value, err] = this._callee.result;
     if (err) return [value, err];
 
     if (!(value instanceof Value_Callable)) {
       return [null, new RuntimeError_NotCallable(renderValue(value))];
     }
-    this.#calleeName = value.name;
+    this._calleeName = value.name;
 
-    return [value.makeCalling(this.#args), null];
+    return [value.makeCalling(this._args), null];
   }
 }
 
-export class Step_CreateGenerator extends Step {
-  protected evaluate(): EitherValueOrError {
-    throw new Unreachable();
-  }
+// export class Step_CreateGenerator extends Step {
+//   protected evaluate(): EitherValueOrError {
+//     throw new Unreachable();
+//   }
 
-  getInitialSteps(): TextStepPair[] {
-    throw new Unimplemented();
-  }
-  getIntermediateSteps = undefined;
-}
+//   getInitialSteps(): TextStepPair[] {
+//     throw new Unimplemented();
+//   }
+//   getIntermediateSteps = undefined;
+// }
 
 export type GeneratorCallback =
   | { kind: "simple_number"; fn: () => number }
   | { kind: "step"; fn: () => EitherStepOrError };
 
 export class Step_Generate extends Step {
-  readonly outputForm: "sum" | "sequence";
-  readonly elementCount: number;
-  readonly elementType: "integer";
-  readonly #elementGenerator: GeneratorCallback;
-  readonly elementRange: [number, number] | null;
-
   constructor(
-    form: Value_Generating["outputForm"],
-    count: number,
-    type: Value_Generating["elementType"],
-    generator: GeneratorCallback,
-    range: [number, number] | null,
+    public readonly outputForm: Value_Generating["outputForm"],
+    public readonly elementCount: number,
+    public readonly elementType: Value_Generating["elementType"],
+    private _elementGenerator: GeneratorCallback,
+    public readonly elementRange: [number, number] | null,
   ) {
     super();
-
-    this.outputForm = form;
-    this.elementCount = count;
-    this.elementType = type;
-    this.#elementGenerator = generator;
-    this.elementRange = range;
   }
 
   getInitialSteps(): TextStepPair[] {
@@ -386,10 +360,10 @@ export class Step_Generate extends Step {
   }
 
   generateNumberElement(): [number, null] | [null, RuntimeError] {
-    if (this.#elementGenerator.kind === "simple_number") {
-      return [this.#elementGenerator.fn(), null];
+    if (this._elementGenerator.kind === "simple_number") {
+      return [this._elementGenerator.fn(), null];
     }
-    const [step, errStep] = this.#elementGenerator.fn();
+    const [step, errStep] = this._elementGenerator.fn();
     if (errStep) return [null, errStep];
     const [value, errValue] = step.number;
     if (errValue instanceof RuntimeError) return [null, errValue];
@@ -405,26 +379,25 @@ export class Step_Generate extends Step {
  * 确保如果 result 没有错误，其中的 step 都已执行（不会返回错误）。
  */
 export class Step_Final extends Step {
-  #input: Step;
-
-  constructor(input: Step) {
+  constructor(
+    private _input: Step,
+  ) {
     super();
-    this.#input = input;
   }
 
   getInitialSteps(): TextStepPair[] {
-    return [["", this.#input]];
+    return [["", this._input]];
   }
   getIntermediateSteps = undefined;
 
   protected evaluate(): EitherValueOrError {
-    return this.#evaluate(this.#input);
+    return this._evaluate(this._input);
   }
 
-  #evaluate(step: Step): EitherValueOrError {
+  private _evaluate(step: Step): EitherValueOrError {
     const [value, err] = step.result;
     if (err) return [null, err];
-    if (Array.isArray(value)) return this.#evaluateList(value);
+    if (Array.isArray(value)) return this._evaluateList(value);
     if (value instanceof Value_Closure || value instanceof Value_Captured) {
       return [null, new RuntimeError_BadFinalResult(getTypeNameOfValue(value))];
     }
@@ -432,14 +405,14 @@ export class Step_Final extends Step {
     return [value, null];
   }
 
-  #evaluateList(list: Step[]): EitherValueOrError {
+  private _evaluateList(list: Step[]): EitherValueOrError {
     for (const elem of list) {
       let _: Value | null;
       let err: null | RuntimeError;
       if (Array.isArray(elem)) {
-        [_, err] = this.#evaluateList(elem);
+        [_, err] = this._evaluateList(elem);
       } else {
-        [_, err] = this.#evaluate(elem);
+        [_, err] = this._evaluate(elem);
       }
       if (err) return [null, err];
     }
