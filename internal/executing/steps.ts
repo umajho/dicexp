@@ -44,6 +44,16 @@ export abstract class Step {
     private _result?: EitherValueOrError,
   ) {}
 
+  protected cloneBase(): Step {
+    const clone = Object.assign(
+      Object.create(Object.getPrototypeOf(this)),
+      this,
+    );
+    clone._result = undefined;
+    return clone;
+  }
+  abstract clone(): Step;
+
   get result(): EitherValueOrError {
     return this._evaluateAndMemorize(true);
   }
@@ -178,6 +188,10 @@ export class Step_Plain extends Step {
     super();
   }
 
+  clone(): Step {
+    return this.cloneBase();
+  }
+
   getInitialSteps = undefined;
   getIntermediateSteps = undefined;
 
@@ -196,6 +210,10 @@ export class Step_Literal extends Step {
     super();
   }
 
+  clone(): Step {
+    return this.cloneBase();
+  }
+
   getInitialSteps = undefined;
   getIntermediateSteps = undefined;
 
@@ -210,6 +228,10 @@ export class Step_Identifier extends Step {
     private _stepOrError: Step | RuntimeError,
   ) {
     super();
+  }
+
+  clone(): Step {
+    return this.cloneBase();
   }
 
   getInitialSteps(): TextStepPair[] {
@@ -230,6 +252,12 @@ export class Step_LiteralList extends Step {
     private _value: Step[],
   ) {
     super();
+  }
+
+  clone(): Step {
+    const base = this.cloneBase() as Step_LiteralList;
+    base._value = base._value.map((el) => el.clone());
+    return base;
   }
 
   getInitialSteps(): TextStepPair[] {
@@ -262,6 +290,12 @@ export class Step_RegularCall extends Step {
     this._f = makeRegularCallEvaluator(scope, this._name, undefined, runtime);
   }
 
+  clone(): Step {
+    const base = this.cloneBase() as Step_RegularCall;
+    base._args = base._args.map((el) => el.clone());
+    return base;
+  }
+
   getInitialSteps(): TextStepPair[] {
     return getCallingInitialSteps(this._name, this._args, this._style);
   }
@@ -284,6 +318,13 @@ export class Step_ValueCall extends Step {
     private _args: Step[],
   ) {
     super();
+  }
+
+  clone(): Step {
+    const base = this.cloneBase() as Step_ValueCall;
+    base._callee = base._callee.clone();
+    base._args = base._args.map((el) => el.clone());
+    return base;
   }
 
   getInitialSteps(): TextStepPair[] {
@@ -329,6 +370,10 @@ export class Step_Generate extends Step {
     public readonly elementRange: [number, number] | null,
   ) {
     super();
+  }
+
+  clone(): Step {
+    return this.cloneBase();
   }
 
   getInitialSteps(): TextStepPair[] {
@@ -383,6 +428,12 @@ export class Step_Final extends Step {
     private _input: Step,
   ) {
     super();
+  }
+
+  clone(): Step {
+    const base = this.cloneBase() as Step_Final;
+    base._input = base._input.clone();
+    return base;
   }
 
   getInitialSteps(): TextStepPair[] {

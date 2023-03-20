@@ -87,6 +87,23 @@ export const builtinScope: Scope = {
   },
 
   // #/2
+  "#/2": (_args, _rtm) => {
+    const [_count, errCount] = unwrapValue("number", _args[0]);
+    if (errCount) return [null, errCount];
+    const count = _count as number;
+
+    // TODO: 如果右侧是 Step_Generate，则仍返回 Step_Generate
+    const seq: Step[] = Array(count);
+    const template: Step = _args[1];
+    for (let i = 0; i < count; i++) {
+      const [itemValue, errItemValue] = unwrapValue("*", template.clone());
+      // TODO: 包装 error
+      if (errItemValue) [null, errItemValue];
+      seq[i] = new Step_Plain(itemValue!);
+    }
+
+    return [new Step_Plain(seq), null];
+  },
 
   "~/2": makeFunction(["number", "number"], (args, rtm) => {
     const bounds = args.sort() as [number, number];
@@ -238,6 +255,12 @@ export const builtinScope: Scope = {
   // 实用：
   // abs/1
   // count/1
+  "count/2": makeFunction(["list", "callable"], (args, _rtm) => { // FIXME: 步骤丢失
+    const [list, callable] = args as [Step[], Value_Callable];
+    const [result, err] = filter(list, callable);
+    if (err) return [null, err];
+    return [result.length, null];
+  }),
   // has?/2
   "sum/1": makeFunction(["list"], ([list_], _rtm) => {
     const [flatten_, err] = flattenListAll("number", list_ as Step[]);
@@ -252,7 +275,11 @@ export const builtinScope: Scope = {
   // min/1
   // max/1
   // all?/1
-  // any?/1
+  "any?/1": makeFunction(["list"], ([list_], _rtm) => {
+    const [unwrappedList, err] = unwrapListOneOf(["boolean"], list_ as Step[]);
+    if (err) return [null, err];
+    return [unwrappedList.some((x) => x), null];
+  }),
   "sort/1": makeFunction(["list"], ([list_], _rtm) => {
     const allowedTypes = ["number", "boolean"] as ValueTypeName[];
     const [unwrappedList, err] = unwrapListOneOf(allowedTypes, list_ as Step[]);
@@ -291,24 +318,8 @@ export const builtinScope: Scope = {
   // flatMap/2
   "filter/2": makeFunction(["list", "callable"], (args, _rtm) => { // FIXME: 步骤丢失
     const [list, callable] = args as [Step[], Value_Callable];
-
-    const result: Step[] = [];
-    for (const el of list) {
-      const step = new Step_Plain(callable.makeCalling([el]));
-      const [value, err] = step.result;
-      if (err) return [null, err];
-      if (typeof value !== "boolean") {
-        const err = error_givenClosureReturnValueTypeMismatch(
-          "filter/2",
-          "boolean",
-          getTypeNameOfValue(value),
-          2,
-        );
-        return [null, err];
-      }
-      if (!value) continue;
-      result.push(el);
-    }
+    const [result, err] = filter(list, callable);
+    if (err) return [null, err];
     return [result, null];
   }),
   // foldl/3
@@ -605,4 +616,28 @@ function error_givenClosureReturnValueTypeMismatch(
     `作为第 ${position} 个参数传入通常函数 ${name} 的返回值类型与期待不符：` +
       `期待「${expectedTypeText}」，实际「${actualTypeText}」。`,
   );
+}
+
+function filter(
+  list: Step[],
+  callable: Value_Callable,
+): [Step[], null] | [null, RuntimeError] {
+  const result: Step[] = [];
+  for (const el of list) {
+    const step = new Step_Plain(callable.makeCalling([el]));
+    const [value, err] = step.result;
+    if (err) return [null, err];
+    if (typeof value !== "boolean") {
+      const err = error_givenClosureReturnValueTypeMismatch(
+        "filter/2",
+        "boolean",
+        getTypeNameOfValue(value),
+        2,
+      );
+      return [null, err];
+    }
+    if (!value) continue;
+    result.push(el);
+  }
+  return [result, null];
 }

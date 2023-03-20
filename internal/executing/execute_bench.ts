@@ -9,6 +9,8 @@ const codesSimple = [
   String.raw`sum([1, 2, 3])`,
   String.raw`\(a, b -> a + b).(1, 2)`,
 
+  String.raw`100#any?(3#(d100<=5)) |> count \(x -> not x)`,
+
   // 模拟 if-else（现在已经不需要了），速度竟然差不多
   String.raw`append(filter([10], \(_ -> false)), 100) |> head`,
   String.raw`if!(false, 10, 100)`,

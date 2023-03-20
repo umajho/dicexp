@@ -460,12 +460,24 @@ describe("运算符", () => {
     });
 
     describe("#/1", () => {
-      it("将右侧内容在 eval 前重复左侧次", () => {
-        assertExecutionOk("3#10", Array(3).fill(10));
+      describe("将右侧内容在 eval 前重复左侧次", () => {
+        it("重复字面量", () => {
+          assertExecutionOk("3#10", Array(3).fill(10));
+        });
 
-        // NOTE: 有 1/10^30 的概率真的相同，忽略不计
-        const result = assertNumberArray(execute("10#d1000"));
-        assert((new Set(result)).size > 1, `${result}`);
+        describe("重复结果会有不同的表达式", () => {
+          const table = [ // NOTE: 以下这些有 1/10^30 的概率真的相同，忽略不计
+            "10#d1000",
+            "10#(d1000 - 1)",
+          ];
+
+          for (const [i, code] of table.entries()) {
+            it(`case ${i + 1}: ${code}`, () => {
+              const result = assertNumberArray(execute(code));
+              assert((new Set(result)).size > 1, `${result}`);
+            });
+          }
+        });
       });
     });
 
