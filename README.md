@@ -1,8 +1,8 @@
-# dicexp-deno
+# dicexp
 
 > In memory of ADNMB.
 
-使用 deno 编写的 <ruby>Dicexp<rt>骰子表达式</rt><ruby>&#160;执行器。
+<ruby>Dicexp<rt>骰子表达式</rt><ruby>&#160;。
 
 WIP / DO NOT USE.
 
@@ -13,7 +13,8 @@ WIP / DO NOT USE.
 ## 预备工作
 
 - 安装 [just](https://just.systems)，用于执行命令。
-- 安装 [Deno](https://deno.land)，用于其他一切。
+- 安装 [Deno](https://deno.land)，用于执行脚本。
+- 安装 [Node.js](https://nodejs.org)、[pnpm](https://pnpm.io)，用于此外的事情。
 
 ## REPL
 

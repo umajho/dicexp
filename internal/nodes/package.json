@@ -1,0 +1,15 @@
+{
+  "name": "@dicexp/nodes",
+  "version": "0.0.0",
+  "main": "dist/lib.js",
+  "types": "lib.d.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.0.0",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.2"
+  }
+}

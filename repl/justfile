@@ -1,0 +1,8 @@
+pre-run:
+	just -f ../justfile dicexp build
+
+run: pre-run
+	node main.js
+
+run-no-build:
+	node main.js

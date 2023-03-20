@@ -1,0 +1,5 @@
+pre-run:
+	just -f ../../justfile executing build
+
+build: pre-run
+	rollup -c

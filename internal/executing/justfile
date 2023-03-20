@@ -1,0 +1,11 @@
+pre-run:
+	just -f ../../justfile parsing build
+
+build: pre-run
+	rollup -c
+
+test: pre-run
+	pnpm exec vitest --dir=test --run
+
+bench: pre-run
+	pnpm exec vitest bench --dir=test --run

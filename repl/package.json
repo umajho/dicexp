@@ -1,0 +1,13 @@
+{
+  "version": "0.0.0",
+  "main": "main.js",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "browser-util-inspect": "^0.2.0",
+    "dicexp": "workspace:*",
+    "prompt-sync": "^4.2.0"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "tslib": [ // https://stackoverflow.com/a/62732422
+        "./node_modules/tslib/tslib.d.ts"
+      ]
+    },
+    "lib": [
+      "ES2022"
+    ],
+    "target": "ESNext",
+    "moduleResolution": "node",
+    "declaration": true,
+    "outDir": "./dist"
+  },
+  "exclude": [
+    "./scripts",
+    "dist"
+  ],
+}

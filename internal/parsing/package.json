@@ -1,0 +1,22 @@
+{
+  "name": "@dicexp/parsing",
+  "version": "0.0.0",
+  "main": "dist/lib.js",
+  "types": "dist/lib.d.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@lezer/common": "^1.0.2",
+    "@lezer/lr": "^1.3.3",
+    "@dicexp/nodes": "workspace:*"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.0.0",
+    "rollup": "^3.20.0",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.2",
+    "vitest": "^0.29.3"
+  }
+}

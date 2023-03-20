@@ -1,0 +1,22 @@
+{
+  "name": "dicexp",
+  "version": "0.0.0",
+  "description": "A Dicexp evaluator.",
+  "main": "dist/lib.js",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@dicexp/executing": "workspace:*",
+    "@dicexp/parsing": "workspace:*"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-terser": "^0.4.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.2"
+  }
+}

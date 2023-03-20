@@ -4,7 +4,7 @@
 
 Dicexp 的语言风格在许多方面参考了 [Elixir](https://elixir-lang.org)。
 
-_尚未在 `dicexp-deno` 中实现的功能将使用斜体标示。_
+_尚未在 `dicexp` 的执行器中实现的功能将使用斜体标示。_
 
 ## 快速上手
 

@@ -1,29 +1,20 @@
-pre-run: compile-grammar
+pre-run:
+	just executing pre-run
 
-# https://github.com/casey/just/issues/237#issuecomment-1316617868
-priv *args:
-  just -f justfile_priv {{args}}
+nodes *args:
+	just -f internal/nodes/justfile {{args}}
 
-compile-grammar:
-  ./scripts/compile-lezer.ts internal/parsing/dicexp.grammar
+parsing *args:
+	just -f internal/parsing/justfile {{args}}
 
-deno *args: pre-run
-  deno {{args}}
+executing *args:
+	just -f internal/executing/justfile {{args}}
 
-run-demo: pre-run
-  deno run demo.ts
+dicexp *args:
+	just -f packages/dicexp/justfile {{args}}
 
-test: pre-run
-  # 由于莫名其妙的原因，Deno 内部出现了各种 “Duplicate identifier” 错误，
-  # checkout (stash push --include-untracked) 到先前也无济于事。
-  deno test --no-check
+repl:
+	just -f repl/justfile run
 
-bench: pre-run
-  deno bench
-
-repl: pre-run
-  deno run repl.ts
-
-bundle-browser: pre-run
-  mkdir -p dist
-  ./scripts/bundle.ts mod.ts > dist/browser.min.js
+repl-no-build:
+	just -f repl/justfile run-no-build

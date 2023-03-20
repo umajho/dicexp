@@ -1,6 +1,4 @@
 node_modules
-/dist
+dist
 
-/_
 /justfile_priv
-/demo.ts
