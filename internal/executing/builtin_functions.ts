@@ -282,9 +282,11 @@ export const builtinScope: Scope = {
   }),
   "sort/1": makeFunction(["list"], ([list_], _rtm) => {
     const allowedTypes = ["number", "boolean"] as ValueTypeName[];
-    const [unwrappedList, err] = unwrapListOneOf(allowedTypes, list_ as Step[]);
+    const [list__, err] = unwrapListOneOf(allowedTypes, list_ as Step[]);
     if (err) return [null, err];
-    return [unwrappedList.sort().map((el) => new Step_Plain(el)), null];
+    const list = list__ as number[] | boolean[];
+    const sortedList = (list).sort((a, b) => +a - +b);
+    return [sortedList.map((el) => new Step_Plain(el)), null];
   }),
   // sort/2
   // reverse/1
