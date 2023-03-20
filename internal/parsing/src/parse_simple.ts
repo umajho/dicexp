@@ -25,7 +25,10 @@ function simpleParse_range(side: string): Node | false {
 function simpleParse_adds_subs(side: string): Node | false {
   let node: Node | null = null;
 
-  for (const [_, op, die] of side.matchAll(/([-+]?)([^-+]+)/g)) {
+  let recognized = 0;
+  for (const [full, op, die] of side.matchAll(/([-+]?)([^-+]+)/g)) {
+    recognized += full.length;
+
     const cur = simpleParseOperatorExp(die, "d", parseInteger, true);
     if (!cur) return false;
 
@@ -40,7 +43,7 @@ function simpleParse_adds_subs(side: string): Node | false {
       node = regularCall("operator", op, [node, cur]);
     }
   }
-  if (!node) return false;
+  if (recognized != side.length || !node) return false;
   return node;
 }
 
