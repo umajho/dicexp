@@ -141,7 +141,6 @@ literalBoolean {
 }
 
 literalKeyword<expr, term> { @specialize[@name={expr}]<identifier, term> }
-operatorKeyword<expr, term> { @specialize[@name={expr}]<identifier, term> }
 
 commaSeparated<item> {
   "" | (Item { item } ("," Item {item})*)
