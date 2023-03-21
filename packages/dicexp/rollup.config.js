@@ -11,7 +11,13 @@ export default [
       format: "esm",
     },
     plugins: [typescript()],
-    external: ["@dicexp/parsing", "@dicexp/executing"],
+    external: [
+      "@dicexp/parsing",
+      "@dicexp/executing",
+      "@lezer/lr",
+      "string.prototype.matchall",
+      "esm-seedrandom",
+    ],
   },
   {
     input: "./lib.ts",
