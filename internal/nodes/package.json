@@ -7,6 +7,7 @@
   "author": "Umaĵo",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.0.0",
     "tslib": "^2.5.0",

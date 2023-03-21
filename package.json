@@ -1,8 +1,6 @@
 {
   "version": "0.0.0",
-  "main": "dist/lib.js",
   "keywords": [],
   "author": "Umaĵo",
-  "license": "MIT",
-  "type": "module"
+  "license": "MIT"
 }

@@ -5,6 +5,7 @@
   "author": "Umaĵo",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "dependencies": {
     "browser-util-inspect": "^0.2.0",
     "dicexp": "workspace:*",
