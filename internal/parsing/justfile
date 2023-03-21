@@ -1,7 +1,5 @@
-pre-run: compile-grammar
-
-compile-grammar:
-	./scripts/compile-lezer.ts ./src/grammars/dicexp.grammar
+pre-run:
+	just -f ../../justfile lezer build # 语法
 
 build: pre-run
 

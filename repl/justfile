@@ -1,5 +1,5 @@
 pre-run:
-	just -f ../justfile parsing build # 语法
+	just -f ../justfile lezer build # 语法
 
 run: pre-run
 	rollup -c

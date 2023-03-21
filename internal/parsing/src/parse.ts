@@ -1,7 +1,7 @@
 import { Node } from "@dicexp/nodes";
 import { convertTextToHalfWidth } from "./utils";
 
-import { parser as lezerParser } from "./grammars/dicexp.grammar.js";
+import { parser as lezerParser } from "@dicexp/lezer";
 import { Transformer } from "./transformer";
 import { simpleParse } from "./parse_simple";
 

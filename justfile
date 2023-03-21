@@ -3,6 +3,9 @@ pre-run:
 nodes *args:
 	just -f internal/nodes/justfile {{args}}
 
+lezer *args:
+	just -f internal/lezer/justfile {{args}}
+
 parsing *args:
 	just -f internal/parsing/justfile {{args}}
 
