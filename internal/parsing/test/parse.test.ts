@@ -68,7 +68,7 @@ describe("掷骰的操作数", () => {
       it(`case ${i + 1}a: ${code} => ok`, () => {
         parse(code);
       });
-      const codeWithoutParens = code.replaceAll(/[()]/g, "");
+      const codeWithoutParens = code.replace(/[()]/g, "");
       it(`case ${i + 1}b: ${codeWithoutParens} => error`, () => {
         assert.throw(() => parse(codeWithoutParens));
       });
@@ -119,7 +119,7 @@ describe("优先级", () => {
     "(1 and 2) or (3 and 4)",
   ];
   for (const [i, withParens] of table.entries()) {
-    const withoutParens = withParens.replaceAll(/[()]/g, "");
+    const withoutParens = withParens.replace(/[()]/g, "");
     it(`case ${i + 1}: \`${withoutParens}\` == \`${withParens}\``, () => {
       assert.deepEqual(parse(withoutParens), parse(withParens));
     });

@@ -58,7 +58,7 @@ export class Value_Closure extends Value_Callable {
       const deeperScope: Scope = Object.setPrototypeOf({}, scope);
       for (const [i, ident] of parameterIdentifiers.entries()) {
         if (ident === "_") continue;
-        if (Object.hasOwn(deeperScope, ident)) {
+        if (Object.prototype.hasOwnProperty.call(deeperScope, ident)) {
           return [null, new RuntimeError_DuplicateClosureParameterNames(ident)];
         }
         deeperScope[ident] = args[i];

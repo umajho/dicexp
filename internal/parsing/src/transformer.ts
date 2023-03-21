@@ -8,7 +8,7 @@ import {
   regularCall,
   valueCall,
 } from "@dicexp/nodes";
-import { negateInteger, parseBoolean, parseInteger } from "./parse";
+import { negateInteger, parseBoolean, parseInteger } from "./utils";
 
 export class ParsingError extends Error {
 }

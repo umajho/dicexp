@@ -1,5 +1,5 @@
+import { ExpectedValueTypeName } from "./builtin_function_helpers";
 import { Unreachable } from "./errors";
-import { ExpectedValueTypeName, getTypeDisplayName } from "./builtin_functions";
 import { ValueTypeName } from "./values";
 
 export class RuntimeError extends Error {}
@@ -166,5 +166,26 @@ export class RuntimeError_BadFinalResult extends RuntimeError {
 
   get message() {
     return `「${getTypeDisplayName(this.typeName)}」不能作为最终结果`;
+  }
+}
+
+export function getTypeDisplayName(name: ExpectedValueTypeName) {
+  switch (name) {
+    case "number":
+      return "整数";
+    case "boolean":
+      return "布尔";
+    case "list":
+      return "列表";
+    case "closure":
+      return "匿名函数";
+    case "captured":
+      return "被捕获的通常函数";
+    case "calling":
+      return "【内部实现泄漏】调用中";
+    case "callable":
+      return "【内部实现泄漏】可调用的";
+    default:
+      return `【内部实现泄漏】未知（${name}）`;
   }
 }

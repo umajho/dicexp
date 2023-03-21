@@ -1,5 +1,5 @@
 import { Node, regularCall } from "@dicexp/nodes";
-import { parseInteger } from "./parse";
+import { parseInteger } from "./utils";
 
 /**
  * 快速处理形如 `d10 ~ 3d8+10` 这样最基本的表达式。
@@ -8,7 +8,7 @@ import { parseInteger } from "./parse";
  */
 export function simpleParse(code: string): Node | false {
   if (!/^([-+#~d\s]|\d[_\d]*)+$/.test(code)) return false;
-  code = code.replaceAll(/[\s_]+/g, "");
+  code = code.replace(/[\s_]+/g, "");
   if (/[-+]{2}/.test(code)) return false;
 
   return simpleParse_repeat(code);

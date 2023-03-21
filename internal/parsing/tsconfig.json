@@ -7,9 +7,9 @@
       ]
     },
     "lib": [
-      "ES2022"
+      "ES2015"
     ],
-    "target": "ESNext",
+    "target": "ES2015",
     "moduleResolution": "node",
     "declaration": true,
     "outDir": "./dist"
