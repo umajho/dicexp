@@ -196,7 +196,7 @@ describe("标识符", () => {
 
 describe("捕获", () => {
   describe("能捕获同时作为关键词的通常函数", () => {
-    const table = [
+    const table: [string, number][] = [
       ["and", 2],
       ["or", 2],
       ["not", 1],
