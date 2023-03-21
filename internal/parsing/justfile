@@ -1,11 +1,9 @@
 pre-run: compile-grammar
-	just -f ../../justfile nodes build
 
 compile-grammar:
 	./scripts/compile-lezer.ts ./src/grammars/dicexp.grammar
 
 build: pre-run
-	rollup -c
 
 test: pre-run
 	pnpm exec vitest --dir=test --run

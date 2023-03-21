@@ -40,7 +40,7 @@ export class Value_Closure extends Value_Callable {
 
   readonly arity;
 
-  #f: Evaluator;
+  private _f: Evaluator;
 
   constructor(
     scope: Scope,
@@ -51,7 +51,7 @@ export class Value_Closure extends Value_Callable {
     super();
     this.arity = parameterIdentifiers.length;
 
-    this.#f = (args) => {
+    this._f = (args) => {
       // 在 Value_Calling.call 中已经检查过了
       if (args.length !== this.arity) throw new Unreachable();
 
@@ -70,7 +70,7 @@ export class Value_Closure extends Value_Callable {
 
   makeCalling(args: Step[]): Value_Calling {
     return new Value_Calling(
-      this.#f,
+      this._f,
       this.arity,
       args,
     );
@@ -85,7 +85,7 @@ export class Value_Captured extends Value_Callable {
     return `&${this.identifier}/${this.arity}`;
   }
 
-  #f: Evaluator;
+  private _f: Evaluator;
 
   constructor(
     scope: Scope,
@@ -97,12 +97,12 @@ export class Value_Captured extends Value_Callable {
     this.identifier = identifier;
     this.arity = arity;
 
-    this.#f = makeRegularCallEvaluator(scope, identifier, arity, runtime);
+    this._f = makeRegularCallEvaluator(scope, identifier, arity, runtime);
   }
 
   makeCalling(args: Step[]): Value_Calling {
     return new Value_Calling(
-      this.#f,
+      this._f,
       this.arity,
       args,
     );
@@ -110,12 +110,12 @@ export class Value_Captured extends Value_Callable {
 }
 
 export class Value_Calling {
-  #f: Evaluator;
+  private _f: Evaluator;
 
   readonly expectedParameters?: number;
   args: Step[];
 
-  #replaceStep: ((step: Step) => void) | null;
+  private _replaceStep: ((step: Step) => void) | null;
 
   constructor(
     f: Evaluator,
@@ -123,15 +123,15 @@ export class Value_Calling {
     args: Step[],
     replaceStep: ((step: Step) => void) | null = null,
   ) {
-    this.#f = f;
+    this._f = f;
     this.expectedParameters = expectedParameters;
     this.args = args;
-    this.#replaceStep = replaceStep;
+    this._replaceStep = replaceStep;
   }
 
   withArgs(args: Step[]) {
     return new Value_Calling(
-      this.#f,
+      this._f,
       this.expectedParameters,
       args,
     );
@@ -149,13 +149,13 @@ export class Value_Calling {
       return [null, err];
     }
 
-    const result = this.#f(this.args);
+    const result = this._f(this.args);
     let step: Step | null, err: RuntimeError | null;
     if (Array.isArray(result)) {
       [step, err] = result;
     } else { // 只有通常函数才可能
       [step, err] = result.result;
-      this.#replaceStep!(result.replacingStep);
+      this._replaceStep!(result.replacingStep);
     }
 
     if (err) return [null, err];
@@ -167,7 +167,7 @@ export class Value_Generating {
   readonly outputForm: "sum" | "sequence";
   readonly elementCount: number;
   readonly elementType: "integer";
-  readonly #elementGenerator: GeneratorCallback;
+  private readonly _elementGenerator: GeneratorCallback;
   readonly elementRange: [number, number] | null;
 
   constructor(
@@ -180,7 +180,7 @@ export class Value_Generating {
     this.outputForm = form;
     this.elementCount = count;
     this.elementType = type;
-    this.#elementGenerator = generator;
+    this._elementGenerator = generator;
     this.elementRange = range;
   }
 
@@ -189,7 +189,7 @@ export class Value_Generating {
       this.outputForm,
       this.elementCount,
       this.elementType,
-      this.#elementGenerator,
+      this._elementGenerator,
       this.elementRange,
     );
   }

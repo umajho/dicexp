@@ -36,23 +36,23 @@ export type JSValue = number | boolean | JSValue[];
 export type EitherJSValueOrError = [JSValue, null] | [null, RuntimeError];
 
 export class Runtime {
-  readonly #root: Node;
+  private readonly _root: Node;
 
-  #finalStep: Step | null = null;
+  private _finalStep: Step | null = null;
   get executed() {
-    return this.#finalStep !== null;
+    return this._finalStep !== null;
   }
 
-  #rng: RandomGenerator;
+  private _rng: RandomGenerator;
 
-  #functionRuntime: FunctionRuntime;
+  private _functionRuntime: FunctionRuntime;
 
   constructor(root: Node, opts: RuntimeOptions) {
-    this.#root = root;
-    this.#rng = opts.rng;
-    this.#functionRuntime = {
-      evaluate: (scope, node) => this.#eval(scope, node),
-      random: this.#rng,
+    this._root = root;
+    this._rng = opts.rng;
+    this._functionRuntime = {
+      evaluate: (scope, node) => this._eval(scope, node),
+      random: this._rng,
     };
   }
 
@@ -68,18 +68,18 @@ export class Runtime {
       case "boolean":
         return value;
       default:
-        if (Array.isArray(value)) return this.#translateList(value);
+        if (Array.isArray(value)) return this._translateList(value);
         // 经过 Step_Final，Closure 和 Captured 不会出现；
         // Calling 也不应该出现在这里
         throw new Unreachable();
     }
   }
 
-  #translateList(list: Step[]): JSValue {
+  private _translateList(list: Step[]): JSValue {
     const resultList: JSValue = Array(list.length);
     for (const [i, elem] of list.entries()) {
       if (Array.isArray(elem)) {
-        resultList[i] = this.#translateList(elem);
+        resultList[i] = this._translateList(elem);
       } else {
         const [value, err] = elem.result;
         if (err) throw new Unreachable();
@@ -93,13 +93,13 @@ export class Runtime {
     if (this.executed) {
       throw new Unimplemented();
     }
-    this.#finalStep = new Step_Final(this.#eval(builtinScope, this.#root));
-    return this.#finalStep.result;
+    this._finalStep = new Step_Final(this._eval(builtinScope, this._root));
+    return this._finalStep.result;
   }
 
-  #eval(scope: Scope, node: Node): Step {
+  private _eval(scope: Scope, node: Node): Step {
     if (typeof node === "string") {
-      return this.#evalIdentifier(scope, node);
+      return this._evalIdentifier(scope, node);
     }
     switch (node.kind) {
       case "value": {
@@ -108,26 +108,26 @@ export class Runtime {
         }
         switch (node.value.valueKind) {
           case "list": {
-            return this.#evalList(scope, node.value);
+            return this._evalList(scope, node.value);
           }
           case "closure":
-            return this.#evalClosure(scope, node.value);
+            return this._evalClosure(scope, node.value);
           default:
             throw new Unreachable();
         }
       }
       case "regular_call":
-        return this.#evaluateRegularCall(scope, node);
+        return this._evaluateRegularCall(scope, node);
       case "value_call":
-        return this.#evaluateValueCall(scope, node);
+        return this._evaluateValueCall(scope, node);
       case "captured":
-        return this.#evalCaptured(scope, node);
+        return this._evalCaptured(scope, node);
       default:
         throw new Unreachable();
     }
   }
 
-  #evalIdentifier(scope: Scope, ident: string): Step_Identifier {
+  private _evalIdentifier(scope: Scope, ident: string): Step_Identifier {
     // FIXME: 为什么 `_` 有可能在 scope 里（虽然是 `undefined`）？
     if (ident in scope && scope[ident] !== undefined) {
       const stepInScope = scope[ident];
@@ -141,46 +141,49 @@ export class Runtime {
     }
   }
 
-  #evalList(scope: Scope, list: NodeValue_List): Step_LiteralList {
-    return new Step_LiteralList(list.member.map((x) => this.#eval(scope, x)));
+  private _evalList(scope: Scope, list: NodeValue_List): Step_LiteralList {
+    return new Step_LiteralList(list.member.map((x) => this._eval(scope, x)));
   }
 
-  #evalClosure(scope: Scope, closure: NodeValue_Closure): Step_Literal {
+  private _evalClosure(scope: Scope, closure: NodeValue_Closure): Step_Literal {
     const closureValue = new Value_Closure(
       scope,
       closure.parameterIdentifiers,
       closure.body,
-      this.#functionRuntime,
+      this._functionRuntime,
     );
     return new Step_Literal(closureValue);
   }
 
-  #evaluateRegularCall(
+  private _evaluateRegularCall(
     scope: Scope,
     regularCall: Node_RegularCall,
   ): Step_RegularCall {
-    const args = regularCall.args.map((arg) => this.#eval(scope, arg));
+    const args = regularCall.args.map((arg) => this._eval(scope, arg));
     return new Step_RegularCall(
       scope,
       regularCall.name,
       args,
       regularCall.style,
-      this.#functionRuntime,
+      this._functionRuntime,
     );
   }
 
-  #evaluateValueCall(scope: Scope, valueCall: Node_ValueCall): Step_ValueCall {
-    const callee = this.#eval(scope, valueCall.variable);
-    const args = valueCall.args.map((arg) => this.#eval(scope, arg));
+  private _evaluateValueCall(
+    scope: Scope,
+    valueCall: Node_ValueCall,
+  ): Step_ValueCall {
+    const callee = this._eval(scope, valueCall.variable);
+    const args = valueCall.args.map((arg) => this._eval(scope, arg));
     return new Step_ValueCall(callee, args);
   }
 
-  #evalCaptured(scope: Scope, captured: Node_Captured): Step_Literal {
+  private _evalCaptured(scope: Scope, captured: Node_Captured): Step_Literal {
     const capturedValue = new Value_Captured(
       scope,
       captured.identifier,
       captured.forceArity,
-      this.#functionRuntime,
+      this._functionRuntime,
     );
     return new Step_Literal(capturedValue);
   }

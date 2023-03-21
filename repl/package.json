@@ -10,5 +10,12 @@
     "browser-util-inspect": "^0.2.0",
     "dicexp": "workspace:*",
     "prompt-sync": "^4.2.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@types/node": "^18.15.5",
+    "@types/prompt-sync": "^4.2.0",
+    "rollup-plugin-typescript2": "^0.34.1"
   }
 }

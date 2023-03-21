@@ -106,7 +106,7 @@ export function flattenListAll(
 ): EitherValuesOrError {
   if (spec !== "*") {
     if (Array.isArray(spec)) {
-      if (spec.at(-1) !== "list") {
+      if (spec[spec.length - 1] !== "list") {
         spec = [...spec, "list"];
       }
     } else {

@@ -1,5 +1,4 @@
 pre-run:
-	just executing pre-run
 
 nodes *args:
 	just -f internal/nodes/justfile {{args}}

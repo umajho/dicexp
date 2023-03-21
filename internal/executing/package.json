@@ -1,8 +1,7 @@
 {
   "name": "@dicexp/executing",
   "version": "0.0.0",
-  "main": "dist/lib.js",
-  "types": "dist/lib.d.ts",
+  "main": "lib.ts",
   "keywords": [],
   "author": "Umaĵo",
   "license": "MIT",

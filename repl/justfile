@@ -1,8 +1,9 @@
 pre-run:
-	just -f ../justfile dicexp build
+	just -f ../justfile parsing build # 语法
 
 run: pre-run
-	node main.js
+	rollup -c
+	node dist/main.js
 
 run-no-build:
-	node main.js
+	node dist/main.js

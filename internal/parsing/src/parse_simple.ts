@@ -1,3 +1,5 @@
+import matchAll from "string.prototype.matchall";
+
 import { Node, regularCall } from "@dicexp/nodes";
 import { parseInteger } from "./utils";
 
@@ -26,7 +28,7 @@ function simpleParse_adds_subs(side: string): Node | false {
   let node: Node | null = null;
 
   let recognized = 0;
-  for (const [full, op, die] of side.matchAll(/([-+]?)([^-+]+)/g)) {
+  for (const [full, op, die] of matchAll(side, /([-+]?)([^-+]+)/g)) {
     recognized += full.length;
 
     const cur = simpleParseOperatorExp(die, "d", parseInteger, true);
