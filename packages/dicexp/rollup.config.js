@@ -1,7 +1,7 @@
 import typescript from "@rollup/plugin-typescript";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import commonjs from '@rollup/plugin-commonjs';
-import terser from '@rollup/plugin-terser';
+import commonjs from "@rollup/plugin-commonjs";
+import terser from "@rollup/plugin-terser";
 
 export default [
   {
@@ -11,6 +11,7 @@ export default [
       format: "esm",
     },
     plugins: [typescript()],
+    external: ["@dicexp/parsing", "@dicexp/executing"],
   },
   {
     input: "./lib.ts",
@@ -19,5 +20,5 @@ export default [
       format: "esm",
     },
     plugins: [typescript(), nodeResolve(), commonjs(), terser()],
-  }
+  },
 ];
