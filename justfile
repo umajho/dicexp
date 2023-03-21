@@ -17,3 +17,7 @@ repl:
 
 repl-no-build:
 	just -f repl/justfile run-no-build
+
+test:
+	just parsing test
+	just executing test
