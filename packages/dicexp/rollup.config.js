@@ -19,6 +19,11 @@ export default [
       file: "./dist/browser.min.js",
       format: "esm",
     },
-    plugins: [typescript(), nodeResolve(), commonjs(), terser()],
+    plugins: [
+      typescript(),
+      nodeResolve({ browser: true }),
+      commonjs(),
+      terser(),
+    ],
   },
 ];

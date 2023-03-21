@@ -1,4 +1,4 @@
-import inspect from "browser-util-inspect";
+// import inspect from "browser-util-inspect";
 import {
   flattenListAll,
   makeFunction,
@@ -374,9 +374,9 @@ export const builtinScope: Scope = {
       typeof globalThis.console.log === "function"
     ) {
       if (error) {
-        globalThis.console.log(inspect({ error }));
+        globalThis.console.log(JSON.stringify({ error }));
       } else {
-        globalThis.console.log(inspect({ value }));
+        globalThis.console.log(JSON.stringify({ value }));
       }
     }
     return [target, error] as EitherStepOrError;
