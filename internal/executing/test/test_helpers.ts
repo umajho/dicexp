@@ -1,7 +1,7 @@
 import { assert, describe, it } from "vitest";
 import { AssertionError } from "assertion-error";
 
-import inspect from "browser-util-inspect";
+import { inspect } from "util";
 
 import { parse } from "@dicexp/parsing";
 
