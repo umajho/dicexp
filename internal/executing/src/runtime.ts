@@ -1,5 +1,5 @@
 import { Unimplemented, Unreachable } from "./errors";
-import {
+import type {
   Node,
   Node_Captured,
   Node_RegularCall,
@@ -10,8 +10,8 @@ import {
 import { builtinScope } from "./builtin_functions";
 import { RuntimeError, RuntimeError_UnknownVariable } from "./runtime_errors";
 import {
-  EitherStepOrError,
-  EitherValueOrError,
+  type EitherStepOrError,
+  type EitherValueOrError,
   Step,
   Step_Final,
   Step_Identifier,
@@ -20,7 +20,7 @@ import {
   Step_RegularCall,
   Step_ValueCall,
 } from "./steps";
-import { Value, Value_Captured, Value_Closure } from "./values";
+import { type Value, Value_Captured, Value_Closure } from "./values";
 
 export interface RandomGenerator {
   uint32(): number;

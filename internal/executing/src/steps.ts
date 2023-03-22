@@ -1,23 +1,23 @@
 import { Unimplemented, Unreachable } from "./errors";
-import { RegularCallStyle } from "@dicexp/nodes";
-import { FunctionRuntime, Scope } from "./runtime";
+import type { RegularCallStyle } from "@dicexp/nodes";
+import type { FunctionRuntime, Scope } from "./runtime";
 import {
   RuntimeError,
   RuntimeError_BadFinalResult,
   RuntimeError_NotCallable,
 } from "./runtime_errors";
 import {
-  Evaluator,
+  type Evaluator,
   getTypeNameOfValue,
   makeRegularCallEvaluator,
   renderValue,
-  Value,
+  type Value,
   Value_Callable,
   Value_Calling,
   Value_Captured,
   Value_Closure,
   Value_Generating,
-  ValueTypeName,
+  type ValueTypeName,
 } from "./values";
 
 export type EitherValueOrError = [Value, null] | [null, RuntimeError];

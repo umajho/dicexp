@@ -1,6 +1,6 @@
-import { ExpectedValueTypeName } from "./builtin_function_helpers";
+import type { ExpectedValueTypeName } from "./builtin_function_helpers";
 import { Unreachable } from "./errors";
-import { ValueTypeName } from "./values";
+import type { ValueTypeName } from "./values";
 
 export class RuntimeError extends Error {}
 

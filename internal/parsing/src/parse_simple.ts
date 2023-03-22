@@ -1,6 +1,6 @@
 import matchAll from "string.prototype.matchall";
 
-import { Node, regularCall } from "@dicexp/nodes";
+import { type Node, regularCall } from "@dicexp/nodes";
 import { parseInteger } from "./utils";
 
 /**

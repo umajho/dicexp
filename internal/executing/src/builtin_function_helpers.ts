@@ -1,16 +1,16 @@
-import { FunctionRuntime, RegularFunction } from "./runtime";
+import type { FunctionRuntime, RegularFunction } from "./runtime";
 import {
   RuntimeError_CallArgumentTypeMismatch,
   RuntimeError_TypeMismatch,
   RuntimeError_WrongArity,
 } from "./runtime_errors";
 import {
-  EitherValueOrError,
-  EitherValuesOrError,
+  type EitherValueOrError,
+  type EitherValuesOrError,
   Step,
   Step_Plain,
 } from "./steps";
-import { getTypeNameOfValue, Value, ValueTypeName } from "./values";
+import { getTypeNameOfValue, type Value, type ValueTypeName } from "./values";
 
 export type ExpectedValueTypeName = ValueTypeName | "callable";
 type ArgumentSpec = ExpectedValueTypeName | "*" | ExpectedValueTypeName[];

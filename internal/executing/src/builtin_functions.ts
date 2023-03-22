@@ -7,15 +7,15 @@ import {
 } from "./builtin_function_helpers";
 
 import { Unreachable } from "./errors";
-import { RandomGenerator, Scope } from "./runtime";
+import type { RandomGenerator, Scope } from "./runtime";
 import {
   getTypeDisplayName,
   RuntimeError,
   RuntimeError_IllegalOperation,
 } from "./runtime_errors";
 import {
-  EitherStepOrError,
-  GeneratorCallback,
+  type EitherStepOrError,
+  type GeneratorCallback,
   Step,
   Step_Plain,
 } from "./steps";
@@ -23,7 +23,7 @@ import {
   getTypeNameOfValue,
   Value_Callable,
   Value_Generating,
-  ValueTypeName,
+  type ValueTypeName,
 } from "./values";
 
 export const builtinScope: Scope = {

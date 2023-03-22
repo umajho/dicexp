@@ -1,4 +1,4 @@
-import { Node } from "@dicexp/nodes";
+import type { Node } from "@dicexp/nodes";
 import { convertTextToHalfWidth } from "./utils";
 
 import { parser as lezerParser } from "@dicexp/lezer";

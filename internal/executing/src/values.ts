@@ -1,6 +1,10 @@
 import { Unreachable } from "./errors";
-import { Node } from "@dicexp/nodes";
-import { FunctionRuntime, RegularFunctionReturnValue, Scope } from "./runtime";
+import type { Node } from "@dicexp/nodes";
+import type {
+  FunctionRuntime,
+  RegularFunctionReturnValue,
+  Scope,
+} from "./runtime";
 import {
   RuntimeError,
   RuntimeError_DuplicateClosureParameterNames,
@@ -8,8 +12,8 @@ import {
   RuntimeError_WrongArity,
 } from "./runtime_errors";
 import {
-  EitherValueOrError,
-  GeneratorCallback,
+  type EitherValueOrError,
+  type GeneratorCallback,
   Step,
   Step_Generate,
   ws,

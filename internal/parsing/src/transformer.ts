@@ -1,10 +1,10 @@
-import { SyntaxNode, Tree } from "@lezer/common";
+import type { SyntaxNode, Tree } from "@lezer/common";
 
 import {
   captured,
   closure,
   list,
-  Node,
+  type Node,
   regularCall,
   valueCall,
 } from "@dicexp/nodes";

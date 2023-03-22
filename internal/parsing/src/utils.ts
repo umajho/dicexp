@@ -1,6 +1,6 @@
 import { Unreachable } from "./errors";
 
-import { Node_Value, value } from "@dicexp/nodes";
+import { type Node_Value, value } from "@dicexp/nodes";
 
 // see: https://stackoverflow.com/q/20486551
 export function convertTextToHalfWidth(text: string) {

@@ -1,2 +1,6 @@
-export { execute, ExecuteOptions, ExecutionResult } from "./src/execute";
+export {
+  execute,
+  type ExecuteOptions,
+  type ExecutionResult,
+} from "./src/execute";
 export { RuntimeError } from "./src/runtime_errors";

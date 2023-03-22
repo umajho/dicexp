@@ -1,10 +1,15 @@
 // import { MersenneTwister } from "npm:random-seedable@1";
 import { prng_xorshift7 } from "esm-seedrandom";
 
-import { Node } from "@dicexp/nodes";
-import { type ParseOptions } from "@dicexp/parsing";
-import { JSValue, RandomGenerator, Runtime, RuntimeOptions } from "./runtime";
-import { RuntimeError } from "./runtime_errors";
+import type { Node } from "@dicexp/nodes";
+import type { ParseOptions } from "@dicexp/parsing";
+import {
+  type JSValue,
+  type RandomGenerator,
+  Runtime,
+  type RuntimeOptions,
+} from "./runtime";
+import type { RuntimeError } from "./runtime_errors";
 
 export type ExecuteOptions = Partial<RuntimeOptions> & {
   parseOpts?: ParseOptions;
