@@ -3,11 +3,14 @@
   "version": "0.0.0",
   "description": "A Dicexp evaluator.",
   "main": "dist/lib.esm.js",
-  "browser": "dist/browser.esm.js",
   "exports": {
-    ".": "./dist/lib.esm.js",
+    ".": {
+      "browser": "./dist/browser.esm.js",
+      "import": "./dist/lib.esm.js"
+    },
     "./internal": "./lib.ts"
   },
+  "types": "./dist/packages/dicexp/lib.d.ts",
   "keywords": [],
   "author": "Umaĵo",
   "license": "MIT",
@@ -18,6 +21,7 @@
     "@dicexp/parsing": "workspace:*"
   },
   "devDependencies": {
+    "@lezer/common": "^1.0.2",
     "@rollup/plugin-commonjs": "^24.0.1",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-terser": "^0.4.0",

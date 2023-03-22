@@ -1,0 +1,14 @@
+{
+  "name": "@dicexp/codemirror-lang-dicexp",
+  "version": "0.0.0",
+  "main": "lib.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "dependencies": {
+    "@codemirror/language": "^6.6.0",
+    "@dicexp/lezer": "workspace:*"
+  }
+}

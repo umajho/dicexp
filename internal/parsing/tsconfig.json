@@ -12,7 +12,8 @@
     "target": "ES2015",
     "moduleResolution": "node",
     "declaration": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "allowSyntheticDefaultImports": true
   },
   "exclude": [
     "dist"

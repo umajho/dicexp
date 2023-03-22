@@ -99,7 +99,7 @@ Grouping {
 }
 
 RegularCall {
-  Name { identifier ("!" | "?")? } (ArgumentList | Closure)
+  FunctionName { identifier ("!" | "?")? } (ArgumentList | Closure)
 }
 
 ArgumentList {
