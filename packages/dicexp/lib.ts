@@ -2,7 +2,11 @@ export * from "@dicexp/parsing";
 export * from "@dicexp/executing";
 
 import { parse } from "@dicexp/parsing";
-import { execute, ExecuteOptions, ExecutionResult } from "@dicexp/executing";
+import {
+  execute,
+  type ExecuteOptions,
+  type ExecutionResult,
+} from "@dicexp/executing";
 
 export function evaluate(
   code: string,

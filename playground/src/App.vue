@@ -103,7 +103,7 @@ import { closeBrackets } from "@codemirror/autocomplete";
 import { oneDark } from "@codemirror/theme-one-dark";
 
 import { dicexp } from "@dicexp/codemirror-lang-dicexp";
-import { type ExecutionResult, evaluate } from "dicexp";
+import { type ExecutionResult, evaluate } from "dicexp/internal";
 
 import { h, onMounted, ref, type Ref } from "vue";
 
