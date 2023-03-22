@@ -11,13 +11,14 @@ export const dicexpHighlight: NodePropSource = styleTags({
 
   LiteralInteger: t.integer,
   LiteralBoolean: t.bool,
+
+  "OpenParen CloseParen": t.paren,
+  "OpenSBracket CloseSBracket": t.squareBracket,
+  "Closure/OpenParen": t.brace,
+  "Closure/CloseParen": t.brace,
   //
 
   // TODO:
-  // "( )": t.paren,
-  // "[ ]": t.squareBracket,
-  //
-  // 以及：
-  // \() &/
+  // \(->) &/
   // , .
 });

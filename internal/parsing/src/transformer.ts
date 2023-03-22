@@ -43,7 +43,7 @@ export class Transformer {
         const op = this.getRaw(children[1]);
         const left = this._transform(children[0]);
         if (op === ".") {
-          const argList = this.getItems(Transformer.getChildren(children[2]));
+          const argList = this.getArgumentListItems(children[2]);
           return valueCall(left, argList);
         } else {
           let right = this._transform(children[2]);
@@ -64,27 +64,27 @@ export class Transformer {
         return regularCall("operator", op, [right]);
       }
       case "Grouping": {
-        return this._transform(children[0]);
+        return this._transform(children[1]);
       }
       case "RegularCall": {
         const name = this.getRaw(children[0]);
         const argPart = children[1];
         let argList: Node[];
         if (argPart.name === "ArgumentList") {
-          argList = this.getItems(Transformer.getChildren(argPart));
+          argList = this.getArgumentListItems(argPart);
         } else { // Closure
           argList = [this._transform(argPart)];
         }
         return regularCall("function", name, argList);
       }
       case "List": {
-        const items = this.getItems(children);
+        const items = this.getItems(Transformer.getChildren(children[1]));
         return list(items);
       }
       case "Closure": {
-        const paramList = Transformer.getChildren(children[0]);
+        const paramList = Transformer.getChildren(children[1]);
         const identifiers = paramList.map((p) => this.getRaw(p));
-        const body = this._transform(children[1]);
+        const body = this._transform(children[2]);
         return closure(identifiers, body);
       }
       case "Capture": {
@@ -114,6 +114,11 @@ export class Transformer {
       children.push(c);
     }
     return children;
+  }
+
+  private getArgumentListItems(argList: SyntaxNode): Node[] {
+    const argListNode = Transformer.getChildren(argList);
+    return this.getItems(Transformer.getChildren(argListNode[1]));
   }
 
   private getItems(children: SyntaxNode[]): Node[] {

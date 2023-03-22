@@ -95,7 +95,7 @@ FakeWorkaroundUnaryOperator[@name="⚠"]<term> {
 }
 
 Grouping {
-  "(" expression ")"
+  OpenParen expression CloseParen
 }
 
 RegularCall {
@@ -103,15 +103,15 @@ RegularCall {
 }
 
 ArgumentList {
-  "(" commaSeparated<expression> ")"
+  OpenParen ArgumentListBody { commaSeparated<expression> } CloseParen
 }
 
 List {
-  "[" commaSeparated<expression> "]"
+  OpenSBracket ItemListBody { commaSeparated<expression> } CloseSBracket
 }
 
 Closure {
-  "\\" "(" ParameterList { commaSeparated<identifier> } "->" expression ")"
+  "\\" OpenParen ParameterListBody { commaSeparated<identifier> } "->" expression CloseParen
 }
 
 @skip {} {
@@ -153,7 +153,10 @@ commaSeparated<item> {
   BinaryOperator<term> { term }
   UnaryOperator<term> { term }
 
-  // "(" ")" "\\" ","
+  OpenParen[closedBy=CloseParen] { "(" }
+  CloseParen[openedBy=OpenParen] { ")" }
+  OpenSBracket[closedBy=CloseSBracket] { "[" }
+  CloseSBracket[openedBy=OpenSBracket] { "]" }
 
   keywordD { "d" }
   keywordDRemainder { "d%" }
