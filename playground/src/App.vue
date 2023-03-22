@@ -125,14 +125,19 @@ onMounted(() => {
   const singleLine = EditorState.transactionFilter.of((tr) =>
     tr.newDoc.lines > 1 ? [] : tr
   );
+  const autosave = EditorView.updateListener.of(() => {
+    localStorage.setItem("autosave", view.state.doc.line(1).text);
+  });
 
   const state = EditorState.create({
+    doc: localStorage.getItem("autosave") ?? undefined,
     extensions: [
       minimalSetup,
       bracketMatching(),
       closeBrackets(),
       oneDark,
       singleLine,
+      autosave,
       dicexp(),
     ],
   });
