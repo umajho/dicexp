@@ -5,6 +5,8 @@
   "keywords": [],
   "author": "Umaĵo",
   "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
   "dependencies": {
     "@lezer/highlight": "^1.1.3"
   }
