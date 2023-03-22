@@ -2,7 +2,12 @@
   "name": "dicexp",
   "version": "0.0.0",
   "description": "A Dicexp evaluator.",
-  "main": "dist/lib.js",
+  "main": "dist/lib.esm.js",
+  "browser": "dist/browser.esm.js",
+  "exports": {
+    ".": "./dist/lib.esm.js",
+    "./internal": "./lib.ts"
+  },
   "keywords": [],
   "author": "Umaĵo",
   "license": "MIT",

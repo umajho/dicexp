@@ -7,29 +7,26 @@ export default [
   {
     input: "./lib.ts",
     output: {
-      file: "./dist/lib.js",
+      file: "./dist/lib.esm.js",
       format: "esm",
     },
-    plugins: [typescript()],
-    external: [
-      "@dicexp/parsing",
-      "@dicexp/executing",
-      "@lezer/lr",
-      "string.prototype.matchall",
-      "esm-seedrandom",
-    ],
+    plugins: [typescript(), nodeResolve(), commonjs()],
   },
   {
     input: "./lib.ts",
     output: {
-      file: "./dist/browser.min.js",
+      file: "./dist/browser.esm.js",
       format: "esm",
     },
-    plugins: [
-      typescript(),
-      nodeResolve({ browser: true }),
-      commonjs(),
-      terser(),
-    ],
+    plugins: [typescript(), nodeResolve({ browser: true }), commonjs()],
+  },
+  {
+    input: "./dist/browser.esm.js",
+    output: {
+      file: "./dist/browser.min.js",
+      format: "iife",
+      name: "dicexp",
+    },
+    plugins: [terser()],
   },
 ];
