@@ -1,0 +1,10 @@
+build:
+	pnpm run build
+	gzip -k dist/**/*.js
+	brotli -k dist/**/*.js
+
+serve: build serve-no-build
+
+serve-no-build:
+	# https://github.com/http-party/http-server
+	http-server ./dist --brotli --gzip
