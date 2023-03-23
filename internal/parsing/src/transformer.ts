@@ -44,16 +44,15 @@ export class Transformer {
         const left = this._transform(children[0]);
         if (op === ".") {
           const argList = this.getArgumentListItems(children[2]);
-          return valueCall(left, argList);
-        } else {
-          let right = this._transform(children[2]);
-          if (op === "|>" && typeof right === "string") {
-            right = regularCall("function", right, []);
-          } else if (["d", "d%"].indexOf(op) >= 0) {
-            right = Transformer.handleAfterDiceRoll(right);
-          }
-          return regularCall("operator", op, [left, right]);
+          return valueCall("function", left, argList);
         }
+        let right = this._transform(children[2]);
+        if (op === "|>") {
+          return this.transformPipeExpression(left, right);
+        } else if (["d", "d%"].indexOf(op) >= 0) {
+          right = Transformer.handleAfterDiceRoll(right);
+        }
+        return regularCall("operator", op, [left, right]);
       }
       case "UnaryExpression": {
         const op = this.getRaw(children[0]);
@@ -123,6 +122,19 @@ export class Transformer {
 
   private getItems(children: SyntaxNode[]): Node[] {
     return children.map((c) => this._transform(c.firstChild!));
+  }
+
+  private transformPipeExpression(left: Node, right: Node): Node {
+    if (typeof right === "string") {
+      return regularCall("piped", right, [left]);
+    } else if (right.kind === "regular_call" && right.style === "function") {
+      return regularCall("piped", right.name, [left, ...right.args]);
+    } else if (right.kind === "value_call" && right.style === "function") {
+      return valueCall("piped", right.variable, [left, ...right.args]);
+    }
+
+    // TODO: better error message
+    throw new ParsingError();
   }
 
   private static handleAfterDiceRoll(right: Node): Node {

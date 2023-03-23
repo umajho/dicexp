@@ -74,20 +74,6 @@ export const builtinScope: Scope = {
     return [left >= right, null];
   }),
 
-  "|>/2": (_args, _rtm) => {
-    const [calling, errCalling] = _args[1].calling;
-    if (errCalling instanceof RuntimeError) return [null, errCalling];
-    if (errCalling) {
-      return [
-        null,
-        new RuntimeError_IllegalOperation("|>", "右侧并非正在被调用"),
-      ];
-    }
-    const newCalling = calling.withArgs([_args[0], ...calling.args]);
-    // TODO?: Step_Pipe
-    return [new Step_Plain(newCalling), null];
-  },
-
   // #/2
   "#/2": (_args, _rtm) => {
     const [_count, errCount] = unwrapValue("number", _args[0]);

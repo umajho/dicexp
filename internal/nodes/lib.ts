@@ -9,7 +9,7 @@ export type Node =
   | Node_Value
   | string; // 标识符
 
-export type RegularCallStyle = "function" | "operator";
+export type RegularCallStyle = "function" | "operator" | "piped";
 
 /**
  * 一般的函数调用和运算符都算在内
@@ -31,8 +31,11 @@ export function regularCall(
   return { kind: "regular_call", style, name, args };
 }
 
+export type ValueCallStyle = "function" | "piped";
+
 export interface Node_ValueCall extends _Node {
   kind: "value_call";
+  style: ValueCallStyle;
 
   variable: Node;
 
@@ -40,14 +43,11 @@ export interface Node_ValueCall extends _Node {
 }
 
 export function valueCall(
+  style: ValueCallStyle,
   variable: Node,
   args: Node[],
 ): Node_ValueCall {
-  return {
-    kind: "value_call",
-    variable,
-    args,
-  };
+  return { kind: "value_call", style, variable, args };
 }
 
 export interface Node_Captured extends _Node {

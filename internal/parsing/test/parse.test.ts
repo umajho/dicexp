@@ -3,7 +3,8 @@ import { assert, describe, it } from "vitest";
 import { parse } from "../src/parse";
 import { simpleParse } from "src/parse_simple";
 
-import { captured, Node, regularCall, value } from "@dicexp/nodes";
+import { captured, list, Node, regularCall, value } from "@dicexp/nodes";
+import { Unreachable } from "src/errors";
 
 describe("空白", () => {
   describe("空白不影响解析", () => {
@@ -95,8 +96,8 @@ describe("优先级", () => {
     "(1+2)~(3-4)",
     "(~3)~(~2)",
     "(1~2)#(3~4)",
-    "(1#2)|>(3#4)",
-    "(1|>2)<(3|>4)",
+    "(1#2)|>three",
+    "(1|>two)<(3|>four)",
     "(((1<2)>3)<=4)>=5",
     "(((1>=2)<=3)>4)<5",
     "(1<2)==(3<4)",
@@ -195,6 +196,41 @@ describe("捕获", () => {
   it("不能捕获以 `!` 结尾的特殊函数", () => {
     assert.throw(() => parse("&foo!/1"));
   });
+});
+
+describe("管道运算符", () => {
+  const list231 = list([value(2), value(3), value(1)]);
+  const table: [string, string][] = [
+    // 一元函数
+    ["[2, 3, 1] |> sort", "sort([2, 3, 1])"],
+    ["[2, 3, 1] |> sort()", "sort([2, 3, 1])"],
+    // 多元函数
+    ["[2, 3, 1] |> append(4)", "append([2, 3, 1], 4)"],
+    // 闭包简写
+    [
+      String.raw`[2, 3, 1] |> map \(x -> x^2)`,
+      String.raw`map([2, 3, 1], \(x -> x^2))`,
+    ],
+    // 值调用
+    [String.raw`10 |> \(x -> x*2).()`, String.raw`\(x -> x*2).(10)`],
+    [
+      String.raw`10 |> \(x, y -> x*2).(20)`,
+      String.raw`\(x, y -> x*2).(10, 20)`,
+    ],
+    // 捕获
+    ["10 |> &-/1.()", "&-/1.(10)"],
+    ["10 |> &-/2.(20)", "&-/2.(10, 20)"],
+  ];
+
+  const tableProcessed = table.map(([actual, equivalent]) => {
+    const parsed = parse(equivalent);
+    if (typeof parsed === "string" || !("style" in parsed)) {
+      throw new Unreachable();
+    }
+    parsed.style = "piped";
+    return [actual, parsed] as [string, Node];
+  });
+  theyAreOk(tableProcessed);
 });
 
 function theyAreOk(table: [string, Node][]) {
