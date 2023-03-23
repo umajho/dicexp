@@ -12,6 +12,8 @@ import {
   NButton,
   NCard,
   NAlert,
+  NSkeleton,
+  NSpin,
 } from "naive-ui";
 </script>
 
@@ -45,10 +47,8 @@ import {
           "
         >
           <div style="height: 40px"></div>
-
           <n-space justify="center">
             <div
-              id="input-container"
               style="
                 display: flex;
                 flex-direction: column;
@@ -57,8 +57,18 @@ import {
                 min-width: 400px;
                 width: 40vw;
               "
-            ></div>
-            <n-button @click="roll()">ROLL!</n-button>
+            >
+              <async-dicexp-editor v-model="code"></async-dicexp-editor>
+            </div>
+
+            <template v-if="evaluate">
+              <n-button @click="roll()">ROLL!</n-button>
+            </template>
+            <template v-else>
+              <n-spin :size="20">
+                <n-button disabled>ROLL!</n-button>
+              </n-spin>
+            </template>
           </n-space>
 
           <div style="height: 40px"></div>
@@ -95,17 +105,9 @@ import {
 </template>
 
 <script setup lang="ts">
-import { EditorView, minimalSetup } from "codemirror";
-import { EditorState } from "@codemirror/state";
-import { bracketMatching } from "@codemirror/language";
-import { closeBrackets } from "@codemirror/autocomplete";
+import type { ExecutionResult, evaluate as evaluateFn } from "dicexp/internal";
 
-import { oneDark } from "@codemirror/theme-one-dark";
-
-import { dicexp } from "@dicexp/codemirror-lang-dicexp";
-import { type ExecutionResult, evaluate } from "dicexp/internal";
-
-import { h, onMounted, ref, type Ref } from "vue";
+import { defineAsyncComponent, h, ref, watch, type Ref } from "vue";
 
 const menuOptions: MenuOption[] = [
   {
@@ -119,33 +121,14 @@ const menuOptions: MenuOption[] = [
   },
 ];
 
-let view: EditorView;
+let evaluate: Ref<typeof evaluateFn | undefined> = ref(undefined);
+(async () => {
+  evaluate.value = (await import("dicexp/internal")).evaluate;
+})();
 
-onMounted(() => {
-  const singleLine = EditorState.transactionFilter.of((tr) =>
-    tr.newDoc.lines > 1 ? [] : tr
-  );
-  const autosave = EditorView.updateListener.of(() => {
-    localStorage.setItem("autosave", view.state.doc.line(1).text);
-  });
-
-  const state = EditorState.create({
-    doc: localStorage.getItem("autosave") ?? undefined,
-    extensions: [
-      minimalSetup,
-      bracketMatching(),
-      closeBrackets(),
-      oneDark,
-      singleLine,
-      autosave,
-      dicexp(),
-    ],
-  });
-
-  view = new EditorView({
-    state,
-    parent: document.querySelector("#input-container")!,
-  });
+const code = ref(localStorage.getItem("autosave") ?? "");
+watch(code, () => {
+  localStorage.setItem("autosave", code.value);
 });
 
 const result: Ref<ExecutionResult | null> = ref(null);
@@ -155,7 +138,7 @@ function roll() {
   otherError.value = null;
   result.value = null;
   try {
-    result.value = evaluate(view.state.doc.line(1).text);
+    result.value = evaluate.value!(code.value);
   } catch (e) {
     if (e instanceof Error) {
       otherError.value = e;
@@ -164,6 +147,11 @@ function roll() {
     }
   }
 }
+
+const AsyncDicexpEditor = defineAsyncComponent({
+  loader: () => import("./components/dicexp-editor.vue"),
+  loadingComponent: h(NSkeleton, { size: "small" }),
+});
 </script>
 
 <style scoped>
