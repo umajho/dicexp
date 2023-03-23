@@ -8,16 +8,12 @@ import { captured, Node, regularCall, value } from "@dicexp/nodes";
 describe("空白", () => {
   describe("空白不影响解析", () => {
     const table: [string, string][] = [
-      ["1+1", "1 + 1"],
+      ["1 + 1", "1+1"],
       [" 1 ", "1"],
       ["foo ( bar , baz )", "foo(bar,baz)"],
       [String.raw`foo \( bar , baz -> qux )`, String.raw`foo\(bar,baz->qux)`],
     ];
-    for (const [i, [withSpaces, withoutSpaces]] of table.entries()) {
-      it(`case ${i + 1}: ${withSpaces}`, () => {
-        assert.deepEqual(parse(withSpaces), parse(withoutSpaces));
-      });
-    }
+    theyAreOk(table.map(([a, b]) => [a, parse(b)]));
   });
 });
 
@@ -29,11 +25,7 @@ describe("全角/半角", () => {
         String.raw`foo(1+1) // bar \(_ -> 1)`,
       ],
     ];
-    for (const [i, [full, half]] of table.entries()) {
-      it(`case ${i + 1}: ${full}`, () => {
-        assert.deepEqual(parse(full), parse(half));
-      });
-    }
+    theyAreOk(table.map(([a, b]) => [a, parse(b)]));
   });
 });
 
@@ -76,18 +68,13 @@ describe("掷骰的操作数", () => {
   });
 
   describe("右操作数是整数时，该操作数之前的正负号不会产生多余的节点", () => {
-    const table: [string, string | Node][] = [
-      ["d+10", "d10"],
-      ["3d+10", "3d10"],
+    const table: [string, Node][] = [
+      ["d+10", parse("d10")],
+      ["3d+10", parse("3d10")],
       ["d-10", regularCall("operator", "d", [value(-10)])],
       ["3d-10", regularCall("operator", "d", [value(3), value(-10)])],
     ];
-    for (const [i, [l, r]] of table.entries()) {
-      it(`case ${i + 1}: ${l}`, () => {
-        const rResult = typeof r === "string" ? parse(r) : r;
-        assert.deepEqual(parse(l), rResult);
-      });
-    }
+    theyAreOk(table);
   });
 });
 
@@ -118,12 +105,7 @@ describe("优先级", () => {
     "(1==2) and (3==4)",
     "(1 and 2) or (3 and 4)",
   ];
-  for (const [i, withParens] of table.entries()) {
-    const withoutParens = withParens.replace(/[()]/g, "");
-    it(`case ${i + 1}: \`${withoutParens}\` == \`${withParens}\``, () => {
-      assert.deepEqual(parse(withoutParens), parse(withParens));
-    });
-  }
+  theyAreOk(table.map((x) => [x.replace(/[()]/g, ""), parse(x)]));
 });
 
 describe("标识符", () => {
@@ -201,12 +183,9 @@ describe("捕获", () => {
       ["or", 2],
       ["not", 1],
     ];
-    for (const [i, [kw, arity]] of table.entries()) {
-      const code = `&${kw}/${arity}`;
-      it(`case ${i + 1}: ${code}`, () => {
-        assert.deepEqual(parse(code), captured(kw, arity));
-      });
-    }
+    theyAreOk(
+      table.map(([kw, arity]) => [`&${kw}/${arity}`, captured(kw, arity)]),
+    );
   });
 
   it("能捕获以 `?` 结尾的通常函数", () => {
@@ -217,3 +196,11 @@ describe("捕获", () => {
     assert.throw(() => parse("&foo!/1"));
   });
 });
+
+function theyAreOk(table: [string, Node][]) {
+  for (const [i, [code, expected]] of table.entries()) {
+    it(`case ${i + 1}: ${code}`, () => {
+      assert.deepEqual(parse(code), expected);
+    });
+  }
+}
