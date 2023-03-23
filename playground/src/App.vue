@@ -117,10 +117,22 @@ const menuOptions: MenuOption[] = [
     label: () =>
       h(
         "a",
-        { href: "https://github.com/umajho/dicexp", target: "_blank" },
-        "Git Repo"
+        {
+          href: "https://github.com/umajho/dicexp/blob/main/docs/Dicexp.md",
+          target: "_blank",
+        },
+        "文档"
       ),
-    key: "github",
+    key: "doc",
+  },
+  {
+    label: () =>
+      h(
+        "a",
+        { href: "https://github.com/umajho/dicexp", target: "_blank" },
+        "代码仓库"
+      ),
+    key: "repo",
   },
 ];
 
