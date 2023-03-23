@@ -57,8 +57,7 @@ import {
                 flex-direction: column;
                 justify-content: center;
                 height: 100%;
-                width: 40vw;
-                max-width: 60vw;
+                width: min(60vw, 512px);
               "
             >
               <async-dicexp-editor v-model="code"></async-dicexp-editor>
