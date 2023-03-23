@@ -22,11 +22,14 @@ import {
     <n-config-provider :theme="darkTheme">
       <n-layout-header style="height: var(--header-height)">
         <n-space vertical justify="center" style="height: 100%">
-          <n-grid :cols="3">
-            <n-gi></n-gi>
+          <n-grid :cols="2">
             <n-gi>
-              <n-space vertical justify="center" style="height: 100%">
-                <n-space justify="center">
+              <n-space
+                vertical
+                justify="center"
+                style="height: 100%; padding-left: 20px"
+              >
+                <n-space justify="start">
                   <span style="font-size: large">Dicexp Playground</span>
                 </n-space>
               </n-space>
@@ -54,8 +57,8 @@ import {
                 flex-direction: column;
                 justify-content: center;
                 height: 100%;
-                min-width: 400px;
                 width: 40vw;
+                max-width: 60vw;
               "
             >
               <async-dicexp-editor v-model="code"></async-dicexp-editor>
