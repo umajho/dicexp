@@ -1,6 +1,6 @@
 {
   "name": "dicexp",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A Dicexp evaluator.",
   "main": "dist/lib.esm.js",
   "exports": {
@@ -11,9 +11,16 @@
     "./internal": "./lib.ts"
   },
   "types": "./dist/packages/dicexp/lib.d.ts",
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/umajho/dicexp/"
+  },
+  "keywords": [
+    "dicexp"
+  ],
   "author": "Umaĵo",
   "license": "MIT",
+  "homepage": "https://github.com/umajho/dicexp/tree/main/packages/dicexp#readme",
   "type": "module",
   "sideEffects": false,
   "dependencies": {
