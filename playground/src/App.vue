@@ -1,137 +1,62 @@
-<script lang="ts">
-import {
-  NConfigProvider,
-  darkTheme,
-  NLayoutHeader,
-  NLayoutContent,
-  NSpace,
-  NGrid,
-  NGi,
-  NMenu,
-  type MenuOption,
-  NButton,
-  NCard,
-  NAlert,
-  NSkeleton,
-  NSpin,
-  NCheckbox,
-  NInputNumber,
-} from "naive-ui";
-</script>
-
-<template>
-  <div class="container">
-    <n-config-provider :theme="darkTheme">
-      <n-layout-header style="height: var(--header-height)">
-        <n-space vertical justify="center" style="height: 100%">
-          <n-grid :cols="2">
-            <n-gi>
-              <n-space
-                vertical
-                justify="center"
-                style="height: 100%; padding-left: 20px"
-              >
-                <n-space justify="start">
-                  <span style="font-size: large">Dicexp Playground</span>
-                </n-space>
-              </n-space>
-            </n-gi>
-            <n-gi>
-              <n-space justify="end">
-                <n-menu mode="horizontal" :options="menuOptions"></n-menu>
-              </n-space>
-            </n-gi>
-          </n-grid>
-        </n-space>
-      </n-layout-header>
-
-      <n-layout-content>
-        <main
-          style="
-            height: calc(100vh - var(--header-height) - var(--footer-height));
-          "
-        >
-          <div style="height: 40px"></div>
-          <n-grid :cols="1" y-gap="10" style="width: 100%">
-            <n-gi style="width: 100%">
-              <n-space justify="center">
-                <div
-                  style="
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    height: 100%;
-                    width: min(60vw, 512px);
-                  "
-                >
-                  <async-dicexp-editor v-model="code"></async-dicexp-editor>
-                </div>
-
-                <template v-if="evaluate">
-                  <n-button
-                    @click="roll()"
-                    :disabled="fixesSeed && !isSeedValid"
-                    >ROLL!</n-button
-                  >
-                </template>
-                <template v-else>
-                  <n-spin :size="20">
-                    <n-button disabled>ROLL!</n-button>
-                  </n-spin>
-                </template>
-              </n-space>
-            </n-gi>
-            <n-gi>
-              <n-space justify="center">
-                <n-space vertical justify="center" style="height: 100%">
-                  <n-checkbox v-model:checked="fixesSeed">固定种子</n-checkbox>
-                </n-space>
-                <n-input-number
-                  v-model:value="seed"
-                  :disabled="!fixesSeed"
-                  :precision="0"
-                ></n-input-number>
-              </n-space>
-            </n-gi>
-          </n-grid>
-
-          <div style="height: 40px"></div>
-
-          <div v-if="result || otherError">
-            <n-space justify="center">
-              <n-card title="结果" style="width: 60vw; min-width: 600px">
-                <template v-if="otherError || result!.runtimeError">
-                  <template v-if="otherError">
-                    <n-alert type="error" title="错误">
-                      {{ otherError.name }}
-                      <hr />
-                      {{ otherError.message }}
-                      <hr />
-                      {{ otherError.stack }}
-                    </n-alert>
-                  </template>
-                  <template v-else>
-                    <n-alert type="error" title="Dicexp 运行时错误">
-                      {{ result!.runtimeError!.message }}
-                    </n-alert>
-                  </template>
-                </template>
-                <template v-else>
-                  {{ result!.value }}
-                </template>
-              </n-card>
-            </n-space>
-          </div>
-        </main>
-      </n-layout-content>
-    </n-config-provider>
-  </div>
+<template lang="pug">
+.container
+  n-config-provider(:theme="darkTheme")
+    n-layout-header(style="height: var(--header-height)")
+      n-space(vertical, justify="center", style="height: 100%")
+        n-grid(:cols="2")
+          n-gi
+            n-space(vertical, justify="center", style="height: 100%; padding-left: 20px")
+              n-space(justify="start")
+                span(style="font-size: large") Dicexp Playground
+          n-gi
+            n-space(justify="end")
+              n-menu(mode="horizontal", :options="menuOptions")
+    n-layout-content
+      main(style=`
+        height: calc(100vh - var(--header-height) - var(--footer-height));
+      `)
+        div(style="height: 40px")
+        n-grid(:cols="1", y-gap="10", style="width: 100%")
+          n-gi(style="width: 100%")
+            n-space(justify="center")
+              div(style=`
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                height: 100%;
+                width: min(60vw, 512px);
+              `)
+                async-dicexp-editor(v-model="code")
+              template(v-if="evaluate")
+                n-button(@click="roll()", :disabled="fixesSeed && !isSeedValid") ROLL!
+              template(v-else)
+                n-spin(:size="20")
+                  n-button(disabled) ROLL!
+          n-gi
+            n-space(justify="center")
+              n-space(vertical, justify="center", style="height: 100%")
+                n-checkbox(v-model:checked="fixesSeed") 固定种子
+              n-input-number(v-model:value="seed", :disabled="!fixesSeed", :precision="0")
+        div(style="height: 40px")
+        div(v-if="result || otherError")
+          n-space(justify="center")
+            n-card(title="结果", style="width: 60vw; min-width: 600px")
+              template(v-if="otherError || result.runtimeError")
+                template(v-if="otherError")
+                  n-alert(type="error", title="错误") {{ otherError.name }}
+                    hr
+                    | {{ otherError.message }}
+                    hr
+                    | {{ otherError.stack }}
+                template(v-else)
+                  n-alert(type="error", title="Dicexp 运行时错误") {{ result.runtimeError.message }}
+              template(v-else) {{ result.value }}
 </template>
 
 <script setup lang="ts">
-import type { ExecutionResult, evaluate as evaluateFn } from "dicexp/internal";
+import { type MenuOption, NSkeleton, darkTheme /** used */ } from "naive-ui";
 
-import { computed, defineAsyncComponent, h, ref, watch, type Ref } from "vue";
+import type { ExecutionResult, evaluate as evaluateFn } from "dicexp/internal";
 
 const menuOptions: MenuOption[] = [
   {

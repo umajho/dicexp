@@ -3,8 +3,6 @@
 </template>
 
 <script setup lang="ts">
-import { type Ref, ref, onMounted } from "vue";
-
 import { EditorView, minimalSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
 import { bracketMatching } from "@codemirror/language";
