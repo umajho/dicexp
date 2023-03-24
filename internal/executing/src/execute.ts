@@ -10,7 +10,9 @@ import {
 } from "./runtime";
 import type { RuntimeError } from "./runtime_errors";
 
-export type ExecuteOptions = Partial<RuntimeOptions>;
+export type ExecuteOptions = Partial<RuntimeOptions> & {
+  seed?: number;
+};
 
 export interface ExecutionResult {
   value: JSValue | null;
@@ -23,7 +25,14 @@ export function execute(
   opts: ExecuteOptions = {},
 ): ExecutionResult {
   if (!opts.rng) {
-    opts.rng = new RandomGeneratorWrapper(prng_xorshift7(Math.random()));
+    if (opts.seed === undefined) {
+      opts.seed = Math.random();
+    }
+    opts.rng = new RandomGeneratorWrapper(prng_xorshift7(opts.seed));
+  } else {
+    if (opts.seed !== undefined) {
+      console.warn("由于已传入随机数生成器，seed 被忽略。");
+    }
   }
 
   const runtime = new Runtime(node, opts as RuntimeOptions);

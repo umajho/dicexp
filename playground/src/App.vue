@@ -14,6 +14,8 @@ import {
   NAlert,
   NSkeleton,
   NSpin,
+  NCheckbox,
+  NInputNumber,
 } from "naive-ui";
 </script>
 
@@ -50,28 +52,48 @@ import {
           "
         >
           <div style="height: 40px"></div>
-          <n-space justify="center">
-            <div
-              style="
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                height: 100%;
-                width: min(60vw, 512px);
-              "
-            >
-              <async-dicexp-editor v-model="code"></async-dicexp-editor>
-            </div>
+          <n-grid :cols="1" y-gap="10" style="width: 100%">
+            <n-gi style="width: 100%">
+              <n-space justify="center">
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    height: 100%;
+                    width: min(60vw, 512px);
+                  "
+                >
+                  <async-dicexp-editor v-model="code"></async-dicexp-editor>
+                </div>
 
-            <template v-if="evaluate">
-              <n-button @click="roll()">ROLL!</n-button>
-            </template>
-            <template v-else>
-              <n-spin :size="20">
-                <n-button disabled>ROLL!</n-button>
-              </n-spin>
-            </template>
-          </n-space>
+                <template v-if="evaluate">
+                  <n-button
+                    @click="roll()"
+                    :disabled="fixesSeed && !isSeedValid"
+                    >ROLL!</n-button
+                  >
+                </template>
+                <template v-else>
+                  <n-spin :size="20">
+                    <n-button disabled>ROLL!</n-button>
+                  </n-spin>
+                </template>
+              </n-space>
+            </n-gi>
+            <n-gi>
+              <n-space justify="center">
+                <n-space vertical justify="center" style="height: 100%">
+                  <n-checkbox v-model:checked="fixesSeed">固定种子</n-checkbox>
+                </n-space>
+                <n-input-number
+                  v-model:value="seed"
+                  :disabled="!fixesSeed"
+                  :precision="0"
+                ></n-input-number>
+              </n-space>
+            </n-gi>
+          </n-grid>
 
           <div style="height: 40px"></div>
 
@@ -109,7 +131,7 @@ import {
 <script setup lang="ts">
 import type { ExecutionResult, evaluate as evaluateFn } from "dicexp/internal";
 
-import { defineAsyncComponent, h, ref, watch, type Ref } from "vue";
+import { computed, defineAsyncComponent, h, ref, watch, type Ref } from "vue";
 
 const menuOptions: MenuOption[] = [
   {
@@ -145,14 +167,24 @@ watch(code, () => {
   localStorage.setItem("autosave", code.value);
 });
 
+const fixesSeed = ref(false);
+const seed = ref(0);
+const isSeedValid = computed(() => {
+  return Number.isInteger(seed.value);
+});
+
 const result: Ref<ExecutionResult | null> = ref(null);
 const otherError: Ref<Error | null> = ref(null);
 
 function roll() {
+  if (!fixesSeed.value) {
+    seed.value = crypto.getRandomValues(new Uint32Array(1))[0];
+  }
+
   otherError.value = null;
   result.value = null;
   try {
-    result.value = evaluate.value!(code.value);
+    result.value = evaluate.value!(code.value, { seed: seed.value });
   } catch (e) {
     if (e instanceof Error) {
       otherError.value = e;
