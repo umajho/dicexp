@@ -135,7 +135,7 @@ const menuOptions: MenuOption[] = [
   },
 ];
 
-let evaluate: Ref<typeof evaluateFn | undefined> = ref(undefined);
+const evaluate: Ref<typeof evaluateFn | undefined> = ref(undefined);
 (async () => {
   evaluate.value = (await import("dicexp/internal")).evaluate;
 })();
