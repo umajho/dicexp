@@ -2,7 +2,6 @@
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import type { Node } from "@dicexp/nodes";
-import type { ParseOptions } from "@dicexp/parsing";
 import {
   type JSValue,
   type RandomGenerator,
@@ -11,9 +10,7 @@ import {
 } from "./runtime";
 import type { RuntimeError } from "./runtime_errors";
 
-export type ExecuteOptions = Partial<RuntimeOptions> & {
-  parseOpts?: ParseOptions;
-};
+export type ExecuteOptions = Partial<RuntimeOptions>;
 
 export interface ExecutionResult {
   value: JSValue | null;
