@@ -1,9 +1,9 @@
 import { Unimplemented, Unreachable } from "./errors";
 import type {
   Node,
-  Node_Captured,
   Node_RegularCall,
   Node_ValueCall,
+  NodeValue_Captured,
   NodeValue_Closure,
   NodeValue_List,
 } from "@dicexp/nodes";
@@ -112,6 +112,8 @@ export class Runtime {
           }
           case "closure":
             return this._evalClosure(scope, node.value);
+          case "captured":
+            return this._evalCaptured(scope, node.value);
           default:
             throw new Unreachable();
         }
@@ -120,8 +122,6 @@ export class Runtime {
         return this._evaluateRegularCall(scope, node);
       case "value_call":
         return this._evaluateValueCall(scope, node);
-      case "captured":
-        return this._evalCaptured(scope, node);
       default:
         throw new Unreachable();
     }
@@ -155,6 +155,19 @@ export class Runtime {
     return new Step_Literal(closureValue);
   }
 
+  private _evalCaptured(
+    scope: Scope,
+    captured: NodeValue_Captured,
+  ): Step_Literal {
+    const capturedValue = new Value_Captured(
+      scope,
+      captured.identifier,
+      captured.forceArity,
+      this._functionRuntime,
+    );
+    return new Step_Literal(capturedValue);
+  }
+
   private _evaluateRegularCall(
     scope: Scope,
     regularCall: Node_RegularCall,
@@ -176,16 +189,6 @@ export class Runtime {
     const callee = this._eval(scope, valueCall.variable);
     const args = valueCall.args.map((arg) => this._eval(scope, arg));
     return new Step_ValueCall(callee, args);
-  }
-
-  private _evalCaptured(scope: Scope, captured: Node_Captured): Step_Literal {
-    const capturedValue = new Value_Captured(
-      scope,
-      captured.identifier,
-      captured.forceArity,
-      this._functionRuntime,
-    );
-    return new Step_Literal(capturedValue);
   }
 }
 

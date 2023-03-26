@@ -5,7 +5,6 @@ interface _Node {
 export type Node =
   | Node_RegularCall
   | Node_ValueCall
-  | Node_Captured
   | Node_Value
   | string; // 标识符
 
@@ -50,29 +49,15 @@ export function valueCall(
   return { kind: "value_call", style, variable, args };
 }
 
-export interface Node_Captured extends _Node {
-  kind: "captured";
-
-  identifier: string;
-
-  forceArity: number;
-}
-
-export function captured(
-  identifier: string,
-  forceArity: number,
-): Node_Captured {
-  return {
-    kind: "captured",
-    identifier,
-    forceArity,
-  };
-}
-
 export interface Node_Value extends _Node {
   kind: "value";
 
-  value: number | boolean | NodeValue_List | NodeValue_Closure;
+  value:
+    | number
+    | boolean
+    | NodeValue_List
+    | NodeValue_Closure
+    | NodeValue_Captured;
 }
 
 export function value(value: Node_Value["value"]): Node_Value {
@@ -112,5 +97,24 @@ export function closure(identifiers: string[], body: Node): Node_Value {
     valueKind: "closure",
     parameterIdentifiers: identifiers,
     body,
+  });
+}
+
+export interface NodeValue_Captured extends _NodeValue {
+  valueKind: "captured";
+
+  identifier: string;
+
+  forceArity: number;
+}
+
+export function captured(
+  identifier: string,
+  forceArity: number,
+): Node_Value {
+  return value({
+    valueKind: "captured",
+    identifier,
+    forceArity,
   });
 }
