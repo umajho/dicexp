@@ -2,6 +2,7 @@ import { bench } from "vitest";
 
 import { parse } from "@dicexp/parsing";
 import { execute } from "../lib";
+import { Node } from "@dicexp/nodes";
 
 const codesSimple = [
   "~10",
@@ -49,7 +50,13 @@ const codesSimple = [
 ];
 
 for (const code of codesSimple) {
-  const parsed = parse(code);
+  let parsed: Node;
+  try {
+    parsed = parse(code);
+  } catch (e) {
+    console.error(code, e);
+    continue;
+  }
 
   bench(`${code}`, () => {
     execute(parsed);
