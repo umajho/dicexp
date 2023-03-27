@@ -16,19 +16,19 @@ const codesSimple = [
 
   // 模拟 if-else（现在已经不需要了），速度竟然差不多
   String.raw`append(filter([10], \(_ -> false)), 100) |> head`,
-  String.raw`if!(false, 10, 100)`,
+  String.raw`if(false, 10, 100)`,
 
   // 0..<99
   String
-    .raw`\(f, n, l -> append(filter([\( -> l)], \(_ -> n == 100)), \( -> f.(f, n+1, append(l, n)))) |> head |> \(f -> f.())) |> \(f -> f.(f, 0, []))`,
+    .raw`\(f, n, l -> append(filter([\( -> l)], \(_ -> n == 100)), \( -> f.(f, n+1, append(l, n)))) |> head |> \(f -> f.()).()) |> \(f -> f.(f, 0, [])).()`,
   String
-    .raw`\(f, n, l -> if!(n == 100, l, f.(f, n+1, append(l, n)))) |> \(f -> f.(f, 0, []))`,
+    .raw`\(f, n, l -> if(n == 100, l, f.(f, n+1, append(l, n)))) |> \(f -> f.(f, 0, [])).()`,
 
   ...(() => {
     const yCombinators = [
       String
         .raw`\(fn -> \(f -> fn.(\(x -> f.(f).(x)))).(\(f -> fn.(\(x -> f.(f).(x))))))`,
-      String.raw`\(f -> \(x -> x.(x))).(\(x -> f.(\(y -> x.(x).(y)))))`,
+      // String.raw`\(f -> \(x -> x.(x))).(\(x -> f.(\(y -> x.(x).(y)))))`,
     ];
     return yCombinators.flatMap((yCombinator) => {
       return [
@@ -39,11 +39,11 @@ const codesSimple = [
           .raw`\(if -> \(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if.(n == 0, \(-> 0), \(-> n + f.(n-1))))))).(\(cond, t, f -> head(append(filter([t], \(_ -> cond)), f)).()))`,
         // 用真正的 if-else：
         String
-          .raw`\(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if!(n == 0, 0, n + f.(n-1)))))`,
+          .raw`\(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if(n == 0, 0, n + f.(n-1)))))`,
 
         // 0..<99，但是用 Y 组合子：
         String
-          .raw`\(Y, g -> Y.(g).([0, []])).(${yCombinator}, \(f -> \(nl -> if!((nl|>at(0)) == 100, nl|>at(1), f.([(nl|>at(0))+1, append((nl|>at(1)), nl|>at(0))])))))`,
+          .raw`\(Y, g -> Y.(g).([0, []])).(${yCombinator}, \(f -> \(nl -> if((nl|>at(0)) == 100, nl|>at(1), f.([(nl|>at(0))+1, append((nl|>at(1)), nl|>at(0))])))))`,
       ];
     });
   })(),
@@ -59,6 +59,9 @@ for (const code of codesSimple) {
   }
 
   bench(`${code}`, () => {
-    execute(parsed);
+    const result = execute(parsed);
+    if (result.runtimeError) {
+      throw new Error(`${code}: ${result.runtimeError.message}`);
+    }
   });
 }
