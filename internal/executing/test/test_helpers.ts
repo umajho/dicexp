@@ -3,7 +3,7 @@ import { AssertionError } from "assertion-error";
 
 import { inspect } from "util";
 
-import { parse } from "@dicexp/parsing";
+import { parse, type ParseOptions } from "@dicexp/parsing";
 
 import { ValueTypeName } from "../src/values";
 import { execute, ExecuteOptions, ExecutionResult } from "../src/execute";
@@ -16,7 +16,7 @@ import { Unreachable } from "../src/errors";
 
 export function evaluate(
   code: string,
-  opts: ExecuteOptions = {},
+  opts: ExecuteOptions & { parseOpts?: ParseOptions } = {},
 ): ExecutionResult {
   const node = parse(code, opts.parseOpts);
   return execute(node, opts);
