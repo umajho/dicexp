@@ -36,6 +36,7 @@ onMounted(() => {
     doc: props.modelValue,
     extensions: [
       minimalSetup,
+      EditorView.lineWrapping,
       bracketMatching(),
       closeBrackets(),
       oneDark,
