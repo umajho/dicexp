@@ -7,5 +7,6 @@
     "moduleResolution": "node",
     "outDir": "dist",
     "declaration": true,
+    "allowSyntheticDefaultImports": true
   }
 }

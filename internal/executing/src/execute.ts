@@ -31,7 +31,12 @@ export function execute(
     opts.rng = new RandomGeneratorWrapper(prng_xorshift7(opts.seed));
   } else {
     if (opts.seed !== undefined) {
-      console.warn("由于已传入随机数生成器，seed 被忽略。");
+      if (
+        "console" in globalThis && "warn" in globalThis.console &&
+        typeof globalThis.console.warn === "function"
+      ) {
+        globalThis.console.warn("由于已传入随机数生成器，seed 被忽略。");
+      }
     }
   }
 
