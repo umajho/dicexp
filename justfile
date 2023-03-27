@@ -15,6 +15,9 @@ executing *args:
 dicexp *args:
 	just -f packages/dicexp/justfile {{args}}
 
+playground *args:
+	just -f playground/justfile {{args}}
+
 repl:
 	just -f repl/justfile run
 
@@ -24,3 +27,4 @@ repl-no-build:
 test:
 	just parsing test
 	just executing test
+	just playground lint

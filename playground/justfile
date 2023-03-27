@@ -3,6 +3,9 @@ build:
 	gzip -k dist/**/*.js
 	brotli -k dist/**/*.js
 
+lint:
+	pnpm run lint
+
 serve: build serve-no-build
 
 serve-no-build:
