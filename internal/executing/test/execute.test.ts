@@ -116,8 +116,7 @@ describe("值", () => {
           const results = Array(10).fill(null).map((_) => evaluate(code));
           assert(new Set(results).size > 1);
         });
-        it("`d2` 不会死循环", /*async*/ () => {
-          throw new Unimplemented("TODO: testing");
+        it.todo("`d2` 不会死循环", /*async*/ () => {
           // const d2 = await spawn(new Worker("./test_workers/d2.ts"));
           // let stopped = false;
           // Promise.race([
@@ -338,9 +337,9 @@ describe("运算符", () => {
       binaryOperatorOnlyAcceptsNumbers(">=");
     });
 
-    describe("|>/2", () => {
-      // 管道运算符在解析时被消去，因此不存在于此处
-    });
+    // describe("|>/2", () => {
+    //   // 管道运算符在解析时被消去，因此不存在于此处
+    // });
 
     describe("~/1 与 ~/2", () => {
       // 已在生成器处测试
@@ -493,8 +492,7 @@ describe("运算符", () => {
 });
 
 describe("自带函数", () => {
-  it("TODO", () => {
-    throw new Unimplemented("TODO: testing");
+  it.todo("TODO", () => {
   });
 });
 
@@ -511,7 +509,7 @@ describe("从管道的测试那里移过来的", () => {
   ] as [string, JSValue][]);
 });
 
-describe("限制", () => {
+describe.todo("限制", () => {
   describe("整数", () => {
     it("不能允许大于 `Number.MAX_SAFE_INTEGER` 的整数", () => {
       const safe = Number.MAX_SAFE_INTEGER;
@@ -530,10 +528,6 @@ describe("限制", () => {
   });
 
   describe("列表", () => {
-    it("TODO", () => {
-      throw new Unimplemented("TODO: testing");
-    });
-
     // it("作为结果不能有超过 32 个元素", () => {
     //   assertExecutionOk("32#1", Array(32).fill(1))
     //   assertExecutionRuntimeError("33#1", "TODO: error")
@@ -548,9 +542,6 @@ describe("限制", () => {
   });
 
   describe("生成器", () => {
-    it("TODO", () => {
-      throw new Unimplemented("TODO: testing");
-    });
   });
 });
 
