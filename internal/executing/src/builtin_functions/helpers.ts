@@ -1,10 +1,10 @@
-import type { FunctionRuntime, RegularFunction } from "./runtime";
+import type { FunctionRuntime, RegularFunction } from "../runtime";
 import {
   RuntimeError,
   RuntimeError_CallArgumentTypeMismatch,
   RuntimeError_TypeMismatch,
   RuntimeError_WrongArity,
-} from "./runtime_errors";
+} from "../runtime_errors";
 import {
   delazy,
   getTypeNameOfValue,
@@ -13,7 +13,7 @@ import {
   type RuntimeResult,
   type Value,
   type ValueTypeName,
-} from "./values";
+} from "../values";
 
 type ArgumentSpec =
   | "lazy"

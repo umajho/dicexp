@@ -7,7 +7,7 @@ import type {
   NodeValue_Closure,
   NodeValue_List,
 } from "@dicexp/nodes";
-import { builtinScope } from "./builtin_functions";
+import { builtinScope } from "./builtin_functions/mod";
 import {
   RuntimeError,
   RuntimeError_BadFinalResult,

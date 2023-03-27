@@ -3,15 +3,15 @@ import {
   makeFunction,
   unwrapListOneOf,
   unwrapValue,
-} from "./builtin_function_helpers";
+} from "./helpers";
 
-import { Unreachable } from "./errors";
-import type { RandomGenerator, Scope } from "./runtime";
+import { Unreachable } from "../errors";
+import type { RandomGenerator, Scope } from "../runtime";
 import {
   getTypeDisplayName,
   RuntimeError,
   RuntimeError_IllegalOperation,
-} from "./runtime_errors";
+} from "../runtime_errors";
 import {
   callCallable,
   delazy,
@@ -21,7 +21,7 @@ import {
   type RuntimeResult,
   type Value_Callable,
   type ValueTypeName,
-} from "./values";
+} from "../values";
 
 export const builtinScope: Scope = {
   "or/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
