@@ -16,8 +16,7 @@ import {
 import {
   callRegularFunction,
   callValue,
-  evaluate,
-  type EvaluatedLazyValue,
+  delazy,
   getTypeNameOfValue,
   type LazyValue,
   lazyValue_captured,
@@ -27,6 +26,7 @@ import {
   lazyValue_list,
   lazyValue_literal,
   type RuntimeResult,
+  type YieldedLazyValue,
 } from "./values";
 
 export interface RandomGenerator {
@@ -45,7 +45,7 @@ export type EitherJSValueOrError = [JSValue, null] | [null, RuntimeError];
 export class Runtime {
   private readonly _root: Node;
 
-  private _final: EvaluatedLazyValue | null = null;
+  private _final: YieldedLazyValue | null = null;
   get executed() {
     return this._final !== null;
   }
@@ -59,21 +59,21 @@ export class Runtime {
     this._rng = opts.rng;
     this._functionRuntime = {
       // value 都会是新的，因此没必要 reevaluate
-      evaluate: (scope, node) => this._eval(scope, node, false),
+      interpret: (scope, node) => this._interpret(scope, node, false),
       random: this._rng,
     };
   }
 
   // TODO: return { representation } & ( { value } | { runtimeError } | { unknownError } )
   executeAndTranslate(): EitherJSValueOrError {
-    const value = this.execute();
+    const value = this._interpretRoot();
     const [jsValue, err] = this._finalize(value);
     if (err) return [null, err];
     return [jsValue, null];
   }
 
   private _finalize(value: LazyValue): EitherJSValueOrError {
-    const concrete = evaluate(value, false).concrete;
+    const concrete = delazy(value, false).concrete;
     if ("error" in concrete.value) {
       return [null, concrete.value.error];
     }
@@ -108,18 +108,18 @@ export class Runtime {
     return [resultList, null];
   }
 
-  execute(): EvaluatedLazyValue {
+  private _interpretRoot(): YieldedLazyValue {
     if (this.executed) {
       throw new Unimplemented();
     }
-    const final = this._eval(builtinScope, this._root, false);
-    this._final = evaluate(final, false);
+    const final = this._interpret(builtinScope, this._root, false);
+    this._final = delazy(final, false);
     return this._final;
   }
 
-  private _eval(scope: Scope, node: Node, reevaluate: boolean): LazyValue {
+  private _interpret(scope: Scope, node: Node, reevaluate: boolean): LazyValue {
     if (typeof node === "string") {
-      return this._evalIdentifier(scope, node);
+      return this._interpretIdentifier(scope, node);
     }
     switch (node.kind) {
       case "value": {
@@ -128,26 +128,26 @@ export class Runtime {
         }
         switch (node.value.valueKind) {
           case "list": {
-            return this._evalList(scope, node.value, reevaluate);
+            return this._interpretList(scope, node.value, reevaluate);
           }
           case "closure":
-            return this._evalClosure(scope, node.value);
+            return this._interpretClosure(scope, node.value);
           case "captured":
-            return this._evalCaptured(scope, node.value);
+            return this._interpretCaptured(scope, node.value);
           default:
             throw new Unreachable();
         }
       }
       case "regular_call":
-        return this._evaluateRegularCall(scope, node);
+        return this._interpretRegularCall(scope, node);
       case "value_call":
-        return this._evaluateValueCall(scope, node, reevaluate);
+        return this._interpretValueCall(scope, node, reevaluate);
       default:
         throw new Unreachable();
     }
   }
 
-  private _evalIdentifier(scope: Scope, ident: string): LazyValue {
+  private _interpretIdentifier(scope: Scope, ident: string): LazyValue {
     // FIXME: 为什么 `_` 有可能在 scope 里（虽然是 `undefined`）？
     if (ident in scope && scope[ident] !== undefined) {
       const thingInScope = scope[ident];
@@ -161,17 +161,20 @@ export class Runtime {
     }
   }
 
-  private _evalList(
+  private _interpretList(
     scope: Scope,
     list: NodeValue_List,
     reevaluate: boolean,
   ): LazyValue {
     return lazyValue_list(
-      list.member.map((x) => this._eval(scope, x, reevaluate)),
+      list.member.map((x) => this._interpret(scope, x, reevaluate)),
     );
   }
 
-  private _evalClosure(scope: Scope, closure: NodeValue_Closure): LazyValue {
+  private _interpretClosure(
+    scope: Scope,
+    closure: NodeValue_Closure,
+  ): LazyValue {
     return lazyValue_closure(
       closure.parameterIdentifiers,
       closure.body,
@@ -180,7 +183,7 @@ export class Runtime {
     );
   }
 
-  private _evalCaptured(
+  private _interpretCaptured(
     scope: Scope,
     captured: NodeValue_Captured,
   ): LazyValue {
@@ -192,11 +195,13 @@ export class Runtime {
     );
   }
 
-  private _evaluateRegularCall(
+  private _interpretRegularCall(
     scope: Scope,
     regularCall: Node_RegularCall,
   ): LazyValue {
-    const args = regularCall.args.map((arg) => this._eval(scope, arg, true));
+    const args = regularCall.args.map((arg) =>
+      this._interpret(scope, arg, true)
+    );
     return callRegularFunction(
       scope,
       regularCall.name,
@@ -206,13 +211,13 @@ export class Runtime {
     );
   }
 
-  private _evaluateValueCall(
+  private _interpretValueCall(
     scope: Scope,
     valueCall: Node_ValueCall,
     reevaluate: boolean,
   ): LazyValue {
-    const callee = this._eval(scope, valueCall.variable, reevaluate);
-    const args = valueCall.args.map((arg) => this._eval(scope, arg, true));
+    const callee = this._interpret(scope, valueCall.variable, reevaluate);
+    const args = valueCall.args.map((arg) => this._interpret(scope, arg, true));
     return callValue(callee, args, valueCall.style, reevaluate);
   }
 }
@@ -225,6 +230,6 @@ export type RegularFunction = (
 ) => RuntimeResult<LazyValue>;
 
 export interface FunctionRuntime {
-  evaluate: (scope: Scope, node: Node) => LazyValue; // TODO: 似乎没必要？
+  interpret: (scope: Scope, node: Node) => LazyValue; // TODO: 似乎没必要？
   random: RandomGenerator;
 }

@@ -14,7 +14,7 @@ import {
 } from "./runtime_errors";
 import {
   callCallable,
-  evaluate,
+  delazy,
   getTypeNameOfValue,
   type LazyValue,
   lazyValue_literal,
@@ -77,7 +77,7 @@ export const builtinScope: Scope = {
 
     const list: LazyValue[] = Array(count);
     for (let i = 0; i < count; i++) {
-      list[i] = { _evaluate: () => ({ lazy: evaluate(body, true) }) };
+      list[i] = { _yield: () => ({ lazy: delazy(body, true) }) };
     }
 
     return { ok: { value: list, pure: false } };
@@ -482,7 +482,7 @@ function filter(
   for (const el of list) {
     const result = callCallable(callable, [el]);
     if ("error" in result) return result;
-    const concrete = evaluate(result.ok, false).concrete;
+    const concrete = delazy(result.ok, false).concrete;
     if ("error" in concrete.value) return concrete.value;
     const value = concrete.value.ok;
 
