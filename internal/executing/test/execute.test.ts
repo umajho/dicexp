@@ -437,7 +437,7 @@ describe("运算符", () => {
       binaryOperatorOnlyAcceptsNumbers("%");
     });
 
-    describe("#/1", () => {
+    describe("#/2", () => {
       describe("将右侧内容在 eval 前重复左侧次", () => {
         it("重复字面量", () => {
           assertExecutionOk("3#10", Array(3).fill(10));
