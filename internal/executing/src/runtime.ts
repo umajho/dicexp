@@ -8,19 +8,26 @@ import type {
   NodeValue_List,
 } from "@dicexp/nodes";
 import { builtinScope } from "./builtin_functions";
-import { RuntimeError, RuntimeError_UnknownVariable } from "./runtime_errors";
 import {
-  type EitherStepOrError,
-  type EitherValueOrError,
-  Step,
-  Step_Final,
-  Step_Identifier,
-  Step_Literal,
-  Step_LiteralList,
-  Step_RegularCall,
-  Step_ValueCall,
-} from "./steps";
-import { type Value, Value_Captured, Value_Closure } from "./values";
+  RuntimeError,
+  RuntimeError_BadFinalResult,
+  RuntimeError_UnknownVariable,
+} from "./runtime_errors";
+import {
+  callRegularFunction,
+  callValue,
+  evaluate,
+  type EvaluatedLazyValue,
+  getTypeNameOfValue,
+  type LazyValue,
+  lazyValue_captured,
+  lazyValue_closure,
+  lazyValue_error,
+  lazyValue_identifier,
+  lazyValue_list,
+  lazyValue_literal,
+  type RuntimeResult,
+} from "./values";
 
 export interface RandomGenerator {
   uint32(): number;
@@ -29,7 +36,7 @@ export interface RandomGenerator {
 export interface RuntimeOptions {
   rng: RandomGenerator;
   // TODO: timeout
-  // TODO: noSteps
+  // TODO: noRepresentations
 }
 
 export type JSValue = number | boolean | JSValue[];
@@ -38,9 +45,9 @@ export type EitherJSValueOrError = [JSValue, null] | [null, RuntimeError];
 export class Runtime {
   private readonly _root: Node;
 
-  private _finalStep: Step | null = null;
+  private _final: EvaluatedLazyValue | null = null;
   get executed() {
-    return this._finalStep !== null;
+    return this._final !== null;
   }
 
   private _rng: RandomGenerator;
@@ -51,64 +58,77 @@ export class Runtime {
     this._root = root;
     this._rng = opts.rng;
     this._functionRuntime = {
-      evaluate: (scope, node) => this._eval(scope, node),
+      // value 都会是新的，因此没必要 reevaluate
+      evaluate: (scope, node) => this._eval(scope, node, false),
       random: this._rng,
     };
   }
 
-  executeAndTranslate(): [JSValue, null] | [null, RuntimeError] {
-    const [value, err] = this.execute();
+  // TODO: return { representation } & ( { value } | { runtimeError } | { unknownError } )
+  executeAndTranslate(): EitherJSValueOrError {
+    const value = this.execute();
+    const [jsValue, err] = this._finalize(value);
     if (err) return [null, err];
-    return [this.translate(value), null];
+    return [jsValue, null];
   }
 
-  translate(value: Value): JSValue {
-    switch (typeof value) {
+  private _finalize(value: LazyValue): EitherJSValueOrError {
+    const concrete = evaluate(value, false).concrete;
+    if ("error" in concrete.value) {
+      return [null, concrete.value.error];
+    }
+    const okValue = concrete.value.ok;
+
+    switch (typeof okValue) {
       case "number":
       case "boolean":
-        return value;
+        return [okValue, null];
       default:
-        if (Array.isArray(value)) return this._translateList(value);
-        // 经过 Step_Final，Closure 和 Captured 不会出现；
-        // Calling 也不应该出现在这里
-        throw new Unreachable();
+        if (Array.isArray(okValue)) return this._finalizeList(okValue);
+        return [
+          null,
+          new RuntimeError_BadFinalResult(getTypeNameOfValue(okValue)),
+        ];
     }
   }
 
-  private _translateList(list: Step[]): JSValue {
+  private _finalizeList(list: LazyValue[]): EitherJSValueOrError {
     const resultList: JSValue = Array(list.length);
     for (const [i, elem] of list.entries()) {
-      if (Array.isArray(elem)) {
-        resultList[i] = this._translateList(elem);
-      } else {
-        const [value, err] = elem.result;
-        if (err) throw new Unreachable();
-        resultList[i] = this.translate(value);
-      }
+      let [v, err] = (() => {
+        if (Array.isArray(elem)) {
+          return this._finalizeList(elem);
+        } else {
+          return this._finalize(elem);
+        }
+      })();
+      if (err) return [null, err];
+      resultList[i] = v!;
     }
-    return resultList;
+    return [resultList, null];
   }
 
-  execute(): EitherValueOrError {
+  execute(): EvaluatedLazyValue {
     if (this.executed) {
       throw new Unimplemented();
     }
-    this._finalStep = new Step_Final(this._eval(builtinScope, this._root));
-    return this._finalStep.result;
+    const final = this._eval(builtinScope, this._root, false);
+    this._final = evaluate(final, false);
+    return this._final;
   }
 
-  private _eval(scope: Scope, node: Node): Step {
+  private _eval(scope: Scope, node: Node, reevaluate: boolean): LazyValue {
     if (typeof node === "string") {
       return this._evalIdentifier(scope, node);
     }
     switch (node.kind) {
       case "value": {
         if (typeof node.value === "number" || typeof node.value === "boolean") {
-          return new Step_Literal(node.value);
+          return lazyValue_literal(node.value);
         }
         switch (node.value.valueKind) {
           case "list": {
-            return this._evalList(scope, node.value);
+            return this._evalList(scope, node.value, reevaluate);
           }
           case "closure":
             return this._evalClosure(scope, node.value);
@@ -121,59 +141,63 @@ export class Runtime {
       case "regular_call":
         return this._evaluateRegularCall(scope, node);
       case "value_call":
-        return this._evaluateValueCall(scope, node);
+        return this._evaluateValueCall(scope, node, reevaluate);
       default:
         throw new Unreachable();
     }
   }
 
-  private _evalIdentifier(scope: Scope, ident: string): Step_Identifier {
+  private _evalIdentifier(scope: Scope, ident: string): LazyValue {
     // FIXME: 为什么 `_` 有可能在 scope 里（虽然是 `undefined`）？
     if (ident in scope && scope[ident] !== undefined) {
-      const stepInScope = scope[ident];
-      if (typeof stepInScope === "function") throw new Unreachable();
-      return new Step_Identifier(ident, stepInScope);
+      const thingInScope = scope[ident];
+      if (typeof thingInScope === "function") throw new Unreachable();
+      return lazyValue_identifier(thingInScope, ident);
     } else {
       // FIXME: 这种情况应该 eager，因为有没有变量这里就能决定了
       // 也许可以在执行前检查下每个 scope 里的标识符、通常函数名是否存在于 scope 之中？
       const err = new RuntimeError_UnknownVariable(ident);
-      return new Step_Identifier(ident, err);
+      return lazyValue_identifier(lazyValue_error(err), ident);
     }
   }
 
-  private _evalList(scope: Scope, list: NodeValue_List): Step_LiteralList {
-    return new Step_LiteralList(list.member.map((x) => this._eval(scope, x)));
+  private _evalList(
+    scope: Scope,
+    list: NodeValue_List,
+    reevaluate: boolean,
+  ): LazyValue {
+    return lazyValue_list(
+      list.member.map((x) => this._eval(scope, x, reevaluate)),
+    );
   }
 
-  private _evalClosure(scope: Scope, closure: NodeValue_Closure): Step_Literal {
-    const closureValue = new Value_Closure(
-      scope,
+  private _evalClosure(scope: Scope, closure: NodeValue_Closure): LazyValue {
+    return lazyValue_closure(
       closure.parameterIdentifiers,
       closure.body,
+      scope,
       this._functionRuntime,
     );
-    return new Step_Literal(closureValue);
   }
 
   private _evalCaptured(
     scope: Scope,
     captured: NodeValue_Captured,
-  ): Step_Literal {
-    const capturedValue = new Value_Captured(
-      scope,
+  ): LazyValue {
+    return lazyValue_captured(
       captured.identifier,
       captured.forceArity,
+      scope,
       this._functionRuntime,
     );
-    return new Step_Literal(capturedValue);
   }
 
   private _evaluateRegularCall(
     scope: Scope,
     regularCall: Node_RegularCall,
-  ): Step_RegularCall {
-    const args = regularCall.args.map((arg) => this._eval(scope, arg));
-    return new Step_RegularCall(
+  ): LazyValue {
+    const args = regularCall.args.map((arg) => this._eval(scope, arg, true));
+    return callRegularFunction(
       scope,
       regularCall.name,
       args,
@@ -185,25 +209,22 @@ export class Runtime {
   private _evaluateValueCall(
     scope: Scope,
     valueCall: Node_ValueCall,
-  ): Step_ValueCall {
-    const callee = this._eval(scope, valueCall.variable);
-    const args = valueCall.args.map((arg) => this._eval(scope, arg));
-    return new Step_ValueCall(callee, args);
+    reevaluate: boolean,
+  ): LazyValue {
+    const callee = this._eval(scope, valueCall.variable, reevaluate);
+    const args = valueCall.args.map((arg) => this._eval(scope, arg, true));
+    return callValue(callee, args, valueCall.style, reevaluate);
   }
 }
 
-export type Scope = { [ident: string]: RegularFunction | Step };
-
-export type RegularFunctionReturnValue =
-  | EitherStepOrError
-  | { result: EitherStepOrError; replacingStep: Step };
+export type Scope = { [ident: string]: RegularFunction | LazyValue };
 
 export type RegularFunction = (
-  args: Step[],
+  args: LazyValue[],
   rtm: FunctionRuntime,
-) => RegularFunctionReturnValue;
+) => RuntimeResult<LazyValue>;
 
 export interface FunctionRuntime {
-  evaluate: (scope: Scope, node: Node) => Step; // TODO: 似乎没必要？
+  evaluate: (scope: Scope, node: Node) => LazyValue; // TODO: 似乎没必要？
   random: RandomGenerator;
 }

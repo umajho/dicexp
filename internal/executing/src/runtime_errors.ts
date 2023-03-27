@@ -1,4 +1,3 @@
-import type { ExpectedValueTypeName } from "./builtin_function_helpers";
 import { Unreachable } from "./errors";
 import type { ValueTypeName } from "./values";
 
@@ -23,12 +22,12 @@ export class RuntimeError_WrongArity extends RuntimeError {
 }
 
 export class RuntimeError_TypeMismatch extends RuntimeError {
-  readonly expectedType: ExpectedValueTypeName[];
+  readonly expectedType: ValueTypeName[];
   readonly actualType: ValueTypeName;
   readonly kind: null | "list-inconsistency";
 
   constructor(
-    expectedType: ExpectedValueTypeName | ExpectedValueTypeName[],
+    expectedType: ValueTypeName | ValueTypeName[],
     actualType: ValueTypeName,
     kind: RuntimeError_TypeMismatch["kind"] = null,
   ) {
@@ -59,12 +58,12 @@ export class RuntimeError_TypeMismatch extends RuntimeError {
 
 export class RuntimeError_CallArgumentTypeMismatch extends RuntimeError {
   readonly position: number;
-  readonly expectedType: ExpectedValueTypeName[];
+  readonly expectedType: ValueTypeName[];
   readonly actualType: ValueTypeName;
 
   constructor(
     position: number,
-    expectedType: ExpectedValueTypeName | ExpectedValueTypeName[],
+    expectedType: ValueTypeName | ValueTypeName[],
     actualType: ValueTypeName,
   ) {
     super();
@@ -102,7 +101,7 @@ export class RuntimeError_IllegalOperation extends RuntimeError {
 
 // TODO: 给出可能的推荐，比如同名不同 arity 或名称相似的标识符。
 //       也许可以用 `npm:string-similarity`
-export class RuntimeError_UnknownFunction extends RuntimeError {
+export class RuntimeError_UnknownRegularFunction extends RuntimeError {
   readonly name: string;
 
   constructor(name: string) {
@@ -111,7 +110,7 @@ export class RuntimeError_UnknownFunction extends RuntimeError {
   }
 
   get message() {
-    return `名为 \`${this.name}\` 的函数并不存在`;
+    return `名为 \`${this.name}\` 的通常函数并不存在`;
   }
 }
 
@@ -130,16 +129,9 @@ export class RuntimeError_UnknownVariable extends RuntimeError {
   }
 }
 
-export class RuntimeError_NotCallable extends RuntimeError {
-  readonly name: string;
-
-  constructor(name: string) {
-    super();
-    this.name = name;
-  }
-
+export class RuntimeError_ValueIsNotCallable extends RuntimeError {
   get message() {
-    return `\`${this.name}\` 不可调用`;
+    return `尝试调用不可被调用的值`;
   }
 }
 
@@ -169,7 +161,7 @@ export class RuntimeError_BadFinalResult extends RuntimeError {
   }
 }
 
-export function getTypeDisplayName(name: ExpectedValueTypeName) {
+export function getTypeDisplayName(name: ValueTypeName) {
   switch (name) {
     case "number":
       return "整数";
@@ -177,14 +169,12 @@ export function getTypeDisplayName(name: ExpectedValueTypeName) {
       return "布尔";
     case "list":
       return "列表";
-    case "closure":
-      return "匿名函数";
-    case "captured":
-      return "被捕获的通常函数";
-    case "calling":
-      return "【内部实现泄漏】调用中";
+    // case "closure":
+    //   return "匿名函数";
+    // case "captured":
+    //   return "被捕获的通常函数";
     case "callable":
-      return "【内部实现泄漏】可调用的";
+      return "可调用的";
     default:
       return `【内部实现泄漏】未知（${name}）`;
   }

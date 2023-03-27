@@ -1,4 +1,3 @@
-// import inspect from "browser-util-inspect";
 import {
   flattenListAll,
   makeFunction,
@@ -14,26 +13,24 @@ import {
   RuntimeError_IllegalOperation,
 } from "./runtime_errors";
 import {
-  type EitherStepOrError,
-  type GeneratorCallback,
-  Step,
-  Step_Plain,
-} from "./steps";
-import {
+  callCallable,
+  evaluate,
   getTypeNameOfValue,
-  Value_Callable,
-  Value_Generating,
+  type LazyValue,
+  lazyValue_literal,
+  type RuntimeResult,
+  type Value_Callable,
   type ValueTypeName,
 } from "./values";
 
 export const builtinScope: Scope = {
   "or/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
     const [left, right] = args as [boolean, boolean];
-    return [left || right, null];
+    return { ok: { value: left || right, pure: true } };
   }),
   "and/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
     const [left, right] = args as [boolean, boolean];
-    return [left && right, null];
+    return { ok: { value: left && right, pure: true } };
   }),
 
   "==/2": makeFunction(
@@ -41,9 +38,9 @@ export const builtinScope: Scope = {
     (args, _rtm) => {
       const [left, right] = args as [boolean, boolean] | [number, number];
       if (typeof left !== typeof right) {
-        return [null, error_LeftRightTypeMismatch("==")];
+        return { error: error_LeftRightTypeMismatch("==") };
       }
-      return [left === right, null];
+      return { ok: { value: left === right, pure: true } };
     },
   ),
   "!=/2": makeFunction(
@@ -51,103 +48,90 @@ export const builtinScope: Scope = {
     (args, _rtm) => {
       const [left, right] = args as [boolean, boolean] | [number, number];
       if (typeof left !== typeof right) {
-        return [null, error_LeftRightTypeMismatch("!=")];
+        return { error: error_LeftRightTypeMismatch("!=") };
       }
-      return [left !== right, null];
+      return { ok: { value: left !== right, pure: true } };
     },
   ),
 
   "</2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
-    return [left < right, null];
+    return { ok: { value: left < right, pure: true } };
   }),
   ">/2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
-    return [left > right, null];
+    return { ok: { value: left > right, pure: true } };
   }),
   "<=/2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
-    return [left <= right, null];
+    return { ok: { value: left <= right, pure: true } };
   }),
   ">=/2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
-    return [left >= right, null];
+    return { ok: { value: left >= right, pure: true } };
   }),
 
-  // #/2
-  "#/2": (_args, _rtm) => {
-    const [_count, errCount] = unwrapValue("number", _args[0]);
-    if (errCount) return [null, errCount];
-    const count = _count as number;
+  // TODO: 真正实现
+  "#/2": makeFunction(["number", "lazy"], (args, _rtm) => {
+    const [count, body] = args as [number, LazyValue];
 
-    // TODO: 如果右侧是 Step_Generate，则仍返回 Step_Generate
-    const seq: Step[] = Array(count);
-    const template: Step = _args[1];
+    const list: LazyValue[] = Array(count);
     for (let i = 0; i < count; i++) {
-      const [itemValue, errItemValue] = unwrapValue("*", template.clone());
-      // TODO: 包装 error
-      if (errItemValue) [null, errItemValue];
-      seq[i] = new Step_Plain(itemValue!);
+      list[i] = { _evaluate: () => ({ lazy: evaluate(body, true) }) };
     }
 
-    return [new Step_Plain(seq), null];
-  },
+    return { ok: { value: list, pure: false } };
+  }),
 
+  // TODO: 真正实现
   "~/2": makeFunction(["number", "number"], (args, rtm) => {
     const bounds = args.sort() as [number, number];
 
-    const cb: GeneratorCallback = {
-      kind: "simple_number",
-      fn: () => generateRandomNumber(rtm.random, bounds),
+    return {
+      ok: { value: generateRandomNumber(rtm.random, bounds), pure: false },
     };
-    const g = new Value_Generating("sum", 1, "integer", cb, bounds);
-    // FIXME: replacingStep: new Step_CreateGenerator(…)
-    //        包括 ~/1、d/2、d%/2、d/1、d%/1 也都需要。
-    return [g, null];
   }),
+  // TODO: 真正实现
   "~/1": makeFunction(["number"], (args, rtm) => {
     const [right] = args as [number];
     const errRange = ensureUpperBound("~", null, 1, right);
-    if (errRange) return [null, errRange];
+    if (errRange) return { error: errRange };
     const bounds: [number, number] = [1, right];
 
-    const cb: GeneratorCallback = {
-      kind: "simple_number",
-      fn: () => generateRandomNumber(rtm.random, bounds),
+    return {
+      ok: { value: generateRandomNumber(rtm.random, bounds), pure: false },
     };
-    const g = new Value_Generating("sum", 1, "integer", cb, bounds);
-    return [g, null];
   }),
 
   "+/2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
-    return [left + right, null];
+    return { ok: { value: left + right, pure: true } };
   }),
   "-/2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
-    return [left - right, null];
+    return { ok: { value: left - right, pure: true } };
   }),
   "+/1": makeFunction(["number"], (args, _rtm) => {
     const [right] = args as [number];
-    return [+right, null];
+    return { ok: { value: +right, pure: true } };
   }),
   "-/1": makeFunction(["number"], (args, _rtm) => {
     const [right] = args as [number];
-    return [-right, null];
+    return { ok: { value: -right, pure: true } };
   }),
 
   "*/2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
-    return [left * right, null];
+    return { ok: { value: left * right, pure: true } };
   }),
   "///2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
     if (right === 0) {
       const opRendered = renderOperation("//", `${left}`, `${right}`);
       const reason = "除数不能为零";
-      return [null, new RuntimeError_IllegalOperation(opRendered, reason)];
+      return { error: new RuntimeError_IllegalOperation(opRendered, reason) };
     }
-    return [left / right | 0, null];
+    return { ok: { value: left / right | 0, pure: true } };
   }),
   "%/2": makeFunction(["number", "number"], (args, _rtm) => {
     const [left, right] = args as [number, number];
@@ -155,69 +139,69 @@ export const builtinScope: Scope = {
       const leftText = left < 0 ? `(${left})` : `${left}`;
       const opRendered = renderOperation("%", leftText, `${right}`);
       const reason = "被除数不能为负数";
-      return [null, new RuntimeError_IllegalOperation(opRendered, reason)];
+      return { error: new RuntimeError_IllegalOperation(opRendered, reason) };
     } else if (right <= 0) {
       const leftText = left < 0 ? `(${left})` : `${left}`;
       const opRendered = renderOperation("%", leftText, `${right}`);
       const reason = "除数必须为正数";
-      return [null, new RuntimeError_IllegalOperation(opRendered, reason)];
+      return { error: new RuntimeError_IllegalOperation(opRendered, reason) };
     }
-    return [(left | 0) % right, null];
+    return { ok: { value: (left | 0) % right, pure: true } };
   }),
 
+  // TODO: 真正实现
   "d/2": makeFunction(["number", "number"], (args, rtm) => {
     const [n, right] = args as [number, number];
     const errRange = ensureUpperBound("d", 1, 1, right);
-    if (errRange) return [null, errRange];
+    if (errRange) return { error: errRange };
     const bounds: [number, number] = [1, right];
 
-    const cb: GeneratorCallback = {
-      kind: "simple_number",
-      fn: () => generateRandomNumber(rtm.random, bounds),
-    };
-    const g = new Value_Generating("sum", n, "integer", cb, bounds);
-    return [g, null];
+    let value = 0;
+    for (let i = 0; i < n; i++) {
+      value += generateRandomNumber(rtm.random, bounds);
+    }
+    return { ok: { value, pure: false } };
   }),
+  // TODO: 真正实现
   "d/1": makeFunction(["number"], (args, rtm) => { // TODO: makeUnaryRedirection("d", 1)
     const [right] = args as [number];
     const errRange = ensureUpperBound("d", 1, 1, right);
-    if (errRange) return [null, errRange];
+    if (errRange) return { error: errRange };
     const bounds: [number, number] = [1, right];
 
-    const cb: GeneratorCallback = {
-      kind: "simple_number",
-      fn: () => generateRandomNumber(rtm.random, bounds),
-    };
-    const g = new Value_Generating("sum", 1, "integer", cb, bounds);
-    return [g, null];
+    let value = 0;
+    for (let i = 0; i < 1; i++) {
+      value += generateRandomNumber(rtm.random, bounds);
+    }
+    return { ok: { value, pure: false } };
   }),
+  // TODO: 真正实现
   "d%/2": makeFunction(["number", "number"], (args, rtm) => {
     const [n, right] = args as [number, number];
     const actualText = `${right}-1=${right - 1}`;
     const errRange = ensureUpperBound("d%", 1, 0, right - 1, actualText);
-    if (errRange) return [null, errRange];
+    if (errRange) return { error: errRange };
     const bounds: [number, number] = [0, right - 1];
 
-    const cb: GeneratorCallback = {
-      kind: "simple_number",
-      fn: () => generateRandomNumber(rtm.random, bounds),
-    };
-    const g = new Value_Generating("sum", n, "integer", cb, bounds);
-    return [g, null];
+    let value = 0;
+    for (let i = 0; i < n; i++) {
+      value += generateRandomNumber(rtm.random, bounds);
+    }
+    return { ok: { value, pure: false } };
   }),
+  // TODO: 真正实现
   "d%/1": makeFunction(["number"], (args, rtm) => { // TODO: makeUnaryRedirection("d%", 1)
     const [right] = args as [number];
     const actualText = `${right}-1=${right - 1}`;
     const errRange = ensureUpperBound("d%", 1, 0, right - 1, actualText);
-    if (errRange) return [null, errRange];
+    if (errRange) return { error: errRange };
     const bounds: [number, number] = [0, right - 1];
 
-    const cb: GeneratorCallback = {
-      kind: "simple_number",
-      fn: () => generateRandomNumber(rtm.random, bounds),
-    };
-    const g = new Value_Generating("sum", 1, "integer", cb, bounds);
-    return [g, null];
+    let value = 0;
+    for (let i = 0; i < 1; i++) {
+      value += generateRandomNumber(rtm.random, bounds);
+    }
+    return { ok: { value, pure: false } };
   }),
 
   "^/2": makeFunction(["number", "number"], (args, _rtm) => {
@@ -225,14 +209,14 @@ export const builtinScope: Scope = {
     if (right < 0) {
       const opRendered = renderOperation("^", `${left}`, `${right}`);
       const reason = "指数不能为负数";
-      return [null, new RuntimeError_IllegalOperation(opRendered, reason)];
+      return { error: new RuntimeError_IllegalOperation(opRendered, reason) };
     }
-    return [left ** right, null];
+    return { ok: { value: left ** right, pure: true } };
   }),
 
   "not/1": makeFunction(["boolean"], (args, _rtm) => {
     const [right] = args as [boolean];
-    return [!right, null];
+    return { ok: { value: !right, pure: true } };
   }),
   //
 
@@ -243,56 +227,83 @@ export const builtinScope: Scope = {
   // 实用：
   // abs/1
   // count/1
-  "count/2": makeFunction(["list", "callable"], (args, _rtm) => { // FIXME: 步骤丢失
-    const [list, callable] = args as [Step[], Value_Callable];
-    const [result, err] = filter(list, callable);
-    if (err) return [null, err];
-    return [result.length, null];
+  "count/2": makeFunction(["list", "callable"], (args, _rtm) => {
+    const [list, callable] = args as [LazyValue[], Value_Callable];
+    const result = filter(list, callable);
+    if ("error" in result) return result;
+    return { ok: { value: result.ok.length, pure: true } };
   }),
   // has?/2
   "sum/1": makeFunction(["list"], ([list_], _rtm) => {
-    const [flatten_, err] = flattenListAll("number", list_ as Step[]);
-    if (err) return [null, err];
-    return [(flatten_ as number[]).reduce((acc, cur) => acc + cur), null];
+    const result = flattenListAll("number", list_ as LazyValue[]);
+    if ("error" in result) return result;
+    return {
+      ok: {
+        value: (result.ok.values as number[]).reduce((acc, cur) => acc + cur),
+        pure: !result.ok.volatile,
+      },
+    };
   }),
   "product/1": makeFunction(["list"], ([list_], _rtm) => {
-    const [flatten_, err] = flattenListAll("number", list_ as Step[]);
-    if (err) return [null, err];
-    return [(flatten_ as number[]).reduce((acc, cur) => acc * cur), null];
+    const result = flattenListAll("number", list_ as LazyValue[]);
+    if ("error" in result) return result;
+    return {
+      ok: {
+        value: (result.ok.values as number[]).reduce((acc, cur) => acc * cur),
+        pure: !result.ok.volatile,
+      },
+    };
   }),
   // min/1
   // max/1
   // all?/1
   "any?/1": makeFunction(["list"], ([list_], _rtm) => {
-    const [unwrappedList, err] = unwrapListOneOf(["boolean"], list_ as Step[]);
-    if (err) return [null, err];
-    return [unwrappedList.some((x) => x), null];
+    const result = unwrapListOneOf(["boolean"], list_ as LazyValue[]);
+    if ("error" in result) return result;
+    return {
+      ok: {
+        value: result.ok.values.some((x) => x),
+        pure: result.ok.volatile,
+      },
+    };
   }),
   "sort/1": makeFunction(["list"], ([list_], _rtm) => {
     const allowedTypes = ["number", "boolean"] as ValueTypeName[];
-    const [list__, err] = unwrapListOneOf(allowedTypes, list_ as Step[]);
-    if (err) return [null, err];
-    const list = list__ as number[] | boolean[];
-    const sortedList = (list).sort((a, b) => +a - +b);
-    return [sortedList.map((el) => new Step_Plain(el)), null];
+    const result = unwrapListOneOf(allowedTypes, list_ as LazyValue[]);
+    if ("error" in result) return result;
+    const list = result.ok.values as number[] | boolean[];
+    const sortedList = list.sort((a, b) => +a - +b);
+    return {
+      ok: {
+        value: sortedList.map((el) => lazyValue_literal(el)),
+        pure: !result.ok.volatile,
+      },
+    };
   }),
   // sort/2
   // reverse/1
   // concat/2
   // prepend/2
-  "append/2": makeFunction(["list", "*"], ([list_, el], _rtm) => { // FIXME: 失去 laziness
-    return [[...(list_ as Step[]), new Step_Plain(el)], null];
+  "append/2": makeFunction(["list", "lazy"], ([list_, el], _rtm) => {
+    return {
+      ok: {
+        value: [...(list_ as LazyValue[]), el as LazyValue],
+        // FIXME: 目前无法在不失去惰性的前提下确定返回值是否多变，
+        //        而是暂时假定多变。
+        //        以列表作为输入而不求值的函数都有这个问题，就不一一标记了
+        pure: false,
+      },
+    };
   }),
-  "at/2": makeFunction(["list", "number"], (args, _rtm) => { // FIXME: 失去 laziness
-    const [list, i] = args as [Step[], number];
+  "at/2": makeFunction(["list", "number"], (args, _rtm) => {
+    const [list, i] = args as [LazyValue[], number];
     if (i >= list.length || i < 0) {
       const err = new RuntimeError(
         `访问列表越界：列表大小为 ${list.length}，提供的索引为 ${i}`,
       );
-      return [null, err];
+      return { error: err };
     }
-    const el = list[i];
-    return el.result;
+    return { ok: { lazy: list[i] } };
   }),
   // at/3
   // duplicate/2
@@ -300,29 +311,39 @@ export const builtinScope: Scope = {
   // flattenAll/1
 
   // 函数式：
-  "map/2": makeFunction(["list", "callable"], (args, _rtm) => { // FIXME: 步骤丢失
-    const [list, callable] = args as [Step[], Value_Callable];
-    const result = list.map((el) => new Step_Plain(callable.makeCalling([el])));
-    return [result, null];
+  "map/2": makeFunction(["list", "callable"], (args, _rtm) => {
+    // FIXME: 列表本身的产生也应该是惰性的
+    //        （应该支持应用于无限长度的生成序列）
+    //        同样的还有 `#`、`zip` 等函数
+    const [list, callable] = args as [LazyValue[], Value_Callable];
+    const resultList: LazyValue[] = Array(list.length);
+    for (let i = 0; i < list.length; i++) {
+      const callResult = callCallable(callable, [list[i]]);
+      if ("error" in callResult) return callResult;
+      resultList[i] = callResult.ok;
+    }
+    return { ok: { value: resultList, pure: false } };
   }),
   // flatMap/2
-  "filter/2": makeFunction(["list", "callable"], (args, _rtm) => { // FIXME: 步骤丢失
-    const [list, callable] = args as [Step[], Value_Callable];
-    const [result, err] = filter(list, callable);
-    if (err) return [null, err];
-    return [result, null];
+  "filter/2": makeFunction(["list", "callable"], (args, _rtm) => {
+    // FIXME: 应该展现对每个值的过滤步骤
+    // FIXME: 应该惰性求值
+    const [list, callable] = args as [LazyValue[], Value_Callable];
+    const filterResult = filter(list, callable);
+    if ("error" in filterResult) return filterResult;
+    return { ok: { value: filterResult.ok, pure: false } };
   }),
   // foldl/3
   // foldr/3
-  "head/1": makeFunction(["list"], (args, _rtm) => { // FIXME: 失去 laziness
-    const [list] = args as [Step[]];
-    if (list.length === 0) return [null, new RuntimeError("列表为空")];
-    return list[0].result;
+  "head/1": makeFunction(["list"], (args, _rtm) => {
+    const [list] = args as [LazyValue[]];
+    if (list.length === 0) return { error: new RuntimeError("列表为空") };
+    return { ok: { lazy: list[0] } };
   }),
   "tail/1": makeFunction(["list"], (args, _rtm) => { // FIXME: 失去 laziness
-    const [list] = args as [Step[]];
-    if (list.length === 0) return [null, new RuntimeError("列表为空")];
-    return [list.slice(1), null];
+    const [list] = args as [LazyValue[]];
+    if (list.length === 0) return { error: new RuntimeError("列表为空") };
+    return { ok: { value: list.slice(1), pure: false } };
   }),
   // last/1
   // init/1
@@ -331,53 +352,53 @@ export const builtinScope: Scope = {
   // drop/2
   // dropWhile/2
   "zip/2": makeFunction(["list", "list"], (args, _rtm) => {
-    const [left, right] = args as [Step[], Step[]];
+    const [left, right] = args as [LazyValue[], LazyValue[]];
     const zippedLength = Math.min(left.length, right.length);
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
       result[i] = [left[i], right[i]];
     }
-    return [result, null];
+    return { ok: { value: result, pure: false } };
   }),
   "zipWith/3": makeFunction(["list", "list", "callable"], (args, _rtm) => {
-    const [left, right, fn] = args as [Step[], Step[], Value_Callable];
+    const [left, right, fn] = args as [
+      LazyValue[],
+      LazyValue[],
+      Value_Callable,
+    ];
     const zippedLength = Math.min(left.length, right.length);
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
-      result[i] = new Step_Plain(fn.makeCalling([left[i], right[i]]));
+      const callResult = callCallable(fn, [left[i], right[i]]);
+      if ("error" in callResult) return callResult;
+      result[i] = callResult.ok;
     }
-    return [result, null];
+    return { ok: { value: result, pure: false } };
   }),
 
   // 调试：
   // TODO: rtm.inspect 之类的
-  // FIXME: 失去了 laziness
+  // FIXME: 会将值固定住
   "inspect!/1": (args_, _rtm) => {
     const [target] = args_;
-    const [value, error] = unwrapValue("*", target);
+    const result = unwrapValue("*", target);
     if (
       "console" in globalThis && "log" in globalThis.console &&
       typeof globalThis.console.log === "function"
     ) {
-      if (error) {
-        globalThis.console.log(JSON.stringify({ error }));
+      if ("error" in result) {
+        globalThis.console.log(JSON.stringify({ error: result.error }));
       } else {
-        globalThis.console.log(JSON.stringify({ value }));
+        globalThis.console.log(JSON.stringify({ value: result.ok }));
       }
     }
-    return [target, error] as EitherStepOrError;
+    return { ok: target };
   },
 
-  "if!/3": (args_, _rtm) => { // FIXME 失去了 laziness
-    const [cond, errCond] = unwrapValue("boolean", args_[0]);
-    if (errCond) return [null, errCond];
-
-    if (cond) {
-      return [args_[1], null];
-    } else {
-      return [args_[2], null];
-    }
-  },
+  "if/3": makeFunction(["boolean", "lazy", "lazy"], (args, _rtm) => {
+    const [p, whenT, whenF] = args as [boolean, LazyValue, LazyValue];
+    return p ? { ok: { lazy: whenT } } : { ok: { lazy: whenF } };
+  }),
 };
 
 function ensureUpperBound(
@@ -454,14 +475,17 @@ export function generateRandomNumber(
 }
 
 function filter(
-  list: Step[],
+  list: LazyValue[],
   callable: Value_Callable,
-): [Step[], null] | [null, RuntimeError] {
-  const result: Step[] = [];
+): RuntimeResult<LazyValue[]> {
+  const filtered: LazyValue[] = [];
   for (const el of list) {
-    const step = new Step_Plain(callable.makeCalling([el]));
-    const [value, err] = step.result;
-    if (err) return [null, err];
+    const result = callCallable(callable, [el]);
+    if ("error" in result) return result;
+    const concrete = evaluate(result.ok, false).concrete;
+    if ("error" in concrete.value) return concrete.value;
+    const value = concrete.value.ok;
+
     if (typeof value !== "boolean") {
       const err = error_givenClosureReturnValueTypeMismatch(
         "filter/2",
@@ -469,10 +493,10 @@ function filter(
         getTypeNameOfValue(value),
         2,
       );
-      return [null, err];
+      return { error: err };
     }
     if (!value) continue;
-    result.push(el);
+    filtered.push(el);
   }
-  return [result, null];
+  return { ok: filtered };
 }

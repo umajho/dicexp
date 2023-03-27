@@ -1,202 +1,378 @@
+import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import { Unreachable } from "./errors";
-import type { Node } from "@dicexp/nodes";
-import type {
-  FunctionRuntime,
-  RegularFunctionReturnValue,
-  Scope,
-} from "./runtime";
+import type { FunctionRuntime, RegularFunction, Scope } from "./runtime";
 import {
   RuntimeError,
   RuntimeError_DuplicateClosureParameterNames,
-  RuntimeError_UnknownFunction,
+  RuntimeError_UnknownRegularFunction,
+  RuntimeError_ValueIsNotCallable,
   RuntimeError_WrongArity,
 } from "./runtime_errors";
-import {
-  type EitherValueOrError,
-  type GeneratorCallback,
-  Step,
-  Step_Generate,
-  ws,
-} from "./steps";
+import { flatten, intersperse } from "./utils";
+
+// TODO: { concrete } & ({ _evaluate } | { _yielder } | { _iterator: { _yielder, length } })
+
+export type RuntimeResult<OkType> =
+  | { ok: OkType }
+  | { error: RuntimeError };
+
+/**
+ * NOTE: LazyValue 实例的引用会一直留到渲染步骤时使用。
+ *       在渲染步骤时，会根据 concrete 是否有值来判断对应 LazyValue 是否求过值。
+ *       因此，不应该为了不可变性而在操作 LazyValue 时为其创建新的副本。
+ */
+export interface LazyValue {
+  concrete?: Concrete;
+  _evaluate?: (reevaluate: boolean) => Concrete | { lazy: LazyValue };
+
+  replacedBy?: LazyValue;
+}
+
+export interface EvaluatedLazyValue extends LazyValue {
+  concrete: Concrete;
+}
+
+/**
+ * @param v
+ * @param reevaluate
+ *  对于当前正在求值的函数而言，是否忽略之前的结果，重新求值。
+ * @returns
+ */
+export function evaluate(
+  v: LazyValue,
+  reevaluate: boolean,
+): EvaluatedLazyValue {
+  if (v.concrete) {
+    if (v.concrete.volatile && reevaluate) {
+      v = { _evaluate: v._evaluate };
+    } else {
+      return v as EvaluatedLazyValue;
+    }
+  }
+  let evaluated = v._evaluate!(reevaluate);
+  if ("lazy" in evaluated) {
+    v.replacedBy = evaluated.lazy;
+    return evaluate(evaluated.lazy, reevaluate);
+  }
+  v.concrete = evaluated;
+  return v as EvaluatedLazyValue;
+}
+
+export type Representation = (
+  | string
+  | LazyValue
+  | { c: Concrete }
+  | { v: RuntimeResult<Value> | Value }
+  | { e: RuntimeError }
+  | { n: Node }
+  | (() => Representation)
+)[];
+
+export interface Concrete {
+  value: RuntimeResult<Value>;
+  volatile: boolean;
+  representation: Representation;
+}
 
 export type Value =
   | number
   | boolean
-  | Step[]
-  | Value_Closure
-  | Value_Captured
-  | Value_Calling
-  | Value_Generating;
-export type ValueTypeName = ReturnType<typeof getTypeNameOfValue>;
+  | LazyValue[]
+  | Value_Callable;
 
-export abstract class Value_Callable {
-  abstract name: string;
-  abstract arity: number | undefined;
-  abstract makeCalling(args: Step[]): Value_Calling;
+export function lazyValue_identifier(
+  lazyValue: LazyValue,
+  ident: string,
+): LazyValue {
+  return {
+    _evaluate: (_reevaluate) => {
+      // 能通过标识符引用的值会被固定，因此 reevaluate 为 false
+      const inner = evaluate(lazyValue, false).concrete;
+      const c: Concrete = {
+        value: inner.value,
+        volatile: false,
+        // 使用 `inner.value` 是为了切断之前的 representation，以免过于冗长
+        //（而且函数调用中的参数列表已经将对应的内容展示过了）
+        representation: [`(${ident}=`, { v: inner.value }, `)`],
+      };
+      return c;
+    },
+  };
 }
 
-export type Evaluator = (args: Step[]) => RegularFunctionReturnValue;
+export function lazyValue_literal(value: Value): EvaluatedLazyValue {
+  return {
+    concrete: {
+      value: { ok: value },
+      volatile: false,
+      representation: [{ v: value }],
+    },
+  };
+}
 
-export class Value_Closure extends Value_Callable {
-  get name() {
-    return `《闭包：${getClosureId(this)}》`;
-  }
+export function lazyValue_error(
+  error: RuntimeError,
+  source?: Representation,
+): EvaluatedLazyValue {
+  return {
+    concrete: {
+      value: { error: error },
+      volatile: false,
+      representation: source
+        ? ["(", ...source, "=>", { e: error }, ")"]
+        : [{ e: error }],
+    },
+  };
+}
 
-  readonly arity;
+export function lazyValue_list(list: LazyValue[]): EvaluatedLazyValue {
+  return {
+    concrete: {
+      value: { ok: list },
+      volatile: false,
+      representation: [() => {
+        return [
+          "[",
+          ...representList(list),
+          "]",
+        ];
+      }],
+    },
+  };
+}
 
-  private _f: Evaluator;
+export interface Value_Callable {
+  type: "callable";
+  arity: number;
+  _call: (args: LazyValue[]) => RuntimeResult<LazyValue>;
+}
 
-  constructor(
-    scope: Scope,
-    parameterIdentifiers: string[],
-    body: Node,
-    runtime: FunctionRuntime,
-  ) {
-    super();
-    this.arity = parameterIdentifiers.length;
-
-    this._f = (args) => {
-      // 在 Value_Calling.call 中已经检查过了
-      if (args.length !== this.arity) throw new Unreachable();
+export function lazyValue_closure(
+  paramIdentList: string[],
+  body: Node,
+  scope: Scope,
+  runtime: FunctionRuntime,
+): EvaluatedLazyValue {
+  const arity = paramIdentList.length;
+  const closure: Value_Callable = {
+    type: "callable",
+    arity,
+    _call: (args) => {
+      if (args.length !== arity) {
+        return { error: new RuntimeError_WrongArity(arity, args.length) };
+      }
 
       const deeperScope: Scope = Object.setPrototypeOf({}, scope);
-      for (const [i, ident] of parameterIdentifiers.entries()) {
+      for (const [i, ident] of paramIdentList.entries()) {
         if (ident === "_") continue;
         if (Object.prototype.hasOwnProperty.call(deeperScope, ident)) {
-          return [null, new RuntimeError_DuplicateClosureParameterNames(ident)];
+          return {
+            error: new RuntimeError_DuplicateClosureParameterNames(ident),
+          };
         }
         deeperScope[ident] = args[i];
       }
 
-      return [runtime.evaluate(deeperScope, body), null];
-    };
-  }
+      return { ok: runtime.evaluate(deeperScope, body) };
+    },
+  };
 
-  makeCalling(args: Step[]): Value_Calling {
-    return new Value_Calling(
-      this._f,
-      this.arity,
-      args,
-    );
-  }
+  return {
+    concrete: {
+      value: { ok: closure },
+      volatile: false,
+      representation: representClosure(paramIdentList, body),
+    },
+  };
 }
 
-export class Value_Captured extends Value_Callable {
-  readonly identifier: string;
-  readonly arity: number;
+export function lazyValue_captured(
+  identifier: string,
+  arity: number,
+  scope: Scope,
+  runtime: FunctionRuntime,
+): EvaluatedLazyValue {
+  const representation = representCaptured(identifier, arity);
 
-  get name() {
-    return `&${this.identifier}/${this.arity}`;
+  const fnResult = getFunctionFromScope(scope, identifier, arity);
+  if ("error" in fnResult) {
+    return lazyValue_error(fnResult.error, representation);
   }
+  const fn = fnResult.ok;
 
-  private _f: Evaluator;
+  const captured: Value_Callable = {
+    type: "callable",
+    arity,
+    _call: (args) => {
+      if (args.length !== arity) {
+        return { error: new RuntimeError_WrongArity(arity, args.length) };
+      }
 
-  constructor(
-    scope: Scope,
-    identifier: string,
-    arity: number,
-    runtime: FunctionRuntime,
-  ) {
-    super();
-    this.identifier = identifier;
-    this.arity = arity;
+      return fn(args, runtime);
+    },
+  };
 
-    this._f = makeRegularCallEvaluator(scope, identifier, arity, runtime);
-  }
-
-  makeCalling(args: Step[]): Value_Calling {
-    return new Value_Calling(
-      this._f,
-      this.arity,
-      args,
-    );
-  }
+  return {
+    concrete: {
+      value: { ok: captured },
+      volatile: false,
+      representation,
+    },
+  };
 }
 
-export class Value_Calling {
-  private _f: Evaluator;
+export function callRegularFunction(
+  scope: Scope,
+  name: string,
+  args: LazyValue[],
+  style: RegularCallStyle,
+  runtime: FunctionRuntime,
+): LazyValue {
+  const calling = representCall([name], args, "regular", style);
 
-  readonly expectedParameters?: number;
-  args: Step[];
+  const fnResult = getFunctionFromScope(scope, name, args.length);
+  if ("error" in fnResult) return lazyValue_error(fnResult.error, calling);
+  const fn = fnResult.ok;
 
-  private _replaceStep: ((step: Step) => void) | null;
+  return {
+    _evaluate: (reevaluate) => {
+      if (reevaluate) {
+        args = args.map((v) => ({
+          _evaluate: () => {
+            return evaluate(v, true).concrete;
+          },
+        }));
+      }
+      const result = fn(args, runtime);
+      if ("error" in result) {
+        return lazyValue_error(result.error, calling).concrete;
+      }
+      const evaluated = evaluate(result.ok, reevaluate);
+      const value = evaluated.concrete.value;
+      return {
+        value,
+        volatile: evaluated.concrete.volatile,
+        representation: ["(", ...calling, " => ", { v: value }, ")"],
+      };
+    },
+  };
+}
 
-  constructor(
-    f: Evaluator,
-    expectedParameters: number | undefined,
-    args: Step[],
-    replaceStep: ((step: Step) => void) | null = null,
-  ) {
-    this._f = f;
-    this.expectedParameters = expectedParameters;
-    this.args = args;
-    this._replaceStep = replaceStep;
+export function callCallable(
+  callable: Value_Callable,
+  args: LazyValue[],
+): RuntimeResult<LazyValue> {
+  return callable._call(args);
+}
+
+export function callValue(
+  value: LazyValue,
+  args: LazyValue[],
+  style: ValueCallStyle,
+  reevaluate: boolean,
+): LazyValue {
+  const calling = representCall([value], args, "value", style);
+
+  const concrete = evaluate(value, false).concrete;
+  if ("error" in concrete.value) {
+    return lazyValue_error(concrete.value.error, calling);
+  }
+  const callable = asCallable(concrete.value.ok);
+  if (!callable) {
+    return lazyValue_error(new RuntimeError_ValueIsNotCallable(), calling);
   }
 
-  withArgs(args: Step[]) {
-    return new Value_Calling(
-      this._f,
-      this.expectedParameters,
-      args,
-    );
+  return {
+    _evaluate: (): Concrete => {
+      const result = callable._call(args);
+      if ("error" in result) {
+        return lazyValue_error(result.error, calling).concrete;
+      }
+      const evaluated = evaluate(result.ok, reevaluate);
+      const value = evaluated.concrete.value;
+      return {
+        value,
+        volatile: evaluated.concrete.volatile,
+        representation: ["(", ...calling, " => ", { v: value }, ")"],
+      };
+    },
+  };
+}
+
+function representList(list: LazyValue[]): Representation {
+  return flatten(intersperse(list as Representation[], [","]));
+}
+
+function representClosure(
+  paramIdentList: string[],
+  body: Node,
+): Representation {
+  return [() => {
+    return ["\\(" + paramIdentList.join(", ") + " -> ", { n: body }, ")"];
+  }];
+}
+
+function representCaptured(
+  identifier: string,
+  arity: number,
+): Representation {
+  return ["&", identifier, `/${arity}`];
+}
+
+function representCall(
+  callee: Representation,
+  args: LazyValue[],
+  kind: "regular" | "value",
+  style: RegularCallStyle | ValueCallStyle,
+): Representation {
+  if (style === "operator") {
+    if (args.length === 1) return ["(", ...callee, args[0], ")"];
+    if (args.length === 2) return ["(", args[0], ...callee, args[1], ")"];
+    throw new Unreachable();
   }
 
-  call(): EitherValueOrError {
-    if (
-      this.expectedParameters !== undefined &&
-      this.expectedParameters !== this.args.length
-    ) {
-      const err = new RuntimeError_WrongArity(
-        this.expectedParameters,
-        this.args.length,
-      );
-      return [null, err];
+  return [() => {
+    const r = [];
+    if (style === "piped") {
+      r.push("(", args[0], " |> ");
     }
-
-    const result = this._f(this.args);
-    let step: Step | null, err: RuntimeError | null;
-    if (Array.isArray(result)) {
-      [step, err] = result;
-    } else { // 只有通常函数才可能
-      [step, err] = result.result;
-      this._replaceStep!(result.replacingStep);
+    r.push(...callee);
+    if (kind === "value") {
+      r.push(".");
     }
-
-    if (err) return [null, err];
-    return step!.result;
-  }
+    // TODO: 也许可以附上 label
+    r.push("(", ...representList(args), ")");
+    if (style === "piped") {
+      r.push(")");
+    }
+    return [];
+  }];
 }
 
-export class Value_Generating {
-  readonly outputForm: "sum" | "sequence";
-  readonly elementCount: number;
-  readonly elementType: "integer";
-  private readonly _elementGenerator: GeneratorCallback;
-  readonly elementRange: [number, number] | null;
-
-  constructor(
-    form: Value_Generating["outputForm"],
-    count: number,
-    type: Value_Generating["elementType"],
-    generator: GeneratorCallback,
-    range: [number, number] | null,
+function asCallable(
+  value: Value,
+): Value_Callable | null {
+  if (
+    typeof value === "object" && "type" in value &&
+    value.type === "callable"
   ) {
-    this.outputForm = form;
-    this.elementCount = count;
-    this.elementType = type;
-    this._elementGenerator = generator;
-    this.elementRange = range;
+    return value;
   }
+  return null;
+}
 
-  makeStep() {
-    return new Step_Generate(
-      this.outputForm,
-      this.elementCount,
-      this.elementType,
-      this._elementGenerator,
-      this.elementRange,
-    );
+function getFunctionFromScope(
+  scope: Scope,
+  identifier: string,
+  arity: number,
+): RuntimeResult<RegularFunction> {
+  const fnName = `${identifier}/${arity}`;
+  const fn = scope[fnName];
+  if (!fn) {
+    return { error: new RuntimeError_UnknownRegularFunction(fnName) };
   }
+  if (typeof fn !== "function") throw new Unreachable();
+  return { ok: fn };
 }
 
 export function getTypeNameOfValue(v: Value) {
@@ -207,74 +383,9 @@ export function getTypeNameOfValue(v: Value) {
       return "boolean";
     default:
       if (Array.isArray(v)) return "list";
-      if (v instanceof Value_Closure) return "closure";
-      if (v instanceof Value_Captured) return "captured";
-      if (v instanceof Value_Calling) return "calling";
-      if (v instanceof Value_Generating) return "generating";
+      if (v.type === "callable") return "callable";
+      if (v.type === "generating") return "generating";
       throw new Unreachable();
   }
 }
-
-export function renderValue(value: Value): string {
-  switch (getTypeNameOfValue(value)) {
-    case "number":
-    case "boolean":
-      return String(value);
-    case "list": {
-      const list = value as Step[];
-      // NOTE: 返回列表的步骤没有错误，列表元素就也没有错误，因此不会是 null
-      // TODO: 限制显示长度
-      return "[" +
-        list.map((s) => s.renderResultText()!).join(`,${ws}`) +
-        "]";
-    }
-    case "closure":
-      return (value as Value_Closure).name;
-    case "captured": {
-      const capture = value as Value_Captured;
-      return `&${capture.identifier}/${capture.arity}`;
-    }
-    case "calling":
-    case "generating":
-      throw new Unreachable();
-    default:
-      throw new Unreachable();
-  }
-}
-
-export function makeRegularCallEvaluator(
-  scope: Scope,
-  identifier: string,
-  forceArity: number | undefined,
-  runtime: FunctionRuntime,
-): Evaluator {
-  return (args) => {
-    const fullName = `${identifier}/${args.length}`;
-
-    if (forceArity !== undefined && args.length !== forceArity) {
-      // 在 Value_Calling.call 中已经检查过了
-      throw new Unreachable();
-    }
-
-    const fn = scope[fullName];
-    if (fn === undefined) { // FIXME: 这种情况在调用外层函数时就能发现了，应该在那时处理
-      return [null, new RuntimeError_UnknownFunction(fullName)];
-    }
-    if (typeof fn !== "function") throw new Unreachable();
-
-    return fn(args, runtime);
-  };
-}
-
-const getClosureId = (() => { // from https://stackoverflow.com/a/43963612
-  let currentId = 0;
-  const map = new WeakMap();
-
-  return (closure: Value_Closure) => {
-    if (!map.has(closure)) {
-      map.set(closure, ++currentId);
-    }
-
-    return map.get(closure);
-  };
-})();
+export type ValueTypeName = ReturnType<typeof getTypeNameOfValue>;

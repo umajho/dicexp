@@ -1,67 +1,108 @@
 import type { FunctionRuntime, RegularFunction } from "./runtime";
 import {
+  RuntimeError,
   RuntimeError_CallArgumentTypeMismatch,
   RuntimeError_TypeMismatch,
   RuntimeError_WrongArity,
 } from "./runtime_errors";
 import {
-  type EitherValueOrError,
-  type EitherValuesOrError,
-  Step,
-  Step_Plain,
-} from "./steps";
-import { getTypeNameOfValue, type Value, type ValueTypeName } from "./values";
+  evaluate,
+  getTypeNameOfValue,
+  type LazyValue,
+  lazyValue_error,
+  type RuntimeResult,
+  type Value,
+  type ValueTypeName,
+} from "./values";
 
-export type ExpectedValueTypeName = ValueTypeName | "callable";
-type ArgumentSpec = ExpectedValueTypeName | "*" | ExpectedValueTypeName[];
+type ArgumentSpec =
+  | "lazy"
+  | ValueTypeName
+  | "*"
+  | ValueTypeName[];
 
+export type RegularFunctionArgument = LazyValue | Exclude<Value, RuntimeError>;
+
+/**
+ * NOTE: 由于目前没有错误恢复机制，出现错误必然无法挽回，
+ *       因此返回的错误都视为不会改变。
+ *       如果未来要引入错误恢复机制，不要忘记修改与上述内容相关的代码。
+ */
 export function makeFunction(
   spec: ArgumentSpec[],
-  logic: (args: Value[], rtm: FunctionRuntime) => EitherValueOrError,
+  logic: (
+    args: RegularFunctionArgument[],
+    rtm: FunctionRuntime,
+  ) => RuntimeResult<{ value: Value; pure: boolean } | { lazy: LazyValue }>,
 ): RegularFunction {
   return (args_, rtm) => {
-    const [args, errUnwrap] = unwrapArguments(spec, args_);
-    if (errUnwrap) return [null, errUnwrap];
-    const [resultValue, resultError] = logic(args, rtm);
-    if (resultError) {
-      return [null, resultError];
-    } else {
-      return [new Step_Plain(resultValue), null];
+    const unwrapResult = unwrapArguments(spec, args_);
+    if ("error" in unwrapResult) {
+      return { error: unwrapResult.error };
     }
+
+    return {
+      ok: {
+        _evaluate: () => {
+          const result = logic(unwrapResult.ok.values, rtm);
+          if ("error" in result) {
+            return lazyValue_error(result.error).concrete;
+          }
+
+          if ("lazy" in result.ok) {
+            return result.ok;
+          }
+
+          return {
+            value: { ok: result.ok.value },
+            volatile: unwrapResult.ok.volatile || !result.ok.pure,
+            representation: [{ v: result.ok.value }],
+          };
+        },
+      },
+    };
   };
 }
 
 function unwrapArguments(
   spec: ArgumentSpec[],
-  args: Step[],
-): EitherValuesOrError {
+  args: LazyValue[],
+): RuntimeResult<{ values: RegularFunctionArgument[]; volatile: boolean }> {
   if (spec.length !== args.length) {
-    return [null, new RuntimeError_WrongArity(spec.length, args.length)];
+    return { error: new RuntimeError_WrongArity(spec.length, args.length) };
   }
 
-  const values: Value[] = Array(args.length);
+  const values: RegularFunctionArgument[] = Array(args.length);
+  let volatile = false;
 
   for (const [i, arg] of args.entries()) {
-    const [value, err] = unwrapValue(spec[i], arg, { nth: i + 1 });
-    if (err) return [null, err];
+    const result = unwrapValue(spec[i], arg, { nth: i + 1 });
+    if ("error" in result) return result;
+    const { value, volatile: valueVolatile } = result.ok;
     values[i] = value;
+    volatile = volatile || valueVolatile;
   }
 
-  return [values, null];
+  return { ok: { values, volatile } };
 }
 
 export function unwrapValue(
   spec: ArgumentSpec,
-  step: Step,
+  value: LazyValue,
   opts?: CheckTypeOptions,
-): EitherValueOrError {
-  const [value, errEval] = step.result;
-  if (errEval) return [null, errEval];
+): RuntimeResult<{ value: RegularFunctionArgument; volatile: boolean }> {
+  if (spec === "lazy") {
+    // 是否多变就交由函数内部判断了
+    return { ok: { value, volatile: false } };
+  }
 
-  const errType = checkType(spec, getTypeNameOfValue(value), opts);
-  if (errType) return [null, errType];
+  const concrete = evaluate(value, false).concrete;
+  if ("error" in concrete.value) return concrete.value;
 
-  return [value, null];
+  const errType = checkType(spec, getTypeNameOfValue(concrete.value.ok), opts);
+  if (errType) return { error: errType };
+
+  return { ok: { value: concrete.value.ok, volatile: concrete.volatile } };
 }
 
 interface CheckTypeOptions {
@@ -70,7 +111,7 @@ interface CheckTypeOptions {
 }
 
 function checkType(
-  expected: ArgumentSpec,
+  expected: Exclude<ArgumentSpec, "lazy">,
   actual: ValueTypeName,
   opts: CheckTypeOptions = {},
 ): null | RuntimeError_TypeMismatch | RuntimeError_CallArgumentTypeMismatch {
@@ -88,12 +129,8 @@ function checkType(
   }
 }
 
-function testType(expected: ExpectedValueTypeName, actual: ValueTypeName) {
-  if (expected === actual) return true;
-  if (expected === "callable") {
-    return actual === "closure" || actual === "captured";
-  }
-  return false;
+function testType(expected: ValueTypeName, actual: ValueTypeName) {
+  return expected === actual;
 }
 
 /**
@@ -101,9 +138,9 @@ function testType(expected: ExpectedValueTypeName, actual: ValueTypeName) {
  * @param list
  */
 export function flattenListAll(
-  spec: ArgumentSpec,
-  list: Step[],
-): EitherValuesOrError {
+  spec: Exclude<ArgumentSpec, "lazy">,
+  list: LazyValue[],
+): RuntimeResult<{ values: Value[]; volatile: boolean }> {
   if (spec !== "*") {
     if (Array.isArray(spec)) {
       if (spec[spec.length - 1] !== "list") {
@@ -115,34 +152,28 @@ export function flattenListAll(
   }
 
   const values: Value[] = [];
+  let volatile = false;
 
   for (const [i, elem] of list.entries()) {
-    const [value, err] = unwrapValue(spec, elem);
-    if (err) return [null, err];
+    const result = unwrapValue(spec, elem);
+    if ("error" in result) return result;
+    // FIXME: 类型推断
+    const { value: _value } = result.ok;
+    const value = _value as Value;
 
     if (getTypeNameOfValue(value) === "list") {
-      const [subList, errSubList] = flattenListAll(spec, value as Step[]);
-      if (errSubList) return [null, errSubList];
-      values.push(...subList);
+      const listResult = flattenListAll(spec, value as LazyValue[]);
+      if ("error" in listResult) return listResult;
+      values.push(...listResult.ok.values);
+      volatile = volatile || listResult.ok.volatile;
     } else {
       values[i] = value;
+      volatile = volatile || result.ok.volatile;
     }
   }
 
-  return [values, null];
+  return { ok: { values, volatile } };
 }
-
-// function unwrapList(spec: ArgumentSpec, list: Step[]): EitherValuesOrError {
-//   const values: Value[] = Array(list.length);
-
-//   for (const [i, elem] of list.entries()) {
-//     const [value, err] = unwrapValue(spec, elem);
-//     if (err) return [null, err];
-//     values[i] = value;
-//   }
-
-//   return [values, null];
-// }
 
 /**
  * FIXME: 前后类型不一致时返回的错误不够清晰，应该明确是前后不一致造成的
@@ -152,28 +183,33 @@ export function flattenListAll(
  */
 export function unwrapListOneOf(
   specOneOf: ValueTypeName[],
-  list: Step[],
-): EitherValuesOrError {
-  if (!list.length) return [[], null];
+  list: LazyValue[],
+): RuntimeResult<{ values: Value[]; volatile: boolean }> {
+  if (!list.length) return { ok: { values: [], volatile: false } };
 
   const values: Value[] = Array(list.length);
   let firstType: ValueTypeName;
+  let volatile = false;
 
   for (const [i, elem] of list.entries()) {
-    let value, err;
+    let valueResult: ReturnType<typeof unwrapValue>;
     if (i === 0) {
-      [value, err] = unwrapValue(specOneOf, elem);
+      valueResult = unwrapValue(specOneOf, elem);
     } else {
-      [value, err] = unwrapValue(firstType!, elem, {
+      valueResult = unwrapValue(firstType!, elem, {
         kind: "list-inconsistency",
       });
     }
-    if (err) return [null, err];
+    if ("error" in valueResult) return valueResult;
+    // FIXME: 类型推断
+    const { value: _value } = valueResult.ok;
+    const value = _value as Value;
     if (i === 0) {
-      firstType = getTypeNameOfValue(value!);
+      firstType = getTypeNameOfValue(value);
     }
-    values[i] = value!;
+    values[i] = value;
+    volatile = volatile || valueResult.ok.volatile;
   }
 
-  return [values, null];
+  return { ok: { values, volatile } };
 }
