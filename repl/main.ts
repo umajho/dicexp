@@ -8,6 +8,7 @@ import _prompt from "prompt-sync";
 const prompt = _prompt({ sigint: true });
 
 let seed: number | undefined = undefined;
+let allowsSimpleParsing = true;
 
 MAIN_LOOP:
 while (1) {
@@ -23,13 +24,27 @@ while (1) {
       continue;
     }
     const cmd = m[1];
-    const rest = m[2];
+    const rest = m[2] ?? "";
 
     switch (cmd) {
       case "p":
         parseOnly = true;
         code = rest;
         break;
+      case "simple": {
+        switch (rest.trim()) {
+          case "on":
+            allowsSimpleParsing = true;
+            break;
+          case "off":
+            allowsSimpleParsing = false;
+            break;
+          default:
+            console.error("后续必须是 “on” 或者 “off”！");
+            continue MAIN_LOOP;
+        }
+        continue MAIN_LOOP;
+      }
       case "seed": {
         const seedText = rest.trim();
         const seedParsed = parseInt(seedText);
@@ -51,7 +66,9 @@ while (1) {
   }
 
   try {
-    const parsed = parse(code);
+    const parsed = parse(code, {
+      optimizesForSimpleCases: allowsSimpleParsing,
+    });
     if (parseOnly) {
       console.log(inspect(parsed, { depth: Infinity }));
       continue;
