@@ -10,7 +10,7 @@ import { parseInteger } from "./utils";
  */
 export function simpleParse(code: string): Node | false {
   if (!/^([-+#~d\s]|\d[_\d]*)+$/.test(code)) return false;
-  code = code.replace(/[\s_]+/g, "");
+  code = code.replace(/[\s]+/g, "");
   if (/[-+]{2}/.test(code)) return false;
 
   return simpleParse_repeat(code);
@@ -31,7 +31,10 @@ function simpleParse_adds_subs(side: string): Node | false {
   for (const [full, op, die] of matchAll(side, /([-+]?)([^-+]+)/g)) {
     recognized += full.length;
 
-    const cur = simpleParseOperatorExp(die, "d", parseInteger, true);
+    const cur = simpleParseOperatorExp(die, "d", (intText) => {
+      if (!/^\d+(_\d+)*$/.test(intText)) return false;
+      return parseInteger(intText);
+    }, true);
     if (!cur) return false;
 
     if (!node) {

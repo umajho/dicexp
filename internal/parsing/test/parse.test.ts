@@ -30,9 +30,13 @@ describe("全角/半角", () => {
   });
 });
 
-const integerLiteralTable: [string, Node][] = [
+const literalIntegerGoodTable: [string, Node][] = [
   ["1", value(1)],
   ["1_000_000", value(1_000_000)],
+];
+const literalIntegerBadTable: string[] = [
+  "1_",
+  "1__1",
 ];
 
 describe("简单解析", () => {
@@ -41,14 +45,20 @@ describe("简单解析", () => {
   });
 
   it("能够正确解析合规的整数常量", () => {
-    theyAreOk(integerLiteralTable, simpleParse);
+    theyAreOk(literalIntegerGoodTable, simpleParse);
+  });
+  it("不能解析不合规的整数常量", () => {
+    theyAreBad(literalIntegerBadTable);
   });
 });
 
 describe("常量", () => {
   describe("整数常量", () => {
     it("能够正确解析合规的整数常量", () => {
-      theyAreOk(integerLiteralTable);
+      theyAreOk(literalIntegerGoodTable);
+    });
+    it("不能解析不合规的整数常量", () => {
+      theyAreBad(literalIntegerBadTable);
     });
   });
 });
@@ -257,6 +267,17 @@ function theyAreOk(
   for (const [i, [code, expected]] of table.entries()) {
     it(`case ${i + 1}: ${code}`, () => {
       assert.deepEqual(parseFn(code), expected);
+    });
+  }
+}
+
+function theyAreBad(
+  table: string[],
+  parseFn: (code: string) => false | Node = parse,
+) {
+  for (const [i, code] of table.entries()) {
+    it(`case ${i + 1}: ${code}`, () => {
+      assert.throw(() => assert(parseFn(code)));
     });
   }
 }
