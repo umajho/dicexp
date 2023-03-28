@@ -14,7 +14,7 @@ const widthDelta = "！".charCodeAt(0) - "!".charCodeAt(0);
 
 export function parseInteger(sourceString: string, replacesDash = true) {
   if (replacesDash) {
-    sourceString = sourceString.replace("_", "");
+    sourceString = sourceString.replace(/_/g, "");
   }
   const int = parseInt(sourceString);
   if (int < Number.MIN_SAFE_INTEGER) {

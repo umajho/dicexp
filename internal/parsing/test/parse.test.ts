@@ -30,9 +30,26 @@ describe("全角/半角", () => {
   });
 });
 
+const integerLiteralTable: [string, Node][] = [
+  ["1", value(1)],
+  ["1_000_000", value(1_000_000)],
+];
+
 describe("简单解析", () => {
   it("不接受右侧有悬挂的正负号", () => {
     assert.isFalse(simpleParse("1+"));
+  });
+
+  it("能够正确解析合规的整数常量", () => {
+    theyAreOk(integerLiteralTable, simpleParse);
+  });
+});
+
+describe("常量", () => {
+  describe("整数常量", () => {
+    it("能够正确解析合规的整数常量", () => {
+      theyAreOk(integerLiteralTable);
+    });
   });
 });
 
@@ -233,10 +250,13 @@ describe("管道运算符", () => {
   theyAreOk(tableProcessed);
 });
 
-function theyAreOk(table: [string, Node][]) {
+function theyAreOk(
+  table: [string, Node][],
+  parseFn: (code: string) => false | Node = parse,
+) {
   for (const [i, [code, expected]] of table.entries()) {
     it(`case ${i + 1}: ${code}`, () => {
-      assert.deepEqual(parse(code), expected);
+      assert.deepEqual(parseFn(code), expected);
     });
   }
 }
