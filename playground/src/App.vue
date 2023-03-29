@@ -32,7 +32,7 @@ import JsonViewer from "vue-json-viewer";
               `)
                 async-dicexp-editor(v-model="code")
               template(v-if="evaluate")
-                n-button(@click="roll()", :disabled="fixesSeed && !isSeedValid") ROLL!
+                n-button(@click="roll()", :disabled="!canRoll") ROLL!
               template(v-else)
                 n-spin(:size="20")
                   n-button(disabled) ROLL!
@@ -104,6 +104,10 @@ const fixesSeed = ref(false);
 const seed = ref(0);
 const isSeedValid = computed(() => {
   return Number.isInteger(seed.value);
+});
+
+const canRoll = computed(() => {
+  return (!fixesSeed.value || isSeedValid.value) && code.value.slice() !== "";
 });
 
 const result: Ref<EvaluationResult | null> = ref(null);

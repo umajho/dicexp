@@ -110,6 +110,7 @@ importers:
     specifiers:
       '@codemirror/autocomplete': ^6.4.2
       '@codemirror/language': ^6.6.0
+      '@codemirror/lint': ^6.2.0
       '@codemirror/state': ^6.2.0
       '@codemirror/theme-one-dark': ^6.1.1
       '@dicexp/codemirror-lang-dicexp': workspace:*
@@ -135,6 +136,7 @@ importers:
     dependencies:
       '@codemirror/autocomplete': 6.4.2_gkscdmaqmlbl34zmiwfvbniyqi
       '@codemirror/language': 6.6.0
+      '@codemirror/lint': 6.2.0
       '@codemirror/state': 6.2.0
       '@codemirror/theme-one-dark': 6.1.1
       '@dicexp/codemirror-lang-dicexp': link:../internal/codemirror-lang-dicexp

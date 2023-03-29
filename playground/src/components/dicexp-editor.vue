@@ -5,8 +5,9 @@
 <script setup lang="ts">
 import { EditorView, minimalSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
-import { bracketMatching } from "@codemirror/language";
+import { bracketMatching, syntaxTree } from "@codemirror/language";
 import { closeBrackets } from "@codemirror/autocomplete";
+import { linter, type Diagnostic } from "@codemirror/lint";
 
 import { oneDark } from "@codemirror/theme-one-dark";
 
@@ -31,6 +32,24 @@ onMounted(() => {
     const value = view.state.doc.line(1).text;
     emit("update:modelValue", value);
   });
+  const linting = linter((view) => {
+    // 参考：https://discuss.codemirror.net/t/showing-syntax-errors/3111/6
+    if (view.state.doc.line(1).text.slice() === "") return [];
+    const diagnostics: Diagnostic[] = [];
+    syntaxTree(view.state).iterate({
+      enter: (node) => {
+        if (node.name === "⚠") {
+          diagnostics.push({
+            from: node.from,
+            to: node.to,
+            severity: "error",
+            message: "语法有误。",
+          });
+        }
+      },
+    });
+    return diagnostics;
+  });
 
   const state = EditorState.create({
     doc: props.modelValue,
@@ -43,6 +62,7 @@ onMounted(() => {
       singleLine,
       sync,
       dicexp(),
+      linting,
     ],
   });
 
