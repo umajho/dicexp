@@ -27,4 +27,5 @@ repl-no-build:
 test:
 	just parsing test
 	just executing test
-	just playground lint
+	just dicexp test
+	just playground test

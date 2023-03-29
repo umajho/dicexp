@@ -1,5 +1,10 @@
 pre-run:
 	just -f ../../justfile lezer build # 语法
 
-build: pre-run
+type-check: pre-run
+	tsc --noEmit
+
+test: type-check
+
+build: pre-run type-check
 	rollup -c

@@ -3,8 +3,8 @@ build:
 	gzip -k dist/**/*.js
 	brotli -k dist/**/*.js
 
-lint:
-	pnpm run lint
+test:
+	pnpm run type-check
 
 serve: build serve-no-build
 
