@@ -3,22 +3,16 @@ import { prng_xorshift7 } from "esm-seedrandom";
 
 import type { Node } from "@dicexp/nodes";
 import {
-  type JSValue,
+  type ExecutionResult,
   type RandomGenerator,
   Runtime,
   type RuntimeOptions,
 } from "./runtime";
-import type { RuntimeError } from "./runtime_errors";
+export type { ExecutionResult } from "./runtime";
 
 export type ExecuteOptions = Partial<RuntimeOptions> & {
   seed?: number;
 };
-
-export interface ExecutionResult {
-  value: JSValue | null;
-  runtimeError: RuntimeError | null;
-  // TODO: finalStep
-}
 
 export function execute(
   node: Node,
@@ -41,9 +35,7 @@ export function execute(
   }
 
   const runtime = new Runtime(node, opts as RuntimeOptions);
-  const [value, error] = runtime.executeAndTranslate();
-
-  return { value, runtimeError: error };
+  return runtime.execute();
 }
 
 class RandomGeneratorWrapper implements RandomGenerator {

@@ -9,7 +9,6 @@ import type {
 } from "@dicexp/nodes";
 import { builtinScope } from "./builtin_functions/mod";
 import {
-  RuntimeError,
   RuntimeError_BadFinalResult,
   RuntimeError_UnknownVariable,
 } from "./runtime_errors";
@@ -26,6 +25,7 @@ import {
   lazyValue_identifier,
   lazyValue_list,
   lazyValue_literal,
+  type Representation,
   type RuntimeResult,
   type Value_List,
 } from "./values";
@@ -41,7 +41,10 @@ export interface RuntimeOptions {
 }
 
 export type JSValue = number | boolean | JSValue[];
-export type EitherJSValueOrError = [JSValue, null] | [null, RuntimeError];
+
+export type ExecutionResult = RuntimeResult<JSValue> & {
+  representation: Representation;
+};
 
 export class Runtime {
   private readonly _root: Node;
@@ -64,48 +67,45 @@ export class Runtime {
     };
   }
 
-  // TODO: return { representation } & ( { value } | { runtimeError } | { unknownError } )
-  executeAndTranslate(): EitherJSValueOrError {
+  execute(): ExecutionResult {
     const concrete = this._interpretRoot();
-    const [jsValue, err] = this._finalize({ memo: concrete });
-    if (err) return [null, err];
-    return [jsValue, null];
+    const result = this._finalize({ memo: concrete });
+    return { ...result, representation: concrete.representation };
   }
 
-  private _finalize(value: LazyValue | Concrete): EitherJSValueOrError {
+  private _finalize(value: LazyValue | Concrete): RuntimeResult<JSValue> {
     const concrete = concretize(value);
     if ("error" in concrete.value) {
-      return [null, concrete.value.error];
+      return concrete.value;
     }
     const okValue = concrete.value.ok;
 
     switch (typeof okValue) {
       case "number":
       case "boolean":
-        return [okValue, null];
+        return { ok: okValue };
       default:
         if (Array.isArray(okValue)) return this._finalizeList(okValue);
-        return [
-          null,
-          new RuntimeError_BadFinalResult(getTypeNameOfValue(okValue)),
-        ];
+        return {
+          error: new RuntimeError_BadFinalResult(getTypeNameOfValue(okValue)),
+        };
     }
   }
 
-  private _finalizeList(list: Value_List): EitherJSValueOrError {
+  private _finalizeList(list: Value_List): RuntimeResult<JSValue> {
     const resultList: JSValue = Array(list.length);
     for (const [i, elem] of list.entries()) {
-      let [v, err] = (() => {
+      let result = (() => {
         if (Array.isArray(elem)) {
           return this._finalizeList(elem);
         } else {
           return this._finalize(elem);
         }
       })();
-      if (err) return [null, err];
-      resultList[i] = v!;
+      if ("error" in result) return result;
+      resultList[i] = result.ok;
     }
-    return [resultList, null];
+    return { ok: resultList };
   }
 
   private _interpretRoot(): Concrete {

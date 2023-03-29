@@ -23,20 +23,20 @@ export function evaluate(
 }
 
 export function assertNumber(result: ExecutionResult): number {
-  assert.deepEqual(result.runtimeError, null);
+  assert(!("error" in result));
 
-  assert.deepEqual(typeof result.value, "number");
-  return result.value as number;
+  assert.deepEqual(typeof result.ok, "number");
+  return result.ok as number;
 }
 
 export function assertNumberArray(result: ExecutionResult): number[] {
-  assert.deepEqual(result.runtimeError, null);
+  assert(!("error" in result));
 
-  assert(Array.isArray(result.value));
-  for (const [i, item] of (result.value as Array<unknown>).entries()) {
+  assert(Array.isArray(result.ok));
+  for (const [i, item] of (result.ok as Array<unknown>).entries()) {
     assert.deepEqual(typeof item, "number", `arr[${i}]`);
   }
-  return result.value as number[];
+  return result.ok as number[];
 }
 
 export function assertExecutionOk(
@@ -44,19 +44,19 @@ export function assertExecutionOk(
   expectedResult?: unknown,
 ): JSValue {
   const result = evaluate(code);
-  if (!result.runtimeError) {
-    if (result.value === null) throw new Unreachable();
-    if (expectedResult === undefined) return result.value!;
-    if (deepEqual(result.value, expectedResult)) return result.value!;
+  if (!("error" in result)) {
+    if (result.ok === null) throw new Unreachable();
+    if (expectedResult === undefined) return result.ok!;
+    if (deepEqual(result.ok, expectedResult)) return result.ok!;
   }
 
   const expectedResultInspected = inspect(expectedResult);
   let msg: string;
-  if (result.runtimeError) {
+  if ("error" in result) {
     msg = `${code} => 运行时错误：` +
-      `「${result.runtimeError.message}」!= ${expectedResultInspected}`;
+      `「${result.error.message}」!= ${expectedResultInspected}`;
   } else {
-    const actualResultInspected = inspect(result.value);
+    const actualResultInspected = inspect(result.ok);
     msg = `${code} => ${actualResultInspected} != ${expectedResultInspected}`;
   }
   throw new AssertionError(msg);
@@ -67,19 +67,19 @@ export function assertExecutionRuntimeError(
   expectedError: string | RuntimeError,
 ) {
   const result = evaluate(code);
-  if (!result.runtimeError) {
-    const actualResultInspected = inspect(result.value);
+  if (!("error" in result)) {
+    const actualResultInspected = inspect(result.ok);
     throw new AssertionError(
       `${code} => ${actualResultInspected}, did not return error "${expectedError}`,
     );
   }
 
   if (expectedError instanceof RuntimeError) {
-    assert.deepEqual(result.runtimeError, expectedError);
+    assert.deepEqual(result.error, expectedError);
   } else {
-    if (result.runtimeError.message === expectedError) return;
+    if (result.error.message === expectedError) return;
     throw new AssertionError(
-      `${code} returned error "${result.runtimeError.message}", not "${expectedError}"`,
+      `${code} returned error "${result.error.message}", not "${expectedError}"`,
     );
   }
 }

@@ -41,7 +41,7 @@
         div(v-if="result || otherError")
           n-space(justify="center")
             n-card(title="结果", style="width: 60vw; min-width: 600px")
-              template(v-if="otherError || result.runtimeError")
+              template(v-if="otherError || result.error")
                 template(v-if="otherError")
                   n-alert(type="error", title="错误") {{ otherError.name }}
                     hr
@@ -49,14 +49,14 @@
                     hr
                     | {{ otherError.stack }}
                 template(v-else)
-                  n-alert(type="error", title="Dicexp 运行时错误") {{ result.runtimeError.message }}
-              template(v-else) {{ result.value }}
+                  n-alert(type="error", title="Dicexp 运行时错误") {{ result.error.message }}
+              template(v-else) {{ result.ok }}
 </template>
 
 <script setup lang="ts">
 import { type MenuOption, NSkeleton, darkTheme /** used */ } from "naive-ui";
 
-import type { ExecutionResult, evaluate as evaluateFn } from "dicexp/internal";
+import type { EvaluationResult, evaluate as evaluateFn } from "dicexp/internal";
 
 const menuOptions: MenuOption[] = [
   {
@@ -98,7 +98,7 @@ const isSeedValid = computed(() => {
   return Number.isInteger(seed.value);
 });
 
-const result: Ref<ExecutionResult | null> = ref(null);
+const result: Ref<EvaluationResult | null> = ref(null);
 const otherError: Ref<Error | null> = ref(null);
 
 function roll() {
