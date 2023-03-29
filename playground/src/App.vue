@@ -1,3 +1,7 @@
+<script lang="ts">
+import JsonViewer from "vue-json-viewer";
+</script>
+
 <template lang="pug">
 .container
   n-config-provider(:theme="darkTheme")
@@ -40,17 +44,21 @@
         div(style="height: 40px")
         div(v-if="result || otherError")
           n-space(justify="center")
-            n-card(title="结果", style="width: 60vw; min-width: 600px")
-              template(v-if="otherError || result.error")
-                template(v-if="otherError")
-                  n-alert(type="error", title="错误") {{ otherError.name }}
-                    hr
-                    | {{ otherError.message }}
-                    hr
-                    | {{ otherError.stack }}
-                template(v-else)
-                  n-alert(type="error", title="Dicexp 运行时错误") {{ result.error.message }}
-              template(v-else) {{ result.ok }}
+            n-card(style="width: 60vw; min-width: 600px")
+              n-tabs(type="line")
+                n-tab-pane(name="result", tab="结果")
+                  template(v-if="otherError || result.error")
+                    template(v-if="otherError")
+                      n-alert(type="error", title="错误") {{ otherError.name }}
+                        hr
+                        | {{ otherError.message }}
+                        hr
+                        | {{ otherError.stack }}
+                    template(v-else)
+                      n-alert(type="error", title="Dicexp 运行时错误") {{ result.error.message }}
+                  template(v-else) {{ result.ok }}
+                n-tab-pane(v-if="result && result.representation", name="representation", tab="步骤展现（临时版本）")
+                  json-viewer(:value="result.representation")
 </template>
 
 <script setup lang="ts">

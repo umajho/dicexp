@@ -18,7 +18,8 @@
     "@dicexp/codemirror-lang-dicexp": "workspace:*",
     "codemirror": "^6.0.1",
     "dicexp": "workspace:*",
-    "vue": "^3.2.47"
+    "vue": "^3.2.47",
+    "vue-json-viewer": "3"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.2.0",
