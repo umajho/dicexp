@@ -68,15 +68,21 @@ describe("掷骰的操作数", () => {
     const table = [
       "d4",
       "3d4",
+      "-3d4",
       "2+3d4*5",
-      "d-4",
-      "3d+4",
     ];
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}: ${code}`, () => {
         parse(code);
       });
     }
+  });
+
+  describe("并非纯粹数字常量的操作数需要用括号围住", () => {
+    // NOTE: 由于其他运算符的优先级都比掷骰的要低，
+    //       只有在其右侧的单目运算符需要注意这种情况
+    theyAreOk(["3d(+4)"]);
+    theyAreBad(["3d+4"]);
   });
 
   describe("但是连用需要用括号确定优先级", () => {
@@ -93,16 +99,6 @@ describe("掷骰的操作数", () => {
         assert.throw(() => parse(codeWithoutParens));
       });
     }
-  });
-
-  describe("右操作数是整数时，该操作数之前的正负号不会产生多余的节点", () => {
-    const table: [string, Node][] = [
-      ["d+10", parse("d10")],
-      ["3d+10", parse("3d10")],
-      ["d-10", regularCall("operator", "d", [value(-10)])],
-      ["3d-10", regularCall("operator", "d", [value(3), value(-10)])],
-    ];
-    theyAreOk(table);
   });
 });
 
@@ -261,12 +257,23 @@ describe("管道运算符", () => {
 });
 
 function theyAreOk(
-  table: [string, Node][],
+  table: ([string, Node] | string)[],
   parseFn: (code: string) => false | Node = parse,
 ) {
-  for (const [i, [code, expected]] of table.entries()) {
+  for (const [i, row] of table.entries()) {
+    let code: string, expected: Node | null;
+    if (typeof row === "string") {
+      code = row;
+      expected = null;
+    } else {
+      [code, expected] = row;
+    }
     it(`case ${i + 1}: ${code}`, () => {
-      assert.deepEqual(parseFn(code), expected);
+      if (expected) {
+        assert.deepEqual(parseFn(code), expected);
+      } else {
+        parseFn(code);
+      }
     });
   }
 }

@@ -34,8 +34,7 @@ expression {
 }
 
 BinaryExpression {
-  beforeDiceRoll !diceRoll binaryOperatorDiceRoll afterDiceRoll |
-  beforeDiceRoll !diceRoll binaryOperatorDiceRoll afterDiceRoll |
+  aroundDiceRoll !diceRoll binaryOperatorDiceRoll aroundDiceRoll |
   
   expression !call BinaryOperator<"."> ArgumentList |
 
@@ -51,13 +50,9 @@ BinaryExpression {
   expression !or @specialize[@name=BinaryOperator]<identifier, "or"> expression
 }
 
-beforeDiceRoll[@dynamicPrecedence=1] {
+aroundDiceRoll[@dynamicPrecedence=1] {
   Grouping |
   LiteralInteger
-}
-afterDiceRoll {
-  beforeDiceRoll |
-  UnaryExpression { UnaryOperator<"+" | "-"> LiteralInteger }
 }
 
 binaryOperatorDiceRoll {
@@ -65,7 +60,7 @@ binaryOperatorDiceRoll {
 }
 
 UnaryExpression {
-  !diceRollUnary unaryOperatorDiceRoll afterDiceRoll |
+  !diceRollUnary unaryOperatorDiceRoll aroundDiceRoll |
 
   !not @specialize[@name=UnaryOperator]<identifier, "not"> expression |
   !negate (UnaryOperator<"+" | "-">) expression |
