@@ -22,46 +22,43 @@ export type RuntimeResult<OkType> =
  *       因此，不应该为了不可变性而在操作 LazyValue 时为其创建新的副本。
  */
 export interface LazyValue {
-  concrete?: Concrete;
-  _yield?: (reevaluate: boolean) => Concrete | { lazy: LazyValue };
+  memo?: Concrete | false;
+  _yield?: () => Concrete | { lazy: LazyValue };
 
   replacedBy?: LazyValue;
 }
 
-export interface YieldedLazyValue extends LazyValue {
-  concrete: Concrete;
+export interface LazyValueWithMemo extends LazyValue {
+  memo: Concrete;
 }
 
-/**
- * @param v
- * @param reevaluate
- *  对于当前正在求值的函数而言，是否忽略之前的结果，重新求值。
- * @returns
- */
-export function delazy(
-  v: LazyValue,
-  reevaluate: boolean,
-): YieldedLazyValue {
-  if (v.concrete) {
-    if (v.concrete.volatile && reevaluate) {
-      v = { _yield: v._yield };
-    } else {
-      return v as YieldedLazyValue;
-    }
-  }
-  let concreteOrLazy = v._yield!(reevaluate);
+export function concretize(v: LazyValue | Concrete): Concrete {
+  if ("value" in v) return v; // Concrete
+
+  if (v.memo) return v.memo;
+
+  let concreteOrLazy = v._yield!();
+  let concrete: Concrete;
   if ("lazy" in concreteOrLazy) {
     v.replacedBy = concreteOrLazy.lazy;
-    return delazy(concreteOrLazy.lazy, reevaluate);
+    concrete = concretize(concreteOrLazy.lazy);
+  } else {
+    concrete = concreteOrLazy;
   }
-  v.concrete = concreteOrLazy;
-  return v as YieldedLazyValue;
+  if (concrete.volatile) {
+    if (v.memo) throw new Unreachable();
+    v.memo = false;
+    return concrete;
+  } else {
+    v.memo = concrete;
+    return v.memo;
+  }
 }
 
 export type Representation = (
   | string
   | LazyValue
-  | { c: Concrete }
+  | Concrete
   | { v: RuntimeResult<Value> | Value }
   | { e: RuntimeError }
   | { n: Node }
@@ -77,17 +74,19 @@ export interface Concrete {
 export type Value =
   | number
   | boolean
-  | LazyValue[]
+  | Value_List
   | Value_Callable;
+
+export type Value_List = (LazyValue | Concrete)[];
 
 export function lazyValue_identifier(
   lazyValue: LazyValue,
   ident: string,
 ): LazyValue {
   return {
-    _yield: (_reevaluate) => {
+    _yield: () => {
       // 能通过标识符引用的值会被固定，因此 reevaluate 为 false
-      const inner = delazy(lazyValue, false).concrete;
+      const inner = concretize(lazyValue);
       const c: Concrete = {
         value: inner.value,
         volatile: false,
@@ -100,9 +99,9 @@ export function lazyValue_identifier(
   };
 }
 
-export function lazyValue_literal(value: Value): YieldedLazyValue {
+export function lazyValue_literal(value: Value): LazyValueWithMemo {
   return {
-    concrete: {
+    memo: {
       value: { ok: value },
       volatile: false,
       representation: [{ v: value }],
@@ -113,9 +112,9 @@ export function lazyValue_literal(value: Value): YieldedLazyValue {
 export function lazyValue_error(
   error: RuntimeError,
   source?: Representation,
-): YieldedLazyValue {
+): LazyValueWithMemo {
   return {
-    concrete: {
+    memo: {
       value: { error: error },
       volatile: false,
       representation: source
@@ -125,9 +124,50 @@ export function lazyValue_error(
   };
 }
 
-export function lazyValue_list(list: LazyValue[]): YieldedLazyValue {
+export function lazyValue_stabilized(underlying: LazyValue): LazyValue {
+  let stabilized: Concrete | null = null;
   return {
-    concrete: {
+    _yield: () => {
+      if (stabilized) return stabilized;
+      const concrete = concretize(underlying);
+      if ("error" in concrete.value) {
+        stabilized = concrete;
+      } else {
+        let value = concrete.value.ok;
+        if (Array.isArray(value)) {
+          value = stabilizeList(value);
+        }
+        stabilized = {
+          value: { ok: value },
+          volatile: false,
+          representation: [{ v: value }],
+        };
+      }
+
+      return stabilized;
+    },
+  };
+}
+
+function stabilizeList(list: Value_List): Concrete[] {
+  return list.map((el) => {
+    if ("value" in el) return el;
+
+    el = concretize(el);
+    if ("error" in el.value) return el;
+
+    if (Array.isArray(el.value.ok)) {
+      return lazyValue_list(stabilizeList(el.value.ok)).memo;
+    }
+    return el;
+  });
+}
+
+export function lazyValue_list(
+  list: (LazyValue | Concrete)[],
+): LazyValueWithMemo {
+  return {
+    memo: {
       value: { ok: list },
       volatile: false,
       representation: [() => {
@@ -152,7 +192,7 @@ export function lazyValue_closure(
   body: Node,
   scope: Scope,
   runtime: FunctionRuntime,
-): YieldedLazyValue {
+): LazyValueWithMemo {
   const arity = paramIdentList.length;
   const closure: Value_Callable = {
     type: "callable",
@@ -170,7 +210,7 @@ export function lazyValue_closure(
             error: new RuntimeError_DuplicateClosureParameterNames(ident),
           };
         }
-        deeperScope[ident] = args[i];
+        deeperScope[ident] = lazyValue_stabilized(args[i]);
       }
 
       return { ok: runtime.interpret(deeperScope, body) };
@@ -178,7 +218,7 @@ export function lazyValue_closure(
   };
 
   return {
-    concrete: {
+    memo: {
       value: { ok: closure },
       volatile: false,
       representation: representClosure(paramIdentList, body),
@@ -191,7 +231,7 @@ export function lazyValue_captured(
   arity: number,
   scope: Scope,
   runtime: FunctionRuntime,
-): YieldedLazyValue {
+): LazyValueWithMemo {
   const representation = representCaptured(identifier, arity);
 
   const fnResult = getFunctionFromScope(scope, identifier, arity);
@@ -213,7 +253,7 @@ export function lazyValue_captured(
   };
 
   return {
-    concrete: {
+    memo: {
       value: { ok: captured },
       volatile: false,
       representation,
@@ -235,19 +275,18 @@ export function callRegularFunction(
   const fn = fnResult.ok;
 
   return {
-    _yield: (reevaluate) => {
-      if (reevaluate) {
-        args = args.map((v) => ({
-          _yield: () => {
-            return delazy(v, true).concrete;
-          },
-        }));
-      }
+    _yield: () => {
+      args = args.map((v) => ({
+        _yield: () => {
+          return concretize(v);
+        },
+      }));
+
       const result = fn(args, runtime);
       if ("error" in result) {
-        return lazyValue_error(result.error, calling).concrete;
+        return lazyValue_error(result.error, calling).memo;
       }
-      const concrete = delazy(result.ok, reevaluate).concrete;
+      const concrete = concretize(result.ok);
       const value = concrete.value;
       return {
         value,
@@ -269,11 +308,10 @@ export function callValue(
   value: LazyValue,
   args: LazyValue[],
   style: ValueCallStyle,
-  reevaluate: boolean,
 ): LazyValue {
   const calling = representCall([value], args, "value", style);
 
-  const concrete = delazy(value, false).concrete;
+  const concrete = concretize(value);
   if ("error" in concrete.value) {
     return lazyValue_error(concrete.value.error, calling);
   }
@@ -286,9 +324,9 @@ export function callValue(
     _yield: (): Concrete => {
       const result = callable._call(args);
       if ("error" in result) {
-        return lazyValue_error(result.error, calling).concrete;
+        return lazyValue_error(result.error, calling).memo;
       }
-      const concrete = delazy(result.ok, reevaluate).concrete;
+      const concrete = concretize(result.ok);
       const value = concrete.value;
       return {
         value,
@@ -299,8 +337,9 @@ export function callValue(
   };
 }
 
-function representList(list: LazyValue[]): Representation {
-  return flatten(intersperse(list as Representation[], [","]));
+function representList(list: (LazyValue | Concrete)[]): Representation {
+  const l = flatten(intersperse(list as Representation[], [","]));
+  return l as unknown as Representation;
 }
 
 function representClosure(

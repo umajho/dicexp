@@ -16,7 +16,8 @@ import {
 import {
   callRegularFunction,
   callValue,
-  delazy,
+  type Concrete,
+  concretize,
   getTypeNameOfValue,
   type LazyValue,
   lazyValue_captured,
@@ -26,7 +27,7 @@ import {
   lazyValue_list,
   lazyValue_literal,
   type RuntimeResult,
-  type YieldedLazyValue,
+  type Value_List,
 } from "./values";
 
 export interface RandomGenerator {
@@ -45,7 +46,7 @@ export type EitherJSValueOrError = [JSValue, null] | [null, RuntimeError];
 export class Runtime {
   private readonly _root: Node;
 
-  private _final: YieldedLazyValue | null = null;
+  private _final: Concrete | null = null;
   get executed() {
     return this._final !== null;
   }
@@ -58,22 +59,21 @@ export class Runtime {
     this._root = root;
     this._rng = opts.rng;
     this._functionRuntime = {
-      // value 都会是新的，因此没必要 reevaluate
-      interpret: (scope, node) => this._interpret(scope, node, false),
+      interpret: (scope, node) => this._interpret(scope, node),
       random: this._rng,
     };
   }
 
   // TODO: return { representation } & ( { value } | { runtimeError } | { unknownError } )
   executeAndTranslate(): EitherJSValueOrError {
-    const value = this._interpretRoot();
-    const [jsValue, err] = this._finalize(value);
+    const concrete = this._interpretRoot();
+    const [jsValue, err] = this._finalize({ memo: concrete });
     if (err) return [null, err];
     return [jsValue, null];
   }
 
-  private _finalize(value: LazyValue): EitherJSValueOrError {
-    const concrete = delazy(value, false).concrete;
+  private _finalize(value: LazyValue | Concrete): EitherJSValueOrError {
+    const concrete = concretize(value);
     if ("error" in concrete.value) {
       return [null, concrete.value.error];
     }
@@ -92,7 +92,7 @@ export class Runtime {
     }
   }
 
-  private _finalizeList(list: LazyValue[]): EitherJSValueOrError {
+  private _finalizeList(list: Value_List): EitherJSValueOrError {
     const resultList: JSValue = Array(list.length);
     for (const [i, elem] of list.entries()) {
       let [v, err] = (() => {
@@ -108,16 +108,16 @@ export class Runtime {
     return [resultList, null];
   }
 
-  private _interpretRoot(): YieldedLazyValue {
+  private _interpretRoot(): Concrete {
     if (this.executed) {
       throw new Unimplemented();
     }
-    const final = this._interpret(builtinScope, this._root, false);
-    this._final = delazy(final, false);
+    const final = this._interpret(builtinScope, this._root);
+    this._final = concretize(final);
     return this._final;
   }
 
-  private _interpret(scope: Scope, node: Node, reevaluate: boolean): LazyValue {
+  private _interpret(scope: Scope, node: Node): LazyValue {
     if (typeof node === "string") {
       return this._interpretIdentifier(scope, node);
     }
@@ -128,7 +128,7 @@ export class Runtime {
         }
         switch (node.value.valueKind) {
           case "list": {
-            return this._interpretList(scope, node.value, reevaluate);
+            return this._interpretList(scope, node.value);
           }
           case "closure":
             return this._interpretClosure(scope, node.value);
@@ -141,7 +141,7 @@ export class Runtime {
       case "regular_call":
         return this._interpretRegularCall(scope, node);
       case "value_call":
-        return this._interpretValueCall(scope, node, reevaluate);
+        return this._interpretValueCall(scope, node);
       default:
         throw new Unreachable();
     }
@@ -164,10 +164,9 @@ export class Runtime {
   private _interpretList(
     scope: Scope,
     list: NodeValue_List,
-    reevaluate: boolean,
   ): LazyValue {
     return lazyValue_list(
-      list.member.map((x) => this._interpret(scope, x, reevaluate)),
+      list.member.map((x) => this._interpret(scope, x)),
     );
   }
 
@@ -199,9 +198,7 @@ export class Runtime {
     scope: Scope,
     regularCall: Node_RegularCall,
   ): LazyValue {
-    const args = regularCall.args.map((arg) =>
-      this._interpret(scope, arg, true)
-    );
+    const args = regularCall.args.map((arg) => this._interpret(scope, arg));
     return callRegularFunction(
       scope,
       regularCall.name,
@@ -214,11 +211,10 @@ export class Runtime {
   private _interpretValueCall(
     scope: Scope,
     valueCall: Node_ValueCall,
-    reevaluate: boolean,
   ): LazyValue {
-    const callee = this._interpret(scope, valueCall.variable, reevaluate);
-    const args = valueCall.args.map((arg) => this._interpret(scope, arg, true));
-    return callValue(callee, args, valueCall.style, reevaluate);
+    const callee = this._interpret(scope, valueCall.variable);
+    const args = valueCall.args.map((arg) => this._interpret(scope, arg));
+    return callValue(callee, args, valueCall.style);
   }
 }
 

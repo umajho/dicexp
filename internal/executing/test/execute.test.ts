@@ -15,13 +15,13 @@ import {
 } from "./test_helpers";
 
 import { evaluate } from "./test_helpers";
-import { Unimplemented } from "../src/errors";
 import {
   RuntimeError_DuplicateClosureParameterNames,
   RuntimeError_UnknownVariable,
   RuntimeError_WrongArity,
 } from "../src/runtime_errors";
 import { JSValue } from "../src/runtime";
+import { flatten } from "../src/utils";
 
 describe("值", () => {
   describe("整数", () => {
@@ -235,12 +235,6 @@ describe("值", () => {
           );
         });
       });
-      it("传入的调用结果保持一致", () => {
-        const result = assertExecutionOk(
-          String.raw`\(->d100000).() |> \(x -> [x, x, x, x, x, x, x, x, x]).()`,
-        );
-        assert.deepEqual((new Set(result as number[])).size, 1);
-      });
     });
   });
 });
@@ -441,21 +435,9 @@ describe("运算符", () => {
         it("重复字面量", () => {
           assertExecutionOk("3#10", Array(3).fill(10));
         });
-
-        describe("重复结果会有不同的表达式", () => {
-          const table = [ // NOTE: 以下这些有 1/10^9_000 的概率真的相同，忽略不计
-            "1000#d1_000_000_000",
-            "1000#(d1_000_000_000 - 1)",
-          ];
-
-          for (const [i, code] of table.entries()) {
-            it(`case ${i + 1}: ${code}`, () => {
-              const result = assertNumberArray(evaluate(code));
-              assert((new Set(result)).size > 1, `${result}`);
-            });
-          }
-        });
       });
+
+      // 测试 “重复求值结果不同” 放在了 “语意” 那里
     });
 
     describe("d/1 与 d%/1", () => {
@@ -488,6 +470,51 @@ describe("运算符", () => {
       ]);
     });
     unaryOperatorOnlyAcceptsBoolean("not");
+  });
+});
+
+describe("语意", () => {
+  const SUPER_BIG_DIE = `d1_000_000_000`; // 大到让巧合可以忽略不计
+
+  const exps = [
+    `${SUPER_BIG_DIE}`,
+    `(${SUPER_BIG_DIE}-1)`,
+    `[${SUPER_BIG_DIE}]`,
+    `sum([${SUPER_BIG_DIE}])`, // 内部用 flattenListAll 求列表元素值
+    `sort([${SUPER_BIG_DIE}])`, // 内部用 unwrapListOneOf 求列表元素值
+    `append([], ${SUPER_BIG_DIE})`, // 不破坏列表元素惰性
+    String.raw`\(-> ${SUPER_BIG_DIE}).()`,
+  ];
+
+  describe("具名的变量其值固定", () => {
+    const longListOfXs = "[" + Array(1000).fill("x").join(", ") + "]";
+    const table = exps
+      .map((exp) => String.raw`${exp} |> \(x -> ${longListOfXs}).()`);
+    table.push(...[
+      String.raw`1000#\(x->x).(${SUPER_BIG_DIE})`,
+    ]);
+
+    for (const [i, code] of table.entries()) {
+      it(`case ${i + 1}: ${code}`, () => {
+        const result = assertExecutionOk(code);
+        const resultFlatten = flatten(result as any, Infinity) as number[];
+        assert(resultFlatten.every((el) => Number.isFinite(el)));
+        assert.deepEqual((new Set(resultFlatten)).size, 1);
+      });
+    }
+  });
+
+  describe("重复求值结果不同", () => {
+    const table = exps.map((exp) => `1000#${exp}`);
+
+    for (const [i, code] of table.entries()) {
+      it(`case ${i + 1}: ${code}`, () => {
+        const result = assertExecutionOk(code);
+        const resultFlatten = flatten(result as any, Infinity);
+        assert(resultFlatten.every((el) => Number.isFinite(el)));
+        assert((new Set(resultFlatten)).size > 1);
+      });
+    }
   });
 });
 

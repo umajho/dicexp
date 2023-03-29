@@ -6,7 +6,7 @@ import {
   RuntimeError_WrongArity,
 } from "../runtime_errors";
 import {
-  delazy,
+  concretize,
   getTypeNameOfValue,
   type LazyValue,
   lazyValue_error,
@@ -46,7 +46,7 @@ export function makeFunction(
         _yield: () => {
           const result = logic(unwrapResult.ok.values, rtm);
           if ("error" in result) {
-            return lazyValue_error(result.error).concrete;
+            return lazyValue_error(result.error).memo;
           }
 
           if ("lazy" in result.ok) {
@@ -96,7 +96,7 @@ export function unwrapValue(
     return { ok: { value, volatile: false } };
   }
 
-  const concrete = delazy(value, false).concrete;
+  const concrete = concretize(value);
   if ("error" in concrete.value) return concrete.value;
 
   const errType = checkType(spec, getTypeNameOfValue(concrete.value.ok), opts);
