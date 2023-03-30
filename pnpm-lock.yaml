@@ -113,6 +113,7 @@ importers:
       '@codemirror/lint': ^6.2.0
       '@codemirror/state': ^6.2.0
       '@codemirror/theme-one-dark': ^6.1.1
+      '@codemirror/view': ^6.9.3
       '@dicexp/codemirror-lang-dicexp': workspace:*
       '@rushstack/eslint-patch': ^1.2.0
       '@types/node': ^18.14.2
@@ -134,11 +135,12 @@ importers:
       vue-json-viewer: '3'
       vue-tsc: ^1.2.0
     dependencies:
-      '@codemirror/autocomplete': 6.4.2_gkscdmaqmlbl34zmiwfvbniyqi
+      '@codemirror/autocomplete': 6.4.2_ipi6fyicmvtccbdgcmxxogx7ni
       '@codemirror/language': 6.6.0
       '@codemirror/lint': 6.2.0
       '@codemirror/state': 6.2.0
       '@codemirror/theme-one-dark': 6.1.1
+      '@codemirror/view': 6.9.3
       '@dicexp/codemirror-lang-dicexp': link:../internal/codemirror-lang-dicexp
       codemirror: 6.0.1
       dicexp: link:../packages/dicexp
@@ -209,11 +211,12 @@ packages:
       '@babel/helper-validator-identifier': 7.19.1
       to-fast-properties: 2.0.0
 
-  /@codemirror/autocomplete/6.4.2_gkscdmaqmlbl34zmiwfvbniyqi:
+  /@codemirror/autocomplete/6.4.2_ipi6fyicmvtccbdgcmxxogx7ni:
     resolution: {integrity: sha512-8WE2xp+D0MpWEv5lZ6zPW1/tf4AGb358T5GWYiKEuCP8MvFfT3tH2mIF9Y2yr2e3KbHuSvsVhosiEyqCpiJhZQ==}
     peerDependencies:
       '@codemirror/language': ^6.0.0
       '@codemirror/state': ^6.0.0
+      '@codemirror/view': ^6.0.0
     dependencies:
       '@codemirror/language': 6.6.0
       '@codemirror/state': 6.2.0
@@ -1386,7 +1389,7 @@ packages:
   /codemirror/6.0.1:
     resolution: {integrity: sha512-J8j+nZ+CdWmIeFIGXEFbFPtpiYacFMDR8GlHK3IyHQJMCaVRfGx9NT+Hxivv1ckLWPvNdZqndbr/7lVhrf/Svg==}
     dependencies:
-      '@codemirror/autocomplete': 6.4.2_gkscdmaqmlbl34zmiwfvbniyqi
+      '@codemirror/autocomplete': 6.4.2_ipi6fyicmvtccbdgcmxxogx7ni
       '@codemirror/commands': 6.2.2
       '@codemirror/language': 6.6.0
       '@codemirror/lint': 6.2.0

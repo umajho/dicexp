@@ -30,7 +30,7 @@ import JsonViewer from "vue-json-viewer";
                 height: 100%;
                 width: min(60vw, 512px);
               `)
-                async-dicexp-editor(v-model="code")
+                async-dicexp-editor(v-model="code" @confirm="roll()")
               template(v-if="evaluate")
                 n-button(@click="roll()", :disabled="!canRoll") ROLL!
               template(v-else)
@@ -117,6 +117,8 @@ const result: Ref<EvaluationResult | null> = ref(null);
 const otherError: Ref<Error | null> = ref(null);
 
 function roll() {
+  if (!canRoll) return;
+
   if (!fixesSeed.value) {
     seed.value = crypto.getRandomValues(new Uint32Array(1))[0];
   }

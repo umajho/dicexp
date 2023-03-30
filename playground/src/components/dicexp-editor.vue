@@ -4,7 +4,8 @@
 
 <script setup lang="ts">
 import { EditorView, minimalSetup } from "codemirror";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Prec } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import { bracketMatching, syntaxTree } from "@codemirror/language";
 import { closeBrackets } from "@codemirror/autocomplete";
 import { linter, type Diagnostic } from "@codemirror/lint";
@@ -20,6 +21,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
+  (e: "confirm"): void;
 }>();
 
 let view: EditorView;
@@ -32,6 +34,15 @@ onMounted(() => {
     const value = view.state.doc.line(1).text;
     emit("update:modelValue", value);
   });
+  const confirmByEnter = keymap.of([
+    {
+      key: "Enter",
+      run: () => {
+        emit("confirm");
+        return true;
+      },
+    },
+  ]);
   const linting = linter((view) => {
     // 参考：https://discuss.codemirror.net/t/showing-syntax-errors/3111/6
     if (view.state.doc.line(1).text.slice() === "") return [];
@@ -61,6 +72,7 @@ onMounted(() => {
       oneDark,
       singleLine,
       sync,
+      Prec.high(confirmByEnter),
       dicexp(),
       linting,
     ],
