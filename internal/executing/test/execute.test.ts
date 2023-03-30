@@ -20,8 +20,11 @@ import {
   RuntimeError_UnknownVariable,
   RuntimeError_WrongArity,
 } from "../src/runtime_errors";
-import { JSValue } from "../src/runtime";
+import { JSValue, Scope } from "../src/runtime";
 import { flatten } from "../src/utils";
+import { makeFunction } from "../src/builtin_functions/helpers";
+import { Restrictions } from "../src/restrictions";
+import { builtinScope } from "../src/builtin_functions/mod";
 
 describe("值", () => {
   describe("整数", () => {
@@ -536,39 +539,85 @@ describe("从管道的测试那里移过来的", () => {
   ] as [string, JSValue][]);
 });
 
-describe.todo("限制", () => {
-  describe("整数", () => {
-    it("不能允许大于 `Number.MAX_SAFE_INTEGER` 的整数", () => {
-      const safe = Number.MAX_SAFE_INTEGER;
+describe("限制", () => {
+  describe.todo("内在限制", () => {
+    describe("整数", () => {
+      it("不能允许大于 `Number.MAX_SAFE_INTEGER` 的整数", () => {
+        const safe = Number.MAX_SAFE_INTEGER;
 
-      assertExecutionOk(`${safe}`, safe);
-      assertExecutionRuntimeError(`${safe + 1}`, "TODO: error");
-      assertExecutionRuntimeError(`${safe} + 1`, "TODO: error");
-    });
-    it("不能允许小于 `Number.MIN_SAFE_INTEGER` 的整数", () => {
-      const safe = Number.MIN_SAFE_INTEGER;
+        assertExecutionOk(`${safe}`, safe);
+        assertExecutionRuntimeError(`${safe + 1}`, "TODO: error");
+        assertExecutionRuntimeError(`${safe} + 1`, "TODO: error");
+      });
+      it("不能允许小于 `Number.MIN_SAFE_INTEGER` 的整数", () => {
+        const safe = Number.MIN_SAFE_INTEGER;
 
-      assertExecutionOk(`${safe}`, safe);
-      assertExecutionRuntimeError(`${safe - 1}`, "TODO: error");
-      assertExecutionRuntimeError(`${safe} - 1`, "TODO: error");
+        assertExecutionOk(`${safe}`, safe);
+        assertExecutionRuntimeError(`${safe - 1}`, "TODO: error");
+        assertExecutionRuntimeError(`${safe} - 1`, "TODO: error");
+      });
     });
   });
 
-  describe("列表", () => {
-    // it("作为结果不能有超过 32 个元素", () => {
-    //   assertExecutionOk("32#1", Array(32).fill(1))
-    //   assertExecutionRuntimeError("33#1", "TODO: error")
-    //   assertExecutionRuntimeError("[[16#1], 17#1]", "TODO: error")
-    // })
+  describe("外加限制", () => {
+    describe("软性超时", () => {
+      const restrictions: Restrictions = { softTimeout: { ms: 10 } };
+      it("未超时则无影响", () => {
+        assertExecutionOk(`${1}`, undefined, { restrictions });
+      });
 
-    // it("同一展开层级只能同时有 32 个列表元素", () => {
-    //   assertExecutionOk("concat(16#1, 16#1) |> sum", 32)
-    //   assertExecutionOk("append(16#1, 17#1 |> sum) |> sum", 33)
-    //   assertExecutionRuntimeError("concat(16#1, 17#1) |> sum", "TODO: error")
-    // })
-  });
+      describe("超时则返回运行时错误", () => {
+        const scope: Scope = {
+          "sleep/1": makeFunction(["number"], (args, _rtm) => {
+            const [ms] = args as [number];
+            const start = performance.now();
+            while (performance.now() - start <= ms) { /* noop */ }
+            return { ok: { value: true, pure: true } };
+          }),
+        };
 
-  describe("生成器", () => {
+        it("超时后如果再也没有 `concretize` 则不会被触发", () => {
+          assertExecutionOk(`[[sleep(20)]]`, [[true]], {
+            topLevelScope: scope,
+            restrictions,
+          });
+        });
+
+        it("超时后的下一次 `concretize` 才会触发", () => {
+          assertExecutionRuntimeError(
+            String.raw`sleep(20) and true`,
+            "越过外加限制「运行时间」（最多允许 10 毫秒）",
+            { topLevelScope: { ...builtinScope, ...scope }, restrictions },
+          );
+        });
+      });
+    });
+
+    describe("步骤数（大致）", () => {
+      const restrictions: Restrictions = { maxNonMemoedConcretizations: 100 };
+      theyAreOk(["10#d10"], { restrictions });
+      it("超过步骤数则返回运行时错误", () => {
+        assertExecutionRuntimeError(
+          "100#d10",
+          "越过外加限制「步骤数（大致）」（最多允许 100 步）",
+          { restrictions },
+        );
+      });
+    });
+
+    describe("闭包递归深度", () => {
+      const restrictions: Restrictions = { maxClosureCallDepth: 100 };
+      const nester = String
+        .raw`\(max -> \(f, n, max -> if(n==max, true, f.(f, n+1, max))) |> \(f -> f.(f, 3, max)).())`;
+      theyAreOk([`${nester}.(100)`], { restrictions });
+      it("超过深度则返回运行时错误", () => {
+        assertExecutionRuntimeError(
+          `${nester}.(101)`,
+          "越过外加限制「闭包递归深度」（最多允许 100 层）",
+          { restrictions },
+        );
+      });
+    });
   });
 });
 

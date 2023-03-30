@@ -1,6 +1,11 @@
 import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import { Unreachable } from "./errors";
-import type { FunctionRuntime, RegularFunction, Scope } from "./runtime";
+import type {
+  RegularFunction,
+  RuntimeProxy,
+  RuntimeReporter,
+  Scope,
+} from "./runtime";
 import {
   RuntimeError,
   RuntimeError_DuplicateClosureParameterNames,
@@ -33,14 +38,24 @@ export interface LazyValueWithMemo extends LazyValue {
   memo: Concrete;
 }
 
-export function concretize(v: LazyValue): Concrete {
+export function concretize(
+  v: LazyValue,
+  rtm: RuntimeProxy | null,
+): Concrete {
+  if (rtm) {
+    const errFromReporter = rtm.reporter.concreted(!!v.memo);
+    if (errFromReporter) {
+      return rtm.lazyValueFactory.error(errFromReporter, [v]).memo;
+    }
+  }
+
   if (v.memo) return v.memo;
 
   let concreteOrLazy = v._yield!();
   let concrete: Concrete;
   if ("lazy" in concreteOrLazy) {
     v.replacedBy = concreteOrLazy.lazy;
-    concrete = concretize(concreteOrLazy.lazy);
+    concrete = concretize(concreteOrLazy.lazy, rtm);
   } else {
     concrete = concreteOrLazy;
   }
@@ -78,225 +93,265 @@ export type Value =
 
 export type Value_List = LazyValue[];
 
-export function lazyValue_identifier(
-  lazyValue: LazyValue,
-  ident: string,
-): LazyValue {
-  return {
-    _yield: () => {
-      // 能通过标识符引用的值会被固定，因此 reevaluate 为 false
-      const inner = concretize(lazyValue);
-      const c: Concrete = {
-        value: inner.value,
-        volatile: false,
-        // 使用 `inner.value` 是为了切断之前的 representation，以免过于冗长
-        //（而且函数调用中的参数列表已经将对应的内容展示过了）
-        representation: [`(${ident}=`, { v: inner.value }, `)`],
-      };
-      return c;
-    },
-  };
-}
-
-export function lazyValue_literal(value: Value): LazyValueWithMemo {
-  return {
-    memo: {
-      value: { ok: value },
-      volatile: false,
-      representation: [{ v: value }],
-    },
-  };
-}
-
-export function lazyValue_error(
-  error: RuntimeError,
-  source?: Representation,
-): LazyValueWithMemo {
-  return {
-    memo: {
-      value: { error: error },
-      volatile: false,
-      representation: source
-        ? ["(", ...source, "=>", { e: error }, ")"]
-        : [{ e: error }],
-    },
-  };
-}
-
-export function lazyValue_stabilized(underlying: LazyValue): LazyValue {
-  let stabilized: Concrete | null = null;
-  return {
-    _yield: () => {
-      if (stabilized) return stabilized;
-      const concrete = concretize(underlying);
-      if ("error" in concrete.value) {
-        stabilized = concrete;
-      } else {
-        let value = concrete.value.ok;
-        if (Array.isArray(value)) {
-          value = stabilizeList(value);
-        }
-        stabilized = {
-          value: { ok: value },
-          volatile: false,
-          representation: [{ v: value }],
-        };
-      }
-
-      return stabilized;
-    },
-  };
-}
-
-function stabilizeList(list: Value_List): Value_List {
-  return list.map((el) => {
-    if (el.stabilized) return el;
-
-    const concrete = concretize(el);
-    if ("error" in concrete.value) {
-      return { memo: concrete, stabilized: true };
-    }
-
-    if (Array.isArray(concrete.value.ok)) {
-      const list = lazyValue_list(stabilizeList(concrete.value.ok));
-      return { ...list, stabilized: true };
-    }
-    return { memo: concrete, stabilized: true };
-  });
-}
-
-export function lazyValue_list(
-  list: LazyValue[],
-): LazyValueWithMemo {
-  return {
-    memo: {
-      value: { ok: list },
-      volatile: false,
-      representation: [() => {
-        return [
-          "[",
-          ...representList(list),
-          "]",
-        ];
-      }],
-    },
-  };
-}
-
 export interface Value_Callable {
   type: "callable";
   arity: number;
   _call: (args: LazyValue[]) => RuntimeResult<LazyValue>;
 }
 
-export function lazyValue_closure(
-  paramIdentList: string[],
-  body: Node,
-  scope: Scope,
-  runtime: FunctionRuntime,
-): LazyValueWithMemo {
-  const arity = paramIdentList.length;
-  const closure: Value_Callable = {
-    type: "callable",
-    arity,
-    _call: (args) => {
-      if (args.length !== arity) {
-        return { error: new RuntimeError_WrongArity(arity, args.length) };
-      }
+export class LazyValueFactory {
+  constructor(
+    private runtime: RuntimeProxy | null,
+  ) {}
 
-      const deeperScope: Scope = Object.setPrototypeOf({}, scope);
-      for (const [i, ident] of paramIdentList.entries()) {
-        if (ident === "_") continue;
-        if (Object.prototype.hasOwnProperty.call(deeperScope, ident)) {
-          return {
-            error: new RuntimeError_DuplicateClosureParameterNames(ident),
+  identifier(
+    lazyValue: LazyValue,
+    ident: string,
+  ): LazyValue {
+    return {
+      _yield: () => {
+        // 能通过标识符引用的值会被固定，因此 reevaluate 为 false
+        const inner = concretize(lazyValue, this.runtime);
+        const c: Concrete = {
+          value: inner.value,
+          volatile: false,
+          // 使用 `inner.value` 是为了切断之前的 representation，以免过于冗长
+          //（而且函数调用中的参数列表已经将对应的内容展示过了）
+          representation: [`(${ident}=`, { v: inner.value }, `)`],
+        };
+        return c;
+      },
+    };
+  }
+
+  literal(value: Value): LazyValueWithMemo {
+    return {
+      memo: {
+        value: { ok: value },
+        volatile: false,
+        representation: [{ v: value }],
+      },
+    };
+  }
+
+  error(
+    error: RuntimeError,
+    source?: Representation,
+  ): LazyValueWithMemo {
+    return {
+      memo: {
+        value: { error: error },
+        volatile: false,
+        representation: source
+          ? ["(", ...source, "=>", { e: error }, ")"]
+          : [{ e: error }],
+      },
+    };
+  }
+
+  stabilized(underlying: LazyValue): LazyValue {
+    let stabilized: Concrete | null = null;
+    return {
+      _yield: () => {
+        if (stabilized) return stabilized;
+        const concrete = concretize(underlying, this.runtime);
+        if ("error" in concrete.value) {
+          stabilized = concrete;
+        } else {
+          let value = concrete.value.ok;
+          if (Array.isArray(value)) {
+            value = this._stabilizeList(value);
+          }
+          stabilized = {
+            value: { ok: value },
+            volatile: false,
+            representation: [{ v: value }],
           };
         }
-        deeperScope[ident] = lazyValue_stabilized(args[i]);
-      }
 
-      return { ok: runtime.interpret(deeperScope, body) };
-    },
-  };
-
-  return {
-    memo: {
-      value: { ok: closure },
-      volatile: false,
-      representation: representClosure(paramIdentList, body),
-    },
-  };
-}
-
-export function lazyValue_captured(
-  identifier: string,
-  arity: number,
-  scope: Scope,
-  runtime: FunctionRuntime,
-): LazyValueWithMemo {
-  const representation = representCaptured(identifier, arity);
-
-  const fnResult = getFunctionFromScope(scope, identifier, arity);
-  if ("error" in fnResult) {
-    return lazyValue_error(fnResult.error, representation);
+        return stabilized;
+      },
+    };
   }
-  const fn = fnResult.ok;
 
-  const captured: Value_Callable = {
-    type: "callable",
-    arity,
-    _call: (args) => {
-      if (args.length !== arity) {
-        return { error: new RuntimeError_WrongArity(arity, args.length) };
+  private _stabilizeList(list: Value_List): Value_List {
+    return list.map((el) => {
+      if (el.stabilized) return el;
+
+      const concrete = concretize(el, this.runtime);
+      if ("error" in concrete.value) {
+        return { memo: concrete, stabilized: true };
       }
 
-      return fn(args, runtime);
-    },
-  };
-
-  return {
-    memo: {
-      value: { ok: captured },
-      volatile: false,
-      representation,
-    },
-  };
-}
-
-export function callRegularFunction(
-  scope: Scope,
-  name: string,
-  args: LazyValue[],
-  style: RegularCallStyle,
-  runtime: FunctionRuntime,
-): LazyValue {
-  const calling = representCall([name], args, "regular", style);
-
-  const fnResult = getFunctionFromScope(scope, name, args.length);
-  if ("error" in fnResult) return lazyValue_error(fnResult.error, calling);
-  const fn = fnResult.ok;
-
-  return {
-    _yield: () => {
-      args = args.map((v) => ({
-        _yield: () => {
-          return concretize(v);
-        },
-      }));
-
-      const result = fn(args, runtime);
-      if ("error" in result) {
-        return lazyValue_error(result.error, calling).memo;
+      if (Array.isArray(concrete.value.ok)) {
+        const list = this.list(this._stabilizeList(concrete.value.ok));
+        return { ...list, stabilized: true };
       }
-      const concrete = concretize(result.ok);
-      const value = concrete.value;
-      return {
-        value,
-        volatile: concrete.volatile,
-        representation: ["(", ...calling, " => ", { v: value }, ")"],
-      };
-    },
-  };
+      return { memo: concrete, stabilized: true };
+    });
+  }
+
+  list(list: LazyValue[]): LazyValueWithMemo {
+    return {
+      memo: {
+        value: { ok: list },
+        volatile: false,
+        representation: [() => ["[", ...representList(list), "]"]],
+      },
+    };
+  }
+
+  callRegularFunction(
+    scope: Scope,
+    name: string,
+    args: LazyValue[],
+    style: RegularCallStyle,
+    runtime: RuntimeProxy,
+  ): LazyValue {
+    const calling = representCall([name], args, "regular", style);
+
+    const fnResult = getFunctionFromScope(scope, name, args.length);
+    if ("error" in fnResult) {
+      return this.error(fnResult.error, calling);
+    }
+    const fn = fnResult.ok;
+
+    return {
+      _yield: () => {
+        args = args.map((v) => ({
+          _yield: () => {
+            return concretize(v, this.runtime);
+          },
+        }));
+
+        const result = fn(args, runtime);
+        if ("error" in result) {
+          return this.error(result.error, calling).memo;
+        }
+        const concrete = concretize(result.ok, this.runtime);
+        const value = concrete.value;
+        return {
+          value,
+          volatile: concrete.volatile,
+          representation: ["(", ...calling, " => ", { v: value }, ")"],
+        };
+      },
+    };
+  }
+
+  closure(
+    paramIdentList: string[],
+    body: Node,
+    scope: Scope,
+    runtime: RuntimeProxy,
+  ): LazyValueWithMemo {
+    const arity = paramIdentList.length;
+    const closure: Value_Callable = {
+      type: "callable",
+      arity,
+      _call: (args) => {
+        if (args.length !== arity) {
+          return { error: new RuntimeError_WrongArity(arity, args.length) };
+        }
+
+        const deeperScope: Scope = Object.setPrototypeOf({}, scope);
+        for (const [i, ident] of paramIdentList.entries()) {
+          if (ident === "_") continue;
+          if (Object.prototype.hasOwnProperty.call(deeperScope, ident)) {
+            return {
+              error: new RuntimeError_DuplicateClosureParameterNames(ident),
+            };
+          }
+          deeperScope[ident] = this.stabilized(args[i]);
+        }
+
+        const result = { ok: runtime.interpret(deeperScope, body) };
+        return result;
+      },
+    };
+
+    return {
+      memo: {
+        value: { ok: closure },
+        volatile: false,
+        representation: representClosure(paramIdentList, body),
+      },
+    };
+  }
+
+  captured(
+    identifier: string,
+    arity: number,
+    scope: Scope,
+    runtime: RuntimeProxy,
+  ): LazyValueWithMemo {
+    const representation = representCaptured(identifier, arity);
+
+    const fnResult = getFunctionFromScope(scope, identifier, arity);
+    if ("error" in fnResult) {
+      return this.error(fnResult.error, representation);
+    }
+    const fn = fnResult.ok;
+
+    const captured: Value_Callable = {
+      type: "callable",
+      arity,
+      _call: (args) => {
+        if (args.length !== arity) {
+          return { error: new RuntimeError_WrongArity(arity, args.length) };
+        }
+
+        return fn(args, runtime);
+      },
+    };
+
+    return {
+      memo: {
+        value: { ok: captured },
+        volatile: false,
+        representation,
+      },
+    };
+  }
+
+  callValue(
+    value: LazyValue,
+    args: LazyValue[],
+    style: ValueCallStyle,
+  ): LazyValue {
+    const calling = representCall([value], args, "value", style);
+
+    const concrete = concretize(value, this.runtime);
+    if ("error" in concrete.value) {
+      return this.error(concrete.value.error, calling);
+    }
+    const callable = asCallable(concrete.value.ok);
+    if (!callable) {
+      const err = new RuntimeError_ValueIsNotCallable();
+      return this.error(err, calling);
+    }
+
+    return {
+      _yield: (): Concrete => {
+        const errFromReporter = this.runtime?.reporter.closureCalled?.();
+        if (errFromReporter) return this.error(errFromReporter, calling).memo;
+
+        const result = callable._call(args);
+
+        if ("error" in result) {
+          return this.error(result.error, calling).memo;
+        }
+        const concrete = concretize(result.ok, this.runtime);
+        this.runtime?.reporter.closureLeaved?.();
+        const value = concrete.value;
+        return {
+          value,
+          volatile: concrete.volatile,
+          representation: ["(", ...calling, " => ", { v: value }, ")"],
+        };
+      },
+    };
+  }
 }
 
 export function callCallable(
@@ -304,39 +359,6 @@ export function callCallable(
   args: LazyValue[],
 ): RuntimeResult<LazyValue> {
   return callable._call(args);
-}
-
-export function callValue(
-  value: LazyValue,
-  args: LazyValue[],
-  style: ValueCallStyle,
-): LazyValue {
-  const calling = representCall([value], args, "value", style);
-
-  const concrete = concretize(value);
-  if ("error" in concrete.value) {
-    return lazyValue_error(concrete.value.error, calling);
-  }
-  const callable = asCallable(concrete.value.ok);
-  if (!callable) {
-    return lazyValue_error(new RuntimeError_ValueIsNotCallable(), calling);
-  }
-
-  return {
-    _yield: (): Concrete => {
-      const result = callable._call(args);
-      if ("error" in result) {
-        return lazyValue_error(result.error, calling).memo;
-      }
-      const concrete = concretize(result.ok);
-      const value = concrete.value;
-      return {
-        value,
-        volatile: concrete.volatile,
-        representation: ["(", ...calling, " => ", { v: value }, ")"],
-      };
-    },
-  };
 }
 
 function representList(list: (LazyValue | Concrete)[]): Representation {

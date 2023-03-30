@@ -3,6 +3,20 @@ import type { ValueTypeName } from "./values";
 
 export class RuntimeError extends Error {}
 
+export class RuntimeError_RestrictionExceeded extends RuntimeError {
+  constructor(
+    readonly name: string,
+    readonly unit: string,
+    readonly max: number,
+  ) {
+    super();
+  }
+
+  get message() {
+    return `越过外加限制「${this.name}」（最多允许 ${this.max} ${this.unit}）`;
+  }
+}
+
 export class RuntimeError_WrongArity extends RuntimeError {
   readonly expectedArity: number;
   readonly actualArity: number;

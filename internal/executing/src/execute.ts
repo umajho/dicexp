@@ -34,6 +34,10 @@ export function execute(
     }
   }
 
+  if (!opts.restrictions) {
+    opts.restrictions = {};
+  }
+
   const runtime = new Runtime(node, opts as RuntimeOptions);
   return runtime.execute();
 }

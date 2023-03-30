@@ -14,9 +14,10 @@ import {
 import { JSValue } from "../src/runtime";
 import { Unreachable } from "../src/errors";
 
+type EvaluateOptions = ExecuteOptions & { parseOpts?: ParseOptions };
 export function evaluate(
   code: string,
-  opts: ExecuteOptions & { parseOpts?: ParseOptions } = {},
+  opts: EvaluateOptions = {},
 ): ExecutionResult {
   const parseResult = parse(code, opts.parseOpts);
   if ("error" in parseResult) throw new Unreachable();
@@ -43,22 +44,25 @@ export function assertNumberArray(result: ExecutionResult): number[] {
 export function assertExecutionOk(
   code: string,
   expectedResult?: unknown,
+  opts?: EvaluateOptions,
 ): JSValue {
-  const result = evaluate(code);
+  const result = evaluate(code, opts);
   if (!("error" in result)) {
     if (result.ok === null) throw new Unreachable();
     if (expectedResult === undefined) return result.ok!;
     if (deepEqual(result.ok, expectedResult)) return result.ok!;
   }
 
-  const expectedResultInspected = inspect(expectedResult);
   let msg: string;
+  const msgRest = expectedResult === undefined
+    ? ""
+    : `!= ${inspect(expectedResult)}`;
   if ("error" in result) {
     msg = `${code} => 运行时错误：` +
-      `「${result.error.message}」!= ${expectedResultInspected}`;
+      `「${result.error.message}」${msgRest}`;
   } else {
     const actualResultInspected = inspect(result.ok);
-    msg = `${code} => ${actualResultInspected} != ${expectedResultInspected}`;
+    msg = `${code} => ${actualResultInspected} ${msgRest}`;
   }
   throw new AssertionError(msg);
 }
@@ -66,8 +70,9 @@ export function assertExecutionOk(
 export function assertExecutionRuntimeError(
   code: string,
   expectedError: string | RuntimeError,
+  opts?: EvaluateOptions,
 ) {
-  const result = evaluate(code);
+  const result = evaluate(code, opts);
   if (!("error" in result)) {
     const actualResultInspected = inspect(result.ok);
     throw new AssertionError(
@@ -158,10 +163,20 @@ function binaryOperatorOnlyAccepts(
   }
 }
 
-export function theyAreOk<T extends JSValue = JSValue>(table: [string, T][]) {
-  for (const [i, [code, expected]] of table.entries()) {
+export function theyAreOk<T extends JSValue = JSValue>(
+  table: ([string, T] | string)[],
+  opts?: EvaluateOptions,
+) {
+  for (const [i, row] of table.entries()) {
+    let code: string, expected: unknown | undefined;
+    if (typeof row === "string") {
+      code = row;
+      expected = undefined;
+    } else {
+      [code, expected] = row;
+    }
     it(`case ${i + 1}: ${code}`, () => {
-      assertExecutionOk(code, expected);
+      assertExecutionOk(code, expected, opts);
     });
   }
 }

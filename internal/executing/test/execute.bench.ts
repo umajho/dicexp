@@ -1,7 +1,7 @@
 import { bench } from "vitest";
 
-import { parse } from "@dicexp/parsing";
-import { execute } from "../lib";
+import { parse, ParsingResult } from "@dicexp/parsing";
+import { execute, ExecutionResult } from "../lib";
 import { Node } from "@dicexp/nodes";
 
 const codesSimple = [
@@ -50,16 +50,28 @@ const codesSimple = [
 ];
 
 for (const code of codesSimple) {
-  const parseResult = parse(code);
+  let parseResult: ParsingResult;
+  try {
+    parseResult = parse(code);
+  } catch (e) {
+    console.error(`${code}: unknown error during parsing: ${e}`);
+    continue;
+  }
   if ("error" in parseResult) {
-    console.error(code, parseResult.error);
+    console.error(`${code}: parsing error: ${parseResult.error.message}`);
     continue;
   }
 
   bench(`${code}`, () => {
-    const result = execute(parseResult.ok);
+    let result: ExecutionResult;
+    try {
+      if ("error" in parseResult) throw new Error("Unreachable");
+      result = execute(parseResult.ok);
+    } catch (e) {
+      throw new Error(`${code}: unknown error during executing: ${e}`);
+    }
     if ("error" in result) {
-      throw new Error(`${code}: ${result.error.message}`);
+      throw new Error(`${code}: runtime error: ${result.error.message}`);
     }
   });
 }

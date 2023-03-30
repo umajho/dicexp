@@ -6,7 +6,7 @@ import {
 } from "./helpers";
 
 import { Unreachable } from "../errors";
-import type { RandomGenerator, Scope } from "../runtime";
+import type { RandomGenerator, RuntimeProxy, Scope } from "../runtime";
 import {
   getTypeDisplayName,
   RuntimeError,
@@ -17,7 +17,6 @@ import {
   concretize,
   getTypeNameOfValue,
   type LazyValue,
-  lazyValue_literal,
   type RuntimeResult,
   type Value_Callable,
   type Value_List,
@@ -73,12 +72,12 @@ export const builtinScope: Scope = {
   }),
 
   // TODO: 真正实现
-  "#/2": makeFunction(["number", "lazy"], (args, _rtm) => {
+  "#/2": makeFunction(["number", "lazy"], (args, rtm) => {
     const [count, body] = args as [number, LazyValue];
 
     const list: Value_List = Array(count);
     for (let i = 0; i < count; i++) {
-      list[i] = { _yield: () => concretize(body) };
+      list[i] = { _yield: () => concretize(body, rtm) };
     }
 
     return { ok: { value: list, pure: false } };
@@ -228,15 +227,15 @@ export const builtinScope: Scope = {
   // 实用：
   // abs/1
   // count/1
-  "count/2": makeFunction(["list", "callable"], (args, _rtm) => {
+  "count/2": makeFunction(["list", "callable"], (args, rtm) => {
     const [list, callable] = args as [Value_List, Value_Callable];
-    const result = filter(list, callable);
+    const result = filter(list, callable, rtm);
     if ("error" in result) return result;
     return { ok: { value: result.ok.length, pure: true } };
   }),
   // has?/2
-  "sum/1": makeFunction(["list"], ([list_], _rtm) => {
-    const result = flattenListAll("number", list_ as Value_List);
+  "sum/1": makeFunction(["list"], ([list_], rtm) => {
+    const result = flattenListAll("number", list_ as Value_List, rtm);
     if ("error" in result) return result;
     return {
       ok: {
@@ -245,8 +244,8 @@ export const builtinScope: Scope = {
       },
     };
   }),
-  "product/1": makeFunction(["list"], ([list_], _rtm) => {
-    const result = flattenListAll("number", list_ as Value_List);
+  "product/1": makeFunction(["list"], ([list_], rtm) => {
+    const result = flattenListAll("number", list_ as Value_List, rtm);
     if ("error" in result) return result;
     return {
       ok: {
@@ -258,8 +257,8 @@ export const builtinScope: Scope = {
   // min/1
   // max/1
   // all?/1
-  "any?/1": makeFunction(["list"], ([list_], _rtm) => {
-    const result = unwrapListOneOf(["boolean"], list_ as Value_List);
+  "any?/1": makeFunction(["list"], ([list_], rtm) => {
+    const result = unwrapListOneOf(["boolean"], list_ as Value_List, rtm);
     if ("error" in result) return result;
     return {
       ok: {
@@ -268,15 +267,15 @@ export const builtinScope: Scope = {
       },
     };
   }),
-  "sort/1": makeFunction(["list"], ([list_], _rtm) => {
+  "sort/1": makeFunction(["list"], ([list_], rtm) => {
     const allowedTypes = ["number", "boolean"] as ValueTypeName[];
-    const result = unwrapListOneOf(allowedTypes, list_ as Value_List);
+    const result = unwrapListOneOf(allowedTypes, list_ as Value_List, rtm);
     if ("error" in result) return result;
     const list = result.ok.values as number[] | boolean[];
     const sortedList = list.sort((a, b) => +a - +b);
     return {
       ok: {
-        value: sortedList.map((el) => lazyValue_literal(el)),
+        value: sortedList.map((el) => rtm.lazyValueFactory.literal(el)),
         pure: !result.ok.volatile,
       },
     };
@@ -326,11 +325,11 @@ export const builtinScope: Scope = {
     return { ok: { value: resultList, pure: false } };
   }),
   // flatMap/2
-  "filter/2": makeFunction(["list", "callable"], (args, _rtm) => {
+  "filter/2": makeFunction(["list", "callable"], (args, rtm) => {
     // FIXME: 应该展现对每个值的过滤步骤
     // FIXME: 应该惰性求值
     const [list, callable] = args as [Value_List, Value_Callable];
-    const filterResult = filter(list, callable);
+    const filterResult = filter(list, callable, rtm);
     if ("error" in filterResult) return filterResult;
     return { ok: { value: filterResult.ok, pure: false } };
   }),
@@ -380,9 +379,9 @@ export const builtinScope: Scope = {
   // 调试：
   // TODO: rtm.inspect 之类的
   // FIXME: 会将值固定住
-  "inspect!/1": (args_, _rtm) => {
+  "inspect!/1": (args_, rtm) => {
     const [target] = args_;
-    const result = unwrapValue("*", target);
+    const result = unwrapValue("*", target, rtm);
     if (
       "console" in globalThis && "log" in globalThis.console &&
       typeof globalThis.console.log === "function"
@@ -478,12 +477,13 @@ export function generateRandomNumber(
 function filter(
   list: Value_List,
   callable: Value_Callable,
+  rtm: RuntimeProxy,
 ): RuntimeResult<Value_List> {
   const filtered: Value_List = [];
   for (const el of list) {
     const result = callCallable(callable, [el]);
     if ("error" in result) return result;
-    const concrete = concretize(result.ok);
+    const concrete = concretize(result.ok, rtm);
     if ("error" in concrete.value) return concrete.value;
     const value = concrete.value.ok;
 

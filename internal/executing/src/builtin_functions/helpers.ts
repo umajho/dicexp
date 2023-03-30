@@ -1,4 +1,4 @@
-import type { FunctionRuntime, RegularFunction } from "../runtime";
+import type { RegularFunction, RuntimeProxy } from "../runtime";
 import {
   RuntimeError,
   RuntimeError_CallArgumentTypeMismatch,
@@ -9,7 +9,6 @@ import {
   concretize,
   getTypeNameOfValue,
   type LazyValue,
-  lazyValue_error,
   type RuntimeResult,
   type Value,
   type Value_List,
@@ -33,11 +32,11 @@ export function makeFunction(
   spec: ArgumentSpec[],
   logic: (
     args: RegularFunctionArgument[],
-    rtm: FunctionRuntime,
+    rtm: RuntimeProxy,
   ) => RuntimeResult<{ value: Value; pure: boolean } | { lazy: LazyValue }>,
 ): RegularFunction {
   return (args_, rtm) => {
-    const unwrapResult = unwrapArguments(spec, args_);
+    const unwrapResult = unwrapArguments(spec, args_, rtm);
     if ("error" in unwrapResult) {
       return { error: unwrapResult.error };
     }
@@ -47,7 +46,7 @@ export function makeFunction(
         _yield: () => {
           const result = logic(unwrapResult.ok.values, rtm);
           if ("error" in result) {
-            return lazyValue_error(result.error).memo;
+            return rtm.lazyValueFactory.error(result.error).memo;
           }
 
           if ("lazy" in result.ok) {
@@ -68,6 +67,7 @@ export function makeFunction(
 function unwrapArguments(
   spec: ArgumentSpec[],
   args: LazyValue[],
+  rtm: RuntimeProxy,
 ): RuntimeResult<{ values: RegularFunctionArgument[]; volatile: boolean }> {
   if (spec.length !== args.length) {
     return { error: new RuntimeError_WrongArity(spec.length, args.length) };
@@ -77,7 +77,7 @@ function unwrapArguments(
   let volatile = false;
 
   for (const [i, arg] of args.entries()) {
-    const result = unwrapValue(spec[i], arg, { nth: i + 1 });
+    const result = unwrapValue(spec[i], arg, rtm, { nth: i + 1 });
     if ("error" in result) return result;
     const { value, volatile: valueVolatile } = result.ok;
     values[i] = value;
@@ -90,6 +90,7 @@ function unwrapArguments(
 export function unwrapValue(
   spec: ArgumentSpec,
   value: LazyValue,
+  rtm: RuntimeProxy,
   opts?: CheckTypeOptions,
 ): RuntimeResult<{ value: RegularFunctionArgument; volatile: boolean }> {
   if (spec === "lazy") {
@@ -97,7 +98,7 @@ export function unwrapValue(
     return { ok: { value, volatile: false } };
   }
 
-  const concrete = concretize(value);
+  const concrete = concretize(value, rtm);
   if ("error" in concrete.value) return concrete.value;
 
   const errType = checkType(spec, getTypeNameOfValue(concrete.value.ok), opts);
@@ -140,7 +141,8 @@ function testType(expected: ValueTypeName, actual: ValueTypeName) {
  */
 export function flattenListAll(
   spec: Exclude<ArgumentSpec, "lazy">,
-  list: Value_List,
+  list: LazyValue[],
+  rtm: RuntimeProxy,
 ): RuntimeResult<{ values: Value[]; volatile: boolean }> {
   if (spec !== "*") {
     if (Array.isArray(spec)) {
@@ -156,14 +158,14 @@ export function flattenListAll(
   let volatile = false;
 
   for (const [i, elem] of list.entries()) {
-    const result = unwrapValue(spec, elem);
+    const result = unwrapValue(spec, elem, rtm);
     if ("error" in result) return result;
     // FIXME: 类型推断
     const { value: _value } = result.ok;
     const value = _value as Value;
 
     if (getTypeNameOfValue(value) === "list") {
-      const listResult = flattenListAll(spec, value as Value_List);
+      const listResult = flattenListAll(spec, value as LazyValue[], rtm);
       if ("error" in listResult) return listResult;
       values.push(...listResult.ok.values);
       volatile = volatile || listResult.ok.volatile;
@@ -184,7 +186,8 @@ export function flattenListAll(
  */
 export function unwrapListOneOf(
   specOneOf: ValueTypeName[],
-  list: Value_List,
+  list: LazyValue[],
+  rtm: RuntimeProxy,
 ): RuntimeResult<{ values: Value[]; volatile: boolean }> {
   if (!list.length) return { ok: { values: [], volatile: false } };
 
@@ -195,9 +198,9 @@ export function unwrapListOneOf(
   for (const [i, elem] of list.entries()) {
     let valueResult: ReturnType<typeof unwrapValue>;
     if (i === 0) {
-      valueResult = unwrapValue(specOneOf, elem);
+      valueResult = unwrapValue(specOneOf, elem, rtm);
     } else {
-      valueResult = unwrapValue(firstType!, elem, {
+      valueResult = unwrapValue(firstType!, elem, rtm, {
         kind: "list-inconsistency",
       });
     }
