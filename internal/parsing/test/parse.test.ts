@@ -284,7 +284,7 @@ function theyAreBad(
 ) {
   for (const [i, code] of table.entries()) {
     it(`case ${i + 1}: ${code}`, () => {
-      assertBad(code);
+      assertBad(code, parseFn);
     });
   }
 }
