@@ -73,7 +73,7 @@ export class Runtime {
     return { ...result, representation: concrete.representation };
   }
 
-  private _finalize(value: LazyValue | Concrete): RuntimeResult<JSValue> {
+  private _finalize(value: LazyValue): RuntimeResult<JSValue> {
     const concrete = concretize(value);
     if ("error" in concrete.value) {
       return concrete.value;
@@ -221,7 +221,7 @@ export class Runtime {
 export type Scope = { [ident: string]: RegularFunction | LazyValue };
 
 export type RegularFunction = (
-  args: LazyValue[],
+  args: Value_List,
   rtm: FunctionRuntime,
 ) => RuntimeResult<LazyValue>;
 

@@ -20,6 +20,7 @@ import {
   lazyValue_literal,
   type RuntimeResult,
   type Value_Callable,
+  type Value_List,
   type ValueTypeName,
 } from "../values";
 
@@ -75,7 +76,7 @@ export const builtinScope: Scope = {
   "#/2": makeFunction(["number", "lazy"], (args, _rtm) => {
     const [count, body] = args as [number, LazyValue];
 
-    const list: LazyValue[] = Array(count);
+    const list: Value_List = Array(count);
     for (let i = 0; i < count; i++) {
       list[i] = { _yield: () => concretize(body) };
     }
@@ -228,14 +229,14 @@ export const builtinScope: Scope = {
   // abs/1
   // count/1
   "count/2": makeFunction(["list", "callable"], (args, _rtm) => {
-    const [list, callable] = args as [LazyValue[], Value_Callable];
+    const [list, callable] = args as [Value_List, Value_Callable];
     const result = filter(list, callable);
     if ("error" in result) return result;
     return { ok: { value: result.ok.length, pure: true } };
   }),
   // has?/2
   "sum/1": makeFunction(["list"], ([list_], _rtm) => {
-    const result = flattenListAll("number", list_ as LazyValue[]);
+    const result = flattenListAll("number", list_ as Value_List);
     if ("error" in result) return result;
     return {
       ok: {
@@ -245,7 +246,7 @@ export const builtinScope: Scope = {
     };
   }),
   "product/1": makeFunction(["list"], ([list_], _rtm) => {
-    const result = flattenListAll("number", list_ as LazyValue[]);
+    const result = flattenListAll("number", list_ as Value_List);
     if ("error" in result) return result;
     return {
       ok: {
@@ -258,7 +259,7 @@ export const builtinScope: Scope = {
   // max/1
   // all?/1
   "any?/1": makeFunction(["list"], ([list_], _rtm) => {
-    const result = unwrapListOneOf(["boolean"], list_ as LazyValue[]);
+    const result = unwrapListOneOf(["boolean"], list_ as Value_List);
     if ("error" in result) return result;
     return {
       ok: {
@@ -269,7 +270,7 @@ export const builtinScope: Scope = {
   }),
   "sort/1": makeFunction(["list"], ([list_], _rtm) => {
     const allowedTypes = ["number", "boolean"] as ValueTypeName[];
-    const result = unwrapListOneOf(allowedTypes, list_ as LazyValue[]);
+    const result = unwrapListOneOf(allowedTypes, list_ as Value_List);
     if ("error" in result) return result;
     const list = result.ok.values as number[] | boolean[];
     const sortedList = list.sort((a, b) => +a - +b);
@@ -287,7 +288,7 @@ export const builtinScope: Scope = {
   "append/2": makeFunction(["list", "lazy"], ([list_, el], _rtm) => {
     return {
       ok: {
-        value: [...(list_ as LazyValue[]), el as LazyValue],
+        value: [...(list_ as Value_List), el as LazyValue],
         // FIXME: 目前无法在不失去惰性的前提下确定返回值是否多变，
         //        而是暂时假定多变。
         //        以列表作为输入而不求值的函数都有这个问题，就不一一标记了
@@ -296,7 +297,7 @@ export const builtinScope: Scope = {
     };
   }),
   "at/2": makeFunction(["list", "number"], (args, _rtm) => {
-    const [list, i] = args as [LazyValue[], number];
+    const [list, i] = args as [Value_List, number];
     if (i >= list.length || i < 0) {
       const err = new RuntimeError(
         `访问列表越界：列表大小为 ${list.length}，提供的索引为 ${i}`,
@@ -315,8 +316,8 @@ export const builtinScope: Scope = {
     // FIXME: 列表本身的产生也应该是惰性的
     //        （应该支持应用于无限长度的生成序列）
     //        同样的还有 `#`、`zip` 等函数
-    const [list, callable] = args as [LazyValue[], Value_Callable];
-    const resultList: LazyValue[] = Array(list.length);
+    const [list, callable] = args as [Value_List, Value_Callable];
+    const resultList: Value_List = Array(list.length);
     for (let i = 0; i < list.length; i++) {
       const callResult = callCallable(callable, [list[i]]);
       if ("error" in callResult) return callResult;
@@ -328,7 +329,7 @@ export const builtinScope: Scope = {
   "filter/2": makeFunction(["list", "callable"], (args, _rtm) => {
     // FIXME: 应该展现对每个值的过滤步骤
     // FIXME: 应该惰性求值
-    const [list, callable] = args as [LazyValue[], Value_Callable];
+    const [list, callable] = args as [Value_List, Value_Callable];
     const filterResult = filter(list, callable);
     if ("error" in filterResult) return filterResult;
     return { ok: { value: filterResult.ok, pure: false } };
@@ -336,12 +337,12 @@ export const builtinScope: Scope = {
   // foldl/3
   // foldr/3
   "head/1": makeFunction(["list"], (args, _rtm) => {
-    const [list] = args as [LazyValue[]];
+    const [list] = args as [Value_List];
     if (list.length === 0) return { error: new RuntimeError("列表为空") };
     return { ok: { lazy: list[0] } };
   }),
   "tail/1": makeFunction(["list"], (args, _rtm) => { // FIXME: 失去 laziness
-    const [list] = args as [LazyValue[]];
+    const [list] = args as [Value_List];
     if (list.length === 0) return { error: new RuntimeError("列表为空") };
     return { ok: { value: list.slice(1), pure: false } };
   }),
@@ -352,7 +353,7 @@ export const builtinScope: Scope = {
   // drop/2
   // dropWhile/2
   "zip/2": makeFunction(["list", "list"], (args, _rtm) => {
-    const [left, right] = args as [LazyValue[], LazyValue[]];
+    const [left, right] = args as [Value_List, Value_List];
     const zippedLength = Math.min(left.length, right.length);
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
@@ -362,8 +363,8 @@ export const builtinScope: Scope = {
   }),
   "zipWith/3": makeFunction(["list", "list", "callable"], (args, _rtm) => {
     const [left, right, fn] = args as [
-      LazyValue[],
-      LazyValue[],
+      Value_List,
+      Value_List,
       Value_Callable,
     ];
     const zippedLength = Math.min(left.length, right.length);
@@ -475,10 +476,10 @@ export function generateRandomNumber(
 }
 
 function filter(
-  list: LazyValue[],
+  list: Value_List,
   callable: Value_Callable,
-): RuntimeResult<LazyValue[]> {
-  const filtered: LazyValue[] = [];
+): RuntimeResult<Value_List> {
+  const filtered: Value_List = [];
   for (const el of list) {
     const result = callCallable(callable, [el]);
     if ("error" in result) return result;

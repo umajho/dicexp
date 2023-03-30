@@ -12,6 +12,7 @@ import {
   lazyValue_error,
   type RuntimeResult,
   type Value,
+  type Value_List,
   type ValueTypeName,
 } from "../values";
 
@@ -139,7 +140,7 @@ function testType(expected: ValueTypeName, actual: ValueTypeName) {
  */
 export function flattenListAll(
   spec: Exclude<ArgumentSpec, "lazy">,
-  list: LazyValue[],
+  list: Value_List,
 ): RuntimeResult<{ values: Value[]; volatile: boolean }> {
   if (spec !== "*") {
     if (Array.isArray(spec)) {
@@ -162,7 +163,7 @@ export function flattenListAll(
     const value = _value as Value;
 
     if (getTypeNameOfValue(value) === "list") {
-      const listResult = flattenListAll(spec, value as LazyValue[]);
+      const listResult = flattenListAll(spec, value as Value_List);
       if ("error" in listResult) return listResult;
       values.push(...listResult.ok.values);
       volatile = volatile || listResult.ok.volatile;
@@ -183,7 +184,7 @@ export function flattenListAll(
  */
 export function unwrapListOneOf(
   specOneOf: ValueTypeName[],
-  list: LazyValue[],
+  list: Value_List,
 ): RuntimeResult<{ values: Value[]; volatile: boolean }> {
   if (!list.length) return { ok: { values: [], volatile: false } };
 

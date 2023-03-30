@@ -23,6 +23,7 @@ export type RuntimeResult<OkType> =
  */
 export interface LazyValue {
   memo?: Concrete | false;
+  stabilized?: true;
   _yield?: () => Concrete | { lazy: LazyValue };
 
   replacedBy?: LazyValue;
@@ -32,9 +33,7 @@ export interface LazyValueWithMemo extends LazyValue {
   memo: Concrete;
 }
 
-export function concretize(v: LazyValue | Concrete): Concrete {
-  if ("value" in v) return v; // Concrete
-
+export function concretize(v: LazyValue): Concrete {
   if (v.memo) return v.memo;
 
   let concreteOrLazy = v._yield!();
@@ -77,7 +76,7 @@ export type Value =
   | Value_List
   | Value_Callable;
 
-export type Value_List = (LazyValue | Concrete)[];
+export type Value_List = LazyValue[];
 
 export function lazyValue_identifier(
   lazyValue: LazyValue,
@@ -149,22 +148,25 @@ export function lazyValue_stabilized(underlying: LazyValue): LazyValue {
   };
 }
 
-function stabilizeList(list: Value_List): Concrete[] {
+function stabilizeList(list: Value_List): Value_List {
   return list.map((el) => {
-    if ("value" in el) return el;
+    if (el.stabilized) return el;
 
-    el = concretize(el);
-    if ("error" in el.value) return el;
-
-    if (Array.isArray(el.value.ok)) {
-      return lazyValue_list(stabilizeList(el.value.ok)).memo;
+    const concrete = concretize(el);
+    if ("error" in concrete.value) {
+      return { memo: concrete, stabilized: true };
     }
-    return el;
+
+    if (Array.isArray(concrete.value.ok)) {
+      const list = lazyValue_list(stabilizeList(concrete.value.ok));
+      return { ...list, stabilized: true };
+    }
+    return { memo: concrete, stabilized: true };
   });
 }
 
 export function lazyValue_list(
-  list: (LazyValue | Concrete)[],
+  list: LazyValue[],
 ): LazyValueWithMemo {
   return {
     memo: {
