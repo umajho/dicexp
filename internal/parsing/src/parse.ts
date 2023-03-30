@@ -2,7 +2,8 @@ import type { Node } from "@dicexp/nodes";
 import { convertTextToHalfWidth } from "./utils";
 
 import { parser as lezerParser } from "@dicexp/lezer";
-import { ParsingError, Transformer } from "./transformer";
+import { Transformer } from "./transformer";
+import { ParsingError } from "./parsing_error";
 
 export interface ParseOptions {
   optimizesForSimpleCases?: false;

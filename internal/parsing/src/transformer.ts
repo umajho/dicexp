@@ -9,31 +9,11 @@ import {
   valueCall,
 } from "@dicexp/nodes";
 import { negateInteger, parseBoolean, parseInteger } from "./utils";
-
-interface Range {
-  from: number;
-  to: number;
-}
-
-export class ParsingError extends Error {}
-export class ParsingError_General extends ParsingError {
-  constructor(
-    readonly source: string,
-    readonly ranges: Range[],
-  ) {
-    super();
-  }
-
-  get message() {
-    let msg = "以下位置的语法有误：";
-    for (const range of this.ranges) {
-      msg += "\n\t";
-      const s = this.source.slice(range.from - 1, range.to);
-      msg += `自列 ${range.from} 至列 ${range.to}：${s}`;
-    }
-    return msg;
-  }
-}
+import {
+  ParsingError_BadPipeTarget,
+  ParsingError_General,
+  type Range,
+} from "./parsing_error";
 
 export class Transformer {
   constructor(
@@ -158,8 +138,7 @@ export class Transformer {
       return valueCall("piped", right.variable, [left, ...right.args]);
     }
 
-    // TODO: better error message
-    throw new ParsingError();
+    throw new ParsingError_BadPipeTarget();
   }
 
   private static handleAfterDiceRoll(right: Node): Node {

@@ -3,17 +3,33 @@ import type { ValueTypeName } from "./values";
 
 export class RuntimeError extends Error {}
 
-export class RuntimeError_RestrictionExceeded extends RuntimeError {
+export class RuntimeError_LimitationExceeded extends RuntimeError {
   constructor(
     readonly name: string,
-    readonly unit: string,
+    readonly unit: string | null,
     readonly max: number,
   ) {
     super();
   }
 
   get message() {
-    return `越过外加限制「${this.name}」（最多允许 ${this.max} ${this.unit}）`;
+    const unit = this.unit ? " " + this.unit : "";
+    return `越过内在限制「${this.name}」（允许 ${this.max}${unit}）`;
+  }
+}
+
+export class RuntimeError_RestrictionExceeded extends RuntimeError {
+  constructor(
+    readonly name: string,
+    readonly unit: string | null,
+    readonly max: number,
+  ) {
+    super();
+  }
+
+  get message() {
+    const unit = this.unit ? " " + this.unit : "";
+    return `越过外加限制「${this.name}」（允许 ${this.max}${unit}）`;
   }
 }
 

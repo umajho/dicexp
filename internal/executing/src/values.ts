@@ -4,6 +4,7 @@ import type { RegularFunction, RuntimeProxy, Scope } from "./runtime";
 import {
   RuntimeError,
   RuntimeError_DuplicateClosureParameterNames,
+  RuntimeError_LimitationExceeded,
   RuntimeError_UnknownRegularFunction,
   RuntimeError_ValueIsNotCallable,
   RuntimeError_WrongArity,
@@ -113,6 +114,10 @@ export class LazyValueFactory {
   }
 
   literal(value: Value): LazyValueWithMemo {
+    // if (typeof value === "number") { // 由 parsing 负责，这里无需检查
+    //   const err = checkInteger(value);
+    //   if (err) return this.error(err, [{ v: value }]);
+    // }
     return {
       memo: {
         value: { ok: value },
@@ -222,6 +227,12 @@ export class LazyValueFactory {
         }
         const concrete = concretize(result.ok, this.runtime);
         const value = concrete.value;
+
+        if ("ok" in value && typeof value.ok === "number") {
+          const err = checkInteger(value.ok);
+          if (err) return this.error(err, [{ v: value.ok }]).memo;
+        }
+
         return {
           value,
           volatile: concrete.volatile,
@@ -443,3 +454,23 @@ export function getTypeNameOfValue(v: Value) {
   }
 }
 export type ValueTypeName = ReturnType<typeof getTypeNameOfValue>;
+
+const MAX_SAFE_INTEGER = 2 ** 53 - 1;
+const MIN_SAFE_INTEGER = -(2 ** 53) + 1;
+// 只需通常函数的结果，字面量由 parsing 检查，其他则不会改变数值
+function checkInteger(n: number): RuntimeError | null {
+  if (n > MAX_SAFE_INTEGER) {
+    return new RuntimeError_LimitationExceeded(
+      "最大安全整数",
+      null,
+      MAX_SAFE_INTEGER,
+    );
+  } else if (n < MIN_SAFE_INTEGER) {
+    return new RuntimeError_LimitationExceeded(
+      "最小安全整数",
+      null,
+      MIN_SAFE_INTEGER,
+    );
+  }
+  return null;
+}

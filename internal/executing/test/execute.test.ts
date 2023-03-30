@@ -539,27 +539,41 @@ describe("从管道的测试那里移过来的", () => {
 });
 
 describe("限制", () => {
-  describe.todo("内在限制", () => {
+  describe("内在限制", () => {
     describe("整数", () => {
       it("不能允许大于 `Number.MAX_SAFE_INTEGER` 的整数", () => {
         const safe = Number.MAX_SAFE_INTEGER;
 
         assertExecutionOk(`${safe}`, safe);
-        assertExecutionRuntimeError(`${safe + 1}`, "TODO: error");
-        assertExecutionRuntimeError(`${safe} + 1`, "TODO: error");
+        // 解析错误
+        // assertExecutionRuntimeError(
+        //   `${safe + 1}`,
+        //   "越过内在限制「最大安全整数」（允许 9007199254740991）",
+        // );
+        assertExecutionRuntimeError(
+          `${safe} + 1`,
+          "越过内在限制「最大安全整数」（允许 9007199254740991）",
+        );
       });
       it("不能允许小于 `Number.MIN_SAFE_INTEGER` 的整数", () => {
         const safe = Number.MIN_SAFE_INTEGER;
 
         assertExecutionOk(`${safe}`, safe);
-        assertExecutionRuntimeError(`${safe - 1}`, "TODO: error");
-        assertExecutionRuntimeError(`${safe} - 1`, "TODO: error");
+        // 解析错误
+        // assertExecutionRuntimeError(
+        //   `${safe - 1}`,
+        //   "越过内在限制「最小安全整数」（允许 -9007199254740991）",
+        // );
+        assertExecutionRuntimeError(
+          `${safe} - 1`,
+          "越过内在限制「最小安全整数」（允许 -9007199254740991）",
+        );
       });
     });
   });
 
   describe("外加限制", () => {
-    describe("软性超时", () => {
+    describe("软性超时", () => { // FIXME: 应该用 fake time
       const restrictions: Restrictions = { softTimeout: { ms: 10 } };
       it("未超时则无影响", () => {
         assertExecutionOk(`${1}`, undefined, { restrictions });
@@ -585,7 +599,7 @@ describe("限制", () => {
         it("超时后的下一次调用函数才会触发", () => {
           assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
-            "越过外加限制「运行时间」（最多允许 10 毫秒）",
+            "越过外加限制「运行时间」（允许 10 毫秒）",
             { topLevelScope: { ...builtinScope, ...scope }, restrictions },
           );
         });
@@ -599,7 +613,7 @@ describe("限制", () => {
         it("超过次数则返回运行时错误", () => {
           assertExecutionRuntimeError(
             String.raw`\(->\(->\(->1).()).()).()`,
-            "越过外加限制「调用次数」（最多允许 2 次）",
+            "越过外加限制「调用次数」（允许 2 次）",
             { restrictions },
           );
         });
@@ -611,7 +625,7 @@ describe("限制", () => {
       it("超过次数则返回运行时错误", () => {
         assertExecutionRuntimeError(
           String.raw`1+1+1+1`,
-          "越过外加限制「调用次数」（最多允许 2 次）",
+          "越过外加限制「调用次数」（允许 2 次）",
           { restrictions },
         );
       });

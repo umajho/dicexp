@@ -40,11 +40,24 @@ const literalIntegerBadTable: string[] = [
 
 describe("常量", () => {
   describe("整数常量", () => {
-    it("能够正确解析合规的整数常量", () => {
+    describe("能够正确解析合规的整数常量", () => {
       theyAreOk(literalIntegerGoodTable);
     });
-    it("不能解析不合规的整数常量", () => {
+    describe("不能解析不合规的整数常量", () => {
       theyAreBad(literalIntegerBadTable);
+    });
+
+    describe("能解析在安全整数范围之内的常量", () => {
+      theyAreOk([
+        `${Number.MAX_SAFE_INTEGER}`,
+        `${Number.MIN_SAFE_INTEGER}`,
+      ]);
+    });
+    describe("不能解析在安全整数范围之外的常量", () => {
+      theyAreBad([
+        `${Number.MAX_SAFE_INTEGER + 1}`,
+        `${Number.MIN_SAFE_INTEGER - 1}`,
+      ]);
     });
   });
 });
