@@ -88,8 +88,12 @@ while (1) {
       continue;
     }
     const executed = executeResult.ok;
+    let extraInfo = "";
+    if (parseResult.simple) {
+      extraInfo = " (w/ simple)";
+    }
     console.log(
-      `%c=> ${inspect(executed, { depth: Infinity })}`,
+      `=>${extraInfo} %c${inspect(executed, { depth: Infinity })}`,
       "color: green",
     );
   } catch (e) {
