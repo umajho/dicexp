@@ -37,13 +37,6 @@ export function concretize(
   v: LazyValue,
   rtm: RuntimeProxy | null,
 ): Concrete {
-  if (rtm) {
-    const errFromReporter = rtm.reporter.concreted(!!v.memo);
-    if (errFromReporter) {
-      return rtm.lazyValueFactory.error(errFromReporter, [v]).memo;
-    }
-  }
-
   if (v.memo) return v.memo;
 
   let concreteOrLazy = v._yield!();
@@ -213,6 +206,10 @@ export class LazyValueFactory {
 
     return {
       _yield: () => {
+        const errFromReporter = this.runtime?.reporter
+          .regularFunctionCalled?.();
+        if (errFromReporter) return this.error(errFromReporter, calling).memo;
+
         args = args.map((v) => ({
           _yield: () => {
             return concretize(v, this.runtime);
@@ -337,7 +334,6 @@ export class LazyValueFactory {
           return this.error(result.error, calling).memo;
         }
         const concrete = concretize(result.ok, this.runtime);
-        this.runtime?.reporter.closureLeaved?.();
         const value = concrete.value;
         return {
           value,

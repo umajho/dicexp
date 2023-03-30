@@ -42,18 +42,14 @@ export interface RuntimeOptions {
 }
 
 export interface RuntimeReporter {
-  concreted: (memoed: boolean) => RuntimeError | null;
+  regularFunctionCalled?: () => RuntimeError | null;
   closureCalled?: () => RuntimeError | null;
-  closureLeaved?: () => void;
 }
 
 export interface Statistics {
   start?: { ms: number };
   timeConsumption?: { ms: number };
-  cretizations: {
-    all: number;
-    nonMemoed: number;
-  };
+  calls?: number;
 }
 
 export type JSValue = number | boolean | JSValue[];
@@ -78,7 +74,6 @@ export class Runtime {
   private _restrictions: Restrictions;
   private _statistics: Statistics;
   reporter: RuntimeReporter;
-  private _closureCallLevel = 0;
 
   private _lazyValueFactory: LazyValueFactory;
 
@@ -92,16 +87,17 @@ export class Runtime {
     this._rng = opts.rng;
 
     this._restrictions = opts.restrictions;
+    const recordCalls = this._restrictions.maxCalls !== undefined ||
+      this._restrictions.softTimeout !== undefined;
     this._statistics = {
       // start, // 在 execute() 中赋值
-      cretizations: { all: 0, nonMemoed: 0 },
+      ...(recordCalls ? { calls: 0 } : {}),
     };
     this.reporter = {
-      concreted: this._reportConcretization.bind(this),
-      ...(this._restrictions.maxClosureCallDepth
+      ...(recordCalls
         ? {
+          regularFunctionCalled: this._reportRegularFunctionCalled.bind(this),
           closureCalled: this._reportClosureCalled.bind(this),
-          closureLeaved: this._reportClosureCallLeaved.bind(this),
         }
         : {}),
     };
@@ -118,25 +114,20 @@ export class Runtime {
     this._proxy.lazyValueFactory = this._lazyValueFactory;
   }
 
-  private _reportConcretization(memoed: boolean): RuntimeError | null {
-    this._statistics.cretizations.all++;
-    if (!memoed) {
-      this._statistics.cretizations.nonMemoed++;
-    }
-    if (!this._restrictions) return null;
+  private _reportCalled(): RuntimeError | null {
+    this._statistics.calls!++;
 
-    if (this._restrictions.maxNonMemoedConcretizations) {
-      const max = this._restrictions.maxNonMemoedConcretizations;
-      const cur = this._statistics.cretizations.nonMemoed;
-      if (cur > max) {
-        const rName = "步骤数（大致）";
-        return new RuntimeError_RestrictionExceeded(rName, "步", max);
+    if (this._restrictions.maxCalls !== undefined) {
+      const max = this._restrictions.maxCalls!;
+      if (this._statistics.calls! > max) {
+        return new RuntimeError_RestrictionExceeded("调用次数", "次", max);
       }
     }
+
     if (this._restrictions.softTimeout) {
       const timeout = this._restrictions.softTimeout;
-      const interval = timeout.intervalPerCheck?.concretizations ?? 1;
-      if (this._statistics.cretizations.all % interval === 0) {
+      const interval = timeout.intervalPerCheck?.calls ?? 1;
+      if (this._statistics.calls! % interval === 0) {
         const now = Date.now(); //performance.now();
         const duration = now - this._statistics.start!.ms;
         if (duration > timeout.ms) {
@@ -145,19 +136,17 @@ export class Runtime {
         }
       }
     }
-
     return null;
   }
-  private _reportClosureCalled() {
-    this._closureCallLevel++;
-    const max = this._restrictions.maxClosureCallDepth!;
-    if (this._closureCallLevel > max) {
-      return new RuntimeError_RestrictionExceeded("闭包递归深度", "层", max);
-    }
-    return null;
+  private _reportRegularFunctionCalled(): RuntimeError | null {
+    return this._reportCalled();
   }
-  private _reportClosureCallLeaved() {
-    this._closureCallLevel--;
+  private _reportClosureCalled(): RuntimeError | null {
+    // if (this._statistics.calls !== undefined) {
+    const errCalled = this._reportCalled();
+    if (errCalled) return errCalled;
+    // }
+    return null;
   }
 
   execute(): ExecutionResult {

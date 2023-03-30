@@ -575,16 +575,16 @@ describe("限制", () => {
           }),
         };
 
-        it("超时后如果再也没有 `concretize` 则不会被触发", () => {
+        it("超时后如果再也没有调用过函数则不会被触发", () => {
           assertExecutionOk(`[[sleep(20)]]`, [[true]], {
             topLevelScope: scope,
             restrictions,
           });
         });
 
-        it("超时后的下一次 `concretize` 才会触发", () => {
+        it("超时后的下一次调用函数才会触发", () => {
           assertExecutionRuntimeError(
-            String.raw`sleep(20) and true`,
+            String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（最多允许 10 毫秒）",
             { topLevelScope: { ...builtinScope, ...scope }, restrictions },
           );
@@ -592,27 +592,26 @@ describe("限制", () => {
       });
     });
 
-    describe("步骤数（大致）", () => {
-      const restrictions: Restrictions = { maxNonMemoedConcretizations: 100 };
-      theyAreOk(["10#d10"], { restrictions });
-      it("超过步骤数则返回运行时错误", () => {
-        assertExecutionRuntimeError(
-          "100#d10",
-          "越过外加限制「步骤数（大致）」（最多允许 100 步）",
-          { restrictions },
-        );
+    describe("调用次数", () => {
+      describe("闭包", () => {
+        const restrictions: Restrictions = { maxCalls: 2 };
+        theyAreOk([String.raw`\(->\(->1).()).()`], { restrictions });
+        it("超过次数则返回运行时错误", () => {
+          assertExecutionRuntimeError(
+            String.raw`\(->\(->\(->1).()).()).()`,
+            "越过外加限制「调用次数」（最多允许 2 次）",
+            { restrictions },
+          );
+        });
       });
     });
-
-    describe("闭包递归深度", () => {
-      const restrictions: Restrictions = { maxClosureCallDepth: 100 };
-      const nester = String
-        .raw`\(max -> \(f, n, max -> if(n==max, true, f.(f, n+1, max))) |> \(f -> f.(f, 3, max)).())`;
-      theyAreOk([`${nester}.(100)`], { restrictions });
-      it("超过深度则返回运行时错误", () => {
+    describe("通常函数", () => {
+      const restrictions: Restrictions = { maxCalls: 2 };
+      theyAreOk([String.raw`1+1+1`], { restrictions });
+      it("超过次数则返回运行时错误", () => {
         assertExecutionRuntimeError(
-          `${nester}.(101)`,
-          "越过外加限制「闭包递归深度」（最多允许 100 层）",
+          String.raw`1+1+1+1`,
+          "越过外加限制「调用次数」（最多允许 2 次）",
           { restrictions },
         );
       });
