@@ -18,8 +18,9 @@ export function evaluate(
   code: string,
   opts: ExecuteOptions & { parseOpts?: ParseOptions } = {},
 ): ExecutionResult {
-  const node = parse(code, opts.parseOpts);
-  return execute(node, opts);
+  const parseResult = parse(code, opts.parseOpts);
+  if ("error" in parseResult) throw new Unreachable();
+  return execute(parseResult.ok, opts);
 }
 
 export function assertNumber(result: ExecutionResult): number {
