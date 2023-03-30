@@ -66,31 +66,37 @@ while (1) {
   }
 
   try {
-    const parsed = parse(code, {
+    const parseResult = parse(code, {
       optimizesForSimpleCases: allowsSimpleParsing,
     });
+    if ("error" in parseResult) {
+      console.error("parsing error:", parseResult.error.message);
+      continue;
+    }
+    const parsed = parseResult.ok;
     if (parseOnly) {
       console.log(inspect(parsed, { depth: Infinity }));
       continue;
     }
 
-    const result = execute(parsed, { seed });
-    if ("error" in result) {
-      if (!(result.error instanceof RuntimeError)) {
+    const executeResult = execute(parsed, { seed });
+    if ("error" in executeResult) {
+      if (!(executeResult.error instanceof RuntimeError)) {
         throw new Error("Unreachable");
       }
-      console.log(`runtime error:`, result.error.message);
-    } else {
-      console.log(
-        `%c=> ${inspect(result.ok, { depth: Infinity })}`,
-        "color: green",
-      );
+      console.error(`runtime error:`, executeResult.error.message);
+      continue;
     }
+    const executed = executeResult.ok;
+    console.log(
+      `%c=> ${inspect(executed, { depth: Infinity })}`,
+      "color: green",
+    );
   } catch (e) {
     if (e instanceof Error) {
-      console.error("non-runtime error:", e);
-    } else {
       console.error("unknown error:", e);
+    } else {
+      console.error("unknown thrown:", e);
     }
   }
 }

@@ -10,7 +10,29 @@ import {
 } from "@dicexp/nodes";
 import { negateInteger, parseBoolean, parseInteger } from "./utils";
 
-export class ParsingError extends Error {
+interface Range {
+  from: number;
+  to: number;
+}
+
+export class ParsingError extends Error {}
+export class ParsingError_General extends ParsingError {
+  constructor(
+    readonly source: string,
+    readonly ranges: Range[],
+  ) {
+    super();
+  }
+
+  get message() {
+    let msg = "以下位置的语法有误：";
+    for (const range of this.ranges) {
+      msg += "\n\t";
+      const s = this.source.slice(range.from - 1, range.to);
+      msg += `自列 ${range.from} 至列 ${range.to}：${s}`;
+    }
+    return msg;
+  }
 }
 
 export class Transformer {
@@ -25,14 +47,17 @@ export class Transformer {
   }
 
   private ensureNoError(tree: Tree) {
+    const badRanges: Range[] = [];
     tree.iterate({
       enter(node) {
         if (node.name === "⚠") {
-          // TODO: better error message
-          throw new ParsingError();
+          badRanges.push({ from: node.from, to: node.to });
         }
       },
     });
+    if (badRanges.length) {
+      throw new ParsingError_General(this.source, badRanges);
+    }
   }
 
   private _transform(node: SyntaxNode): Node {

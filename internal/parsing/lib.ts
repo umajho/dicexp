@@ -1,1 +1,1 @@
-export { parse, type ParseOptions } from "./src/parse";
+export { parse, type ParseOptions, type ParsingResult } from "./src/parse";

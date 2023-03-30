@@ -50,13 +50,16 @@ import JsonViewer from "vue-json-viewer";
                   template(v-if="otherError || result.error")
                     template(v-if="otherError")
                       n-alert(type="error", title="错误") {{ otherError.name }}
-                        hr
-                        | {{ otherError.message }}
-                        hr
-                        | {{ otherError.stack }}
+                        code(style="white-space: pre") 
+                          hr
+                          | {{ otherError.message }}
+                          hr
+                          | {{ otherError.stack }}
                     template(v-else)
-                      n-alert(type="error", title="Dicexp 运行时错误") {{ result.error.message }}
-                  template(v-else) {{ result.ok }}
+                      n-alert(type="error", title="Dicexp 运行时错误")
+                        code(style="white-space: pre") {{ result.error.message }}
+                  template(v-else)
+                    code(style="white-space: pre-wrap") {{ JSON.stringify(result.ok) }}
                 n-tab-pane(v-if="result && result.representation", name="representation", tab="步骤展现（临时版本）")
                   json-viewer(:value="result.representation")
 </template>

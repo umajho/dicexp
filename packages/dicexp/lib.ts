@@ -24,6 +24,9 @@ export function evaluate(
   code: string,
   opts: EvaluateOptions = {},
 ): EvaluationResult {
-  const node = parse(code, opts.parseOpts);
-  return execute(node, opts);
+  const parseResult = parse(code, opts.parseOpts);
+  if ("error" in parseResult) {
+    return { error: parseResult.error, representation: null };
+  }
+  return execute(parseResult.ok, opts);
 }
