@@ -2,7 +2,6 @@ import { bench } from "vitest";
 
 import { parse, ParsingResult } from "@dicexp/parsing";
 import { execute, ExecutionResult } from "../lib";
-import { Node } from "@dicexp/nodes";
 
 const codesSimple = [
   "~10",

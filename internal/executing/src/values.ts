@@ -1,11 +1,6 @@
 import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import { Unreachable } from "./errors";
-import type {
-  RegularFunction,
-  RuntimeProxy,
-  RuntimeReporter,
-  Scope,
-} from "./runtime";
+import type { RegularFunction, RuntimeProxy, Scope } from "./runtime";
 import {
   RuntimeError,
   RuntimeError_DuplicateClosureParameterNames,

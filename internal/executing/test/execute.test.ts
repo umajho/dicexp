@@ -6,7 +6,6 @@ import {
   assertExecutionOk,
   assertExecutionRuntimeError,
   assertNumber,
-  assertNumberArray,
   binaryOperatorOnlyAcceptsBoolean,
   binaryOperatorOnlyAcceptsNumbers,
   theyAreOk,
