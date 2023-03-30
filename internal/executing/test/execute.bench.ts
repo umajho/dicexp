@@ -50,18 +50,16 @@ const codesSimple = [
 ];
 
 for (const code of codesSimple) {
-  let parsed: Node;
-  try {
-    parsed = parse(code);
-  } catch (e) {
-    console.error(code, e);
+  const parseResult = parse(code);
+  if ("error" in parseResult) {
+    console.error(code, parseResult.error);
     continue;
   }
 
   bench(`${code}`, () => {
-    const result = execute(parsed);
-    if (result.runtimeError) {
-      throw new Error(`${code}: ${result.runtimeError.message}`);
+    const result = execute(parseResult.ok);
+    if ("error" in result) {
+      throw new Error(`${code}: ${result.error.message}`);
     }
   });
 }

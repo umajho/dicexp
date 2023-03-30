@@ -21,6 +21,7 @@ const codes: string[] = [
 
 for (const code of codes) {
   bench(code, () => {
-    parse(code, { optimizesForSimpleCases: false });
+    const result = parse(code);
+    if ("error" in result) throw result.error;
   });
 }
