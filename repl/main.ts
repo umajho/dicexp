@@ -74,12 +74,15 @@ while (1) {
       continue;
     }
 
-    const { value: finalValue, runtimeError: err } = execute(parsed, { seed });
-    if (err instanceof RuntimeError) {
-      console.log(`runtime error:`, err);
+    const result = execute(parsed, { seed });
+    if ("error" in result) {
+      if (!(result.error instanceof RuntimeError)) {
+        throw new Error("Unreachable");
+      }
+      console.log(`runtime error:`, result.error.message);
     } else {
       console.log(
-        `%c=> ${inspect(finalValue, { depth: Infinity })}`,
+        `%c=> ${inspect(result.ok, { depth: Infinity })}`,
         "color: green",
       );
     }
