@@ -2,13 +2,12 @@ import { parse } from "../lib";
 
 import { bench } from "vitest";
 
-const codes: (string | [string, boolean])[] = [
-  ["~10", true],
-  ["1~10", true],
-  ["d10 ~ 3d8+10", true],
-  ["3#d10", true],
-  ["d4 # d10 ~ 3d8+10", true],
-
+const codes: string[] = [
+  "~10",
+  "1~10",
+  "d10 ~ 3d8+10",
+  "3#d10",
+  "d4 # d10 ~ 3d8+10",
   "3#d10",
   "[1, 2, 3]",
   "sum([1, 2, 3])",
@@ -20,20 +19,7 @@ const codes: (string | [string, boolean])[] = [
   "3#d10 |> map(&-/1)",
 ];
 
-for (const codeRow of codes) {
-  let includesSimple = false;
-  let code: string;
-  if (Array.isArray(codeRow)) {
-    code = codeRow[0];
-    includesSimple = codeRow[1];
-  } else {
-    code = codeRow;
-  }
-  if (includesSimple) {
-    bench(`simple: ${code}`, () => {
-      parse(code, { optimizesForSimpleCases: true });
-    });
-  }
+for (const code of codes) {
   bench(code, () => {
     parse(code, { optimizesForSimpleCases: false });
   });

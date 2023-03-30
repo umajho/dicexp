@@ -1,7 +1,6 @@
 import { assert, describe, it } from "vitest";
 
 import { parse, ParsingResult } from "../src/parse";
-import { simpleParse } from "src/parse_simple";
 
 import { captured, list, Node, regularCall, value } from "@dicexp/nodes";
 import { Unreachable } from "src/errors";
@@ -38,19 +37,6 @@ const literalIntegerBadTable: string[] = [
   "1_",
   "1__1",
 ];
-
-// describe("简单解析", () => {
-//   it("不接受右侧有悬挂的正负号", () => {
-//     assert.isFalse(simpleParse("1+"));
-//   });
-
-//   it("能够正确解析合规的整数常量", () => {
-//     theyAreOk(literalIntegerGoodTable, simpleParse);
-//   });
-//   it("不能解析不合规的整数常量", () => {
-//     theyAreBad(literalIntegerBadTable, simpleParse);
-//   });
-// });
 
 describe("常量", () => {
   describe("整数常量", () => {

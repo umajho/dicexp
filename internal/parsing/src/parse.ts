@@ -3,23 +3,17 @@ import { convertTextToHalfWidth } from "./utils";
 
 import { parser as lezerParser } from "@dicexp/lezer";
 import { ParsingError, Transformer } from "./transformer";
-import { simpleParse } from "./parse_simple";
 
 export interface ParseOptions {
-  optimizesForSimpleCases?: boolean;
+  optimizesForSimpleCases?: false;
 }
 
 export type ParsingResult =
-  | { ok: Node; simple: boolean }
+  | { ok: Node; simple: false }
   | { error: ParsingError };
 
 export function parse(code: string, opts?: ParseOptions): ParsingResult {
   code = convertTextToHalfWidth(code);
-
-  if (opts?.optimizesForSimpleCases ?? true) {
-    const result = simpleParse(code);
-    if (result) return { ok: result, simple: true };
-  }
 
   const tree = lezerParser.parse(code);
   const transformer = new Transformer(tree, code);
