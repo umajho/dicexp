@@ -41,7 +41,7 @@
         div(v-if="result")
           n-space(justify="center")
             n-card(style="width: 60vw; min-width: 600px")
-              n-tabs(type="line")
+              n-tabs(type="line" v-model:value="currentTab")
                 n-tab-pane(name="result", tab="结果")
                   template(v-if="result.error")
                     n-alert(type="error", :title="`${errorDisplayInfo.kind}错误`")
@@ -113,6 +113,13 @@ const errorDisplayInfo = computed(() => {
   if (err instanceof ParsingError) return { kind: "解析", showsStack: false };
   if (err instanceof RuntimeError) return { kind: "运行时", showsStack: false };
   return { kind: "未知", showsStack: true };
+});
+
+const currentTab = ref("result");
+watch(result, () => {
+  if (!result.value?.representation) {
+    currentTab.value = "result";
+  }
 });
 
 function roll() {
