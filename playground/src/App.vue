@@ -1,7 +1,3 @@
-<script lang="ts">
-import JsonViewer from "vue-json-viewer";
-</script>
-
 <template lang="pug">
 .container
   n-config-provider(:theme="darkTheme")
@@ -61,7 +57,7 @@ import JsonViewer from "vue-json-viewer";
                   template(v-else)
                     code(style="white-space: pre-wrap") {{ JSON.stringify(result.ok) }}
                 n-tab-pane(v-if="result && result.representation", name="representation", tab="步骤展现（临时版本）")
-                  json-viewer(:value="result.representation")
+                  async-json-viewer(:value="result.representation")
 </template>
 
 <script setup lang="ts">
@@ -139,6 +135,10 @@ function roll() {
 const AsyncDicexpEditor = defineAsyncComponent({
   loader: () => import("./components/dicexp-editor.vue"),
   loadingComponent: h(NSkeleton, { size: "small" }),
+});
+const AsyncJsonViewer = defineAsyncComponent({
+  loader: () => import("vue-json-viewer"),
+  loadingComponent: h(NSkeleton, { size: "large" }),
 });
 </script>
 
