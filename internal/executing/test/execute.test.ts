@@ -132,6 +132,7 @@ describe("值", () => {
           // ]);
           // assert(stopped);
         });
+        it.todo("`d(2^32+1)` 不会死循环");
       });
 
       describe("d%/1 与 d%/2", () => {

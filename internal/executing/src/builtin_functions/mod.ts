@@ -5,7 +5,7 @@ import {
   unwrapValue,
 } from "./helpers";
 
-import { Unreachable } from "../errors";
+import { Unimplemented, Unreachable } from "../errors";
 import type { RandomGenerator, RuntimeProxy, Scope } from "../runtime";
 import {
   getTypeDisplayName,
@@ -460,18 +460,35 @@ export function generateRandomNumber(
   const [lower, upper] = bounds;
 
   const sides = upper - lower + 1;
-  let maxUnbiased: number;
-  if (sides <= 2) {
-    maxUnbiased = 2 ** 32;
+
+  if (sides <= 2 ** 32) {
+    let maxUnbiased: number;
+    if (sides <= 2) {
+      maxUnbiased = 2 ** 32 - 1;
+    } else {
+      maxUnbiased = (2 ** 32 / sides | 0) * sides - 1;
+    }
+
+    let rn: number;
+    do {
+      rn = rng.uint32();
+    } while (rn > maxUnbiased);
+
+    return lower + (rn % sides);
+  } else if (sides <= 2 ** 53) {
+    const sidesBig = BigInt(sides);
+    let maxUnbiased: bigint;
+    maxUnbiased = (BigInt(2 ** 64) / sidesBig) * sidesBig - BigInt(1);
+
+    let rn: bigint;
+    do {
+      rn = BigInt(rng.uint32()) + BigInt(rng.uint32()) * BigInt(2 ** 32);
+    } while (rn > maxUnbiased);
+
+    return lower + Number(rn % sidesBig);
   } else {
-    maxUnbiased = (2 ** 32 / sides | 0) * sides - 1;
+    throw new Unimplemented();
   }
-  let rn = rng.uint32();
-  while (rn > maxUnbiased) {
-    rn = rng.uint32();
-  }
-  const single = lower + (rn % sides);
-  return single;
 }
 
 function filter(

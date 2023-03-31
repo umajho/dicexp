@@ -6,6 +6,7 @@ import { execute, ExecutionResult } from "../lib";
 const codesSimple = [
   "~10",
   "1~10",
+  "d9007199254740991",
   "d10 ~ 3d8+10",
 
   String.raw`sum([1, 2, 3])`,

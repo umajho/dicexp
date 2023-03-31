@@ -8,6 +8,9 @@
     "components.d.ts"
   ],
   "compilerOptions": {
+    "lib": [
+      "ES2020"
+    ],
     "baseUrl": ".",
     "paths": {
       "@/*": [
