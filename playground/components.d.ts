@@ -10,6 +10,7 @@ export {}
 declare module '@vue/runtime-core' {
   export interface GlobalComponents {
     DicexpEditor: typeof import('./src/components/dicexp-editor.vue')['default']
+    LayoutHeader: typeof import('./src/components/layout-header.vue')['default']
     NAlert: typeof import('naive-ui')['NAlert']
     NButton: typeof import('naive-ui')['NButton']
     NCard: typeof import('naive-ui')['NCard']
@@ -25,5 +26,6 @@ declare module '@vue/runtime-core' {
     NSpin: typeof import('naive-ui')['NSpin']
     NTabPane: typeof import('naive-ui')['NTabPane']
     NTabs: typeof import('naive-ui')['NTabs']
+    ResultPane: typeof import('./src/components/result-pane.vue')['default']
   }
 }
