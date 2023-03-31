@@ -1,59 +1,53 @@
 <template lang="pug">
-.container
-  n-config-provider(:theme="darkTheme")
-    //- 顶部导航栏
-    n-layout-header(style="height: var(--header-height)")
-      layout-header
+.app-container.min-h-screen.bg-base-300
+  //- 顶部导航栏
+  .absolute.z-10.w-full.p-2
+    layout-header
+    
+  .h-32
 
-    //- 内容
-    n-layout-content
-      main(style=`
-        height: calc(100vh - var(--header-height) - var(--footer-height));
-      `)
-        n-grid(:cols="1", y-gap="10", style="width: 100%")
-          //- 留空
-          n-gi
-            div(style="height: 30px")
+  //- 内容
+  main
+    .grid.grid-cols-1.gap-10
+      
+      .flex.justify-center
+        .card.bg-base-100.shadow-xl
+          .card-body
+            .grid.grid-cols-1.gap-4
 
-          //- 输入框和按钮
-          n-gi
-            n-space(justify="center")
-              div(style=`
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                height: 100%;
-                width: min(60vw, 512px);
-              `)
-                async-dicexp-editor(v-model="code" @confirm="roll()")
-              template(v-if="evaluate")
-                n-button(@click="roll()", :disabled="!canRoll") ROLL!
-              template(v-else)
-                n-spin(:size="20")
-                  n-button(disabled) ROLL!
-          
-          //- 基本的设置
-          n-gi
-            n-space(justify="center")
-              n-space(vertical, justify="center", style="height: 100%")
-                n-checkbox(v-model:checked="fixesSeed") 固定种子
-              n-input-number(v-model:value="seed", :disabled="!fixesSeed", :precision="0")
-        
-          //- 留空
-          n-gi
-            div(style="height: 10px")
-
-          //- 结果展现
-          n-gi
-            div(v-if="result")
-              result-pane(:result="result")
+              //- 输入框和按钮
+              .flex.justify-center.gap-6
+                .flex.flex-col.justify-center.h-full(style="width: min(60vw, 45rem)")
+                  async-dicexp-editor(v-model="code" @confirm="roll()")
+                .btn.btn-primary(
+                  @click="roll()",
+                  :class="[evaluate ? null : 'loading', canRoll && evaluate ? null : 'btn-disabled']"
+                ) ROLL!
+              
+              //- 基本的设置
+              .flex.justify-center.gap-2
+                .flex.flex-col.h-full.justify-center
+                  .form-control
+                    .label.cursor-pointer
+                      span.label-text 固定种子
+                      span.w-2
+                      input.checkbox(type="checkbox", v-model="fixesSeed")
+                .flex.flex-col.h-full.justify-center
+                  input.input.input-sm(
+                    type="number",
+                    v-model="seed"
+                    :disabled="!fixesSeed"
+                  )
+    
+      //- 结果展现
+      div(v-if="result")
+        result-pane(:result="result")
 </template>
 
 <script setup lang="ts">
-import { NSkeleton, darkTheme /** used */ } from "naive-ui";
+import Skeleton from "./components/skeleton.vue";
 
 import type { EvaluationResult, evaluate as evaluateFn } from "dicexp/internal";
-import { ParsingError, RuntimeError } from "dicexp/internal";
 
 const evaluate: Ref<typeof evaluateFn | undefined> = ref(undefined);
 (async () => {
@@ -67,22 +61,14 @@ watch(code, () => {
 
 const fixesSeed = ref(false);
 const seed = ref(0);
-const isSeedValid = computed(() => {
+
+const canRoll = computed(() => {
+  if (code.value.trim() === "") return false;
+  if (!fixesSeed.value) return true;
   return Number.isInteger(seed.value);
 });
 
-const canRoll = computed(() => {
-  return (!fixesSeed.value || isSeedValid.value) && code.value.trim() !== "";
-});
-
 const result: Ref<EvaluationResult | null> = ref(null);
-const errorDisplayInfo = computed(() => {
-  if (!result.value || result.value.ok) return null;
-  const err = result.value.error!;
-  if (err instanceof ParsingError) return { kind: "解析", showsStack: false };
-  if (err instanceof RuntimeError) return { kind: "运行时", showsStack: false };
-  return { kind: "未知", showsStack: true };
-});
 
 function roll() {
   if (!canRoll.value) return;
@@ -104,14 +90,6 @@ function roll() {
 
 const AsyncDicexpEditor = defineAsyncComponent({
   loader: () => import("./components/dicexp-editor.vue"),
-  loadingComponent: h(NSkeleton, { size: "small" }),
+  loadingComponent: h("div", { class: "h-8" }, [h(Skeleton)]),
 });
 </script>
-
-<style scoped>
-.container {
-  --header-height: 40px;
-  /* --footer-height: 2em; */
-  --footer-height: 0px;
-}
-</style>

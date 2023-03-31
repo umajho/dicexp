@@ -1,5 +1,5 @@
-<template>
-  <div ref="containerRef"></div>
+<template lang="pug">
+.border.border-gray-500(ref="containerRef")
 </template>
 
 <script setup lang="ts">

@@ -1,39 +1,46 @@
 <template lang="pug">
-n-space(justify="center")
-  n-card(style="width: 60vw; min-width: 600px")
-    n-tabs(type="line" v-model:value="currentTab")
-      n-tab-pane(name="result", tab="结果")
-        template(v-if="result.error !== undefined")
-          n-alert(type="error", :title="`${errorDisplayInfo.kind}错误`")
-            code(style="white-space: pre")
-              | {{ result.error.message }}
-              template(v-if="errorDisplayInfo.showsStack")
-                hr
-                | {{ result.error.stack }}
-        template(v-else)
-          code(style="white-space: pre-wrap") {{ JSON.stringify(result.ok) }}
-      n-tab-pane(v-if="result && result.representation", name="representation", tab="步骤展现（临时版本）")
-        async-json-viewer(:value="result.representation")
+.flex.justify-center
+  .card.bg-base-100.shadow-xl(style="width: min(80vw, 60rem)")
+    .card-body.p-6
+      .tabs
+        .tab.tab-bordered(
+          :class="currentTab === 'result' ? ['tab-active'] : []",
+          @click="switchTab('result')"
+        ) 结果
+        .tab.tab-bordered(
+          v-if="props.result.representation"
+          :class="currentTab === 'representation' ? ['tab-active'] : []"
+          @click="switchTab('representation')"
+        ) 步骤展现（临时版本）
+
+      .h-2
+
+      keep-alive 
+        component(:is="tabs[currentTab]", v-bind="{ result }")
 </template>
 
 <script setup lang="ts">
-import { NSkeleton } from "naive-ui";
-
 import type { EvaluationResult } from "dicexp/internal";
+
+import ResultPaneTabResult from "./result-pane-tab-result.vue";
+import ResultPaneTabRepresentation from "./result-pane-tab-representation.vue";
 
 const props = defineProps<{
   result: EvaluationResult;
 }>();
 
+const tabs = {
+  result: ResultPaneTabResult,
+  representation: ResultPaneTabRepresentation,
+};
+
 const currentTab = ref("result");
-watch(props.result, () => {
+watch(props, () => {
   if (!props.result.representation) {
     currentTab.value = "result";
   }
 });
-
-const AsyncJsonViewer = defineAsyncComponent({
-  loader: () => import("vue-json-viewer"),
-  loadingComponent: h(NSkeleton, { size: "large" }),
-});
+function switchTab(tabName: string) {
+  currentTab.value = tabName;
+}
 </script>
