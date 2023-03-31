@@ -45,7 +45,7 @@ onMounted(() => {
   ]);
   const linting = linter((view) => {
     // 参考：https://discuss.codemirror.net/t/showing-syntax-errors/3111/6
-    if (view.state.doc.line(1).text.slice() === "") return [];
+    if (view.state.doc.line(1).text.trim() === "") return [];
     const diagnostics: Diagnostic[] = [];
     syntaxTree(view.state).iterate({
       enter: (node) => {

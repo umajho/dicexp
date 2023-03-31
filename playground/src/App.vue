@@ -103,7 +103,7 @@ const isSeedValid = computed(() => {
 });
 
 const canRoll = computed(() => {
-  return (!fixesSeed.value || isSeedValid.value) && code.value.slice() !== "";
+  return (!fixesSeed.value || isSeedValid.value) && code.value.trim() !== "";
 });
 
 const result: Ref<EvaluationResult | null> = ref(null);
@@ -116,7 +116,7 @@ const errorDisplayInfo = computed(() => {
 });
 
 function roll() {
-  if (!canRoll) return;
+  if (!canRoll.value) return;
 
   if (!fixesSeed.value) {
     seed.value = crypto.getRandomValues(new Uint32Array(1))[0];
