@@ -17,7 +17,7 @@
 
               //- 输入框和按钮
               .flex.justify-center.gap-6
-                .flex.flex-col.justify-center.h-full(style="width: min(60vw, 45rem)")
+                .flex.flex-col.justify-center.h-full.w-full
                   async-dicexp-editor(v-model="code" @confirm="roll()")
                 .btn.btn-primary(
                   @click="roll()",
@@ -25,19 +25,12 @@
                 ) ROLL!
               
               //- 基本的设置
-              .flex.justify-center.gap-2
+              .justify-center.gap-4(class="md:flex max-md:grid max-md:grid-cols-1")
                 .flex.flex-col.h-full.justify-center
-                  .form-control
-                    .label.cursor-pointer
-                      span.label-text 固定种子
-                      span.w-2
-                      input.checkbox(type="checkbox", v-model="fixesSeed")
+                  optional-number-input(v-model="seed" v-model:enabled="fixesSeed") 固定种子
+                .flex.flex-col.h-full.justify-center(class="max-md:hidden") |
                 .flex.flex-col.h-full.justify-center
-                  input.input.input-sm(
-                    type="number",
-                    v-model="seed"
-                    :disabled="!fixesSeed"
-                  )
+                  restrictions-pane(@update:restrictions="onUpdateRestrictions")
     
       //- 结果展现
       div(v-if="result")
@@ -47,7 +40,11 @@
 <script setup lang="ts">
 import Skeleton from "./components/skeleton.vue";
 
-import type { EvaluationResult, evaluate as evaluateFn } from "dicexp/internal";
+import type {
+  EvaluationResult,
+  evaluate as evaluateFn,
+  RuntimeRestrictions,
+} from "dicexp/internal";
 
 const evaluate: Ref<typeof evaluateFn | undefined> = ref(undefined);
 (async () => {
@@ -68,6 +65,11 @@ const canRoll = computed(() => {
   return Number.isInteger(seed.value);
 });
 
+const restrictions: Ref<RuntimeRestrictions | null> = ref(null);
+function onUpdateRestrictions(r: RuntimeRestrictions) {
+  restrictions.value = r;
+}
+
 const result: Ref<EvaluationResult | null> = ref(null);
 
 function roll() {
@@ -79,12 +81,15 @@ function roll() {
 
   result.value = null;
   try {
-    result.value = evaluate.value!(code.value, { seed: seed.value });
+    result.value = evaluate.value!(code.value, {
+      seed: seed.value,
+      restrictions: restrictions.value ?? undefined,
+    });
   } catch (e) {
     if (!(e instanceof Error)) {
       e = new Error(`未知抛出：${e}`);
     }
-    result.value = { error: e as Error, representation: null };
+    result.value = { error: e as Error };
   }
 }
 

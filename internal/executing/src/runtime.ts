@@ -46,9 +46,13 @@ export interface RuntimeReporter {
   closureCalled?: () => RuntimeError | null;
 }
 
-export interface Statistics {
+interface StatisticsUnfinished {
   start?: { ms: number };
-  timeConsumption?: { ms: number };
+  calls?: number;
+}
+
+export interface Statistics {
+  timeConsumption: { ms: number };
   calls?: number;
 }
 
@@ -56,7 +60,7 @@ export type JSValue = number | boolean | JSValue[];
 
 export type ExecutionResult = RuntimeResult<JSValue> & {
   representation: Representation;
-  statistics: Required<Statistics>;
+  statistics: Statistics;
 };
 
 export class Runtime {
@@ -72,7 +76,7 @@ export class Runtime {
   private _rng: RandomGenerator;
 
   private _restrictions: Restrictions;
-  private _statistics: Statistics;
+  private _statistics: StatisticsUnfinished;
   reporter: RuntimeReporter;
 
   private _lazyValueFactory: LazyValueFactory;
@@ -153,13 +157,15 @@ export class Runtime {
     this._statistics.start = { ms: Date.now() /*performance.now()*/ };
     const concrete = this._interpretRoot();
     const result = this._finalize({ memo: concrete });
-    this._statistics.timeConsumption = {
-      ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
-    };
     return {
       ...result,
       representation: concrete.representation,
-      statistics: this._statistics as Required<Statistics>,
+      statistics: {
+        timeConsumption: {
+          ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
+        },
+        calls: this._statistics.calls,
+      },
     };
   }
 
