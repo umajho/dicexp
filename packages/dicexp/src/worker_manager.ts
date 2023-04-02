@@ -1,3 +1,5 @@
+import EvaluatingWorker from "./worker?worker";
+
 import type { EvaluateOptions, EvaluationResult } from "./evaluate";
 import type {
   DataFromWorker,
@@ -79,8 +81,7 @@ export class EvaluatingWorkerManager {
     return new Promise<void>((resolveInit, rejectInit) => {
       this.lastHeartbeatTimestamp = Date.now();
 
-      const url = new URL("./worker.ts", import.meta.url);
-      const worker = new Worker(url, { type: "module" });
+      const worker = new EvaluatingWorker();
 
       worker.onmessage = (ev) => {
         const data = ev.data as DataFromWorker;
