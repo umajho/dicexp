@@ -65,8 +65,11 @@ export class EvaluatingWorkerManager {
     this.heartbeatTimeout = this.options.heartbeatTimeout;
   }
 
-  private postMessage(data: DataToWorker) {
-    this.worker!.postMessage(data);
+  private postMessage(data: DataToWorker, target: Worker = this.worker!) {
+    // 防止由于 vue 之类的外部库把 data 中的内容用 Proxy 替代掉，
+    // 导致无法用 postMessage 传递 data
+    data = JSON.parse(JSON.stringify(data));
+    target.postMessage(data);
   }
 
   async init() {
@@ -113,9 +116,9 @@ export class EvaluatingWorkerManager {
         }
       };
 
-      worker.postMessage(["initialize", {
+      this.postMessage(["initialize", {
         minHeartbeatInterval: this.options.minHeartbeatInterval,
-      }]);
+      }], worker);
     });
   }
 
@@ -133,7 +136,7 @@ export class EvaluatingWorkerManager {
       if (this.currentTask) {
         this.resolveCurrentTask({ error: new Error("Worker 失去响应") });
       }
-      await this.restartWorker();
+      this.restartWorker();
     };
     await tick();
   }
@@ -152,11 +155,22 @@ export class EvaluatingWorkerManager {
     await this.init();
   }
 
+  terminateCurrentTask() {
+    if (!this.currentTask) return;
+    this.currentTask?.resolve({ error: new Error("外部中断") });
+    this.currentTask = null;
+    this.restartWorker();
+  }
+
   evaluate(code: string, opts?: EvaluateOptionsForWorker) {
-    return new Promise<EvaluationResultForWorker>((resolve, reject) => {
+    return new Promise<EvaluationResultForWorker>(async (resolve, reject) => {
       if (this.currentTask) {
         reject(new Error("管理器正忙"));
         return;
+      }
+
+      while (!this.worker) { // 等待 `restartWorker` 完成
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
       }
 
       const id = String(this.nextIdNumber);
@@ -167,7 +181,7 @@ export class EvaluatingWorkerManager {
       if (opts?.restrictions?.hardTimeout) {
         const ms = opts.restrictions.hardTimeout.ms;
         setTimeout(() => {
-          if (this.currentTask?.id !== id) return; // 已经完成了，或者手动终止了
+          if (this.currentTask?.id !== id) return; // 已经完成了，或者被外部中断了
           this.resolveCurrentTask({ error: new Error("硬性超时") });
           this.restartWorker();
         }, ms);

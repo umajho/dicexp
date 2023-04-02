@@ -19,9 +19,12 @@
               .flex.justify-center.gap-6
                 .flex.flex-col.justify-center.h-full.w-full
                   async-dicexp-editor(v-model="code" @confirm="roll()")
+                .btn.btn-primary.btn-disabled.loading(v-if="rollStatus === 'loading'")
+                .btn.btn-primary.btn-error(
+                  v-else-if="rollStatus === 'rolling'" @click="terminate()"
+                ) 终止
                 .btn.btn-primary(
-                  @click="roll()",
-                  :class="[loading ? 'loading' : null, canRoll ? null : 'btn-disabled']"
+                  v-else @click="roll()" :class="rollStatus === 'ready' ? null : 'btn-disabled'"
                 ) ROLL!
               
               //- 基本的设置
@@ -46,9 +49,6 @@ import type {
   EvaluatingWorkerManager,
 } from "dicexp/internal";
 
-const loading = computed(() => {
-  return !evaluatingWorkerManager.value || rolling.value;
-});
 const evaluatingWorkerManager: Ref<EvaluatingWorkerManager | undefined> =
   ref(undefined);
 (async () => {
@@ -66,8 +66,14 @@ watch(code, () => {
 const fixesSeed = ref(false);
 const seed = ref(0);
 
-const canRoll = computed(() => {
-  if (loading.value) return false;
+const rollStatus = computed(() => {
+  if (!evaluatingWorkerManager.value) return "loading";
+  if (rolling.value) return "rolling";
+  if (inputValid.value) return "ready";
+  return "invalid";
+});
+
+const inputValid = computed(() => {
   if (code.value.trim() === "") return false;
   if (!fixesSeed.value) return true;
   return Number.isInteger(seed.value);
@@ -82,7 +88,7 @@ const rolling = ref(false);
 const result: Ref<EvaluationResultForWorker | null> = ref(null);
 
 async function roll() {
-  if (!canRoll.value) return;
+  if (rollStatus.value !== "ready") return;
   rolling.value = true;
 
   if (!fixesSeed.value) {
@@ -110,6 +116,10 @@ async function roll() {
   }
 
   rolling.value = false;
+}
+
+function terminate() {
+  evaluatingWorkerManager.value!.terminateCurrentTask();
 }
 
 const AsyncDicexpEditor = defineAsyncComponent({
