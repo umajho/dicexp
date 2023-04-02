@@ -2,15 +2,18 @@
   "name": "dicexp",
   "version": "0.0.1",
   "description": "A Dicexp evaluator.",
-  "main": "dist/lib.esm.js",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/dicexp.umd.cjs",
+  "module": "./dist/dicexp.js",
+  "types": "./dist/src/lib.d.ts",
   "exports": {
     ".": {
-      "browser": "./dist/browser.esm.js",
-      "import": "./dist/lib.esm.js"
+      "require": "./dist/dicexp.umd.cjs",
+      "import": "./dist/dicexp.js"
     },
-    "./internal": "./lib.ts"
+    "./internal": "./internal.ts"
   },
-  "types": "./dist/packages/dicexp/lib.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/umajho/dicexp/"
@@ -21,19 +24,16 @@
   "author": "Umaĵo",
   "license": "MIT",
   "homepage": "https://github.com/umajho/dicexp/tree/main/packages/dicexp#readme",
-  "type": "module",
-  "sideEffects": false,
+  "scripts": {
+    "build": "tsc && vite build"
+  },
   "dependencies": {
     "@dicexp/executing": "workspace:*",
     "@dicexp/parsing": "workspace:*"
   },
   "devDependencies": {
-    "@lezer/common": "^1.0.2",
-    "@rollup/plugin-commonjs": "^24.0.1",
-    "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-terser": "^0.4.0",
-    "rollup-plugin-typescript2": "^0.34.1",
-    "tslib": "^2.5.0",
-    "typescript": "^5.0.2"
+    "typescript": "^4.9.3",
+    "vite": "^4.2.0",
+    "vite-plugin-dts": "^2.1.0"
   }
 }

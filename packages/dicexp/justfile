@@ -7,4 +7,4 @@ type-check: pre-run
 test: type-check
 
 build: pre-run type-check
-	rollup -c
+	pnpm run build

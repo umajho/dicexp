@@ -1,12 +1,25 @@
 {
   "compilerOptions": {
-    "lib": [
-      "ES2015"
-    ],
     "target": "ES2015",
-    "moduleResolution": "node",
-    "outDir": "dist",
-    "declaration": true,
-    "allowSyntheticDefaultImports": true
-  }
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "moduleResolution": "Node",
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src",
+    "internal.ts"
+  ]
 }

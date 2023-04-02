@@ -13,7 +13,7 @@ export type ParsingResult =
   | { ok: Node; simple: false }
   | { error: ParsingError };
 
-export function parse(code: string, opts?: ParseOptions): ParsingResult {
+export function parse(code: string, _opts?: ParseOptions): ParsingResult {
   code = convertTextToHalfWidth(code);
 
   const tree = lezerParser.parse(code);
