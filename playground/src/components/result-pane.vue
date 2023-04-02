@@ -29,13 +29,13 @@
 </template>
 
 <script setup lang="ts">
-import type { EvaluationResult } from "dicexp/internal";
+import type { EvaluationResultForWorker } from "dicexp/internal";
 
 import ResultPaneTabResult from "./result-pane-tab-result.vue";
 import ResultPaneTabRepresentation from "./result-pane-tab-representation.vue";
 
 const props = defineProps<{
-  result: EvaluationResult;
+  result: EvaluationResultForWorker;
 }>();
 
 const statis = computed(() => {

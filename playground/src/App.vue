@@ -21,7 +21,7 @@
                   async-dicexp-editor(v-model="code" @confirm="roll()")
                 .btn.btn-primary(
                   @click="roll()",
-                  :class="[evaluate ? null : 'loading', canRoll && evaluate ? null : 'btn-disabled']"
+                  :class="[loading ? 'loading' : null, canRoll ? null : 'btn-disabled']"
                 ) ROLL!
               
               //- 基本的设置
@@ -41,14 +41,21 @@
 import Skeleton from "./components/skeleton.vue";
 
 import type {
-  EvaluationResult,
-  evaluate as evaluateFn,
+  EvaluationResultForWorker,
   RuntimeRestrictions,
+  EvaluatingWorkerManager,
 } from "dicexp/internal";
 
-const evaluate: Ref<typeof evaluateFn | undefined> = ref(undefined);
+const loading = computed(() => {
+  return !evaluatingWorkerManager.value || rolling.value;
+});
+const evaluatingWorkerManager: Ref<EvaluatingWorkerManager | undefined> =
+  ref(undefined);
 (async () => {
-  evaluate.value = (await import("dicexp/internal")).evaluate;
+  const dicexp = await import("dicexp/internal");
+  const manager = new dicexp.EvaluatingWorkerManager();
+  await manager.init();
+  evaluatingWorkerManager.value = manager;
 })();
 
 const code = ref(localStorage.getItem("autosave") ?? "");
@@ -60,6 +67,7 @@ const fixesSeed = ref(false);
 const seed = ref(0);
 
 const canRoll = computed(() => {
+  if (loading.value) return false;
   if (code.value.trim() === "") return false;
   if (!fixesSeed.value) return true;
   return Number.isInteger(seed.value);
@@ -70,10 +78,12 @@ function onUpdateRestrictions(r: RuntimeRestrictions) {
   restrictions.value = r;
 }
 
-const result: Ref<EvaluationResult | null> = ref(null);
+const rolling = ref(false);
+const result: Ref<EvaluationResultForWorker | null> = ref(null);
 
-function roll() {
+async function roll() {
   if (!canRoll.value) return;
+  rolling.value = true;
 
   if (!fixesSeed.value) {
     seed.value = crypto.getRandomValues(new Uint32Array(1))[0];
@@ -81,16 +91,25 @@ function roll() {
 
   result.value = null;
   try {
-    result.value = evaluate.value!(code.value, {
-      seed: seed.value,
-      restrictions: restrictions.value ?? undefined,
-    });
+    // 深度去除 reactivity
+    const opts = JSON.parse(
+      JSON.stringify({
+        seed: seed.value,
+        restrictions: restrictions.value ?? undefined,
+      })
+    );
+    result.value = await evaluatingWorkerManager.value!.evaluate(
+      code.value,
+      opts
+    );
   } catch (e) {
     if (!(e instanceof Error)) {
       e = new Error(`未知抛出：${e}`);
     }
     result.value = { error: e as Error };
   }
+
+  rolling.value = false;
 }
 
 const AsyncDicexpEditor = defineAsyncComponent({

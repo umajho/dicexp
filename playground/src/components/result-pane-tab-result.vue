@@ -15,18 +15,21 @@ template(v-else)
 </template>
 
 <script setup lang="ts">
-import type { EvaluationResult } from "dicexp/internal";
-import { ParsingError, RuntimeError } from "dicexp/internal";
+import type { EvaluationResultForWorker } from "dicexp/internal";
 
 const props = defineProps<{
-  result: EvaluationResult;
+  result: EvaluationResultForWorker;
 }>();
 
 const errorDisplayInfo = computed(() => {
   if (props.result.ok) return null;
-  const err = props.result.error!;
-  if (err instanceof ParsingError) return { kind: "解析", showsStack: false };
-  if (err instanceof RuntimeError) return { kind: "运行时", showsStack: false };
-  return { kind: "未知", showsStack: true };
+  switch (props.result.specialErrorType) {
+    case "parsing_error":
+      return { kind: "解析", showsStack: false };
+    case "runtime_error":
+      return { kind: "运行时", showsStack: false };
+    default:
+      return { kind: "其他", showsStack: true };
+  }
 });
 </script>
