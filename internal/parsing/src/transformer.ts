@@ -89,7 +89,8 @@ export class Transformer {
         const paramList = Transformer.getChildren(children[1]);
         const identifiers = paramList.map((p) => this.getRaw(p));
         const body = this._transform(children[2]);
-        return closure(identifiers, body);
+        const raw = this.source.slice(node.from, node.to);
+        return closure(identifiers, body, raw);
       }
       case "Capture": {
         const identifier = this.getRaw(children[0]);

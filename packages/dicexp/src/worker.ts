@@ -30,7 +30,6 @@ async function handle(data: DataToWorker): Promise<DataFromWorker | null> {
       }
       const code = data[2], opts = data[3];
       const result = await evaluateSafe(code, opts);
-      delete result.representation; // FIXME
       const specialErrorType = getEvaluatingErrorType(result.error);
       if (specialErrorType) {
         result.error = new Error(result.error!.message);

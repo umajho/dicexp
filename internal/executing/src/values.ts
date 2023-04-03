@@ -1,5 +1,13 @@
 import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import { Unreachable } from "./errors";
+import {
+  representCall,
+  representCaptured,
+  representError,
+  representResult,
+  representValue,
+  type RuntimeRepresentation,
+} from "./representations";
 import type { RegularFunction, RuntimeProxy, Scope } from "./runtime";
 import {
   RuntimeError,
@@ -9,30 +17,41 @@ import {
   RuntimeError_ValueIsNotCallable,
   RuntimeError_WrongArity,
 } from "./runtime_errors";
-import { flatten, intersperse } from "./utils";
-
-// TODO: { concrete } & ({ _yield/_yielder }  | { _iterator: { _yield/_yielder/, length } })
 
 export type RuntimeResult<OkType> =
   | { ok: OkType }
   | { error: RuntimeError };
 
-/**
- * NOTE: LazyValue 实例的引用会一直留到渲染步骤时使用。
- *       在渲染步骤时，会根据 concrete 是否有值来判断对应 LazyValue 是否求过值。
- *       因此，不应该为了不可变性而在操作 LazyValue 时为其创建新的副本。
- */
 export interface LazyValue {
+  /**
+   * 对于结果本身不变的或者被固定下来的 LazyValue 而言，固定的值会记录在这里。
+   */
   memo?: Concrete | false;
-  stabilized?: true;
+  /**
+   * 用于求其值的函数，如果已经有 memo 则可以不存在。
+   */
   _yield?: () => Concrete | { lazy: LazyValue };
 
+  /**
+   * 是否已经固定下来。
+   * 会考虑 memo 是列表时，列表内部（包括嵌套）的值是否也固定下来了。
+   */
+  stabilized?: true;
+
+  /**
+   * 是否被其他其他的 LazyValue 替代。（用于步骤展现。）
+   */
   replacedBy?: LazyValue;
+
+  /**
+   * 固定成了哪些 Concrete。（用于步骤展现。）
+   */
+  stabilizedAs?: Concrete[];
 }
 
-export interface LazyValueWithMemo extends LazyValue {
+export type LazyValueWithMemo = LazyValue & {
   memo: Concrete;
-}
+};
 
 export function concretize(
   v: LazyValue,
@@ -51,27 +70,22 @@ export function concretize(
   if (concrete.volatile) {
     if (v.memo) throw new Unreachable();
     v.memo = false;
+
+    v.stabilizedAs ??= [];
+    v.stabilizedAs.push(concrete);
+
     return concrete;
   } else {
+    if (Array.isArray(concrete)) throw new Unreachable();
     v.memo = concrete;
     return v.memo;
   }
 }
 
-export type Representation = (
-  | string
-  | LazyValue
-  | Concrete
-  | { v: RuntimeResult<Value> | Value }
-  | { e: RuntimeError }
-  | { n: Node }
-  | (() => Representation)
-)[];
-
 export interface Concrete {
   value: RuntimeResult<Value>;
   volatile: boolean;
-  representation: Representation;
+  representation: RuntimeRepresentation;
 }
 
 export type Value =
@@ -86,6 +100,8 @@ export interface Value_Callable {
   type: "callable";
   arity: number;
   _call: (args: LazyValue[]) => RuntimeResult<LazyValue>;
+
+  representation: RuntimeRepresentation;
 }
 
 export class LazyValueFactory {
@@ -106,7 +122,7 @@ export class LazyValueFactory {
           volatile: false,
           // 使用 `inner.value` 是为了切断之前的 representation，以免过于冗长
           //（而且函数调用中的参数列表已经将对应的内容展示过了）
-          representation: [`(${ident}=`, { v: inner.value }, `)`],
+          representation: [`(${ident}=`, representResult(inner.value), `)`],
         };
         return c;
       },
@@ -122,22 +138,22 @@ export class LazyValueFactory {
       memo: {
         value: { ok: value },
         volatile: false,
-        representation: [{ v: value }],
+        representation: representValue(value),
       },
     };
   }
 
   error(
     error: RuntimeError,
-    source?: Representation,
+    source?: RuntimeRepresentation,
   ): LazyValueWithMemo {
     return {
       memo: {
         value: { error: error },
         volatile: false,
         representation: source
-          ? ["(", ...source, "=>", { e: error }, ")"]
-          : [{ e: error }],
+          ? ["(", ...source, "=>", representError(error), ")"]
+          : representError(error),
       },
     };
   }
@@ -148,6 +164,10 @@ export class LazyValueFactory {
       _yield: () => {
         if (stabilized) return stabilized;
         const concrete = concretize(underlying, this.runtime);
+
+        underlying.stabilizedAs ??= [];
+        underlying.stabilizedAs.push(concrete);
+
         if ("error" in concrete.value) {
           stabilized = concrete;
         } else {
@@ -158,7 +178,7 @@ export class LazyValueFactory {
           stabilized = {
             value: { ok: value },
             volatile: false,
-            representation: [{ v: value }],
+            representation: representValue(value),
           };
         }
 
@@ -189,7 +209,7 @@ export class LazyValueFactory {
       memo: {
         value: { ok: list },
         volatile: false,
-        representation: [() => ["[", ...representList(list), "]"]],
+        representation: representValue(list),
       },
     };
   }
@@ -230,13 +250,13 @@ export class LazyValueFactory {
 
         if ("ok" in value && typeof value.ok === "number") {
           const err = checkInteger(value.ok);
-          if (err) return this.error(err, [{ v: value.ok }]).memo;
+          if (err) return this.error(err, representValue(value.ok)).memo;
         }
 
         return {
           value,
           volatile: concrete.volatile,
-          representation: ["(", ...calling, " => ", { v: value }, ")"],
+          representation: ["(", ...calling, "=>", representResult(value), ")"],
         };
       },
     };
@@ -247,6 +267,7 @@ export class LazyValueFactory {
     body: Node,
     scope: Scope,
     runtime: RuntimeProxy,
+    raw: string,
   ): LazyValueWithMemo {
     const arity = paramIdentList.length;
     const closure: Value_Callable = {
@@ -271,13 +292,15 @@ export class LazyValueFactory {
         const result = { ok: runtime.interpret(deeperScope, body) };
         return result;
       },
+
+      representation: [raw],
     };
 
     return {
       memo: {
         value: { ok: closure },
         volatile: false,
-        representation: representClosure(paramIdentList, body),
+        representation: representValue(closure),
       },
     };
   }
@@ -306,13 +329,15 @@ export class LazyValueFactory {
 
         return fn(args, runtime);
       },
+
+      representation,
     };
 
     return {
       memo: {
         value: { ok: captured },
         volatile: false,
-        representation,
+        representation: representValue(captured),
       },
     };
   }
@@ -322,9 +347,10 @@ export class LazyValueFactory {
     args: LazyValue[],
     style: ValueCallStyle,
   ): LazyValue {
-    const calling = representCall([value], args, "value", style);
-
     const concrete = concretize(value, this.runtime);
+    const concreteRepresentation = concrete.representation;
+    const calling = representCall(concreteRepresentation, args, "value", style);
+
     if ("error" in concrete.value) {
       return this.error(concrete.value.error, calling);
     }
@@ -349,7 +375,7 @@ export class LazyValueFactory {
         return {
           value,
           volatile: concrete.volatile,
-          representation: ["(", ...calling, " => ", { v: value }, ")"],
+          representation: ["(", ...calling, "=>", representResult(value), ")"],
         };
       },
     };
@@ -361,57 +387,6 @@ export function callCallable(
   args: LazyValue[],
 ): RuntimeResult<LazyValue> {
   return callable._call(args);
-}
-
-function representList(list: (LazyValue | Concrete)[]): Representation {
-  const l = flatten(intersperse(list as Representation[], [","]));
-  return l as unknown as Representation;
-}
-
-function representClosure(
-  paramIdentList: string[],
-  body: Node,
-): Representation {
-  return [() => {
-    return ["\\(" + paramIdentList.join(", ") + " -> ", { n: body }, ")"];
-  }];
-}
-
-function representCaptured(
-  identifier: string,
-  arity: number,
-): Representation {
-  return ["&", identifier, `/${arity}`];
-}
-
-function representCall(
-  callee: Representation,
-  args: LazyValue[],
-  kind: "regular" | "value",
-  style: RegularCallStyle | ValueCallStyle,
-): Representation {
-  if (style === "operator") {
-    if (args.length === 1) return ["(", ...callee, args[0], ")"];
-    if (args.length === 2) return ["(", args[0], ...callee, args[1], ")"];
-    throw new Unreachable();
-  }
-
-  return [() => {
-    const r = [];
-    if (style === "piped") {
-      r.push("(", args[0], " |> ");
-    }
-    r.push(...callee);
-    if (kind === "value") {
-      r.push(".");
-    }
-    // TODO: 也许可以附上 label
-    r.push("(", ...representList(args), ")");
-    if (style === "piped") {
-      r.push(")");
-    }
-    return [];
-  }];
 }
 
 function asCallable(

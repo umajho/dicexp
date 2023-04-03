@@ -90,13 +90,20 @@ export interface NodeValue_Closure extends _NodeValue {
   parameterIdentifiers: string[];
 
   body: Node;
+
+  raw: string;
 }
 
-export function closure(identifiers: string[], body: Node): Node_Value {
+export function closure(
+  identifiers: string[],
+  body: Node,
+  raw: string,
+): Node_Value {
   return value({
     valueKind: "closure",
     parameterIdentifiers: identifiers,
     body,
+    raw,
   });
 }
 

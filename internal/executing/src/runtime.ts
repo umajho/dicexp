@@ -20,11 +20,11 @@ import {
   getTypeNameOfValue,
   type LazyValue,
   LazyValueFactory,
-  type Representation,
   type RuntimeResult,
   type Value_List,
 } from "./values";
 import type { Restrictions } from "./restrictions";
+import { finalizeRepresentation, type Representation } from "./representations";
 
 export interface RandomGenerator {
   uint32(): number;
@@ -159,7 +159,7 @@ export class Runtime {
     const result = this._finalize({ memo: concrete });
     return {
       ...result,
-      representation: concrete.representation,
+      representation: finalizeRepresentation(concrete.representation),
       statistics: {
         timeConsumption: {
           ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
@@ -275,6 +275,7 @@ export class Runtime {
       closure.body,
       scope,
       this._proxy,
+      closure.raw,
     );
   }
 

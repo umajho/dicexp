@@ -1,3 +1,4 @@
+import { representValue } from "../representations";
 import type { RegularFunction, RuntimeProxy } from "../runtime";
 import {
   RuntimeError,
@@ -55,7 +56,7 @@ export function makeFunction(
           return {
             value: { ok: result.ok.value },
             volatile: unwrapResult.ok.volatile || !result.ok.pure,
-            representation: [{ v: result.ok.value }],
+            representation: representValue(result.ok.value),
           };
         },
       },
