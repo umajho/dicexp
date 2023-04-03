@@ -51,10 +51,12 @@ import type {
 
 const evaluatingWorkerManager: Ref<EvaluatingWorkerManager | undefined> =
   ref(undefined);
+const evaluatingWorkerManagerReady = ref(false);
 (async () => {
   const dicexp = await import("dicexp/internal");
-  const manager = new dicexp.EvaluatingWorkerManager();
-  await manager.init();
+  const manager = new dicexp.EvaluatingWorkerManager((ready) => {
+    evaluatingWorkerManagerReady.value = ready;
+  });
   evaluatingWorkerManager.value = manager;
 })();
 
@@ -67,7 +69,7 @@ const fixesSeed = ref(false);
 const seed = ref(0);
 
 const rollStatus = computed(() => {
-  if (!evaluatingWorkerManager.value) return "loading";
+  if (!evaluatingWorkerManagerReady.value) return "loading";
   if (rolling.value) return "rolling";
   if (inputValid.value) return "ready";
   return "invalid";
@@ -119,7 +121,7 @@ async function roll() {
 }
 
 function terminate() {
-  evaluatingWorkerManager.value!.terminateCurrentTask();
+  evaluatingWorkerManager.value!.terminateClient();
 }
 
 const AsyncDicexpEditor = defineAsyncComponent({
