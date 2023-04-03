@@ -30,7 +30,7 @@
               //- 基本的设置
               .justify-center.gap-4(class="md:flex max-md:grid max-md:grid-cols-1")
                 .flex.flex-col.h-full.justify-center
-                  optional-number-input(v-model="seed" v-model:enabled="fixesSeed") 固定种子
+                  common-optional-number-input(v-model="seed" v-model:enabled="fixesSeed") 固定种子
                 .flex.flex-col.h-full.justify-center(class="max-md:hidden") |
                 .flex.flex-col.h-full.justify-center
                   restrictions-pane(@update:restrictions="onUpdateRestrictions")
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import Skeleton from "./components/skeleton.vue";
+import Skeleton from "./components/common/skeleton.vue";
 
 import type {
   EvaluationResultForWorker,

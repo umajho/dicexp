@@ -31,8 +31,8 @@
 <script setup lang="ts">
 import type { EvaluationResultForWorker } from "dicexp/internal";
 
-import ResultPaneTabResult from "./result-pane-tab-result.vue";
-import ResultPaneTabRepresentation from "./result-pane-tab-representation.vue";
+import ResultPaneTabResult from "./tab-result.vue";
+import ResultPaneTabRepresentation from "./tab-representation.vue";
 
 const props = defineProps<{
   result: EvaluationResultForWorker;

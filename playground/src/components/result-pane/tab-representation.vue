@@ -3,7 +3,7 @@ async-json-viewer(:value="result.representation")
 </template>
 
 <script setup lang="ts">
-import Skeleton from "./skeleton.vue";
+import Skeleton from "../common/skeleton.vue";
 
 import type { EvaluationResult } from "dicexp/internal";
 

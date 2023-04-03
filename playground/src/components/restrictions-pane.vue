@@ -6,11 +6,11 @@ input#restrictions-pane-modal.modal-toggle(type="checkbox")
   .modal-box
     .grid.grid-cols-1.gap-4
       h1.text-xl 限制
-      optional-number-input(v-model="hardTimeoutValue" v-model:enabled="hardTimeoutEnabled")
+      common-optional-number-input(v-model="hardTimeoutValue" v-model:enabled="hardTimeoutEnabled")
         | 硬性超时（毫秒）
-      optional-number-input(v-model="softTimeoutValue" v-model:enabled="softTimeoutEnabled")
+      common-optional-number-input(v-model="softTimeoutValue" v-model:enabled="softTimeoutEnabled")
         | 软性超时（毫秒）
-      optional-number-input(v-model="maxCallsValue" v-model:enabled="maxCallsEnabled")
+      common-optional-number-input(v-model="maxCallsValue" v-model:enabled="maxCallsEnabled")
         //- 偷个懒
         | {{ "　　" }} 最多调用次数
 
