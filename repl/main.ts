@@ -1,4 +1,4 @@
-import { execute, parse, RuntimeError } from "dicexp/internal";
+import { execute, parse, RuntimeError } from "dicexp";
 
 // import inspect from "browser-util-inspect";
 // REPL 不用在非 Node 环境下运行，就直接用了
