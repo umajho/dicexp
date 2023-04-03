@@ -19,6 +19,9 @@ export type EvaluateOptionsForWorker = EvaluateOptions & {
   };
 };
 
+export type EvaluationRestrictionsForWorker =
+  EvaluateOptionsForWorker["restrictions"];
+
 export type EvaluationResultForWorker = EvaluationResult & {
   specialErrorType?: EvaluatingSpecialErrorType;
 };

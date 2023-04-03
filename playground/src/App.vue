@@ -45,7 +45,7 @@ import Skeleton from "./components/skeleton.vue";
 
 import type {
   EvaluationResultForWorker,
-  RuntimeRestrictions,
+  EvaluationRestrictionsForWorker,
   EvaluatingWorkerManager,
 } from "dicexp/internal";
 
@@ -81,8 +81,8 @@ const inputValid = computed(() => {
   return Number.isInteger(seed.value);
 });
 
-const restrictions: Ref<RuntimeRestrictions | null> = ref(null);
-function onUpdateRestrictions(r: RuntimeRestrictions) {
+const restrictions: Ref<EvaluationRestrictionsForWorker | null> = ref(null);
+function onUpdateRestrictions(r: EvaluationRestrictionsForWorker) {
   restrictions.value = r;
 }
 
