@@ -38,7 +38,7 @@ export class EvaluatingWorkerManager {
     optsPartial: Partial<EvaluatingWorkerClientOptions> = {},
   ) {
     optsPartial = { ...optsPartial };
-    optsPartial.heartbeatTimeout ??= { ms: 1000 };
+    optsPartial.heartbeatTimeout ??= { ms: 5000 };
     optsPartial.minHeartbeatInterval ??= { ms: 250 };
     this.options = optsPartial as EvaluatingWorkerClientOptions;
 
@@ -145,7 +145,12 @@ class EvaluatingWorkerClient {
 
       if (this.taskState["0"] === "processing") {
         const resolve = this.taskState[2];
-        resolve({ error: new Error("Worker 失去响应") });
+        const unresponsiveMs = now - this.lastHeartbeatTimestamp;
+        resolve({
+          error: new Error(
+            `Worker 失去响应（超过 ${unresponsiveMs} 毫秒没有收到心跳消息）`,
+          ),
+        });
         this.taskState = ["idle"];
       } else {
         console.warn("Worker 在未有工作的状态下失去响应");
