@@ -1,4 +1,4 @@
-import type { EvaluateOptions, EvaluationResult } from "./evaluate";
+import type { EvaluateOptions, EvaluationResult } from "../evaluate";
 
 export type DataToWorker =
   | [type: "initialize", init: WorkerInit]

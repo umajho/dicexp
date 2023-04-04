@@ -1,6 +1,6 @@
 import { RuntimeError } from "@dicexp/executing";
 import { ParsingError } from "@dicexp/parsing";
-import { EvaluatingSpecialErrorType } from "./wokre_types";
+import { EvaluatingSpecialErrorType } from "./types";
 
 export function getEvaluatingErrorType(
   error: Error | undefined,

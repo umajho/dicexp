@@ -86,6 +86,7 @@ importers:
   packages/dicexp:
     specifiers:
       '@dicexp/executing': workspace:*
+      '@dicexp/nodes': workspace:^0.0.0
       '@dicexp/parsing': workspace:*
       typescript: ^4.9.3
       vite: ^4.2.0
@@ -94,6 +95,7 @@ importers:
       '@dicexp/executing': link:../../internal/executing
       '@dicexp/parsing': link:../../internal/parsing
     devDependencies:
+      '@dicexp/nodes': link:../../internal/nodes
       typescript: 4.9.5
       vite: 4.2.0
       vite-plugin-dts: 2.1.0_vite@4.2.0
