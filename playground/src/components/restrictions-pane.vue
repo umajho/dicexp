@@ -5,8 +5,9 @@ input#restrictions-pane-modal.modal-toggle(type="checkbox")
 .modal
   .modal-box
     .grid.grid-cols-1.gap-4
-      h1.text-xl 限制
+      h1.text-xl 单次限制
       common-optional-number-input(v-model="hardTimeoutValue" v-model:enabled="hardTimeoutEnabled")
+        //- FIXME: 在批量模式时应标示此设置不生效
         | 硬性超时（毫秒）
       common-optional-number-input(v-model="softTimeoutValue" v-model:enabled="softTimeoutEnabled")
         | 软性超时（毫秒）
@@ -64,7 +65,7 @@ watch(
       if (maxCallsEnabled.value) {
         items.push(`调用次数=${maxCallsValue.value}`);
       }
-      restrictionsText.value = "限制：" + items.join("，");
+      restrictionsText.value = "单次限制：" + items.join("，");
     } else {
       restrictionsText.value = "无限制";
     }

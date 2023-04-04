@@ -12,32 +12,46 @@
       
       .flex.justify-center
         .card.bg-base-100.shadow-xl
-          .card-body
+          //-.card-body
+          .pt-4.p-8
             .grid.grid-cols-1.gap-4
+              //- 选择模式用的标签页
+              .tabs.flex-1
+                .tab.tab-bordered.tab-lg.font-bold(
+                  :class="mode === 'single' ? 'tab-active' : null"
+                  @click="switchMode('single')"
+                ) 单次
+                .tab.tab-bordered.tab-lg.font-bold(
+                  :class="mode === 'batch' ? 'tab-active' : null"
+                  @click="switchMode('batch')"
+                ) 批量
 
               //- 输入框和按钮
               .flex.justify-center.gap-6
                 .flex.flex-col.justify-center.h-full.w-full
                   async-dicexp-editor(v-model="code" @confirm="roll()")
                 .btn.btn-primary.btn-disabled.loading(v-if="rollStatus === 'loading'")
-                .btn.btn-primary.btn-error(
-                  v-else-if="rollStatus === 'rolling'" @click="terminate()"
-                ) 终止
+                template(v-else-if="rollStatus === 'rolling'")
+                  .btn.btn-error(v-if="rolling === 'rolling'" @click="terminate()") 终止
+                  .btn.btn-secondary(v-else @click="stopBatching()") 停止
                 .btn.btn-primary(
                   v-else @click="roll()" :class="rollStatus === 'ready' ? null : 'btn-disabled'"
                 ) ROLL!
               
               //- 基本的设置
-              .justify-center.gap-4(class="md:flex max-md:grid max-md:grid-cols-1")
-                .flex.flex-col.h-full.justify-center
-                  common-optional-number-input(v-model="seed" v-model:enabled="fixesSeed") 固定种子
-                .flex.flex-col.h-full.justify-center(class="max-md:hidden") |
+              .justify-center.gap-4(class="md:flex max-md:grid max-md:grid-cols-1 md:min-w-[36rem] max-md:min-w-[20rem] md:h-8")
+                template(v-if="mode === 'single'")
+                  .flex.flex-col.h-full.justify-center
+                    common-optional-number-input(v-model="seed" v-model:enabled="fixesSeed") 固定种子
+                  .flex.flex-col.h-full.justify-center(class="max-md:hidden") |
                 .flex.flex-col.h-full.justify-center
                   restrictions-pane(@update:restrictions="onUpdateRestrictions")
     
       //- 结果展现
       div(v-if="result")
         result-pane(:result="result")
+      div(v-if="batchReport")
+        batch-result-pane(:report="batchReport")
 </template>
 
 <script setup lang="ts">
@@ -47,7 +61,13 @@ import type {
   EvaluationResultForWorker,
   EvaluationRestrictionsForWorker,
   EvaluatingWorkerManager,
+  BatchReport,
 } from "dicexp/internal";
+
+const mode: Ref<"single" | "batch"> = ref("single");
+function switchMode(newMode: "single" | "batch") {
+  mode.value = newMode;
+}
 
 const evaluatingWorkerManager: Ref<EvaluatingWorkerManager | undefined> =
   ref(undefined);
@@ -86,42 +106,68 @@ function onUpdateRestrictions(r: EvaluationRestrictionsForWorker) {
   restrictions.value = r;
 }
 
-const rolling = ref(false);
+const rolling: Ref<false | "rolling" | "batching"> = ref(false);
 const result: Ref<EvaluationResultForWorker | null> = ref(null);
+const batchReport: Ref<BatchReport | null> = ref(null);
+function resetResults() {
+  result.value = null;
+  batchReport.value = null;
+}
 
 async function roll() {
   if (rollStatus.value !== "ready") return;
-  rolling.value = true;
+  resetResults();
 
-  if (!fixesSeed.value) {
-    seed.value = crypto.getRandomValues(new Uint32Array(1))[0];
-  }
+  if (mode.value === "single") {
+    rolling.value = "rolling";
 
-  result.value = null;
-  try {
-    // 深度去除 reactivity
-    const opts = JSON.parse(
-      JSON.stringify({
+    if (!fixesSeed.value) {
+      seed.value = crypto.getRandomValues(new Uint32Array(1))[0];
+    }
+
+    try {
+      const opts = {
         seed: seed.value,
         restrictions: restrictions.value ?? undefined,
-      })
-    );
-    result.value = await evaluatingWorkerManager.value!.evaluate(
-      code.value,
-      opts
-    );
-  } catch (e) {
-    if (!(e instanceof Error)) {
-      e = new Error(`未知抛出：${e}`);
+      };
+      result.value = await evaluatingWorkerManager.value!.evaluate(
+        code.value,
+        opts
+      );
+    } catch (e) {
+      if (!(e instanceof Error)) {
+        e = new Error(`未知抛出：${e}`);
+      }
+      result.value = { error: e as Error };
     }
-    result.value = { error: e as Error };
-  }
+  } else {
+    if (mode.value !== "batch") throw new Error("Unreachable");
+    rolling.value = "batching";
 
+    try {
+      const opts = {
+        // seed 不生效
+        restrictions: restrictions.value ?? undefined,
+      };
+      await evaluatingWorkerManager.value!.batch(code.value, opts, (report) => {
+        batchReport.value = report;
+      });
+    } catch (e) {
+      if (!(e instanceof Error)) {
+        e = new Error(`未知抛出：${e}`);
+      }
+      batchReport.value = { error: e as Error }; // FIXME: 保留原先的数据
+    }
+  }
   rolling.value = false;
 }
 
 function terminate() {
   evaluatingWorkerManager.value!.terminateClient();
+}
+
+function stopBatching() {
+  evaluatingWorkerManager.value!.stopBatching();
 }
 
 const AsyncDicexpEditor = defineAsyncComponent({

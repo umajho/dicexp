@@ -2,6 +2,7 @@ import EvaluatingWorker from "./worker?worker";
 
 import type { EvaluateOptions, EvaluationResult } from "./evaluate";
 import type {
+  BatchReport,
   DataFromWorker,
   DataToWorker,
   EvaluatingSpecialErrorType,
@@ -40,6 +41,7 @@ export class EvaluatingWorkerManager {
     optsPartial = { ...optsPartial };
     optsPartial.heartbeatTimeout ??= { ms: 5000 };
     optsPartial.minHeartbeatInterval ??= { ms: 250 };
+    optsPartial.batchReportInterval ??= { ms: 500 };
     this.options = optsPartial as EvaluatingWorkerClientOptions;
 
     this.readinessWatcher = readinessWatcher;
@@ -72,6 +74,22 @@ export class EvaluatingWorkerManager {
     if (!this.client) return;
     this.client.terminate();
   }
+
+  async batch(
+    code: string,
+    opts: EvaluateOptionsForWorker | undefined,
+    reporter: (r: BatchReport) => void,
+  ) {
+    if (!this.client) {
+      throw new Error("管理器下的客户端尚未初始化");
+    }
+    return this.client.batch(code, opts, reporter);
+  }
+
+  stopBatching() {
+    if (!this.client) return;
+    this.client.stopBatching();
+  }
 }
 
 export interface EvaluatingWorkerClientOptions {
@@ -89,6 +107,10 @@ export interface EvaluatingWorkerClientOptions {
    * 默认为 250 毫秒。
    */
   minHeartbeatInterval: { ms: number };
+  /**
+   * 每次间隔多久汇报批量执行的报告。
+   */
+  batchReportInterval: { ms: number };
 }
 
 class EvaluatingWorkerClient {
@@ -106,10 +128,21 @@ class EvaluatingWorkerClient {
     | [name: "terminated"] = ["uninitialized"];
 
   private nextTaskIdNumber = 1;
+  private nextId() {
+    const id = String(this.nextTaskIdNumber);
+    this.nextTaskIdNumber++;
+    return id;
+  }
+
   private taskState:
     | [name: "idle"]
-    | [name: "processing", id: string, resolve: (r: EvaluationResult) => void] =
-      ["idle"];
+    | [name: "processing", id: string, resolve: (r: EvaluationResult) => void]
+    | [
+      name: "batch_processing",
+      id: string,
+      report: (r: BatchReport) => void,
+      resolve: () => void,
+    ] = ["idle"];
 
   private lastHeartbeatTimestamp!: number;
 
@@ -143,14 +176,18 @@ class EvaluatingWorkerClient {
         return;
       }
 
-      if (this.taskState["0"] === "processing") {
-        const resolve = this.taskState[2];
+      if (this.taskState[0] !== "idle") {
         const unresponsiveMs = now - this.lastHeartbeatTimestamp;
-        resolve({
-          error: new Error(
-            `Worker 失去响应（超过 ${unresponsiveMs} 毫秒没有收到心跳消息）`,
-          ),
-        });
+        const error = new Error(
+          `Worker 失去响应（超过 ${unresponsiveMs} 毫秒没有收到心跳消息）`,
+        );
+        if (this.taskState[0] === "processing") {
+          const resolve = this.taskState[2];
+          resolve({ error });
+        } else { // "batch_processing"
+          const report = this.taskState[2];
+          report({ error }); // FIXME: 应该保留之前的数据
+        }
         this.taskState = ["idle"];
       } else {
         console.warn("Worker 在未有工作的状态下失去响应");
@@ -179,6 +216,9 @@ class EvaluatingWorkerClient {
       } else {
         resolve({ error: new Error("外部中断") });
       }
+    } else if (this.taskState[0] === "batch_processing") {
+      if (from === "internal") throw new Error("Unreachable");
+      console.warn("批量任务不应该使用 terminate 终结。");
     }
     this.afterTerminate?.();
   }
@@ -204,6 +244,11 @@ class EvaluatingWorkerClient {
         this.handleEvaluateResult(id, result, specialErrorType);
         return;
       }
+      case "batch_report": {
+        const id = data[1], report = data[2], stopped = data[3];
+        this.handleBatchReport(id, report, stopped);
+        return;
+      }
       default:
         console.error("Unreachable!");
     }
@@ -227,13 +272,12 @@ class EvaluatingWorkerClient {
 
   async evaluate(code: string, opts?: EvaluateOptionsForWorker) {
     return new Promise<EvaluationResult>((resolve, reject) => {
-      if (this.taskState[0] === "processing") {
+      if (this.taskState[0] !== "idle") {
         reject(new Error("Worker 客户端正忙"));
         return;
       }
 
-      const id = String(this.nextTaskIdNumber);
-      this.nextTaskIdNumber++;
+      const id = this.nextId();
 
       this.taskState = ["processing", id, resolve];
 
@@ -260,10 +304,12 @@ class EvaluatingWorkerClient {
     result: EvaluationResultForWorker,
     specialErrorType: EvaluatingSpecialErrorType | null,
   ) {
-    if (this.taskState[0] === "idle") {
-      throw new Error("Worker 客户端找不到正在进行的 task！");
+    this.assertTaskStateName("processing");
+    if (this.taskState[0] !== "processing") { // TS 类型推断
+      throw new Error("Unreachable");
     }
     const [_, idRecorded, resolve] = this.taskState;
+
     if (idRecorded !== id) {
       throw new Error(`Task ID 不匹配：期待 ${idRecorded}，实际为 ${id}`);
     }
@@ -273,5 +319,58 @@ class EvaluatingWorkerClient {
     }
     resolve(result);
     this.taskState = ["idle"];
+  }
+
+  async batch(
+    code: string,
+    opts: EvaluateOptionsForWorker | undefined,
+    reporter: (r: BatchReport) => void,
+  ) {
+    return new Promise<void>((resolve, reject) => {
+      if (this.taskState[0] !== "idle") {
+        reject(new Error("Worker 客户端正忙"));
+        return;
+      }
+
+      const id = this.nextId();
+      this.taskState = ["batch_processing", id, reporter, resolve];
+
+      this.postMessage(["batch_start", id, code, opts]);
+    });
+  }
+
+  handleBatchReport(id: string, report: BatchReport, stopped: boolean) {
+    this.assertTaskStateName("batch_processing");
+    if (this.taskState[0] !== "batch_processing") { // TS 类型推断
+      throw new Error("Unreachable");
+    }
+    const [_, idRecorded, reporter, resolve] = this.taskState;
+
+    if (idRecorded !== id) {
+      throw new Error(`Batch ID 不匹配：期待 ${idRecorded}，实际为 ${id}`);
+    }
+    if (stopped) {
+      resolve();
+      this.taskState = ["idle"];
+    }
+    reporter(report);
+  }
+
+  stopBatching() {
+    this.assertTaskStateName("batch_processing");
+    if (this.taskState[0] !== "batch_processing") { // TS 类型推断
+      throw new Error("Unreachable");
+    }
+    const [_1, id, _2] = this.taskState;
+
+    this.postMessage(["batch_stop", id]);
+  }
+
+  assertTaskStateName(expectedName: (typeof this.taskState)[0]) {
+    if (this.taskState[0] !== expectedName) {
+      throw new Error(
+        `Worker 客户端的状态并非${expectedName}，而是 ${this.taskState[0]}`,
+      );
+    }
   }
 }

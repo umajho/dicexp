@@ -3,3 +3,5 @@ export * from "@dicexp/executing";
 
 export * from "./evaluate";
 export * from "./worker_manager";
+
+export type { BatchReport } from "./wokre_types";

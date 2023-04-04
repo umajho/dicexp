@@ -1,15 +1,10 @@
 <template lang="pug">
 template(v-if="result.error !== undefined")
-  .alert.alert-error.shadow-lg.overflow-scroll
-    div
-      div
-        .font-bold {{ `${errorDisplayInfo.kind}错误` }}
-        .text-xs
-          code(style="white-space: pre")
-            | {{ result.error.message }}
-            template(v-if="errorDisplayInfo.showsStack")
-              hr
-              | {{ result.error.stack }}
+  common-error-result-alert(
+    :kind="errorDisplayInfo.kind",
+    :error="result.error",
+    :showsStack="errorDisplayInfo.showsStack"
+  )
 template(v-else)
   code.break-all {{ JSON.stringify(result.ok) }}
 </template>

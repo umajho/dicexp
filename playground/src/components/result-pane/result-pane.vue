@@ -39,7 +39,7 @@ const props = defineProps<{
 }>();
 
 const statis = computed(() => {
-  return props.result?.statistics;
+  return props.result.statistics;
 });
 
 const tabs = {
