@@ -17,9 +17,9 @@
       template(v-if="report.error")
         //- TODO: 补全信息
         common-error-result-alert(
-          :kind="''",
+          :kind="errorDisplayInfo.kind",
           :error="report.error",
-          :showsStack="true"
+          :showsStack="errorDisplayInfo.showsStack"
         )
 
       .h2(v-if="report.error && report.ok")
@@ -29,10 +29,11 @@
 </template>
 
 <script setup lang="ts">
-import type { BatchReport } from "dicexp/internal";
+import { getErrorDisplayInfo } from "@/misc";
+import type { BatchReportForWorker } from "dicexp/internal";
 
 const props = defineProps<{
-  report: BatchReport;
+  report: BatchReportForWorker;
 }>();
 
 const statis = computed(() => {
@@ -45,5 +46,10 @@ const timeConsumption = computed(() => {
 
 const ok = computed(() => {
   return props.report.ok;
+});
+
+const errorDisplayInfo = computed(() => {
+  if (!props.report.error) return null;
+  return getErrorDisplayInfo(props.report.specialErrorType);
 });
 </script>

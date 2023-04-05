@@ -1,11 +1,12 @@
 import EvaluatingWorker from "./worker/worker?worker";
 
 import type { EvaluateOptions, EvaluationResult } from "./evaluate";
-import type { BatchReport, EvaluatingSpecialErrorType } from "./worker/types";
+import type { BatchReport } from "./worker/types";
 import {
   EvaluatingWorkerClient,
   type EvaluatingWorkerClientOptions,
 } from "./worker_client";
+import type { EvaluatingSpecialErrorType } from "./error_from_worker";
 
 export type EvaluateOptionsForWorker = EvaluateOptions & {
   restrictions?: {
@@ -22,6 +23,10 @@ export type EvaluationRestrictionsForWorker =
   EvaluateOptionsForWorker["restrictions"];
 
 export type EvaluationResultForWorker = EvaluationResult & {
+  specialErrorType?: EvaluatingSpecialErrorType;
+};
+
+export type BatchReportForWorker = BatchReport & {
   specialErrorType?: EvaluatingSpecialErrorType;
 };
 

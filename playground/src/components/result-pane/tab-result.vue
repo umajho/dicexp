@@ -10,6 +10,7 @@ template(v-else)
 </template>
 
 <script setup lang="ts">
+import { getErrorDisplayInfo } from "@/misc";
 import type { EvaluationResultForWorker } from "dicexp/internal";
 
 const props = defineProps<{
@@ -17,14 +18,7 @@ const props = defineProps<{
 }>();
 
 const errorDisplayInfo = computed(() => {
-  if (props.result.ok) return null;
-  switch (props.result.specialErrorType) {
-    case "parsing_error":
-      return { kind: "解析", showsStack: false };
-    case "runtime_error":
-      return { kind: "运行时", showsStack: false };
-    default:
-      return { kind: "其他", showsStack: true };
-  }
+  if (!props.result.error) return null;
+  return getErrorDisplayInfo(props.result.specialErrorType);
 });
 </script>

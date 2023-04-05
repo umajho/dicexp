@@ -1,12 +1,15 @@
+import {
+  type ErrorDataFromWorker,
+  proxyErrorFromWorker,
+} from "./error_from_worker";
 import type { EvaluationResult } from "./evaluate";
 import type {
-  BatchReport,
   DataFromWorker,
   DataToWorker,
-  EvaluatingSpecialErrorType,
   InitializationResult,
 } from "./worker/types";
 import type {
+  BatchReportForWorker,
   EvaluateOptionsForWorker,
   EvaluationResultForWorker,
 } from "./worker_manager";
@@ -59,7 +62,7 @@ export class EvaluatingWorkerClient {
     | [
       name: "batch_processing",
       id: string,
-      report: (r: BatchReport) => void,
+      report: (r: BatchReportForWorker) => void,
       resolve: () => void,
     ] = ["idle"];
 
@@ -168,13 +171,16 @@ export class EvaluatingWorkerClient {
         return;
       }
       case "evaluate_result": {
-        const id = data[1], result = data[2], specialErrorType = data[3];
-        this.handleEvaluateResult(id, result, specialErrorType);
+        const id = data[1], result = data[2], errorData = data[3];
+        this.handleEvaluateResult(id, result, errorData);
         return;
       }
       case "batch_report": {
-        const id = data[1], report = data[2], stopped = data[3];
-        this.handleBatchReport(id, report, stopped);
+        const id = data[1],
+          report = data[2],
+          stopped = data[3],
+          errorData = data[4];
+        this.handleBatchReport(id, report, stopped, errorData);
         return;
       }
       default:
@@ -190,7 +196,7 @@ export class EvaluatingWorkerClient {
     if (result.ok) {
       resolve();
     } else {
-      reject(result.error);
+      reject(proxyErrorFromWorker(result.error));
     }
   }
 
@@ -252,7 +258,7 @@ export class EvaluatingWorkerClient {
   private handleEvaluateResult(
     id: string,
     result: EvaluationResultForWorker,
-    specialErrorType: EvaluatingSpecialErrorType | null,
+    errorData: ErrorDataFromWorker | null,
   ) {
     this.assertTaskStateName("processing");
     if (this.taskState[0] !== "processing") { // TS 类型推断
@@ -264,8 +270,11 @@ export class EvaluatingWorkerClient {
       throw new Error(`Task ID 不匹配：期待 ${idRecorded}，实际为 ${id}`);
     }
 
-    if (specialErrorType) {
-      result.specialErrorType = specialErrorType;
+    if (errorData) {
+      result.error = proxyErrorFromWorker(errorData);
+      if (errorData.specialType) {
+        result.specialErrorType = errorData.specialType;
+      }
     }
     resolve(result);
     this.taskState = ["idle"];
@@ -274,7 +283,7 @@ export class EvaluatingWorkerClient {
   async batch(
     code: string,
     opts: EvaluateOptionsForWorker | undefined,
-    reporter: (r: BatchReport) => void,
+    reporter: (r: BatchReportForWorker) => void,
   ) {
     return new Promise<void>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
@@ -289,7 +298,12 @@ export class EvaluatingWorkerClient {
     });
   }
 
-  handleBatchReport(id: string, report: BatchReport, stopped: boolean) {
+  handleBatchReport(
+    id: string,
+    report: BatchReportForWorker,
+    stopped: boolean,
+    errorData: ErrorDataFromWorker | null,
+  ) {
     this.assertTaskStateName("batch_processing");
     if (this.taskState[0] !== "batch_processing") { // TS 类型推断
       throw new Error("Unreachable");
@@ -302,6 +316,12 @@ export class EvaluatingWorkerClient {
     if (stopped) {
       resolve();
       this.taskState = ["idle"];
+    }
+    if (errorData) {
+      report.error = proxyErrorFromWorker(errorData);
+      if (errorData.specialType) {
+        report.specialErrorType = errorData.specialType;
+      }
     }
     reporter(report);
   }

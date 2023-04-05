@@ -1,3 +1,4 @@
+import { ErrorDataFromWorker } from "../error_from_worker";
 import type { EvaluateOptions, EvaluationResult } from "../evaluate";
 
 export type DataToWorker =
@@ -13,9 +14,15 @@ export type DataFromWorker =
     type: "evaluate_result",
     id: string,
     result: EvaluationResult,
-    errorType: EvaluatingSpecialErrorType | null,
+    errorData: ErrorDataFromWorker | null,
   ]
-  | [type: "batch_report", id: string, report: BatchReport, stopped: boolean]
+  | [
+    type: "batch_report",
+    id: string,
+    report: BatchReport,
+    stopped: boolean,
+    errorData: ErrorDataFromWorker | null,
+  ]
   | [type: "fatal", reason?: string];
 
 /**
@@ -28,11 +35,7 @@ export interface WorkerInit {
 
 export type InitializationResult =
   | { ok: true; error?: never }
-  | { ok?: never; error: Error };
-
-export type EvaluatingSpecialErrorType =
-  | "parsing_error"
-  | "runtime_error";
+  | { ok?: never; error: ErrorDataFromWorker };
 
 export interface BatchReport { // 为了不浪费已有数据， ok 和 error 可以同时存在
   ok?: {
