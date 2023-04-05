@@ -2,12 +2,8 @@
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import type { Node } from "@dicexp/nodes";
-import {
-  type ExecutionResult,
-  type RandomGenerator,
-  Runtime,
-  type RuntimeOptions,
-} from "./runtime";
+import { type ExecutionResult, Runtime, type RuntimeOptions } from "./runtime";
+import type { RandomSource } from "./random";
 export type { ExecutionResult } from "./runtime";
 
 export type ExecuteOptions = Partial<RuntimeOptions> & {
@@ -18,11 +14,11 @@ export function execute(
   node: Node,
   opts: ExecuteOptions = {},
 ): ExecutionResult {
-  if (!opts.rng) {
+  if (!opts.randomSource) {
     if (opts.seed === undefined) {
       opts.seed = Math.random();
     }
-    opts.rng = new RandomGeneratorWrapper(prng_xorshift7(opts.seed));
+    opts.randomSource = new RandomSourceWrapper(prng_xorshift7(opts.seed));
   } else {
     if (opts.seed !== undefined) {
       if (
@@ -42,7 +38,7 @@ export function execute(
   return runtime.execute();
 }
 
-class RandomGeneratorWrapper implements RandomGenerator {
+class RandomSourceWrapper implements RandomSource {
   rng: { int32: () => number };
 
   constructor(rng: { int32: () => number }) {

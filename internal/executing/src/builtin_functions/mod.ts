@@ -6,7 +6,7 @@ import {
 } from "./helpers";
 
 import { Unimplemented, Unreachable } from "../errors";
-import type { RandomGenerator, RuntimeProxy, Scope } from "../runtime";
+import type { RuntimeProxy, Scope } from "../runtime";
 import {
   getTypeDisplayName,
   RuntimeError,
@@ -22,6 +22,7 @@ import {
   type Value_List,
   type ValueTypeName,
 } from "../values";
+import type { RandomGenerator, RandomSource } from "../random";
 
 export const builtinScope: Scope = {
   "or/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
@@ -85,10 +86,10 @@ export const builtinScope: Scope = {
 
   // TODO: 真正实现
   "~/2": makeFunction(["number", "number"], (args, rtm) => {
-    const bounds = args.sort() as [number, number];
+    const [lower, upper] = args.sort() as [number, number];
 
     return {
-      ok: { value: generateRandomNumber(rtm.random, bounds), pure: false },
+      ok: { value: rtm.random.integer(lower, upper), pure: false },
     };
   }),
   // TODO: 真正实现
@@ -96,10 +97,9 @@ export const builtinScope: Scope = {
     const [right] = args as [number];
     const errRange = ensureUpperBound("~", null, 1, right);
     if (errRange) return { error: errRange };
-    const bounds: [number, number] = [1, right];
 
     return {
-      ok: { value: generateRandomNumber(rtm.random, bounds), pure: false },
+      ok: { value: rtm.random.integer(1, right), pure: false },
     };
   }),
 
@@ -154,11 +154,10 @@ export const builtinScope: Scope = {
     const [n, right] = args as [number, number];
     const errRange = ensureUpperBound("d", 1, 1, right);
     if (errRange) return { error: errRange };
-    const bounds: [number, number] = [1, right];
 
     let value = 0;
     for (let i = 0; i < n; i++) {
-      value += generateRandomNumber(rtm.random, bounds);
+      value += rtm.random.integer(1, right);
     }
     return { ok: { value, pure: false } };
   }),
@@ -167,11 +166,10 @@ export const builtinScope: Scope = {
     const [right] = args as [number];
     const errRange = ensureUpperBound("d", 1, 1, right);
     if (errRange) return { error: errRange };
-    const bounds: [number, number] = [1, right];
 
     let value = 0;
     for (let i = 0; i < 1; i++) {
-      value += generateRandomNumber(rtm.random, bounds);
+      value += rtm.random.integer(1, right);
     }
     return { ok: { value, pure: false } };
   }),
@@ -181,11 +179,10 @@ export const builtinScope: Scope = {
     const actualText = `${right}-1=${right - 1}`;
     const errRange = ensureUpperBound("d%", 1, 0, right - 1, actualText);
     if (errRange) return { error: errRange };
-    const bounds: [number, number] = [0, right - 1];
 
     let value = 0;
     for (let i = 0; i < n; i++) {
-      value += generateRandomNumber(rtm.random, bounds);
+      value += rtm.random.integer(0, right - 1);
     }
     return { ok: { value, pure: false } };
   }),
@@ -195,11 +192,10 @@ export const builtinScope: Scope = {
     const actualText = `${right}-1=${right - 1}`;
     const errRange = ensureUpperBound("d%", 1, 0, right - 1, actualText);
     if (errRange) return { error: errRange };
-    const bounds: [number, number] = [0, right - 1];
 
     let value = 0;
     for (let i = 0; i < 1; i++) {
-      value += generateRandomNumber(rtm.random, bounds);
+      value += rtm.random.integer(0, right - 1);
     }
     return { ok: { value, pure: false } };
   }),
@@ -448,47 +444,6 @@ function error_givenClosureReturnValueTypeMismatch(
     `作为第 ${position} 个参数传入通常函数 ${name} 的返回值类型与期待不符：` +
       `期待「${expectedTypeText}」，实际「${actualTypeText}」。`,
   );
-}
-
-export function generateRandomNumber(
-  rng: RandomGenerator,
-  bounds: [number, number],
-): number {
-  if (bounds[0] > bounds[1]) {
-    bounds = [bounds[1], bounds[0]];
-  }
-  const [lower, upper] = bounds;
-
-  const sides = upper - lower + 1;
-
-  if (sides <= 2 ** 32) {
-    let maxUnbiased: number;
-    if (sides <= 2) {
-      maxUnbiased = 2 ** 32 - 1;
-    } else {
-      maxUnbiased = (2 ** 32 / sides | 0) * sides - 1;
-    }
-
-    let rn: number;
-    do {
-      rn = rng.uint32();
-    } while (rn > maxUnbiased);
-
-    return lower + (rn % sides);
-  } else if (sides <= 2 ** 53) {
-    const sidesBig = BigInt(sides);
-    let maxUnbiased: bigint;
-    maxUnbiased = (BigInt(2 ** 64) / sidesBig) * sidesBig - BigInt(1);
-
-    let rn: bigint;
-    do {
-      rn = BigInt(rng.uint32()) + BigInt(rng.uint32()) * BigInt(2 ** 32);
-    } while (rn > maxUnbiased);
-
-    return lower + Number(rn % sidesBig);
-  } else {
-    throw new Unimplemented();
-  }
 }
 
 function filter(

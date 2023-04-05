@@ -25,17 +25,14 @@ import {
 } from "./values";
 import type { Restrictions } from "./restrictions";
 import { finalizeRepresentation, type Representation } from "./representations";
-
-export interface RandomGenerator {
-  uint32(): number;
-}
+import { RandomGenerator, type RandomSource } from "./random";
 
 export interface RuntimeOptions {
   /**
    * 为空（undefined）则使用默认作用域
    */
   topLevelScope?: Scope;
-  rng: RandomGenerator;
+  randomSource: RandomSource;
   restrictions: Restrictions;
   // TODO: noRepresentations
   // TODO: noStatistics
@@ -88,7 +85,7 @@ export class Runtime {
 
     this._topLevelScope = opts.topLevelScope ?? builtinScope;
 
-    this._rng = opts.rng;
+    this._rng = new RandomGenerator(opts.randomSource);
 
     this._restrictions = opts.restrictions;
     const recordCalls = this._restrictions.maxCalls !== undefined ||
