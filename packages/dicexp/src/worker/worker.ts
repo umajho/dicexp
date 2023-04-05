@@ -1,5 +1,6 @@
 import type { DataToWorker } from "./types";
 import { Server } from "./server";
+import { tryPostMessage } from "./post_message";
 
 let server: Server | null = null;
 
@@ -8,11 +9,11 @@ async function handle(data: DataToWorker): Promise<void> {
   if (dataToWorkerType === "initialize") {
     if (server) {
       const error = new Error("Worker 重复初始化");
-      postMessage(["initialize_result", { error }]);
+      tryPostMessage(["initialize_result", { error }]);
     }
     const init = data[1];
     server = new Server(init);
-    postMessage(["initialize_result", { ok: true }]);
+    tryPostMessage(["initialize_result", { ok: true }]);
     return;
   }
 

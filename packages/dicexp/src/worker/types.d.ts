@@ -15,7 +15,8 @@ export type DataFromWorker =
     result: EvaluationResult,
     errorType: EvaluatingSpecialErrorType | null,
   ]
-  | [type: "batch_report", id: string, report: BatchReport, stopped: boolean];
+  | [type: "batch_report", id: string, report: BatchReport, stopped: boolean]
+  | [type: "fatal", reason?: string];
 
 /**
  * 这里的字段来源于 `EvaluatingWorkerClientOptions`

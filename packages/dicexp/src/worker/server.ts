@@ -1,6 +1,7 @@
 import { BatchHandler } from "./handler_batch";
 import { handleEvaluate } from "./handler_single";
 import { Pulser } from "./heartbeat";
+import { tryPostMessage } from "./post_message";
 import { DataToWorker, WorkerInit } from "./types";
 
 export class Server {
@@ -19,11 +20,11 @@ export class Server {
         const id = data[1];
         const code = data[2], opts = data[3];
         if (dataToWorkerType === "evaluate") {
-          postMessage(handleEvaluate(id, code, opts));
+          tryPostMessage(handleEvaluate(id, code, opts));
         } else {
           if (this.batchHandler) {
             const error = new Error("已在进行批量处理");
-            postMessage(["batch_report", id, { error }, true]);
+            tryPostMessage(["batch_report", id, { error }, true]);
           }
           const clear = () => this.batchHandler = null;
           const init = this.init, pulser = this.pulser;

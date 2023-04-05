@@ -130,14 +130,18 @@ export class EvaluatingWorkerClient {
     if (this.taskState[0] === "processing") {
       const resolve = this.taskState[2];
       if (from === "internal") {
-        console.warn("内部中断没有 resolve 正在进行的 task");
         resolve({ error: new Error("内部中断") });
       } else {
         resolve({ error: new Error("外部中断") });
       }
     } else if (this.taskState[0] === "batch_processing") {
-      if (from === "internal") throw new Error("Unreachable");
-      console.warn("批量任务不应该使用 terminate 终结。");
+      const report = this.taskState[2];
+      if (from === "internal") {
+        report({ error: new Error("内部中断") }); // FIXME: 保留原先数据
+      } else if (from === "external") {
+        console.warn("批量任务不应该使用 terminate 终结。");
+        report({ error: new Error("外部中断") }); // FIXME: 保留原先数据
+      }
     }
     this.afterTerminate?.();
   }
@@ -158,6 +162,11 @@ export class EvaluatingWorkerClient {
       case "heartbeat":
         this.handleHeartbeat();
         return;
+      case "fatal": {
+        const error = data[1];
+        this.handleFatal(new Error(error));
+        return;
+      }
       case "evaluate_result": {
         const id = data[1], result = data[2], specialErrorType = data[3];
         this.handleEvaluateResult(id, result, specialErrorType);
@@ -187,6 +196,28 @@ export class EvaluatingWorkerClient {
 
   private handleHeartbeat() {
     this.lastHeartbeatTimestamp = Date.now();
+  }
+
+  private handleFatal(error: Error) {
+    switch (this.taskState[0]) {
+      case "idle": {
+        console.error(error);
+        break;
+      }
+      case "processing": {
+        const [_1, _2, resolve] = this.taskState;
+        resolve({ error });
+        break;
+      }
+      case "batch_processing": {
+        const [_1, _2, report, resolve] = this.taskState;
+        report({ error });
+        resolve();
+        break;
+      }
+    }
+    this.taskState = ["idle"];
+    this._terminate();
   }
 
   async evaluate(code: string, opts?: EvaluateOptionsForWorker) {
@@ -288,7 +319,7 @@ export class EvaluatingWorkerClient {
   assertTaskStateName(expectedName: (typeof this.taskState)[0]) {
     if (this.taskState[0] !== expectedName) {
       throw new Error(
-        `Worker 客户端的状态并非${expectedName}，而是 ${this.taskState[0]}`,
+        `Worker 客户端的状态并非 ${expectedName}，而是 ${this.taskState[0]}`,
       );
     }
   }

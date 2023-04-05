@@ -1,3 +1,5 @@
+import { tryPostMessage } from "./post_message";
+
 export class Pulser {
   private _lastHeartbeat!: number;
   get lastHeartbeat() {
@@ -14,6 +16,6 @@ export class Pulser {
   }
 
   postHeartbeat() {
-    postMessage(["heartbeat"]);
+    tryPostMessage(["heartbeat"]);
   }
 }

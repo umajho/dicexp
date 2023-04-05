@@ -5,6 +5,7 @@ import { EvaluateOptions } from "../evaluate";
 import { BatchReport, WorkerInit } from "./types";
 import { safe } from "./utils";
 import { Pulser } from "./heartbeat";
+import { tryPostMessage } from "./post_message";
 
 export class BatchHandler {
   private readonly id!: string;
@@ -26,7 +27,7 @@ export class BatchHandler {
   ) {
     const parsed = safe(() => parse(code, opts?.parseOpts));
     if ("error" in parsed) {
-      postMessage(["batch_report", id, { error: parsed.error }, true]);
+      tryPostMessage(["batch_report", id, { error: parsed.error }, true]);
       stoppedCb();
       return;
     }
@@ -60,7 +61,7 @@ export class BatchHandler {
         // 尚未结束时的时间由这里更新，若已结束则在结束时更新，因为后者可能有延时
         this.report.statistics!.now.ms = Date.now();
       }
-      postMessage(["batch_report", this.id, this.report, !!this.shouldStop]);
+      tryPostMessage(["batch_report", this.id, this.report, !!this.shouldStop]);
     }, this.init.batchReportInterval.ms);
   }
 
