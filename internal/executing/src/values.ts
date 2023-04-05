@@ -235,12 +235,6 @@ export class LazyValueFactory {
           .regularFunctionCalled?.();
         if (errFromReporter) return this.error(errFromReporter, calling).memo;
 
-        args = args.map((v) => ({
-          _yield: () => {
-            return concretize(v, this.runtime);
-          },
-        }));
-
         const result = fn(args, runtime);
         if ("error" in result) {
           return this.error(result.error, calling).memo;
