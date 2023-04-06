@@ -1,7 +1,6 @@
 import { Unreachable } from "@dicexp/errors";
-import type { ValueTypeName } from "./values";
-
-export class RuntimeError extends Error {}
+import { RuntimeError } from "./runtime_values/mod";
+import type { ValueTypeName } from "./values_impl";
 
 export class RuntimeError_LimitationExceeded extends RuntimeError {
   constructor(

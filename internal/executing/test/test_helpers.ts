@@ -5,12 +5,10 @@ import { inspect } from "util";
 
 import { parse, type ParseOptions } from "@dicexp/parsing";
 
-import { ValueTypeName } from "../src/values";
+import { ValueTypeName } from "../src/values_impl";
 import { execute, ExecuteOptions, ExecutionResult } from "../src/execute";
-import {
-  RuntimeError,
-  RuntimeError_CallArgumentTypeMismatch,
-} from "../src/runtime_errors";
+import { RuntimeError } from "../src/runtime_values/mod";
+import { RuntimeError_CallArgumentTypeMismatch } from "../src/runtime_errors";
 import { JSValue } from "../src/runtime";
 import { Unreachable } from "@dicexp/errors";
 

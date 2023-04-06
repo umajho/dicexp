@@ -1,19 +1,21 @@
-import { representValue } from "../representations";
+import { representValue } from "../representations_impl";
 import type { RegularFunction, RuntimeProxy } from "../runtime";
 import {
-  RuntimeError,
   RuntimeError_CallArgumentTypeMismatch,
   RuntimeError_TypeMismatch,
   RuntimeError_WrongArity,
 } from "../runtime_errors";
+import type {
+  LazyValue,
+  RuntimeError,
+  RuntimeResult,
+  Value,
+} from "../runtime_values/mod";
 import {
   concretize,
   getTypeNameOfValue,
-  type LazyValue,
-  type RuntimeResult,
-  type Value,
   type ValueTypeName,
-} from "../values";
+} from "../values_impl";
 
 type ArgumentSpec =
   | "lazy"

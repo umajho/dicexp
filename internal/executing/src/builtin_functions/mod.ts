@@ -9,19 +9,21 @@ import type { RuntimeProxy, Scope } from "../runtime";
 import { Unreachable } from "@dicexp/errors";
 import {
   getTypeDisplayName,
-  RuntimeError,
   RuntimeError_IllegalOperation,
 } from "../runtime_errors";
 import {
   callCallable,
   concretize,
   getTypeNameOfValue,
-  type LazyValue,
-  type RuntimeResult,
-  type Value_Callable,
-  type Value_List,
   type ValueTypeName,
-} from "../values";
+} from "../values_impl";
+import type {
+  LazyValue,
+  RuntimeResult,
+  Value_Callable,
+  Value_List,
+} from "../runtime_values/mod";
+import { RuntimeError } from "../runtime_values/mod";
 
 export const builtinScope: Scope = {
   "or/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {

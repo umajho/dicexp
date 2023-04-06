@@ -1,21 +1,14 @@
 import { Unreachable } from "@dicexp/errors";
 import type { RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
-import type { RuntimeError } from "./runtime_errors";
 import { intersperse } from "./utils";
-import type { LazyValue, RuntimeResult, Value } from "./values";
-
-// TODO: details/summary
-export type RuntimeRepresentation = (
-  | string
-  | { error: string }
-  | RuntimeRepresentation
-  | { defer: () => RuntimeRepresentation }
-)[];
-
-export type Representation = (
-  | string
-  | { error: string }
-)[];
+import type {
+  LazyValue,
+  Representation,
+  RuntimeError,
+  RuntimeRepresentation,
+  RuntimeResult,
+  Value,
+} from "./runtime_values/mod";
 
 export function finalizeRepresentation(
   r: RuntimeRepresentation,

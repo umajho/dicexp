@@ -8,24 +8,27 @@ import type {
 } from "@dicexp/nodes";
 import { builtinScope } from "./builtin_functions/mod";
 import {
-  RuntimeError,
   RuntimeError_BadFinalResult,
   RuntimeError_RestrictionExceeded,
   RuntimeError_UnknownVariable,
 } from "./runtime_errors";
 import {
-  type Concrete,
   concretize,
   getTypeNameOfValue,
-  type LazyValue,
   LazyValueFactory,
-  type RuntimeResult,
-  type Value_List,
-} from "./values";
+} from "./values_impl";
 import type { Restrictions } from "./restrictions";
-import { finalizeRepresentation, type Representation } from "./representations";
+import { finalizeRepresentation } from "./representations_impl";
 import { RandomGenerator, type RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
+import type {
+  Concrete,
+  LazyValue,
+  Representation,
+  RuntimeError,
+  RuntimeResult,
+  Value_List,
+} from "./runtime_values/mod";
 
 export interface RuntimeOptions {
   /**

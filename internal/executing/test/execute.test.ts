@@ -20,7 +20,7 @@ import {
   RuntimeError_WrongArity,
 } from "../src/runtime_errors";
 import { JSValue, Scope } from "../src/runtime";
-import { flatten } from "../src/utils";
+import { flatten } from "./utils";
 import { makeFunction } from "../src/builtin_functions/helpers";
 import { Restrictions } from "../src/restrictions";
 import { builtinScope } from "../src/builtin_functions/mod";
