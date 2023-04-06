@@ -152,7 +152,7 @@ describe("值", () => {
           }
         });
       });
-      it("保证生成的是随机数", () => { // FIXME: 同名一系列测试都忘了取出结果
+      it.skip("保证生成的是随机数", () => { // FIXME: 同名一系列测试都忘了取出结果
         const upper = 1000000;
         const code = `d%${upper}`;
         const results = Array(10).fill(null).map((_) => evaluate(code));

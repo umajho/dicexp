@@ -56,7 +56,7 @@ aroundDiceRoll[@dynamicPrecedence=1] {
 }
 
 binaryOperatorDiceRoll {
-  BinaryOperator { keywordD | keywordDRemainder }
+  BinaryOperator { keywordD /*| keywordDRemainder*/ }
 }
 
 UnaryExpression {
@@ -74,8 +74,8 @@ UnaryExpression {
 }
 
 unaryOperatorDiceRoll {
-  UnaryOperator { keywordD } |
-  UnaryOperator { keywordDRemainder }
+  UnaryOperator { keywordD } //|
+  // UnaryOperator { keywordDRemainder }
 }
 FakeWorkaroundUnaryOperator[@name="⚠"]<term> {
   /*
@@ -113,7 +113,7 @@ Closure {
   Capture {
     "&" Identifier { identifier "?"? } "/" LiteralInteger |
     "&" Identifier {
-      keywordD | keywordDRemainder |
+      keywordD | /*keywordDRemainder |*/
       "^" |
       "*" | "//" | "%" |
       "+" | "-" |
@@ -154,16 +154,16 @@ commaSeparated<item> {
   CloseSBracket[openedBy=OpenSBracket] { "]" }
 
   keywordD { "d" }
-  keywordDRemainder { "d%" }
+  // keywordDRemainder { "d%" }
 
-  @precedence{ keywordDRemainder, keywordD }
+  @precedence{ /*keywordDRemainder,*/ keywordD }
 
   identifier {
     ($[_a-ce-zA-Z] $[_a-zA-Z0-9]*) |
     ("d" $[_a-zA-Z] $[_a-zA-Z0-9]*)
   }
 
-  @precedence { identifier, keywordDRemainder, keywordD }
+  @precedence { identifier, /*keywordDRemainder,*/ keywordD }
 
   LiteralInteger {
     $[0-9]+ ("_" $[0-9]+)*

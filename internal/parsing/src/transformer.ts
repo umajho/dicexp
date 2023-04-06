@@ -54,7 +54,7 @@ export class Transformer {
         let right = this._transform(children[2]);
         if (op === "|>") {
           return this.transformPipeExpression(left, right);
-        } else if (["d", "d%"].indexOf(op) >= 0) {
+        } else if (["d" /*, "d%"*/].indexOf(op) >= 0) {
           right = Transformer.handleAfterDiceRoll(right);
         }
         return regularCall("operator", op, [left, right]);
@@ -62,7 +62,7 @@ export class Transformer {
       case "UnaryExpression": {
         const op = this.getRaw(children[0]);
         let right = this._transform(children[1]);
-        if (["d", "d%"].indexOf(op) >= 0) {
+        if (["d" /*, "d%"*/].indexOf(op) >= 0) {
           right = Transformer.handleAfterDiceRoll(right);
         }
         return regularCall("operator", op, [right]);
