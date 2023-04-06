@@ -161,6 +161,12 @@ function binaryOperatorOnlyAccepts(
   }
 }
 
+export function assertResultsAreRandom(code: string) {
+  const results = Array(10).fill(null)
+    .map((_) => assertNumber(evaluate(code)));
+  assert(new Set(results).size > 1);
+}
+
 export function theyAreOk<T extends JSValue = JSValue>(
   table: ([string, T] | string)[],
   opts?: EvaluateOptions,

@@ -6,6 +6,7 @@ import {
   assertExecutionOk,
   assertExecutionRuntimeError,
   assertNumber,
+  assertResultsAreRandom,
   binaryOperatorOnlyAcceptsBoolean,
   binaryOperatorOnlyAcceptsNumbers,
   theyAreOk,
@@ -72,8 +73,7 @@ describe("值", () => {
           // 有可忽略的 1/1000000^10 的概率 false negative，后几个同名测试也是
           const lower = 1000000;
           const code = `${lower}~${lower * 2}`;
-          const results = Array(10).fill(null).map((_) => evaluate(code));
-          assert(new Set(results).size > 1);
+          assertResultsAreRandom(code);
         });
       });
       describe("~/1", () => {
@@ -91,8 +91,7 @@ describe("值", () => {
         it("保证生成的是随机数", () => {
           const upper = 1000000;
           const code = `~${upper}`;
-          const results = Array(10).fill(null).map((_) => evaluate(code));
-          assert(new Set(results).size > 1);
+          assertResultsAreRandom(code);
         });
       });
 
@@ -115,8 +114,7 @@ describe("值", () => {
         it("保证生成的是随机数", () => {
           const upper = 1000000;
           const code = `d${upper}`;
-          const results = Array(10).fill(null).map((_) => evaluate(code));
-          assert(new Set(results).size > 1);
+          assertResultsAreRandom(code);
         });
         it.todo("`d2` 不会死循环", /*async*/ () => {
           // const d2 = await spawn(new Worker("./test_workers/d2.ts"));
@@ -155,8 +153,7 @@ describe("值", () => {
       it.skip("保证生成的是随机数", () => { // FIXME: 同名一系列测试都忘了取出结果
         const upper = 1000000;
         const code = `d%${upper}`;
-        const results = Array(10).fill(null).map((_) => evaluate(code));
-        assert(new Set(results).size > 1);
+        assertResultsAreRandom(code);
       });
     });
   });
