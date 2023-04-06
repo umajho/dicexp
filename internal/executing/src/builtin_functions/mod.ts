@@ -5,7 +5,7 @@ import {
   unwrapValue,
 } from "./helpers";
 
-import { Unimplemented, Unreachable } from "../errors";
+import { Unreachable } from "../errors";
 import type { RuntimeProxy, Scope } from "../runtime";
 import {
   getTypeDisplayName,
@@ -22,7 +22,6 @@ import {
   type Value_List,
   type ValueTypeName,
 } from "../values";
-import type { RandomGenerator, RandomSource } from "../random";
 
 export const builtinScope: Scope = {
   "or/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
