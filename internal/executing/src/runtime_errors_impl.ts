@@ -114,7 +114,7 @@ export function runtimeError_badFinalResult(
 
 export function getTypeDisplayName(name: ValueTypeName) {
   switch (name) {
-    case "number":
+    case "integer":
       return "整数";
     case "boolean":
       return "布尔";

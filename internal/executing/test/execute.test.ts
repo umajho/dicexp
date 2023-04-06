@@ -135,7 +135,7 @@ describe("值", () => {
         it.todo("`d(2^32+1)` 不会死循环");
       });
 
-      describe("d%/1 与 d%/2", () => {
+      describe.skip("d%/1 与 d%/2", () => { // 弃用 `d%`
         it("保证生成的数在范围内", () => {
           for (const isBinary of [false, true]) {
             const upper = 10;
@@ -152,7 +152,7 @@ describe("值", () => {
           }
         });
       });
-      it("保证生成的是随机数", () => {
+      it("保证生成的是随机数", () => { // FIXME: 同名一系列测试都忘了取出结果
         const upper = 1000000;
         const code = `d%${upper}`;
         const results = Array(10).fill(null).map((_) => evaluate(code));
@@ -341,6 +341,7 @@ describe("运算符", () => {
     describe("~/1 与 ~/2", () => {
       // 已在生成器处测试
 
+      unaryOperatorOnlyAcceptsNumbers("~");
       binaryOperatorOnlyAcceptsNumbers("~");
     });
 
@@ -443,11 +444,14 @@ describe("运算符", () => {
       // 测试 “重复求值结果不同” 放在了 “语意” 那里
     });
 
-    describe("d/1 与 d%/1", () => {
+    describe("d/1", () => {
       // 已在生成器处测试
 
-      unaryOperatorOnlyAcceptsNumbers("~");
       unaryOperatorOnlyAcceptsNumbers("d");
+    });
+    describe.skip("d%/1", () => { // 弃用 `d%`
+      // 已在生成器处测试
+
       unaryOperatorOnlyAcceptsNumbers("d%");
     });
 
@@ -582,7 +586,7 @@ describe("限制", () => {
 
       describe("超时则返回运行时错误", () => {
         const scope: Scope = {
-          "sleep/1": makeFunction(["number"], (args, _rtm) => {
+          "sleep/1": makeFunction(["integer"], (args, _rtm) => {
             const [ms] = args as [number];
             const start = performance.now();
             while (performance.now() - start <= ms) { /* noop */ }

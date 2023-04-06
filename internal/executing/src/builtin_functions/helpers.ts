@@ -18,7 +18,7 @@ import {
   type ValueTypeName,
 } from "../values_impl";
 
-type ArgumentSpec =
+export type ArgumentSpec =
   | "lazy"
   | ValueTypeName
   | "*"

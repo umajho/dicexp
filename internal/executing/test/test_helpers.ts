@@ -91,7 +91,7 @@ export function assertExecutionRuntimeError(
 export function unaryOperatorOnlyAcceptsBoolean(op: string) {
   describe("只能用于布尔", () => {
     unaryOperatorOnlyAccepts(op, "boolean", [
-      ["1", "number"],
+      ["1", "integer"],
       ["[1]", "list"],
     ]);
   });
@@ -100,8 +100,8 @@ export function unaryOperatorOnlyAcceptsBoolean(op: string) {
 export function binaryOperatorOnlyAcceptsBoolean(op: string) {
   describe("只能用于布尔", () => {
     binaryOperatorOnlyAccepts(op, "boolean", [
-      [["1", "true"], "number", 1],
-      [["true", "1"], "number", 2],
+      [["1", "true"], "integer", 1],
+      [["true", "1"], "integer", 2],
       [["[1]", "true"], "list", 1],
     ]);
   });
@@ -109,7 +109,7 @@ export function binaryOperatorOnlyAcceptsBoolean(op: string) {
 
 export function unaryOperatorOnlyAcceptsNumbers(op: string) {
   describe("只能用于数字", () => {
-    unaryOperatorOnlyAccepts(op, "number", [
+    unaryOperatorOnlyAccepts(op, "integer", [
       ["true", "boolean"],
       ["[1]", "list"],
     ]);
@@ -118,7 +118,7 @@ export function unaryOperatorOnlyAcceptsNumbers(op: string) {
 
 export function binaryOperatorOnlyAcceptsNumbers(op: string) {
   describe("只能用于数字", () => {
-    binaryOperatorOnlyAccepts(op, "number", [
+    binaryOperatorOnlyAccepts(op, "integer", [
       [["1", "true"], "boolean", 2],
       [["true", "1"], "boolean", 1],
       [["[1]", "1"], "list", 1],

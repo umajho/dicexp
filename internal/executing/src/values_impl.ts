@@ -364,13 +364,12 @@ function getFunctionFromScope(
 export function getTypeNameOfValue(v: Value) {
   switch (typeof v) {
     case "number":
-      return "number";
+      return "integer";
     case "boolean":
       return "boolean";
     default:
       if (Array.isArray(v)) return "list";
       if (v.type === "callable") return "callable";
-      if (v.type === "generating") return "generating";
       throw new Unreachable();
   }
 }

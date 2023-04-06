@@ -1,4 +1,5 @@
 import {
+  type ArgumentSpec,
   flattenListAll,
   makeFunction,
   unwrapListOneOf,
@@ -6,11 +7,7 @@ import {
 } from "./helpers";
 
 import type { RuntimeProxy, Scope } from "../runtime";
-import { Unreachable } from "@dicexp/errors";
-import {
-  getTypeDisplayName,
-  runtimeError_illegalOperation,
-} from "../runtime_errors_impl";
+import { getTypeDisplayName } from "../runtime_errors_impl";
 import {
   callCallable,
   concretize,
@@ -24,199 +21,29 @@ import {
   type Value_Callable,
   type Value_List,
 } from "../runtime_values/mod";
-import type { RuntimeError } from "../runtime_values/mod";
+import { builtinOperatorDeclarations } from "./operators/declarations";
+import { builtinOperatorDefinitions } from "./operators/definitions";
+import type { RegularFunctionDeclaration } from "../regular_functions";
 
 export const builtinScope: Scope = {
-  "or/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
-    const [left, right] = args as [boolean, boolean];
-    return { ok: { value: left || right, pure: true } };
-  }),
-  "and/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
-    const [left, right] = args as [boolean, boolean];
-    return { ok: { value: left && right, pure: true } };
-  }),
+  ...(() => {
+    const opScope: { [name: string]: Function } = {};
 
-  "==/2": makeFunction(
-    [["boolean", "number"], ["boolean", "number"]],
-    (args, _rtm) => {
-      const [left, right] = args as [boolean, boolean] | [number, number];
-      if (typeof left !== typeof right) {
-        return { error: error_LeftRightTypeMismatch("==") };
-      }
-      return { ok: { value: left === right, pure: true } };
-    },
-  ),
-  "!=/2": makeFunction(
-    [["boolean", "number"], ["boolean", "number"]],
-    (args, _rtm) => {
-      const [left, right] = args as [boolean, boolean] | [number, number];
-      if (typeof left !== typeof right) {
-        return { error: error_LeftRightTypeMismatch("!=") };
-      }
-      return { ok: { value: left !== right, pure: true } };
-    },
-  ),
-
-  "</2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    return { ok: { value: left < right, pure: true } };
-  }),
-  ">/2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    return { ok: { value: left > right, pure: true } };
-  }),
-  "<=/2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    return { ok: { value: left <= right, pure: true } };
-  }),
-  ">=/2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    return { ok: { value: left >= right, pure: true } };
-  }),
-
-  // TODO: 真正实现
-  "#/2": makeFunction(["number", "lazy"], (args, rtm) => {
-    const [count, body] = args as [number, LazyValue];
-
-    const list: Value_List = Array(count);
-    for (let i = 0; i < count; i++) {
-      list[i] = { _yield: () => concretize(body, rtm) };
+    for (const decl_ of builtinOperatorDeclarations) {
+      const decl = decl_ as RegularFunctionDeclaration;
+      const fullName = `${decl.name}/${decl.parameters.length}`;
+      const argSpec = decl.parameters.map((param) =>
+        param.type === "$lazy" ? "lazy" : param.type
+      );
+      const impl = (builtinOperatorDefinitions as any)[fullName];
+      opScope[fullName] = makeFunction(
+        argSpec as ArgumentSpec[],
+        (args, rtm) => impl(rtm, ...args),
+      );
     }
 
-    return { ok: { value: list, pure: false } };
-  }),
-
-  // TODO: 真正实现
-  "~/2": makeFunction(["number", "number"], (args, rtm) => {
-    const [lower, upper] = args.sort() as [number, number];
-
-    return {
-      ok: { value: rtm.random.integer(lower, upper), pure: false },
-    };
-  }),
-  // TODO: 真正实现
-  "~/1": makeFunction(["number"], (args, rtm) => {
-    const [right] = args as [number];
-    const errRange = ensureUpperBound("~", null, 1, right);
-    if (errRange) return { error: errRange };
-
-    return {
-      ok: { value: rtm.random.integer(1, right), pure: false },
-    };
-  }),
-
-  "+/2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    return { ok: { value: left + right, pure: true } };
-  }),
-  "-/2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    return { ok: { value: left - right, pure: true } };
-  }),
-  "+/1": makeFunction(["number"], (args, _rtm) => {
-    const [right] = args as [number];
-    return { ok: { value: +right, pure: true } };
-  }),
-  "-/1": makeFunction(["number"], (args, _rtm) => {
-    const [right] = args as [number];
-    return { ok: { value: -right, pure: true } };
-  }),
-
-  "*/2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    return { ok: { value: left * right, pure: true } };
-  }),
-  "///2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    if (right === 0) {
-      const opRendered = renderOperation("//", `${left}`, `${right}`);
-      const reason = "除数不能为零";
-      return { error: runtimeError_illegalOperation(opRendered, reason) };
-    }
-    return { ok: { value: left / right | 0, pure: true } };
-  }),
-  "%/2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    if (left < 0) {
-      const leftText = left < 0 ? `(${left})` : `${left}`;
-      const opRendered = renderOperation("%", leftText, `${right}`);
-      const reason = "被除数不能为负数";
-      return { error: runtimeError_illegalOperation(opRendered, reason) };
-    } else if (right <= 0) {
-      const leftText = left < 0 ? `(${left})` : `${left}`;
-      const opRendered = renderOperation("%", leftText, `${right}`);
-      const reason = "除数必须为正数";
-      return { error: runtimeError_illegalOperation(opRendered, reason) };
-    }
-    return { ok: { value: (left | 0) % right, pure: true } };
-  }),
-
-  // TODO: 真正实现
-  "d/2": makeFunction(["number", "number"], (args, rtm) => {
-    const [n, right] = args as [number, number];
-    const errRange = ensureUpperBound("d", 1, 1, right);
-    if (errRange) return { error: errRange };
-
-    let value = 0;
-    for (let i = 0; i < n; i++) {
-      value += rtm.random.integer(1, right);
-    }
-    return { ok: { value, pure: false } };
-  }),
-  // TODO: 真正实现
-  "d/1": makeFunction(["number"], (args, rtm) => { // TODO: makeUnaryRedirection("d", 1)
-    const [right] = args as [number];
-    const errRange = ensureUpperBound("d", 1, 1, right);
-    if (errRange) return { error: errRange };
-
-    let value = 0;
-    for (let i = 0; i < 1; i++) {
-      value += rtm.random.integer(1, right);
-    }
-    return { ok: { value, pure: false } };
-  }),
-  // TODO: 真正实现
-  "d%/2": makeFunction(["number", "number"], (args, rtm) => {
-    const [n, right] = args as [number, number];
-    const actualText = `${right}-1=${right - 1}`;
-    const errRange = ensureUpperBound("d%", 1, 0, right - 1, actualText);
-    if (errRange) return { error: errRange };
-
-    let value = 0;
-    for (let i = 0; i < n; i++) {
-      value += rtm.random.integer(0, right - 1);
-    }
-    return { ok: { value, pure: false } };
-  }),
-  // TODO: 真正实现
-  "d%/1": makeFunction(["number"], (args, rtm) => { // TODO: makeUnaryRedirection("d%", 1)
-    const [right] = args as [number];
-    const actualText = `${right}-1=${right - 1}`;
-    const errRange = ensureUpperBound("d%", 1, 0, right - 1, actualText);
-    if (errRange) return { error: errRange };
-
-    let value = 0;
-    for (let i = 0; i < 1; i++) {
-      value += rtm.random.integer(0, right - 1);
-    }
-    return { ok: { value, pure: false } };
-  }),
-
-  "^/2": makeFunction(["number", "number"], (args, _rtm) => {
-    const [left, right] = args as [number, number];
-    if (right < 0) {
-      const opRendered = renderOperation("^", `${left}`, `${right}`);
-      const reason = "指数不能为负数";
-      return { error: runtimeError_illegalOperation(opRendered, reason) };
-    }
-    return { ok: { value: left ** right, pure: true } };
-  }),
-
-  "not/1": makeFunction(["boolean"], (args, _rtm) => {
-    const [right] = args as [boolean];
-    return { ok: { value: !right, pure: true } };
-  }),
-  //
+    return opScope;
+  })(),
 
   // 投骰子：
   // reroll/2
@@ -233,7 +60,7 @@ export const builtinScope: Scope = {
   }),
   // has?/2
   "sum/1": makeFunction(["list"], ([list_], rtm) => {
-    const result = flattenListAll("number", list_ as Value_List, rtm);
+    const result = flattenListAll("integer", list_ as Value_List, rtm);
     if ("error" in result) return result;
     return {
       ok: {
@@ -243,7 +70,7 @@ export const builtinScope: Scope = {
     };
   }),
   "product/1": makeFunction(["list"], ([list_], rtm) => {
-    const result = flattenListAll("number", list_ as Value_List, rtm);
+    const result = flattenListAll("integer", list_ as Value_List, rtm);
     if ("error" in result) return result;
     return {
       ok: {
@@ -266,7 +93,7 @@ export const builtinScope: Scope = {
     };
   }),
   "sort/1": makeFunction(["list"], ([list_], rtm) => {
-    const allowedTypes = ["number", "boolean"] as ValueTypeName[];
+    const allowedTypes = ["integer", "boolean"] as ValueTypeName[];
     const result = unwrapListOneOf(allowedTypes, list_ as Value_List, rtm);
     if ("error" in result) return result;
     const list = result.ok.values as number[] | boolean[];
@@ -293,7 +120,7 @@ export const builtinScope: Scope = {
       },
     };
   }),
-  "at/2": makeFunction(["list", "number"], (args, _rtm) => {
+  "at/2": makeFunction(["list", "integer"], (args, _rtm) => {
     const [list, i] = args as [Value_List, number];
     if (i >= list.length || i < 0) {
       const err = makeRuntimeError(
@@ -399,44 +226,9 @@ export const builtinScope: Scope = {
   }),
 };
 
-function ensureUpperBound(
-  op: string,
-  left: number | null,
-  min: number,
-  actual: number,
-  actualText: string | null = null,
-): null | RuntimeError {
-  if (actual < min) {
-    const leftText = left === null ? null : `${left}`;
-    const opRendered = renderOperation(op, leftText, `${actual}`);
-    const reason = `范围上界（${actualText ?? actual}）不能小于 ${min}`;
-    return runtimeError_illegalOperation(opRendered, reason);
-  }
-  return null;
-}
-
-function renderOperation(
-  op: string,
-  left: string | null,
-  right: string | null,
-) {
-  if (left === null && right === null) throw new Unreachable();
-  if (left === null) {
-    return `${op} ${right}`;
-  } else if (right === null) {
-    return `${left} ${op}`;
-  }
-  return `${left} ${op} ${right}`;
-}
-
-function error_LeftRightTypeMismatch(op: string) {
-  const reason = "两侧操作数的类型不相同";
-  return runtimeError_illegalOperation(op, reason);
-}
-
 function error_givenClosureReturnValueTypeMismatch(
   name: string,
-  expectedReturnValueType: "number" | "boolean",
+  expectedReturnValueType: "integer" | "boolean",
   actualReturnValueType: ValueTypeName,
   position: number,
 ) {
