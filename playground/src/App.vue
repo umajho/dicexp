@@ -57,6 +57,7 @@
 <script setup lang="ts">
 import Skeleton from "./components/common/skeleton.vue";
 
+import { Unreachable } from "@dicexp/errors";
 import type {
   EvaluationResultForWorker,
   EvaluationRestrictionsForWorker,
@@ -141,7 +142,7 @@ async function roll() {
       result.value = { error: e as Error };
     }
   } else {
-    if (mode.value !== "batch") throw new Error("Unreachable");
+    if (mode.value !== "batch") throw new Unreachable();
     rolling.value = "batching";
 
     try {

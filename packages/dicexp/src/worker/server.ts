@@ -43,7 +43,9 @@ export class Server {
         return;
       }
       default:
-        console.error("Unreachable!");
+        console.error(
+          `收到来自外界的未知消息：「${JSON.stringify(dataToWorkerType)}」！`,
+        );
     }
   }
 }

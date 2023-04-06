@@ -1,5 +1,6 @@
 import { bench } from "vitest";
 
+import { Unreachable } from "@dicexp/errors";
 import { parse, ParsingResult } from "@dicexp/parsing";
 import { execute, ExecutionResult } from "../lib";
 
@@ -65,7 +66,7 @@ for (const code of codesSimple) {
   bench(`${code}`, () => {
     let result: ExecutionResult;
     try {
-      if ("error" in parseResult) throw new Error("Unreachable");
+      if ("error" in parseResult) throw new Unreachable();
       result = execute(parseResult.ok);
     } catch (e) {
       throw new Error(`${code}: unknown error during executing: ${e}`);

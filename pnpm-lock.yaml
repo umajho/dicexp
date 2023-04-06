@@ -92,6 +92,7 @@ importers:
 
   packages/dicexp:
     specifiers:
+      '@dicexp/errors': workspace:*
       '@dicexp/executing': workspace:*
       '@dicexp/nodes': workspace:^0.0.0
       '@dicexp/parsing': workspace:*
@@ -99,6 +100,7 @@ importers:
       vite: ^4.2.0
       vite-plugin-dts: ^2.1.0
     dependencies:
+      '@dicexp/errors': link:../../internal/errors
       '@dicexp/executing': link:../../internal/executing
       '@dicexp/parsing': link:../../internal/parsing
     devDependencies:
@@ -116,6 +118,7 @@ importers:
       '@codemirror/theme-one-dark': ^6.1.1
       '@codemirror/view': ^6.9.3
       '@dicexp/codemirror-lang-dicexp': workspace:*
+      '@dicexp/errors': workspace:*
       '@rushstack/eslint-patch': ^1.2.0
       '@types/node': ^18.14.2
       '@vitejs/plugin-vue': ^4.0.0
@@ -146,6 +149,7 @@ importers:
       '@codemirror/theme-one-dark': 6.1.1
       '@codemirror/view': 6.9.3
       '@dicexp/codemirror-lang-dicexp': link:../internal/codemirror-lang-dicexp
+      '@dicexp/errors': link:../internal/errors
       codemirror: 6.0.1
       daisyui: 2.51.5_j7yt3jd32cwenjqavrrga47yr4
       dicexp: link:../packages/dicexp

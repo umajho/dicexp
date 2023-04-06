@@ -1,3 +1,4 @@
+import { Unreachable } from "@dicexp/errors";
 import {
   type ErrorDataFromWorker,
   proxyErrorFromWorker,
@@ -184,7 +185,9 @@ export class EvaluatingWorkerClient {
         return;
       }
       default:
-        console.error("Unreachable!");
+        console.error(
+          `收到来自 Worker 的未知消息：「${JSON.stringify(data)}」！`,
+        );
     }
   }
 
@@ -262,7 +265,7 @@ export class EvaluatingWorkerClient {
   ) {
     this.assertTaskStateName("processing");
     if (this.taskState[0] !== "processing") { // TS 类型推断
-      throw new Error("Unreachable");
+      throw new Unreachable();
     }
     const [_, idRecorded, resolve] = this.taskState;
 
@@ -306,7 +309,7 @@ export class EvaluatingWorkerClient {
   ) {
     this.assertTaskStateName("batch_processing");
     if (this.taskState[0] !== "batch_processing") { // TS 类型推断
-      throw new Error("Unreachable");
+      throw new Unreachable();
     }
     const [_, idRecorded, reporter, resolve] = this.taskState;
 
@@ -329,7 +332,7 @@ export class EvaluatingWorkerClient {
   stopBatching() {
     this.assertTaskStateName("batch_processing");
     if (this.taskState[0] !== "batch_processing") { // TS 类型推断
-      throw new Error("Unreachable");
+      throw new Unreachable();
     }
     const [_1, id, _2] = this.taskState;
 
