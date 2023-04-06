@@ -24,7 +24,7 @@ export class Server {
         } else {
           if (this.batchHandler) {
             const error = new Error("已在进行批量处理");
-            tryPostMessage(["batch_report", id, { error }, true]);
+            tryPostMessage(["batch_report", id, { error }, true, null]);
           }
           const clear = () => this.batchHandler = null;
           const init = this.init, pulser = this.pulser;
