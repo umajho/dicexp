@@ -12,7 +12,7 @@ import {
   RuntimeError_CallArgumentTypeMismatch,
 } from "../src/runtime_errors";
 import { JSValue } from "../src/runtime";
-import { Unreachable } from "../src/errors";
+import { Unreachable } from "@dicexp/errors";
 
 type EvaluateOptions = ExecuteOptions & { parseOpts?: ParseOptions };
 export function evaluate(

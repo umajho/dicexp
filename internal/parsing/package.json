@@ -8,6 +8,7 @@
   "type": "module",
   "sideEffects": false,
   "dependencies": {
+    "@dicexp/errors": "workspace:*",
     "@dicexp/lezer": "workspace:*",
     "@dicexp/nodes": "workspace:*",
     "@lezer/common": "^1.0.2",

@@ -1,4 +1,4 @@
-import { Unimplemented, Unreachable } from "./errors";
+import { Unimplemented, Unreachable } from "@dicexp/errors";
 
 export interface RandomSource {
   uint32(): number;

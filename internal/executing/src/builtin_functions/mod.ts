@@ -5,8 +5,8 @@ import {
   unwrapValue,
 } from "./helpers";
 
-import { Unreachable } from "../errors";
 import type { RuntimeProxy, Scope } from "../runtime";
+import { Unreachable } from "@dicexp/errors";
 import {
   getTypeDisplayName,
   RuntimeError,

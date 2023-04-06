@@ -1,4 +1,3 @@
-import { Unimplemented, Unreachable } from "./errors";
 import type {
   Node,
   Node_RegularCall,
@@ -26,6 +25,7 @@ import {
 import type { Restrictions } from "./restrictions";
 import { finalizeRepresentation, type Representation } from "./representations";
 import { RandomGenerator, type RandomSource } from "./random";
+import { Unimplemented, Unreachable } from "@dicexp/errors";
 
 export interface RuntimeOptions {
   /**

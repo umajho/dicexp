@@ -3,7 +3,7 @@ import { assert, describe, it } from "vitest";
 import { parse, ParsingResult } from "../src/parse";
 
 import { captured, list, Node, regularCall, value } from "@dicexp/nodes";
-import { Unreachable } from "src/errors";
+import { Unreachable } from "@dicexp/errors";
 
 describe("空白", () => {
   describe("空白不影响解析", () => {

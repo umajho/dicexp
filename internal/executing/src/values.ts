@@ -1,5 +1,5 @@
+import { Unreachable } from "@dicexp/errors";
 import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
-import { Unreachable } from "./errors";
 import {
   representCall,
   representCaptured,

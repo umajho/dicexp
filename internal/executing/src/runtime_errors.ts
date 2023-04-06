@@ -1,4 +1,4 @@
-import { Unreachable } from "./errors";
+import { Unreachable } from "@dicexp/errors";
 import type { ValueTypeName } from "./values";
 
 export class RuntimeError extends Error {}

@@ -1,0 +1,10 @@
+{
+  "name": "@dicexp/errors",
+  "version": "0.0.0",
+  "main": "lib.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false
+}

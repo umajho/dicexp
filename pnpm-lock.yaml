@@ -13,8 +13,12 @@ importers:
       '@codemirror/language': 6.6.0
       '@dicexp/lezer': link:../lezer
 
+  internal/errors:
+    specifiers: {}
+
   internal/executing:
     specifiers:
+      '@dicexp/errors': workspace:*
       '@dicexp/nodes': workspace:*
       '@dicexp/parsing': workspace:*
       '@lezer/common': ^1.0.2
@@ -27,6 +31,7 @@ importers:
       typescript: ^5.0.2
       vitest: ^0.29.3
     dependencies:
+      '@dicexp/errors': link:../errors
       '@dicexp/nodes': link:../nodes
       '@lezer/common': 1.0.2
       '@lezer/lr': 1.3.3
@@ -58,6 +63,7 @@ importers:
 
   internal/parsing:
     specifiers:
+      '@dicexp/errors': workspace:*
       '@dicexp/lezer': workspace:*
       '@dicexp/nodes': workspace:*
       '@lezer/common': ^1.0.2
@@ -70,6 +76,7 @@ importers:
       typescript: ^5.0.2
       vitest: ^0.29.3
     dependencies:
+      '@dicexp/errors': link:../errors
       '@dicexp/lezer': link:../lezer
       '@dicexp/nodes': link:../nodes
       '@lezer/common': 1.0.2

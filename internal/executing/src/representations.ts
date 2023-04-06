@@ -1,5 +1,5 @@
+import { Unreachable } from "@dicexp/errors";
 import type { RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
-import { Unreachable } from "./errors";
 import type { RuntimeError } from "./runtime_errors";
 import { intersperse } from "./utils";
 import type { LazyValue, RuntimeResult, Value } from "./values";
