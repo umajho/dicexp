@@ -7,6 +7,6 @@ export function getErrorDisplayInfo(
     case "runtime_error":
       return { kind: "运行时", showsStack: false };
     default:
-      return { kind: "其他", showsStack: true };
+      return { kind: "", showsStack: true };
   }
 }

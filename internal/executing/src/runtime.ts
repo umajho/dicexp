@@ -8,10 +8,10 @@ import type {
 } from "@dicexp/nodes";
 import { builtinScope } from "./builtin_functions/mod";
 import {
-  RuntimeError_BadFinalResult,
-  RuntimeError_RestrictionExceeded,
-  RuntimeError_UnknownVariable,
-} from "./runtime_errors";
+  runtimeError_badFinalResult,
+  runtimeError_restrictionExceeded,
+  runtimeError_unknownVariable,
+} from "./runtime_errors_impl";
 import {
   concretize,
   getTypeNameOfValue,
@@ -124,7 +124,7 @@ export class Runtime {
     if (this._restrictions.maxCalls !== undefined) {
       const max = this._restrictions.maxCalls!;
       if (this._statistics.calls! > max) {
-        return new RuntimeError_RestrictionExceeded("调用次数", "次", max);
+        return runtimeError_restrictionExceeded("调用次数", "次", max);
       }
     }
 
@@ -136,7 +136,7 @@ export class Runtime {
         const duration = now - this._statistics.start!.ms;
         if (duration > timeout.ms) {
           const ms = timeout.ms;
-          return new RuntimeError_RestrictionExceeded("运行时间", "毫秒", ms);
+          return runtimeError_restrictionExceeded("运行时间", "毫秒", ms);
         }
       }
     }
@@ -183,7 +183,7 @@ export class Runtime {
       default:
         if (Array.isArray(okValue)) return this._finalizeList(okValue);
         return {
-          error: new RuntimeError_BadFinalResult(getTypeNameOfValue(okValue)),
+          error: runtimeError_badFinalResult(getTypeNameOfValue(okValue)),
         };
     }
   }
@@ -252,7 +252,7 @@ export class Runtime {
     } else {
       // FIXME: 这种情况应该 eager，因为有没有变量这里就能决定了
       // 也许可以在执行前检查下每个 scope 里的标识符、通常函数名是否存在于 scope 之中？
-      const err = new RuntimeError_UnknownVariable(ident);
+      const err = runtimeError_unknownVariable(ident);
       const errValue = this._lazyValueFactory.error(err);
       return this._lazyValueFactory.identifier(errValue, ident);
     }

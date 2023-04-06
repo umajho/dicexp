@@ -12,9 +12,11 @@
 </template>
 
 <script setup lang="ts">
+import type { RuntimeError } from "dicexp";
+
 const props = defineProps<{
   kind: string;
-  error: Error;
+  error: Error | RuntimeError;
   showsStack: boolean;
 }>();
 </script>

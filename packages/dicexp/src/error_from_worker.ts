@@ -1,4 +1,4 @@
-import { RuntimeError } from "@dicexp/executing";
+import { asRuntimeError, type RuntimeError } from "@dicexp/executing";
 import { ParsingError } from "@dicexp/parsing";
 
 export interface ErrorDataFromWorker {
@@ -10,17 +10,19 @@ export interface ErrorDataFromWorker {
 
 export type EvaluatingSpecialErrorType = "parsing_error" | "runtime_error";
 
-export function errorAsErrorData(error: Error): ErrorDataFromWorker {
+export function errorAsErrorData(
+  error: Error | RuntimeError,
+): ErrorDataFromWorker {
   let specialType: EvaluatingSpecialErrorType | null = null;
   if (error instanceof ParsingError) {
     specialType = "parsing_error";
-  } else if (error instanceof RuntimeError) {
+  } else if (asRuntimeError(error)) {
     specialType = "runtime_error";
   }
 
   return {
     message: error.message,
-    ...(error.stack ? { stack: error.stack } : {}),
+    ...("stack" in error ? { stack: error.stack } : {}),
     specialType,
   };
 }

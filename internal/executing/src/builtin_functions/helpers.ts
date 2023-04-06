@@ -1,10 +1,11 @@
 import { representValue } from "../representations_impl";
 import type { RegularFunction, RuntimeProxy } from "../runtime";
 import {
-  RuntimeError_CallArgumentTypeMismatch,
-  RuntimeError_TypeMismatch,
-  RuntimeError_WrongArity,
-} from "../runtime_errors";
+  runtimeError_callArgumentTypeMismatch,
+  runtimeError_typeMismatch,
+  runtimeError_wrongArity,
+  type TypeMismatchKind,
+} from "../runtime_errors_impl";
 import type {
   LazyValue,
   RuntimeError,
@@ -72,7 +73,7 @@ function unwrapArguments(
   rtm: RuntimeProxy,
 ): RuntimeResult<{ values: RegularFunctionArgument[]; volatile: boolean }> {
   if (spec.length !== args.length) {
-    return { error: new RuntimeError_WrongArity(spec.length, args.length) };
+    return { error: runtimeError_wrongArity(spec.length, args.length) };
   }
 
   const values: RegularFunctionArgument[] = Array(args.length);
@@ -111,14 +112,14 @@ export function unwrapValue(
 
 interface CheckTypeOptions {
   nth?: number;
-  kind?: RuntimeError_TypeMismatch["kind"];
+  kind?: TypeMismatchKind;
 }
 
 function checkType(
   expected: Exclude<ArgumentSpec, "lazy">,
   actual: ValueTypeName,
   opts: CheckTypeOptions = {},
-): null | RuntimeError_TypeMismatch | RuntimeError_CallArgumentTypeMismatch {
+): null | RuntimeError {
   if (expected === "*") return null;
   if (Array.isArray(expected)) {
     if (expected.findIndex((x) => testType(x, actual)) >= 0) return null;
@@ -127,9 +128,9 @@ function checkType(
   }
   if (opts.nth !== undefined) {
     const nth = opts.nth;
-    return new RuntimeError_CallArgumentTypeMismatch(nth, expected, actual);
+    return runtimeError_callArgumentTypeMismatch(nth, expected, actual);
   } else {
-    return new RuntimeError_TypeMismatch(expected, actual, opts.kind ?? null);
+    return runtimeError_typeMismatch(expected, actual, opts.kind ?? null);
   }
 }
 

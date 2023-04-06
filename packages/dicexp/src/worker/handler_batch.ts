@@ -1,4 +1,4 @@
-import { execute } from "@dicexp/executing";
+import { asRuntimeError, execute, RuntimeError } from "@dicexp/executing";
 import { parse } from "@dicexp/parsing";
 import type { Node } from "@dicexp/nodes";
 import { EvaluateOptions } from "../evaluate";
@@ -10,7 +10,7 @@ import { tryPostMessage } from "./post_message";
 export class BatchHandler {
   private readonly id!: string;
   private readonly report!: BatchReport; //Required<Omit<BatchReport, "error">>;
-  private shouldStop!: boolean | Error;
+  private shouldStop!: boolean | Error | RuntimeError;
 
   private readonly init!: WorkerInit;
   private readonly pulser!: Pulser;
@@ -54,6 +54,13 @@ export class BatchHandler {
       if (this.shouldStop) {
         if (this.shouldStop instanceof Error) {
           this.report.error = this.shouldStop;
+        } else {
+          const runtimeError = asRuntimeError(this.shouldStop);
+          if (runtimeError) {
+            this.report.error = new Error(
+              "某次求值时遭遇运行时错误：" + runtimeError.message,
+            );
+          }
         }
         clearInterval(intervalId);
         this.stoppedCb();
@@ -66,7 +73,7 @@ export class BatchHandler {
     }, this.init.batchReportInterval.ms);
   }
 
-  private markBatchToStop(error?: Error) {
+  private markBatchToStop(error?: Error | RuntimeError) {
     this.shouldStop = error ? error : true;
     this.report.statistics!.now.ms = Date.now();
   }

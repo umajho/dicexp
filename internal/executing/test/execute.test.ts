@@ -15,10 +15,10 @@ import {
 
 import { evaluate } from "./test_helpers";
 import {
-  RuntimeError_DuplicateClosureParameterNames,
-  RuntimeError_UnknownVariable,
-  RuntimeError_WrongArity,
-} from "../src/runtime_errors";
+  runtimeError_duplicateClosureParameterNames,
+  runtimeError_unknownVariable,
+  runtimeError_wrongArity,
+} from "../src/runtime_errors_impl";
 import { JSValue, Scope } from "../src/runtime";
 import { flatten } from "./utils";
 import { makeFunction } from "../src/builtin_functions/helpers";
@@ -210,7 +210,7 @@ describe("值", () => {
           it(`case ${i + 1}: ${code}`, () => {
             assertExecutionRuntimeError(
               code, // FIXME: 闭包名
-              new RuntimeError_WrongArity(expected, actual),
+              runtimeError_wrongArity(expected, actual),
             );
           });
         }
@@ -218,7 +218,7 @@ describe("值", () => {
       it("不能有重复的参数名", () => {
         assertExecutionRuntimeError(
           String.raw`\(foo, bar, foo -> 0).(1, 2, 3)`,
-          new RuntimeError_DuplicateClosureParameterNames("foo"),
+          runtimeError_duplicateClosureParameterNames("foo"),
         );
       });
       it("内外同名参数不算重复", () => {
@@ -234,7 +234,7 @@ describe("值", () => {
         it("不会赋值给 `_`", () => {
           assertExecutionRuntimeError(
             String.raw`\(_ -> _).(1)`,
-            new RuntimeError_UnknownVariable("_"),
+            runtimeError_unknownVariable("_"),
           );
         });
       });

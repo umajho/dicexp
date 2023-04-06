@@ -2,6 +2,7 @@ import { parse, type ParseOptions } from "@dicexp/parsing";
 import {
   execute,
   type ExecuteOptions,
+  type RuntimeError,
   type RuntimeStatistics,
 } from "@dicexp/executing";
 import type { JSValue } from "@dicexp/executing/src/runtime";
@@ -18,7 +19,7 @@ export type EvaluationResult = {
   statistics: RuntimeStatistics;
 } | {
   ok?: never;
-  error: Error;
+  error: Error | RuntimeError;
   representation?: Representation;
   statistics?: RuntimeStatistics;
 };

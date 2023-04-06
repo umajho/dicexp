@@ -64,9 +64,6 @@ while (1) {
 
     const executeResult = execute(parsed, { seed });
     if ("error" in executeResult) {
-      if (!(executeResult.error instanceof RuntimeError)) {
-        throw new Error("Unreachable");
-      }
       console.error(`runtime error:`, executeResult.error.message);
       continue;
     }

@@ -20,12 +20,12 @@ import {
 } from "./representations_impl";
 import type { RegularFunction, RuntimeProxy, Scope } from "./runtime";
 import {
-  RuntimeError_DuplicateClosureParameterNames,
-  RuntimeError_LimitationExceeded,
-  RuntimeError_UnknownRegularFunction,
-  RuntimeError_ValueIsNotCallable,
-  RuntimeError_WrongArity,
-} from "./runtime_errors";
+  runtimeError_duplicateClosureParameterNames,
+  runtimeError_limitationExceeded,
+  runtimeError_unknownRegularFunction,
+  runtimeError_valueIsNotCallable,
+  runtimeError_wrongArity,
+} from "./runtime_errors_impl";
 
 export function concretize(
   v: LazyValue,
@@ -221,7 +221,7 @@ export class LazyValueFactory {
       arity,
       _call: (args) => {
         if (args.length !== arity) {
-          return { error: new RuntimeError_WrongArity(arity, args.length) };
+          return { error: runtimeError_wrongArity(arity, args.length) };
         }
 
         const deeperScope: Scope = Object.setPrototypeOf({}, scope);
@@ -229,7 +229,7 @@ export class LazyValueFactory {
           if (ident === "_") continue;
           if (Object.prototype.hasOwnProperty.call(deeperScope, ident)) {
             return {
-              error: new RuntimeError_DuplicateClosureParameterNames(ident),
+              error: runtimeError_duplicateClosureParameterNames(ident),
             };
           }
           deeperScope[ident] = this.stabilized(args[i]);
@@ -270,7 +270,7 @@ export class LazyValueFactory {
       arity,
       _call: (args) => {
         if (args.length !== arity) {
-          return { error: new RuntimeError_WrongArity(arity, args.length) };
+          return { error: runtimeError_wrongArity(arity, args.length) };
         }
 
         return fn(args, runtime);
@@ -302,7 +302,7 @@ export class LazyValueFactory {
     }
     const callable = asCallable(concrete.value.ok);
     if (!callable) {
-      const err = new RuntimeError_ValueIsNotCallable();
+      const err = runtimeError_valueIsNotCallable();
       return this.error(err, calling);
     }
 
@@ -355,7 +355,7 @@ function getFunctionFromScope(
   const fnName = `${identifier}/${arity}`;
   const fn = scope[fnName];
   if (!fn) {
-    return { error: new RuntimeError_UnknownRegularFunction(fnName) };
+    return { error: runtimeError_unknownRegularFunction(fnName) };
   }
   if (typeof fn !== "function") throw new Unreachable();
   return { ok: fn };
@@ -381,13 +381,13 @@ const MIN_SAFE_INTEGER = -(2 ** 53) + 1;
 // 只需通常函数的结果，字面量由 parsing 检查，其他则不会改变数值
 function checkInteger(n: number): RuntimeError | null {
   if (n > MAX_SAFE_INTEGER) {
-    return new RuntimeError_LimitationExceeded(
+    return runtimeError_limitationExceeded(
       "最大安全整数",
       null,
       MAX_SAFE_INTEGER,
     );
   } else if (n < MIN_SAFE_INTEGER) {
-    return new RuntimeError_LimitationExceeded(
+    return runtimeError_limitationExceeded(
       "最小安全整数",
       null,
       MIN_SAFE_INTEGER,

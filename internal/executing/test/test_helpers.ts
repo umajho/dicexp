@@ -8,7 +8,7 @@ import { parse, type ParseOptions } from "@dicexp/parsing";
 import { ValueTypeName } from "../src/values_impl";
 import { execute, ExecuteOptions, ExecutionResult } from "../src/execute";
 import { RuntimeError } from "../src/runtime_values/mod";
-import { RuntimeError_CallArgumentTypeMismatch } from "../src/runtime_errors";
+import { runtimeError_callArgumentTypeMismatch } from "../src/runtime_errors_impl";
 import { JSValue } from "../src/runtime";
 import { Unreachable } from "@dicexp/errors";
 
@@ -78,13 +78,13 @@ export function assertExecutionRuntimeError(
     );
   }
 
-  if (expectedError instanceof RuntimeError) {
-    assert.deepEqual(result.error, expectedError);
-  } else {
+  if (typeof expectedError === "string") {
     if (result.error.message === expectedError) return;
     throw new AssertionError(
       `${code} returned error "${result.error.message}", not "${expectedError}"`,
     );
+  } else {
+    assert.deepEqual(result.error, expectedError);
   }
 }
 
@@ -136,7 +136,7 @@ function unaryOperatorOnlyAccepts(
     it(`case ${i + 1}: ${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
       assertExecutionRuntimeError(
         code,
-        new RuntimeError_CallArgumentTypeMismatch(1, expected, rightType),
+        runtimeError_callArgumentTypeMismatch(1, expected, rightType),
       );
     });
   }
@@ -155,7 +155,7 @@ function binaryOperatorOnlyAccepts(
     it(`case ${i + 1}: ${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
       assertExecutionRuntimeError(
         code,
-        new RuntimeError_CallArgumentTypeMismatch(pos, expected, wrongType),
+        runtimeError_callArgumentTypeMismatch(pos, expected, wrongType),
       );
     });
   }

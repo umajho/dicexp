@@ -9,21 +9,22 @@ import type { RuntimeProxy, Scope } from "../runtime";
 import { Unreachable } from "@dicexp/errors";
 import {
   getTypeDisplayName,
-  RuntimeError_IllegalOperation,
-} from "../runtime_errors";
+  runtimeError_illegalOperation,
+} from "../runtime_errors_impl";
 import {
   callCallable,
   concretize,
   getTypeNameOfValue,
   type ValueTypeName,
 } from "../values_impl";
-import type {
-  LazyValue,
-  RuntimeResult,
-  Value_Callable,
-  Value_List,
+import {
+  type LazyValue,
+  makeRuntimeError,
+  type RuntimeResult,
+  type Value_Callable,
+  type Value_List,
 } from "../runtime_values/mod";
-import { RuntimeError } from "../runtime_values/mod";
+import type { RuntimeError } from "../runtime_values/mod";
 
 export const builtinScope: Scope = {
   "or/2": makeFunction(["boolean", "boolean"], (args, _rtm) => {
@@ -130,7 +131,7 @@ export const builtinScope: Scope = {
     if (right === 0) {
       const opRendered = renderOperation("//", `${left}`, `${right}`);
       const reason = "除数不能为零";
-      return { error: new RuntimeError_IllegalOperation(opRendered, reason) };
+      return { error: runtimeError_illegalOperation(opRendered, reason) };
     }
     return { ok: { value: left / right | 0, pure: true } };
   }),
@@ -140,12 +141,12 @@ export const builtinScope: Scope = {
       const leftText = left < 0 ? `(${left})` : `${left}`;
       const opRendered = renderOperation("%", leftText, `${right}`);
       const reason = "被除数不能为负数";
-      return { error: new RuntimeError_IllegalOperation(opRendered, reason) };
+      return { error: runtimeError_illegalOperation(opRendered, reason) };
     } else if (right <= 0) {
       const leftText = left < 0 ? `(${left})` : `${left}`;
       const opRendered = renderOperation("%", leftText, `${right}`);
       const reason = "除数必须为正数";
-      return { error: new RuntimeError_IllegalOperation(opRendered, reason) };
+      return { error: runtimeError_illegalOperation(opRendered, reason) };
     }
     return { ok: { value: (left | 0) % right, pure: true } };
   }),
@@ -206,7 +207,7 @@ export const builtinScope: Scope = {
     if (right < 0) {
       const opRendered = renderOperation("^", `${left}`, `${right}`);
       const reason = "指数不能为负数";
-      return { error: new RuntimeError_IllegalOperation(opRendered, reason) };
+      return { error: runtimeError_illegalOperation(opRendered, reason) };
     }
     return { ok: { value: left ** right, pure: true } };
   }),
@@ -295,7 +296,7 @@ export const builtinScope: Scope = {
   "at/2": makeFunction(["list", "number"], (args, _rtm) => {
     const [list, i] = args as [Value_List, number];
     if (i >= list.length || i < 0) {
-      const err = new RuntimeError(
+      const err = makeRuntimeError(
         `访问列表越界：列表大小为 ${list.length}，提供的索引为 ${i}`,
       );
       return { error: err };
@@ -334,12 +335,12 @@ export const builtinScope: Scope = {
   // foldr/3
   "head/1": makeFunction(["list"], (args, _rtm) => {
     const [list] = args as [Value_List];
-    if (list.length === 0) return { error: new RuntimeError("列表为空") };
+    if (list.length === 0) return { error: makeRuntimeError("列表为空") };
     return { ok: { lazy: list[0] } };
   }),
   "tail/1": makeFunction(["list"], (args, _rtm) => { // FIXME: 失去 laziness
     const [list] = args as [Value_List];
-    if (list.length === 0) return { error: new RuntimeError("列表为空") };
+    if (list.length === 0) return { error: makeRuntimeError("列表为空") };
     return { ok: { value: list.slice(1), pure: false } };
   }),
   // last/1
@@ -404,12 +405,12 @@ function ensureUpperBound(
   min: number,
   actual: number,
   actualText: string | null = null,
-): null | RuntimeError_IllegalOperation {
+): null | RuntimeError {
   if (actual < min) {
     const leftText = left === null ? null : `${left}`;
     const opRendered = renderOperation(op, leftText, `${actual}`);
     const reason = `范围上界（${actualText ?? actual}）不能小于 ${min}`;
-    return new RuntimeError_IllegalOperation(opRendered, reason);
+    return runtimeError_illegalOperation(opRendered, reason);
   }
   return null;
 }
@@ -430,7 +431,7 @@ function renderOperation(
 
 function error_LeftRightTypeMismatch(op: string) {
   const reason = "两侧操作数的类型不相同";
-  return new RuntimeError_IllegalOperation(op, reason);
+  return runtimeError_illegalOperation(op, reason);
 }
 
 function error_givenClosureReturnValueTypeMismatch(
@@ -441,7 +442,7 @@ function error_givenClosureReturnValueTypeMismatch(
 ) {
   const expectedTypeText = getTypeDisplayName(expectedReturnValueType);
   const actualTypeText = getTypeDisplayName(actualReturnValueType);
-  return new RuntimeError(
+  return makeRuntimeError(
     `作为第 ${position} 个参数传入通常函数 ${name} 的返回值类型与期待不符：` +
       `期待「${expectedTypeText}」，实际「${actualTypeText}」。`,
   );
