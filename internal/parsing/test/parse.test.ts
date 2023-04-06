@@ -2,18 +2,39 @@ import { assert, describe, it } from "vitest";
 
 import { parse, ParsingResult } from "../src/parse";
 
-import { captured, list, Node, regularCall, value } from "@dicexp/nodes";
+import {
+  captured,
+  closure,
+  list,
+  Node,
+  regularCall,
+  value,
+} from "@dicexp/nodes";
 import { Unreachable } from "@dicexp/errors";
 
 describe("空白", () => {
   describe("空白不影响解析", () => {
-    const table: [string, string][] = [
+    const tablePre: [string, string][] = [
       ["1 + 1", "1+1"],
       [" 1 ", "1"],
       ["foo ( bar , baz )", "foo(bar,baz)"],
-      [String.raw`foo \( bar , baz -> qux )`, String.raw`foo\(bar,baz->qux)`],
     ];
-    theyAreOk(table.map(([a, b]) => [a, mustParse(b)]));
+    const table: [string, Node][] = tablePre.map(([a, b]) => [a, mustParse(b)]);
+
+    for (
+      const closureTestCode of [
+        String.raw`foo \( bar , baz -> qux )`,
+        String.raw`foo\(bar,baz->qux)`,
+      ]
+    ) {
+      const closurePart = closureTestCode.slice(closureTestCode.indexOf("\\"));
+      const expected = regularCall("function", "foo", [
+        closure(["bar", "baz"], "qux", closurePart),
+      ]);
+      table.push([closureTestCode, expected]);
+    }
+
+    theyAreOk(table);
   });
 });
 
