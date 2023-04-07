@@ -45,7 +45,7 @@
                     common-optional-number-input(v-model="seed" v-model:enabled="fixesSeed") 固定种子
                   .flex.flex-col.h-full.justify-center(class="max-md:hidden") |
                 .flex.flex-col.h-full.justify-center
-                  restrictions-pane(@update:restrictions="onUpdateRestrictions")
+                  restrictions-pane(@update:restrictions="onUpdateRestrictions" :mode="mode")
     
       //- 结果展现
       div(v-if="result")

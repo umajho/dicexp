@@ -6,14 +6,16 @@ input#restrictions-pane-modal.modal-toggle(type="checkbox")
   .modal-box
     .grid.grid-cols-1.gap-4
       h1.text-xl 单次限制
-      common-optional-number-input(v-model="hardTimeoutValue" v-model:enabled="hardTimeoutEnabled")
-        //- FIXME: 在批量模式时应标示此设置不生效
-        | 硬性超时（毫秒）
+      .grid.grid-cols-1
+        common-optional-number-input(v-model="hardTimeoutValue" v-model:enabled="hardTimeoutEnabled")
+          span(title="超过后强制停止，无法保留运行时信息。") 硬性超时（毫秒）
+        .flex.justify-center
+          div.text-xs.text-gray-400 （硬性超时在批量模式下不生效）
       common-optional-number-input(v-model="softTimeoutValue" v-model:enabled="softTimeoutEnabled")
-        | 软性超时（毫秒）
+        span(title="运行时尝试在超过后停止，保留运行时信息。") 软性超时（毫秒）
       common-optional-number-input(v-model="maxCallsValue" v-model:enabled="maxCallsEnabled")
         //- 偷个懒
-        | {{ "　　" }} 最多调用次数
+        span(title="直接或间接调用通常函数、调用闭包或捕获都会计入。") {{ "　　" }} 最多调用次数
       common-optional-number-input(v-model="maxClosureCallDepthValue" v-model:enabled="maxClosureCallDepthEnabled")
         | 最大闭包调用深度
 
@@ -23,6 +25,10 @@ input#restrictions-pane-modal.modal-toggle(type="checkbox")
 
 <script setup lang="ts">
 import type { EvaluationRestrictionsForWorker } from "dicexp/internal";
+
+const props = defineProps<{
+  mode: "single" | "batch";
+}>();
 
 const emit = defineEmits<{
   (e: "update:restrictions", r: EvaluationRestrictionsForWorker | null): void;
@@ -60,11 +66,11 @@ const restrictions = computed((): EvaluationRestrictionsForWorker | null => {
 });
 
 watch(
-  restrictions,
+  [restrictions, props],
   () => {
     if (restrictions.value) {
       const items = [];
-      if (hardTimeoutEnabled.value) {
+      if (props.mode === "single" && hardTimeoutEnabled.value) {
         items.push(`硬性超时=${hardTimeoutValue.value}ms`);
       }
       if (softTimeoutEnabled.value) {
