@@ -15,6 +15,7 @@ import {
   representCall,
   representCaptured,
   representError,
+  representLazyValue,
   representResult,
   representValue,
 } from "./representations_impl";
@@ -58,7 +59,7 @@ export function concretize(
 
 export class LazyValueFactory {
   constructor(
-    private runtime: RuntimeProxy | null,
+    private runtime: RuntimeProxy,
   ) {}
 
   identifier(
@@ -183,8 +184,7 @@ export class LazyValueFactory {
 
     return {
       _yield: () => {
-        const errFromReporter = this.runtime?.reporter
-          .regularFunctionCalled?.();
+        const errFromReporter = this.runtime.reporter.called?.();
         if (errFromReporter) return this.error(errFromReporter, calling).memo;
 
         const result = fn(args, runtime);
@@ -235,7 +235,26 @@ export class LazyValueFactory {
           deeperScope[ident] = this.stabilized(args[i]);
         }
 
-        const result = { ok: runtime.interpret(deeperScope, body) };
+        let interpreted = runtime.interpret(deeperScope, body);
+        if (this.runtime.reporter.closureEnter) {
+          const oldInterpreted = interpreted;
+          interpreted = {
+            _yield: () => {
+              const errFromReporter = this.runtime.reporter.closureEnter!();
+              if (errFromReporter) {
+                return this.error(
+                  errFromReporter,
+                  [representLazyValue(oldInterpreted)],
+                ).memo;
+              }
+              const concretized = concretize(oldInterpreted, runtime);
+              this.runtime.reporter.closureExit!();
+              return concretized;
+            },
+          };
+        }
+
+        const result = { ok: interpreted };
         return result;
       },
 
@@ -308,7 +327,7 @@ export class LazyValueFactory {
 
     return {
       _yield: (): Concrete => {
-        const errFromReporter = this.runtime?.reporter.closureCalled?.();
+        const errFromReporter = this.runtime.reporter.called?.();
         if (errFromReporter) return this.error(errFromReporter, calling).memo;
 
         const result = callable._call(args);

@@ -14,6 +14,8 @@ input#restrictions-pane-modal.modal-toggle(type="checkbox")
       common-optional-number-input(v-model="maxCallsValue" v-model:enabled="maxCallsEnabled")
         //- 偷个懒
         | {{ "　　" }} 最多调用次数
+      common-optional-number-input(v-model="maxClosureCallDepthValue" v-model:enabled="maxClosureCallDepthEnabled")
+        | 最大闭包调用深度
 
     .modal-action
       label.btn(for="restrictions-pane-modal") 确定
@@ -37,6 +39,9 @@ const softTimeoutEnabled = ref(false);
 const maxCallsValue = ref(2000);
 const maxCallsEnabled = ref(false);
 
+const maxClosureCallDepthValue = ref(200);
+const maxClosureCallDepthEnabled = ref(true);
+
 const restrictions = computed((): EvaluationRestrictionsForWorker | null => {
   const r: EvaluationRestrictionsForWorker = {
     ...(hardTimeoutEnabled.value
@@ -46,6 +51,9 @@ const restrictions = computed((): EvaluationRestrictionsForWorker | null => {
       ? { softTimeout: { ms: softTimeoutValue.value } }
       : {}),
     ...(maxCallsEnabled.value ? { maxCalls: maxCallsValue.value } : {}),
+    ...(maxClosureCallDepthEnabled.value
+      ? { maxClosureCallDepth: maxClosureCallDepthValue.value }
+      : {}),
   };
   if (Object.keys(r).length === 0) return null;
   return r;
@@ -64,6 +72,9 @@ watch(
       }
       if (maxCallsEnabled.value) {
         items.push(`调用次数=${maxCallsValue.value}`);
+      }
+      if (maxClosureCallDepthEnabled.value) {
+        items.push(`最大闭包调用深度=${maxClosureCallDepthValue.value}`);
       }
       restrictionsText.value = "单次限制：" + items.join("，");
     } else {

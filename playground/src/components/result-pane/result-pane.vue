@@ -20,6 +20,7 @@
           .grid.grid-cols-1
             div 运算耗时：{{statis.timeConsumption.ms}} 毫秒
             div(v-if="statis.calls !== undefined") 调用次数：{{ statis.calls  }} 次
+            div(v-if="statis.maxClosureCallDepth !== undefined") 最大闭包调用深度：{{ statis.maxClosureCallDepth }} 层
 
       .h-2
 

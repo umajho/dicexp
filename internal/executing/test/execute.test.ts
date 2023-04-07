@@ -620,16 +620,40 @@ describe("限制", () => {
           );
         });
       });
+      describe("通常函数", () => {
+        const restrictions: Restrictions = { maxCalls: 2 };
+        theyAreOk([String.raw`1+1+1`], { restrictions });
+        it("超过次数则返回运行时错误", () => {
+          assertExecutionRuntimeError(
+            String.raw`1+1+1+1`,
+            "越过外加限制「调用次数」（允许 2 次）",
+            { restrictions },
+          );
+        });
+      });
     });
-    describe("通常函数", () => {
-      const restrictions: Restrictions = { maxCalls: 2 };
-      theyAreOk([String.raw`1+1+1`], { restrictions });
-      it("超过次数则返回运行时错误", () => {
-        assertExecutionRuntimeError(
-          String.raw`1+1+1+1`,
-          "越过外加限制「调用次数」（允许 2 次）",
-          { restrictions },
-        );
+
+    describe("闭包调用深度", () => {
+      const restrictions: Restrictions = { maxClosureCallDepth: 1 };
+      theyAreOk([
+        String.raw`\(x -> x).(1)`,
+        // 由于惰性求值，内部的闭包是在外边执行的
+        String.raw`[[1]] |> map \(outer -> outer |> map \(x -> x*2))`,
+      ], { restrictions });
+      describe("超过深度则返回运行时错误", () => {
+        const table = [
+          String.raw`\(->\(-> 1).()).()`,
+          String.raw`\(f -> f.(f)) |> \(f -> f.(f)).()`,
+        ];
+        for (const [i, code] of table.entries()) {
+          it(`case ${i + 1}: ${code}`, () => {
+            assertExecutionRuntimeError(
+              code,
+              "越过外加限制「闭包调用深度」（允许 1 层）",
+              { restrictions },
+            );
+          });
+        }
       });
     });
   });

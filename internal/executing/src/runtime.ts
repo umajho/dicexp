@@ -42,18 +42,22 @@ export interface RuntimeOptions {
 }
 
 export interface RuntimeReporter {
-  regularFunctionCalled?: () => RuntimeError | null;
-  closureCalled?: () => RuntimeError | null;
+  called?: () => RuntimeError | null;
+  closureEnter?: () => RuntimeError | null;
+  closureExit?: () => void;
 }
 
 interface StatisticsUnfinished {
   start?: { ms: number };
   calls?: number;
+  closureCallDepth?: number;
+  maxClosureCallDepth?: number;
 }
 
 export interface Statistics {
   timeConsumption: { ms: number };
   calls?: number;
+  maxClosureCallDepth?: number;
 }
 
 export type JSValue = number | boolean | JSValue[];
@@ -91,17 +95,24 @@ export class Runtime {
     this._rng = new RandomGenerator(opts.randomSource);
 
     this._restrictions = opts.restrictions;
-    const recordCalls = this._restrictions.maxCalls !== undefined ||
-      this._restrictions.softTimeout !== undefined;
+    const recordsCalls = this._restrictions.maxCalls !== undefined ||
+        this._restrictions.softTimeout !== undefined,
+      recordsClosureCallDepth =
+        this._restrictions.maxClosureCallDepth !== undefined;
+    // start, // 在 execute() 中赋值
     this._statistics = {
-      // start, // 在 execute() 中赋值
-      ...(recordCalls ? { calls: 0 } : {}),
+      ...(recordsCalls ? { calls: 0 } : {}),
+      ...(recordsClosureCallDepth
+        ? { closureCallDepth: 0, maxClosureCallDepth: 0 }
+        : {}),
     };
+
     this.reporter = {
-      ...(recordCalls
+      ...(recordsCalls ? { called: this._reportCalled.bind(this) } : {}),
+      ...(recordsClosureCallDepth
         ? {
-          regularFunctionCalled: this._reportRegularFunctionCalled.bind(this),
-          closureCalled: this._reportClosureCalled.bind(this),
+          closureEnter: this._reportClosureEnter.bind(this),
+          closureExit: this._reportClosureExit.bind(this),
         }
         : {}),
     };
@@ -142,15 +153,22 @@ export class Runtime {
     }
     return null;
   }
-  private _reportRegularFunctionCalled(): RuntimeError | null {
-    return this._reportCalled();
-  }
-  private _reportClosureCalled(): RuntimeError | null {
-    // if (this._statistics.calls !== undefined) {
-    const errCalled = this._reportCalled();
-    if (errCalled) return errCalled;
-    // }
+  private _reportClosureEnter(): RuntimeError | null {
+    this._statistics.closureCallDepth!++;
+
+    const current = this._statistics.closureCallDepth!;
+    if (current > this._statistics.maxClosureCallDepth!) {
+      this._statistics.maxClosureCallDepth = current;
+      const max = this._restrictions.maxClosureCallDepth!;
+      if (current > max) {
+        return runtimeError_restrictionExceeded("闭包调用深度", "层", max);
+      }
+    }
+
     return null;
+  }
+  private _reportClosureExit(): void {
+    this._statistics.closureCallDepth!--;
   }
 
   execute(): ExecutionResult {
@@ -165,6 +183,7 @@ export class Runtime {
           ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
         },
         calls: this._statistics.calls,
+        maxClosureCallDepth: this._statistics.maxClosureCallDepth,
       },
     };
   }

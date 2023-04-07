@@ -9,10 +9,16 @@ export interface Restrictions {
     ms: number;
     intervalPerCheck?: { calls: number };
   };
+
   /**
    * 最多允许调用（通常函数+闭包）的次数。
    *
    * 默认不限制。
    */
   maxCalls?: number;
+
+  /**
+   * 最多允许闭包调用的深度。
+   */
+  maxClosureCallDepth?: number;
 }
