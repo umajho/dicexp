@@ -210,13 +210,12 @@ export class Runtime {
   private _finalizeList(list: Value_List): RuntimeResult<JSValue> {
     const resultList: JSValue = Array(list.length);
     for (const [i, elem] of list.entries()) {
-      let result = (() => {
-        if (Array.isArray(elem)) {
-          return this._finalizeList(elem);
-        } else {
-          return this._finalize(elem);
-        }
-      })();
+      let result: RuntimeResult<JSValue>;
+      if (Array.isArray(elem)) {
+        result = this._finalizeList(elem);
+      } else {
+        result = this._finalize(elem);
+      }
       if ("error" in result) return result;
       resultList[i] = result.ok;
     }

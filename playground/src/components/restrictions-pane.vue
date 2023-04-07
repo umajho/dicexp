@@ -16,8 +16,8 @@ input#restrictions-pane-modal.modal-toggle(type="checkbox")
       common-optional-number-input(v-model="maxCallsValue" v-model:enabled="maxCallsEnabled")
         //- 偷个懒
         span(title="直接或间接调用通常函数、调用闭包或捕获都会计入。") {{ "　　" }} 最多调用次数
-      common-optional-number-input(v-model="maxClosureCallDepthValue" v-model:enabled="maxClosureCallDepthEnabled")
-        | 最大闭包调用深度
+      //- common-optional-number-input(v-model="maxClosureCallDepthValue" v-model:enabled="maxClosureCallDepthEnabled")
+      //-   | 最大闭包调用深度
 
     .modal-action
       label.btn(for="restrictions-pane-modal") 确定
@@ -46,7 +46,8 @@ const maxCallsValue = ref(2000);
 const maxCallsEnabled = ref(false);
 
 const maxClosureCallDepthValue = ref(200);
-const maxClosureCallDepthEnabled = ref(true);
+// const maxClosureCallDepthEnabled = ref(true);
+const maxClosureCallDepthEnabled: Ref<false> = ref(false); // ref(true);
 
 const restrictions = computed((): EvaluationRestrictionsForWorker | null => {
   const r: EvaluationRestrictionsForWorker = {
@@ -57,9 +58,9 @@ const restrictions = computed((): EvaluationRestrictionsForWorker | null => {
       ? { softTimeout: { ms: softTimeoutValue.value } }
       : {}),
     ...(maxCallsEnabled.value ? { maxCalls: maxCallsValue.value } : {}),
-    ...(maxClosureCallDepthEnabled.value
-      ? { maxClosureCallDepth: maxClosureCallDepthValue.value }
-      : {}),
+    // ...(maxClosureCallDepthEnabled.value
+    //   ? { maxClosureCallDepth: maxClosureCallDepthValue.value }
+    //   : {}),
   };
   if (Object.keys(r).length === 0) return null;
   return r;
@@ -68,20 +69,20 @@ const restrictions = computed((): EvaluationRestrictionsForWorker | null => {
 watch(
   [restrictions, props],
   () => {
-    if (restrictions.value) {
-      const items = [];
-      if (props.mode === "single" && hardTimeoutEnabled.value) {
-        items.push(`硬性超时=${hardTimeoutValue.value}ms`);
-      }
-      if (softTimeoutEnabled.value) {
-        items.push(`软性超时=${softTimeoutValue.value}ms`);
-      }
-      if (maxCallsEnabled.value) {
-        items.push(`调用次数=${maxCallsValue.value}`);
-      }
-      if (maxClosureCallDepthEnabled.value) {
-        items.push(`最大闭包调用深度=${maxClosureCallDepthValue.value}`);
-      }
+    const items = [];
+    if (props.mode === "single" && hardTimeoutEnabled.value) {
+      items.push(`硬性超时=${hardTimeoutValue.value}ms`);
+    }
+    if (softTimeoutEnabled.value) {
+      items.push(`软性超时=${softTimeoutValue.value}ms`);
+    }
+    if (maxCallsEnabled.value) {
+      items.push(`调用次数=${maxCallsValue.value}`);
+    }
+    if (maxClosureCallDepthEnabled.value) {
+      items.push(`最大闭包调用深度=${maxClosureCallDepthValue.value}`);
+    }
+    if (items.length) {
       restrictionsText.value = "单次限制：" + items.join("，");
     } else {
       restrictionsText.value = "无限制";

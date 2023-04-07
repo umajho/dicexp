@@ -20,5 +20,6 @@ export interface Restrictions {
   /**
    * 最多允许闭包调用的深度。
    */
-  maxClosureCallDepth?: number;
+  // maxClosureCallDepth?: number;
+  maxClosureCallDepth?: never;
 }
