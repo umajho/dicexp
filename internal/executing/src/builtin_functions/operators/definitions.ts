@@ -1,8 +1,7 @@
 import { Unreachable } from "@dicexp/errors";
 import type { DeclarationListToDefinitionMap } from "../../regular_functions";
 import { runtimeError_illegalOperation } from "../../runtime_errors_impl";
-import type { RuntimeError, Value_List } from "../../runtime_values/mod";
-import { concretize } from "../../values_impl";
+import type { RuntimeError } from "../../runtime_values/mod";
 import type { builtinOperatorDeclarations } from "./declarations";
 
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
@@ -28,16 +27,6 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   ">/2": (_rtm, a, b) => ({ ok: { value: a > b, pure: true } }),
   "<=/2": (_rtm, a, b) => ({ ok: { value: a <= b, pure: true } }),
   ">=/2": (_rtm, a, b) => ({ ok: { value: a >= b, pure: true } }),
-
-  // TODO: 真正实现
-  "#/2": (rtm, n, expr) => {
-    const list: Value_List = Array(n);
-    for (let i = 0; i < n; i++) {
-      list[i] = { _yield: () => concretize(expr, rtm) };
-    }
-
-    return { ok: { value: list, pure: false } };
-  },
 
   // TODO: 真正实现
   "~/2": (rtm, lower, upper) => ({

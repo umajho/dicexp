@@ -497,9 +497,6 @@ describe("语意", () => {
     const longListOfXs = "[" + Array(1000).fill("x").join(", ") + "]";
     const table = exps
       .map((exp) => String.raw`${exp} |> \(x -> ${longListOfXs}).()`);
-    table.push(...[
-      String.raw`1000#\(x->x).(${SUPER_BIG_DIE})`,
-    ]);
 
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}: ${code}`, () => {
@@ -513,6 +510,10 @@ describe("语意", () => {
 
   describe("重复求值结果不同", () => {
     const table = exps.map((exp) => `1000#${exp}`);
+    table.push(...[
+      // 闭包内部的参数具名，但调用闭包并非具名
+      String.raw`1000#\(x->x).(${SUPER_BIG_DIE})`,
+    ]);
 
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}: ${code}`, () => {

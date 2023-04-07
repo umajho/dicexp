@@ -6,6 +6,7 @@ import {
   list,
   type Node,
   regularCall,
+  repetition,
   valueCall,
 } from "@dicexp/nodes";
 import { negateInteger, parseBoolean, parseInteger } from "./utils";
@@ -52,7 +53,14 @@ export class Transformer {
           return valueCall("function", left, argList);
         }
         let right = this._transform(children[2]);
-        if (op === "|>") {
+        if (op === "#") {
+          let bodyRaw = this.source.slice(children[2].from, children[2].to);
+          bodyRaw = bodyRaw.trim();
+          if (bodyRaw.startsWith("(") && bodyRaw.endsWith(")")) {
+            bodyRaw = bodyRaw.slice(1, bodyRaw.length - 1);
+          }
+          return repetition(left, right, bodyRaw);
+        } else if (op === "|>") {
           return this.transformPipeExpression(left, right);
         } else if (["d" /*, "d%"*/].indexOf(op) >= 0) {
           right = Transformer.handleAfterDiceRoll(right);

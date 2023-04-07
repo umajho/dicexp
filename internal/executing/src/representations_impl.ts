@@ -126,3 +126,14 @@ export function representCall(
     },
   }];
 }
+
+export function representRepetition(
+  count: LazyValue,
+  bodyRaw: string,
+): RuntimeRepresentation {
+  return [{
+    defer: () => {
+      return ["(", representLazyValue(count), "#", bodyRaw, ")"];
+    },
+  }];
+}

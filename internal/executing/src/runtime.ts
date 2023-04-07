@@ -1,6 +1,7 @@
 import type {
   Node,
   Node_RegularCall,
+  Node_Repetition,
   Node_ValueCall,
   NodeValue_Captured,
   NodeValue_Closure,
@@ -256,6 +257,8 @@ export class Runtime {
         return this._interpretRegularCall(scope, node);
       case "value_call":
         return this._interpretValueCall(scope, node);
+      case "repetition":
+        return this._interpretRepetition(scope, node);
       default:
         throw new Unreachable();
     }
@@ -330,6 +333,19 @@ export class Runtime {
     const callee = this._interpret(scope, valueCall.variable);
     const args = valueCall.args.map((arg) => this._interpret(scope, arg));
     return this._lazyValueFactory.callValue(callee, args, valueCall.style);
+  }
+
+  private _interpretRepetition(
+    scope: Scope,
+    repetition: Node_Repetition,
+  ): LazyValue {
+    const count = this._interpret(scope, repetition.count);
+    return this._lazyValueFactory.repetition(
+      count,
+      repetition.body,
+      repetition.bodyRaw,
+      scope,
+    );
   }
 }
 

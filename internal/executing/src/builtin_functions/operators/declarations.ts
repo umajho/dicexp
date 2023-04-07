@@ -97,17 +97,6 @@ export const builtinOperatorDeclarations = ([
   },
 
   {
-    name: "#",
-    isOperator: true,
-    parameters: [
-      { label: "n", type: "integer", description: "反复次数" },
-      { label: "expr", type: "$lazy", description: "要反复求值的表达式" },
-    ],
-    returnValue: { type: "list" }, // TODO: yielded-list
-    description: "反复表达式 expr n 次，汇成长度为 n 的列表。",
-  },
-
-  {
     name: "~",
     isOperator: true,
     parameters: [

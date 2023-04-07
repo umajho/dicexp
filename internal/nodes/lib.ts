@@ -5,6 +5,7 @@ interface _Node {
 export type Node =
   | Node_RegularCall
   | Node_ValueCall
+  | Node_Repetition
   | Node_Value
   | string; // 标识符
 
@@ -47,6 +48,28 @@ export function valueCall(
   args: Node[],
 ): Node_ValueCall {
   return { kind: "value_call", style, variable, args };
+}
+
+export interface Node_Repetition extends _Node {
+  kind: "repetition";
+
+  count: Node;
+
+  body: Node;
+  bodyRaw: string;
+}
+
+export function repetition(
+  count: Node,
+  body: Node,
+  bodyRaw: string,
+): Node_Repetition {
+  return {
+    kind: "repetition",
+    count,
+    body,
+    bodyRaw,
+  };
 }
 
 export interface Node_Value extends _Node {

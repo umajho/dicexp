@@ -1,26 +1,29 @@
 import { Unreachable } from "@dicexp/errors";
 import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
-import type {
-  Concrete,
-  LazyValue,
-  LazyValueWithMemo,
-  RuntimeError,
-  RuntimeRepresentation,
-  RuntimeResult,
-  Value,
-  Value_Callable,
-  Value_List,
+import {
+  type Concrete,
+  type LazyValue,
+  type LazyValueWithMemo,
+  makeRuntimeError,
+  type RuntimeError,
+  type RuntimeRepresentation,
+  type RuntimeResult,
+  type Value,
+  type Value_Callable,
+  type Value_List,
 } from "./runtime_values/mod";
 import {
   representCall,
   representCaptured,
   representError,
   representLazyValue,
+  representRepetition,
   representResult,
   representValue,
 } from "./representations_impl";
 import type { RegularFunction, RuntimeProxy, Scope } from "./runtime";
 import {
+  getTypeDisplayName,
   runtimeError_duplicateClosureParameterNames,
   runtimeError_limitationExceeded,
   runtimeError_unknownRegularFunction,
@@ -341,6 +344,40 @@ export class LazyValueFactory {
           value,
           volatile: concrete.volatile,
           representation: ["(", ...calling, "=>", representResult(value), ")"],
+        };
+      },
+    };
+  }
+
+  repetition(
+    count: LazyValue,
+    body: Node,
+    bodyRaw: string,
+    scope: Scope,
+  ): LazyValue {
+    const representation = representRepetition(count, bodyRaw);
+    return {
+      _yield: (): Concrete => {
+        const countResult = concretize(count, this.runtime).value;
+        if ("error" in countResult) {
+          return this.error(countResult.error, representation).memo;
+        }
+        const countValue = countResult.ok;
+        if (typeof countValue != "number") {
+          const typeName = getTypeDisplayName(getTypeNameOfValue(countValue));
+          const errMsg = `反复次数期待「整数」，实际类型为「${typeName}」`;
+          return this.error(makeRuntimeError(errMsg), representation).memo;
+        }
+
+        // TODO: 真正实现
+        const list: Value_List = Array(countValue);
+        for (let i = 0; i < countValue; i++) {
+          list[i] = this.runtime.interpret(scope, body);
+        }
+        return {
+          value: { ok: list },
+          volatile: true,
+          representation,
         };
       },
     };
