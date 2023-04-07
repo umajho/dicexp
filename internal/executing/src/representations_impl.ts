@@ -87,12 +87,14 @@ export function representCaptured(
 
 export function representCall(
   callee: RuntimeRepresentation,
-  args: LazyValue[],
+  args_: LazyValue[],
   kind: "regular" | "value",
   style: RegularCallStyle | ValueCallStyle,
 ): RuntimeRepresentation {
   return [{
     defer: () => {
+      let args = args_;
+
       if (style === "operator") {
         if (args.length === 1) {
           const leftRepresentation = representLazyValue(args[0]);

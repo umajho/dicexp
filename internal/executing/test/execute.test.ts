@@ -432,10 +432,13 @@ describe("运算符", () => {
     });
 
     describe("#/2", () => {
-      describe("将右侧内容在 eval 前重复左侧次", () => {
-        it("重复字面量", () => {
+      describe("将右侧内容在 eval 前反复左侧次", () => {
+        it("反复字面量", () => {
           assertExecutionOk("3#10", Array(3).fill(10));
         });
+      });
+      describe("反复数组取值正常", () => {
+        theyAreOk([["10#([1]|>at(0))", Array(10).fill(1)]]);
       });
 
       // 测试 “重复求值结果不同” 放在了 “语意” 那里
