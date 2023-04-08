@@ -4,7 +4,7 @@ import { Unreachable } from "@dicexp/errors";
 import { parse, ParsingResult } from "@dicexp/parsing";
 import { execute, ExecutionResult } from "../lib";
 
-const codesSimple = [
+const codes = [
   "~10",
   "1~10",
   "d9007199254740991",
@@ -50,7 +50,7 @@ const codesSimple = [
   })(),
 ];
 
-for (const code of codesSimple) {
+for (const code of codes) {
   let parseResult: ParsingResult;
   try {
     parseResult = parse(code);
