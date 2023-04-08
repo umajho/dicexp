@@ -96,7 +96,7 @@ export function asInteger(value: Value): number | null {
   }
   if (
     typeof value === "object" && !Array.isArray(value) &&
-    value.type === "integer$sum_extendable"
+    "_sum" in value
   ) {
     return value._sum();
   }
@@ -110,7 +110,7 @@ export interface Value_List$Extendable extends Value_Extendable {
 
 export function asList(value: Value): Value_List | null {
   if (Array.isArray(value)) return value;
-  if (typeof value === "object" && value.type === "list$extendable") {
+  if (typeof value === "object" && "_asList" in value) {
     return value._asList();
   }
   return null;
@@ -120,7 +120,7 @@ export function asPlain(
   value: Value,
 ): Exclude<Value, Value_Integer$SumExtendable | Value_List$Extendable> {
   if (typeof value !== "object" || Array.isArray(value)) return value;
-  if (value.type === "integer$sum_extendable") return value._sum();
-  if (value.type === "list$extendable") return value._asList();
+  if ("_sum" in value) return value._sum();
+  if ("_asList" in value) return value._asList();
   return value;
 }
