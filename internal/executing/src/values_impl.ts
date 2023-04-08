@@ -144,20 +144,7 @@ export class LazyValueFactory {
   }
 
   private _stabilizeList(list: Value_List): Value_List {
-    return list.map((el) => {
-      if (el.stabilized) return el;
-
-      const concrete = concretize(el, this.runtime);
-      if ("error" in concrete.value) {
-        return { memo: concrete, stabilized: true };
-      }
-
-      if (Array.isArray(concrete.value.ok)) {
-        const list = this.list(this._stabilizeList(concrete.value.ok));
-        return { ...list, stabilized: true };
-      }
-      return { memo: concrete, stabilized: true };
-    });
+    return list.map((el) => this.stabilized(el));
   }
 
   list(list: LazyValue[]): LazyValueWithMemo {

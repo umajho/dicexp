@@ -441,7 +441,7 @@ describe("运算符", () => {
         theyAreOk([["10#([1]|>at(0))", Array(10).fill(1)]]);
       });
 
-      // 测试 “重复求值结果不同” 放在了 “语意” 那里
+      // 测试 “重复求值结果不同” 放在了 “语义” 那里
     });
 
     describe("d/1", () => {
@@ -480,7 +480,7 @@ describe("运算符", () => {
   });
 });
 
-describe("语意", () => {
+describe("语义", () => {
   const SUPER_BIG_DIE = `d1_000_000_000`; // 大到让巧合可以忽略不计
 
   const exps = [
@@ -506,6 +506,15 @@ describe("语意", () => {
         assert.deepEqual((new Set(resultFlatten)).size, 1);
       });
     }
+
+    it.todo("不会致使死循环", () => {
+      // 来自 bench 中的最后一个例子
+      // TODO: 最小复现
+      const yCombinator = String
+        .raw`\(fn -> \(f -> fn.(\(x -> f.(f).(x)))).(\(f -> fn.(\(x -> f.(f).(x))))))`;
+      const code = String
+        .raw`\(Y, g -> Y.(g).([0, []])).(${yCombinator}, \(f -> \(nl -> if((nl|>at(0)) == 100, nl|>at(1), f.([(nl|>at(0))+1, append((nl|>at(1)), nl|>at(0))])))))`;
+    });
   });
 
   describe("重复求值结果不同", () => {
