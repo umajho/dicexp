@@ -637,7 +637,7 @@ describe("限制", () => {
       });
     });
 
-    describe.todo("闭包调用深度", () => { // 功能不靠谱，暂时屏蔽掉
+    describe.skip("闭包调用深度", () => { // 功能不靠谱，暂时屏蔽掉
       // const restrictions: Restrictions = { maxClosureCallDepth: 1 };
       // theyAreOk([String.raw`\(x -> x).(1)`], { restrictions });
       // describe("超过深度则返回运行时错误", () => {
