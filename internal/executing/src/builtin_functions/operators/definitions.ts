@@ -1,7 +1,10 @@
 import { Unreachable } from "@dicexp/errors";
 import type { DeclarationListToDefinitionMap } from "../../regular_functions";
 import { runtimeError_illegalOperation } from "../../runtime_errors_impl";
-import type { RuntimeError } from "../../runtime_values/mod";
+import type {
+  RuntimeError,
+  Value_Integer$SumExtendable,
+} from "../../runtime_values/mod";
 import type { builtinOperatorDeclarations } from "./declarations";
 
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
@@ -28,7 +31,6 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   "<=/2": (_rtm, a, b) => ({ ok: { value: a <= b, pure: true } }),
   ">=/2": (_rtm, a, b) => ({ ok: { value: a >= b, pure: true } }),
 
-  // TODO: 真正实现
   "~/2": (rtm, lower, upper) => ({
     ok: { value: rtm.random.integer(lower, upper), pure: false },
   }),
@@ -80,13 +82,39 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     const errRange = ensureUpperBound("d", 1, 1, x);
     if (errRange) return { error: errRange };
 
-    let value = 0;
-    for (let i = 0; i < n; i++) {
-      value += rtm.random.integer(1, x);
-    }
-    return { ok: { value, pure: false } };
+    const underlying: number[] = Array(n);
+    let sumResult: number | null = null;
+    const sum: Value_Integer$SumExtendable = {
+      type: "integer$sum_extendable",
+      nominalLength: n,
+      _at: (index) => {
+        let current = underlying[index];
+        if (current === undefined) {
+          current = rtm.random.integer(1, x);
+          underlying[index] = current;
+        }
+        return rtm.lazyValueFactory.literal(current);
+      },
+      _sum: () => {
+        if (sumResult !== null) return sumResult;
+        for (let i = 0; i < n; i++) {
+          if (underlying[i] === undefined) {
+            underlying[i] = rtm.random.integer(1, x);
+          }
+        }
+        sumResult = underlying.slice(0, n).reduce((acc, cur) => acc + cur);
+        return sumResult;
+      },
+    };
+
+    return { ok: { value: sum, pure: false } };
   },
-  "d/1": (rtm, x) => builtinOperatorDefinitions["d/2"](rtm, 1, x),
+  "d/1": (rtm, x) => {
+    const errRange = ensureUpperBound("d", 1, 1, x);
+    if (errRange) return { error: errRange };
+
+    return builtinOperatorDefinitions["~/2"](rtm, 1, x);
+  },
 
   "not/1": (_rtm, a) => ({ ok: { value: !a, pure: true } }),
 };

@@ -12,6 +12,7 @@ import {
   type Value,
   type Value_Callable,
   type Value_List,
+  type Value_List$Extendable,
 } from "./runtime_values/mod";
 import {
   representCall,
@@ -357,11 +358,30 @@ export class LazyValueFactory {
           return this.error(makeRuntimeError(errMsg), representation).memo;
         }
 
-        // TODO: 真正实现
-        const list: Value_List = Array(countValue);
-        for (let i = 0; i < countValue; i++) {
-          list[i] = this.runtime.interpret(scope, body);
-        }
+        const underlying: Value_List = Array(countValue);
+        const list: Value_List$Extendable = {
+          type: "list$extendable",
+          nominalLength: countValue,
+          _at: (index) => {
+            let current = underlying[index];
+            if (!current) {
+              const newlyInterpreted = this.runtime.interpret(scope, body);
+              current = this.stabilized(newlyInterpreted);
+              underlying[index] = current;
+            }
+            return current;
+          },
+          _asList: () => {
+            for (let i = 0; i < countValue; i++) {
+              if (!underlying[i]) {
+                const newlyInterpreted = this.runtime.interpret(scope, body);
+                underlying[i] = this.stabilized(newlyInterpreted);
+              }
+            }
+            return underlying.slice(0, countValue);
+          },
+        };
+
         return {
           value: { ok: list },
           volatile: true,
@@ -394,7 +414,7 @@ export function getTypeNameOfValue(v: Value) {
       return "boolean";
     default:
       if (Array.isArray(v)) return "list";
-      if (v.type === "callable") return "callable";
+      return v.type;
       throw new Unreachable();
   }
 }

@@ -6,11 +6,13 @@ import {
   runtimeError_wrongArity,
   type TypeMismatchKind,
 } from "../runtime_errors_impl";
-import type {
-  LazyValue,
-  RuntimeError,
-  RuntimeResult,
-  Value,
+import {
+  asInteger,
+  asList,
+  type LazyValue,
+  type RuntimeError,
+  type RuntimeResult,
+  type Value,
 } from "../runtime_values/mod";
 import {
   concretize,
@@ -104,10 +106,34 @@ export function unwrapValue(
   const concrete = concretize(value, rtm);
   if ("error" in concrete.value) return concrete.value;
 
-  const errType = checkType(spec, getTypeNameOfValue(concrete.value.ok), opts);
-  if (errType) return { error: errType };
+  const adapted = tryAdaptType(spec, concrete.value.ok, opts);
+  if ("error" in adapted) {
+    return { error: adapted.error };
+  }
 
-  return { ok: { value: concrete.value.ok, volatile: concrete.volatile } };
+  return { ok: { value: adapted.ok, volatile: concrete.volatile } };
+}
+
+function tryAdaptType(
+  spec: Exclude<ArgumentSpec, "lazy">,
+  value: Value,
+  opts: CheckTypeOptions = {},
+): RuntimeResult<Value> {
+  let typeName: ValueTypeName = getTypeNameOfValue(value);
+  if (
+    typeName === "integer$sum_extendable" && spec !== "integer$sum_extendable"
+  ) {
+    value = asInteger(value)!;
+    typeName = "integer";
+  } else if (typeName === "list$extendable" && spec !== "list$extendable") {
+    value = asList(value)!;
+    typeName = "list";
+  }
+
+  const error = checkType(spec, typeName, opts);
+  if (error) return { error };
+
+  return { ok: value };
 }
 
 interface CheckTypeOptions {

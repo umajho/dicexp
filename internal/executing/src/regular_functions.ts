@@ -3,6 +3,8 @@ import type {
   LazyValue,
   RuntimeResult,
   Value_Callable,
+  Value_Integer$SumExtendable,
+  Value_List$Extendable,
 } from "./runtime_values/mod";
 import type { ValueTypeName } from "./values_impl";
 
@@ -170,6 +172,8 @@ type BasicTypeSpecToTypeMap = {
   boolean: boolean;
   list: LazyValue[];
   callable: Value_Callable;
+  list$extendable: Value_List$Extendable;
+  integer$sum_extendable: Value_Integer$SumExtendable;
 };
 
 /**

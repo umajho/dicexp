@@ -103,7 +103,7 @@ export const builtinOperatorDeclarations = ([
       { label: "lower", type: "integer", description: "最小值，大于 0" },
       { label: "upper", type: "integer", description: "最大值，不小于最小值" },
     ],
-    returnValue: { type: "integer" }, // TODO: yielder
+    returnValue: { type: "integer" },
     description: "随机生成一个最小值与最大值之间（包含两端）的整数。",
   },
   {
@@ -112,7 +112,7 @@ export const builtinOperatorDeclarations = ([
     parameters: [
       { label: "upper", type: "integer", description: "最大值，大于 0" },
     ],
-    returnValue: { type: "integer" }, // TODO: yielder
+    returnValue: { type: "integer" },
     description:
       "随机生成一个 1 与最大值之间（包含两端）的整数。等价于 `1~<upper>`",
   },
@@ -204,7 +204,7 @@ export const builtinOperatorDeclarations = ([
       { label: "n", type: "integer", description: "投掷次数，大于 0" },
       { label: "x", type: "integer", description: "面数，大于 0" },
     ],
-    returnValue: { type: "integer" }, // TODO: yielder
+    returnValue: { type: "integer$sum_extendable" },
     description: "投掷 n 个 x 面骰子，获得点数之和。",
   },
   {
@@ -213,7 +213,7 @@ export const builtinOperatorDeclarations = ([
     parameters: [
       { label: "x", type: "integer", description: "面数，大于 0" },
     ],
-    returnValue: { type: "integer" }, // TODO: yielder
+    returnValue: { type: "integer" },
     description: "投掷 1 个 x 面骰子，获得其点数。",
   },
 

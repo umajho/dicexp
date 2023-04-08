@@ -46,7 +46,9 @@ export type Value =
   | number
   | boolean
   | Value_List
-  | Value_Callable;
+  | Value_Callable
+  | Value_List$Extendable
+  | Value_Integer$SumExtendable;
 
 export type Value_List = LazyValue[];
 
@@ -75,4 +77,50 @@ export function asCallable(
     return value;
   }
   return null;
+}
+
+export interface Value_Extendable {
+  nominalLength: number;
+  _at: (index: number) => LazyValue;
+}
+
+export interface Value_Integer$SumExtendable extends Value_Extendable {
+  type: "integer$sum_extendable";
+
+  _sum(): number;
+}
+
+export function asInteger(value: Value): number | null {
+  if (typeof value === "number") {
+    return value;
+  }
+  if (
+    typeof value === "object" && !Array.isArray(value) &&
+    value.type === "integer$sum_extendable"
+  ) {
+    return value._sum();
+  }
+  return null;
+}
+
+export interface Value_List$Extendable extends Value_Extendable {
+  type: "list$extendable";
+  _asList: () => Value_List;
+}
+
+export function asList(value: Value): Value_List | null {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "object" && value.type === "list$extendable") {
+    return value._asList();
+  }
+  return null;
+}
+
+export function asPlain(
+  value: Value,
+): Exclude<Value, Value_Integer$SumExtendable | Value_List$Extendable> {
+  if (typeof value !== "object" || Array.isArray(value)) return value;
+  if (value.type === "integer$sum_extendable") return value._sum();
+  if (value.type === "list$extendable") return value._asList();
+  return value;
 }

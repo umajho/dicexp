@@ -22,13 +22,14 @@ import type { Restrictions } from "./restrictions";
 import { finalizeRepresentation } from "./representations_impl";
 import { RandomGenerator, type RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
-import type {
-  Concrete,
-  LazyValue,
-  Representation,
-  RuntimeError,
-  RuntimeResult,
-  Value_List,
+import {
+  asPlain,
+  type Concrete,
+  type LazyValue,
+  type Representation,
+  type RuntimeError,
+  type RuntimeResult,
+  type Value_List,
 } from "./runtime_values/mod";
 
 export interface RuntimeOptions {
@@ -194,17 +195,18 @@ export class Runtime {
     if ("error" in concrete.value) {
       return concrete.value;
     }
-    const okValue = concrete.value.ok;
+    let okValue = asPlain(concrete.value.ok);
 
     switch (typeof okValue) {
       case "number":
       case "boolean":
         return { ok: okValue };
-      default:
+      default: {
         if (Array.isArray(okValue)) return this._finalizeList(okValue);
         return {
           error: runtimeError_badFinalResult(getTypeNameOfValue(okValue)),
         };
+      }
     }
   }
 

@@ -1,13 +1,14 @@
 import { Unreachable } from "@dicexp/errors";
 import type { RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import { intersperse } from "./utils";
-import type {
-  LazyValue,
-  Representation,
-  RuntimeError,
-  RuntimeRepresentation,
-  RuntimeResult,
-  Value,
+import {
+  asPlain,
+  type LazyValue,
+  type Representation,
+  type RuntimeError,
+  type RuntimeRepresentation,
+  type RuntimeResult,
+  type Value,
 } from "./runtime_values/mod";
 
 export function finalizeRepresentation(
@@ -59,6 +60,7 @@ export function representError(error: RuntimeError): RuntimeRepresentation {
 }
 
 export function representValue(value: Value): RuntimeRepresentation {
+  value = asPlain(value);
   if (typeof value === "number" || typeof value === "boolean") {
     return [String(value)];
   }
