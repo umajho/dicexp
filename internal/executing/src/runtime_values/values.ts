@@ -57,3 +57,22 @@ export interface Value_Callable {
 
   representation: RuntimeRepresentation;
 }
+
+export function callCallable(
+  callable: Value_Callable,
+  args: LazyValue[],
+): RuntimeResult<LazyValue> {
+  return callable._call(args);
+}
+
+export function asCallable(
+  value: Value,
+): Value_Callable | null {
+  if (
+    typeof value === "object" && "type" in value &&
+    value.type === "callable"
+  ) {
+    return value;
+  }
+  return null;
+}

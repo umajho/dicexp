@@ -1,6 +1,7 @@
 import { Unreachable } from "@dicexp/errors";
 import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
+  asCallable,
   type Concrete,
   type LazyValue,
   type LazyValueWithMemo,
@@ -369,25 +370,6 @@ export class LazyValueFactory {
       },
     };
   }
-}
-
-export function callCallable(
-  callable: Value_Callable,
-  args: LazyValue[],
-): RuntimeResult<LazyValue> {
-  return callable._call(args);
-}
-
-function asCallable(
-  value: Value,
-): Value_Callable | null {
-  if (
-    typeof value === "object" && "type" in value &&
-    value.type === "callable"
-  ) {
-    return value;
-  }
-  return null;
 }
 
 function getFunctionFromScope(

@@ -2,13 +2,13 @@ import type { DeclarationListToDefinitionMap } from "../../regular_functions";
 import type { RuntimeProxy } from "../../runtime";
 import { getTypeDisplayName } from "../../runtime_errors_impl";
 import {
+  callCallable,
   makeRuntimeError,
   type RuntimeResult,
   type Value_Callable,
   type Value_List,
 } from "../../runtime_values/mod";
 import {
-  callCallable,
   concretize,
   getTypeNameOfValue,
   type ValueTypeName,
