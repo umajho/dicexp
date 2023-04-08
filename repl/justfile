@@ -1,5 +1,6 @@
 pre-run:
 	just -f ../justfile lezer build # 语法
+	just -f ../justfile dicexp build
 
 run: pre-run
 	rollup -c
