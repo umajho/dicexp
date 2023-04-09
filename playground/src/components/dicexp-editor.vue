@@ -67,7 +67,7 @@ onMounted(() => {
     extensions: [
       minimalSetup,
       EditorView.lineWrapping,
-      bracketMatching(),
+      bracketMatching({ brackets: "()[]" }),
       closeBrackets(),
       oneDark,
       singleLine,
