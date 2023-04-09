@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import type { RuntimeError } from "dicexp";
+import type { RuntimeError } from "dicexp/internal";
 
 const props = defineProps<{
   kind: string;

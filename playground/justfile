@@ -1,9 +1,12 @@
-build:
+pre-build:
+	just -f ../justfile lezer build # 语法
+
+build: pre-build
 	pnpm run build
 	gzip -k dist/**/*.js
 	brotli -k dist/**/*.js
 
-test:
+test: pre-build
 	pnpm run type-check
 
 serve: build serve-no-build
