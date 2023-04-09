@@ -159,9 +159,12 @@ commaSeparated<item> {
   @precedence{ /*keywordDRemainder,*/ keywordD }
 
   identifier {
-    ($[_a-ce-zA-Z] $[_a-zA-Z0-9]*) |
-    ("d" $[_a-zA-Z] $[_a-zA-Z0-9]*)
+    ((identifierStartExcludingD | identifierStartWithD) identifierContinue*)
   }
+
+  identifierStartExcludingD { $[_a-ce-zA-Z] }
+  identifierStartWithD { "d" $[_a-zA-Z] }
+  identifierContinue { $[_a-zA-Z0-9] }
 
   @precedence { identifier, /*keywordDRemainder,*/ keywordD }
 

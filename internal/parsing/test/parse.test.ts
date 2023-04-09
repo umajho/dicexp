@@ -181,8 +181,11 @@ describe("标识符", () => {
   });
 
   describe("不能把单独的 `d` 作为标识符", () => {
-    it("`d` 不能作为匿名函数形式参数", () => {
-      assertBad(String.raw`\(d -> 1).(1)`);
+    describe("`d` 不能作为匿名函数形式参数", () => {
+      theyAreBad([
+        String.raw`\(d -> d).(1)`,
+        String.raw`\(d1 -> d1).(1)`,
+      ]);
     });
     describe("更长的名称则没问题", () => {
       const table = [
@@ -194,7 +197,7 @@ describe("标识符", () => {
       ];
       for (const [i, id] of table.entries()) {
         it(`case ${i + 1}: ${id}`, () => {
-          parse(String.raw`\(${id} -> 1).(1)`);
+          parse(String.raw`\(${id} -> ${id}).(1)`);
         });
       }
     });
