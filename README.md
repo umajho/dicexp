@@ -6,6 +6,8 @@
 
 WIP / DO NOT USE.
 
+Playground: https://umajho.github.io/dicexp/
+
 ## 骰子表达式 Dicexp
 
 简单的介绍文档见[这里](./docs/Dicexp.md)。
