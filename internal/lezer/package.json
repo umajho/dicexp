@@ -8,6 +8,7 @@
   "type": "module",
   "sideEffects": false,
   "dependencies": {
-    "@lezer/highlight": "^1.1.3"
+    "@lezer/highlight": "^1.1.3",
+    "@lezer/lr": "^1.3.3"
   }
 }

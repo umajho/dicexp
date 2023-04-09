@@ -153,21 +153,6 @@ commaSeparated<item> {
   OpenSBracket[closedBy=CloseSBracket] { "[" }
   CloseSBracket[openedBy=OpenSBracket] { "]" }
 
-  keywordD { "d" }
-  // keywordDRemainder { "d%" }
-
-  @precedence{ /*keywordDRemainder,*/ keywordD }
-
-  identifier {
-    ((identifierStartExcludingD | identifierStartWithD) identifierContinue*)
-  }
-
-  identifierStartExcludingD { $[_a-ce-zA-Z] }
-  identifierStartWithD { "d" $[_a-zA-Z] }
-  identifierContinue { $[_a-zA-Z0-9] }
-
-  @precedence { identifier, /*keywordDRemainder,*/ keywordD }
-
   LiteralInteger {
     $[0-9]+ ("_" $[0-9]+)*
   }
@@ -175,6 +160,11 @@ commaSeparated<item> {
   ws { $[ \t\r\n] }
 }
 
+@external tokens identifierTokenizer from "./tokens"  { 
+  identifier, 
+  keywordD
+}
+
 @skip {
-  ws+
+  ws
 }
