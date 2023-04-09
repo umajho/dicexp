@@ -2,8 +2,10 @@ import { ExternalTokenizer } from "@lezer/lr";
 
 import { identifier, keywordD } from "./dicexp.grammar.term";
 
-const identifierStart = /[_a-zA-Z]/;
-const identifierContinue = /[_a-zA-Z0-9]/;
+// 参见：https://unicode.org/reports/tr31/
+// 另可参考：https://hexdocs.pm/elixir/1.12.3/unicode-syntax.html
+const identifierStart = /[\p{ID_Start}_]/u;
+const identifierContinue = /\p{ID_Continue}/u; // "_" 在里边
 
 const code_d = "d".charCodeAt(0);
 const code_0 = "0".charCodeAt(0);

@@ -221,6 +221,12 @@ describe("标识符", () => {
       });
     }
   });
+
+  describe("Unicode", () => {
+    theyAreOk([
+      String.raw`\(参数 -> 函数(参数)).(甲#乙d丙)`,
+    ]);
+  });
 });
 
 describe("捕获", () => {
