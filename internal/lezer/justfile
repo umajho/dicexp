@@ -1,4 +1,4 @@
 compile-grammar:
-	./scripts/compile-lezer.ts ./src/dicexp.grammar
+	node scripts/compile-lezer.js ./src/dicexp.grammar
 
 build: compile-grammar

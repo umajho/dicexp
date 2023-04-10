@@ -33,17 +33,15 @@ jobs:
         with:
           node-version: "19"
           cache: pnpm
-      - name: Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Setup Just
         uses: extractions/setup-just@v1
       - name: Install dependencies
         run: |
-          cd playground
+          cd internal/lezer
+          pnpm i
+          cd ${{ github.workspace }}/playground
           pnpm i
       - name: Build playground
         run: |
