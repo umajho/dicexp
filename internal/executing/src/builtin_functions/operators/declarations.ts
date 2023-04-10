@@ -26,10 +26,14 @@ export const builtinOperatorDeclarations = ([
     name: "==",
     isOperator: true,
     parameters: [
-      { label: "a", type: ["integer", "boolean"], description: "第一个值" },
+      {
+        label: "a",
+        type: new Set(["integer", "boolean"]),
+        description: "第一个值",
+      },
       {
         label: "b",
-        type: ["integer", "boolean"],
+        type: new Set(["integer", "boolean"]),
         description: "第二个值，类型与第一个值相同",
       },
     ],
@@ -42,10 +46,14 @@ export const builtinOperatorDeclarations = ([
     name: "!=",
     isOperator: true,
     parameters: [
-      { label: "a", type: ["integer", "boolean"], description: "第一个值" },
+      {
+        label: "a",
+        type: new Set(["integer", "boolean"]),
+        description: "第一个值",
+      },
       {
         label: "b",
-        type: ["integer", "boolean"],
+        type: new Set(["integer", "boolean"]),
         description: "第二个值，类型与第一个值相同",
       },
     ],

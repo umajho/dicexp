@@ -63,7 +63,7 @@ interface DeclarationParameter {
 type DeclarationParameterTypeSpec =
   | "$lazy"
   | ValueTypeName
-  | readonly ValueTypeName[]
+  | Set<ValueTypeName>
   | "*";
 
 /**
@@ -144,17 +144,8 @@ type ParameterTypeSpecMap =
  */
 type ParameterTypeSpecToType<T> = T extends keyof ParameterTypeSpecMap
   ? ParameterTypeSpecMap[T]
-  : (T extends readonly ValueTypeName[] ? BasicTypeNamesToTypes<T>[number]
+  : (T extends Set<infer T extends ValueTypeName> ? BasicTypeSpecToTypeMap[T]
     : never);
-
-/**
- * 将基础类型（对应 `ValueTypeName`）的字符串常量转换成对应的类型。
- *
- * 如果不把这个单独从 `ParameterTypeSpecToType` 提取出来的话，类型会出问题。
- */
-type BasicTypeNamesToTypes<T extends readonly ValueTypeName[]> = {
-  [P in keyof T]: BasicTypeSpecToTypeMap[T[P]];
-};
 
 /**
  * 将返回值的类型规格转换成对应的类型。

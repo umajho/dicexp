@@ -48,7 +48,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   },
   // ...
   "any?/1": (rtm, list) => {
-    const result = unwrapListOneOf(["boolean"], list, rtm);
+    const result = unwrapListOneOf(new Set(["boolean"]), list, rtm);
     if ("error" in result) return result;
     return {
       ok: {
@@ -57,7 +57,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     };
   },
   "sort/1": (rtm, list) => {
-    const result = unwrapListOneOf(["integer", "boolean"], list, rtm);
+    const result = unwrapListOneOf(new Set(["integer", "boolean"]), list, rtm);
     if ("error" in result) return result;
     const listJs = result.ok.values as number[] | boolean[];
     const sortedList = listJs.sort((a, b) => +a - +b);

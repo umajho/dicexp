@@ -24,7 +24,7 @@ export type ArgumentSpec =
   | "lazy"
   | ValueTypeName
   | "*"
-  | ValueTypeName[];
+  | Set<ValueTypeName>;
 
 export type RegularFunctionArgument = LazyValue | Exclude<Value, RuntimeError>;
 
@@ -144,9 +144,9 @@ function checkType(
   opts: CheckTypeOptions = {},
 ): null | RuntimeError {
   if (expected === "*") return null;
-  if (Array.isArray(expected)) {
-    if (expected.findIndex((x) => testType(x, actual)) >= 0) return null;
-  } else if (testType(expected, actual)) {
+  if (expected instanceof Set) {
+    if (expected.has(actual)) return null;
+  } else if (expected === actual) {
     return null;
   }
   if (opts.nth !== undefined) {
@@ -155,10 +155,6 @@ function checkType(
   } else {
     return runtimeError_typeMismatch(expected, actual, opts.kind ?? null);
   }
-}
-
-function testType(expected: ValueTypeName, actual: ValueTypeName) {
-  return expected === actual;
 }
 
 /**
@@ -171,12 +167,10 @@ export function flattenListAll(
   rtm: RuntimeProxy,
 ): RuntimeResult<{ values: Value[] }> {
   if (spec !== "*") {
-    if (Array.isArray(spec)) {
-      if (spec[spec.length - 1] !== "list") {
-        spec = [...spec, "list"];
-      }
+    if (spec instanceof Set) {
+      spec.add("list");
     } else {
-      spec = [spec, spec];
+      spec = new Set([spec, "list"]);
     }
   }
 
@@ -208,7 +202,7 @@ export function flattenListAll(
  * @returns
  */
 export function unwrapListOneOf(
-  specOneOf: ValueTypeName[],
+  specOneOf: Set<ValueTypeName>,
   list: LazyValue[],
   rtm: RuntimeProxy,
 ): RuntimeResult<{ values: Value[] }> {

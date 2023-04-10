@@ -32,11 +32,11 @@ export function runtimeError_wrongArity(
 export type TypeMismatchKind = null | "list-inconsistency";
 
 export function runtimeError_typeMismatch(
-  expectedType: ValueTypeName | ValueTypeName[],
+  expectedType_: ValueTypeName | Set<ValueTypeName>,
   actualType: ValueTypeName,
   kind: TypeMismatchKind = null,
 ): RuntimeError {
-  expectedType = Array.isArray(expectedType) ? expectedType : [expectedType];
+  const expectedType = expectedTypeArray(expectedType_);
 
   const expected = expectedType.map((x) => `「${getTypeDisplayName(x)}」`).join(
     "",
@@ -57,10 +57,10 @@ export function runtimeError_typeMismatch(
 
 export function runtimeError_callArgumentTypeMismatch(
   position: number,
-  expectedType: ValueTypeName | ValueTypeName[],
+  expectedType_: ValueTypeName | Set<ValueTypeName>,
   actualType: ValueTypeName,
 ): RuntimeError {
-  expectedType = Array.isArray(expectedType) ? expectedType : [expectedType];
+  const expectedType = expectedTypeArray(expectedType_);
 
   const expected = expectedType.map((x) => `「${getTypeDisplayName(x)}」`)
     .join("");
@@ -110,6 +110,12 @@ export function runtimeError_badFinalResult(
   return makeRuntimeError(
     `「${getTypeDisplayName(typeName)}」不能作为最终结果`,
   );
+}
+
+function expectedTypeArray(
+  expectedType_: ValueTypeName | Set<ValueTypeName>,
+): ValueTypeName[] {
+  return expectedType_ instanceof Set ? [...expectedType_] : [expectedType_];
 }
 
 export function getTypeDisplayName(name: ValueTypeName) {
