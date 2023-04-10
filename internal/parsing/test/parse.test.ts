@@ -156,8 +156,8 @@ describe("标识符", () => {
   describe("一般", () => {
     const table: { id: string; var: boolean; fn: boolean }[] = [
       { id: "foo", var: true, fn: true },
-      { id: "foo!", var: false, fn: true },
-      { id: "foo?", var: false, fn: true },
+      { id: "foo!", var: false, fn: false },
+      { id: "foo?", var: true, fn: true },
       { id: "_a1", var: true, fn: true },
       { id: "1a", var: false, fn: false },
     ];

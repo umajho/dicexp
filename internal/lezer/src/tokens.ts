@@ -10,6 +10,7 @@ const identifierContinue = /\p{ID_Continue}/u; // "_" 在里边
 const code_d = "d".charCodeAt(0);
 const code_0 = "0".charCodeAt(0);
 const code_9 = "9".charCodeAt(0);
+const code_qm = "?".charCodeAt(0);
 
 export const identifierTokenizer = new ExternalTokenizer((input, _stack) => {
   if (input.next === -1) return;
@@ -31,6 +32,11 @@ export const identifierTokenizer = new ExternalTokenizer((input, _stack) => {
     input.next !== -1 &&
     identifierContinue.test(String.fromCharCode(input.next))
   ) {
+    input.advance();
+    singleChar = false;
+  }
+
+  if (input.next === code_qm) { // 允许以 “?” 结尾
     input.advance();
     singleChar = false;
   }

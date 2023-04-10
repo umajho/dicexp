@@ -94,7 +94,7 @@ Grouping {
 }
 
 RegularCall {
-  FunctionName { identifier ("!" | "?")? } (ArgumentList | Closure)
+  FunctionName { identifier } (ArgumentList | Closure)
 }
 
 ArgumentList {
@@ -111,7 +111,7 @@ Closure {
 
 @skip {} {
   Capture {
-    "&" Identifier { identifier "?"? } "/" LiteralInteger |
+    "&" Identifier { identifier } "/" LiteralInteger |
     "&" Identifier {
       keywordD | /*keywordDRemainder |*/
       "^" |
