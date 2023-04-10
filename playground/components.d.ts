@@ -10,6 +10,7 @@ export {}
 declare module '@vue/runtime-core' {
   export interface GlobalComponents {
     BatchResultPane: typeof import('./src/components/batch-result-pane/batch-result-pane.vue')['default']
+    BatchResultPaneBarChart: typeof import('./src/components/batch-result-pane/bar-chart.vue')['default']
     CommonErrorResultAlert: typeof import('./src/components/common/error-result-alert.vue')['default']
     CommonOptionalNumberInput: typeof import('./src/components/common/optional-number-input.vue')['default']
     CommonSkeleton: typeof import('./src/components/common/skeleton.vue')['default']

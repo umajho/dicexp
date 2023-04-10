@@ -34,7 +34,7 @@
       .h2(v-if="report.error && report.ok")
 
       template(v-if="report.ok")
-        div {{ report.ok.counts }}
+        batch-result-pane-bar-chart(:report="report.ok")
 </template>
 
 <script setup lang="ts">
