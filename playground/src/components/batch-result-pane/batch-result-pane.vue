@@ -7,9 +7,18 @@
         //- 运行统计
         .flex-none.text-xs.text-slate-500(v-if="ok || statis")
           .grid.grid-cols-1
-            div(v-if="ok") 样本：{{ ok.samples }} 个
-            div(v-if="statis") 目前用时：{{ (timeConsumption / 1000).toFixed(3) }} 秒
-            div(v-if="ok && statis") 平均效率：{{ (ok.samples / timeConsumption * 1000).toFixed(3) }} 个/秒
+            div(v-if="statisText.samples")
+              | 样本：
+              span.font-mono {{ statisText.samples }}
+              | {{ " 个" }}
+            div(v-if="statisText.duration")
+              | 目前用时：
+              span.font-mono {{ statisText.duration }}
+              | {{ " 秒" }}
+            div(v-if="statisText.speed")
+              | 平均效率：
+              span.font-mono {{ statisText.speed }}
+              | {{ " 个/秒" }}
 
       .h2
 
@@ -46,6 +55,26 @@ const timeConsumption = computed(() => {
 
 const ok = computed(() => {
   return props.report.ok;
+});
+
+const numberFormat = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 3,
+  maximumFractionDigits: 3,
+});
+const statisText = computed(() => {
+  return {
+    samples: ok.value?.samples.toLocaleString(),
+    ...(timeConsumption.value
+      ? { duration: numberFormat.format(timeConsumption.value / 1000) }
+      : {}),
+    ...(timeConsumption.value && ok.value
+      ? {
+          speed: numberFormat.format(
+            (ok.value.samples / timeConsumption.value) * 1000
+          ),
+        }
+      : {}),
+  };
 });
 
 const errorDisplayInfo = computed(() => {
