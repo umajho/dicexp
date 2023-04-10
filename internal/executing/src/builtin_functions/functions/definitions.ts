@@ -25,7 +25,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   "count/2": (rtm, list, callable) => {
     const result = filter(list, callable, rtm);
     if ("error" in result) return result;
-    return { ok: { value: result.ok.length, pure: true } };
+    return { ok: { value: result.ok.length } };
   },
   // ...
   "sum/1": (rtm, list) => {
@@ -34,7 +34,6 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     return {
       ok: {
         value: (result.ok.values as number[]).reduce((acc, cur) => acc + cur),
-        pure: !result.ok.volatile,
       },
     };
   },
@@ -44,7 +43,6 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     return {
       ok: {
         value: (result.ok.values as number[]).reduce((acc, cur) => acc * cur),
-        pure: !result.ok.volatile,
       },
     };
   },
@@ -55,7 +53,6 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     return {
       ok: {
         value: result.ok.values.some((x) => x),
-        pure: result.ok.volatile,
       },
     };
   },
@@ -67,7 +64,6 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     return {
       ok: {
         value: sortedList.map((el) => rtm.lazyValueFactory.literal(el)),
-        pure: !result.ok.volatile,
       },
     };
   },
@@ -76,7 +72,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     // FIXME: 目前无法在不失去惰性的前提下确定返回值是否多变，
     //        而是暂时假定多变。
     //        以列表作为输入而不求值的函数都有这个问题，就不一一标记了
-    return { ok: { value: [...(list), el], pure: false } };
+    return { ok: { value: [...(list), el] } };
   },
   "at/2": (_rtm, list, index) => {
     if (index >= list.length || index < 0) {
@@ -97,7 +93,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
       if ("error" in callResult) return callResult;
       resultList[i] = callResult.ok;
     }
-    return { ok: { value: resultList, pure: false } };
+    return { ok: { value: resultList } };
   },
   // ...
   "filter/2": (rtm, list, callable) => {
@@ -105,7 +101,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     // FIXME: 应该惰性求值
     const filterResult = filter(list, callable, rtm);
     if ("error" in filterResult) return filterResult;
-    return { ok: { value: filterResult.ok, pure: false } };
+    return { ok: { value: filterResult.ok } };
   },
   // ...
   "head/1": (_rtm, list) => {
@@ -114,7 +110,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   },
   "tail/1": (_rtm, list) => {
     if (list.length === 0) return { error: makeRuntimeError("列表为空") };
-    return { ok: { value: list.slice(1), pure: false } };
+    return { ok: { value: list.slice(1) } };
   },
   // ...
   "zip/2": (_rtm, list1, list2) => {
@@ -123,7 +119,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     for (let i = 0; i < zippedLength; i++) {
       result[i] = [list1[i], list2[i]];
     }
-    return { ok: { value: result, pure: false } };
+    return { ok: { value: result } };
   },
   "zipWith/3": (_rtm, list1, list2, callable) => {
     const zippedLength = Math.min(list1.length, list2.length);
@@ -133,7 +129,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
       if ("error" in callResult) return callResult;
       result[i] = callResult.ok;
     }
-    return { ok: { value: result, pure: false } };
+    return { ok: { value: result } };
   },
 
   // 控制流

@@ -603,7 +603,7 @@ describe("限制", () => {
             const [ms] = args as [number];
             const start = performance.now();
             while (performance.now() - start <= ms) { /* noop */ }
-            return { ok: { value: true, pure: true } };
+            return { ok: { value: true } };
           }),
         };
 

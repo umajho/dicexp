@@ -118,7 +118,7 @@ type ParameterListToFunction<
   ...args: ParameterListToTuple<ParamList>
 ) => RuntimeResult<
   ReturnValueType extends { lazy: true } ? { lazy: LazyValue }
-    : { value: ReturnValueTypeSpecToType<ReturnValueType>; pure: boolean }
+    : { value: ReturnValueTypeSpecToType<ReturnValueType> }
 >;
 
 /**

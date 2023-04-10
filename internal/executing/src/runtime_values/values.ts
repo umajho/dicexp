@@ -16,20 +16,9 @@ export interface LazyValue {
   _yield?: () => Concrete | { lazy: LazyValue };
 
   /**
-   * 是否已经固定下来。
-   * 会考虑 memo 是列表时，列表内部（包括嵌套）的值是否也固定下来了。
-   */
-  stabilized?: true;
-
-  /**
    * 是否被其他其他的 LazyValue 替代。（用于步骤展现。）
    */
   replacedBy?: LazyValue;
-
-  /**
-   * 固定成了哪些 Concrete。（用于步骤展现。）
-   */
-  stabilizedAs?: Concrete[];
 }
 
 export type LazyValueWithMemo = LazyValue & {
@@ -38,7 +27,6 @@ export type LazyValueWithMemo = LazyValue & {
 
 export interface Concrete {
   value: RuntimeResult<Value>;
-  volatile: boolean;
   representation: RuntimeRepresentation;
 }
 

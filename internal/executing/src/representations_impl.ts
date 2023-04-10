@@ -39,11 +39,8 @@ export function representLazyValue(
   if (lazyValue.replacedBy) {
     return representLazyValue(lazyValue.replacedBy);
   }
-  if (lazyValue.stabilizedAs?.length === 1) {
-    return lazyValue.stabilizedAs[0].representation;
-  }
   if (!lazyValue.memo) {
-    return ["?"];
+    return ["_"];
   }
   return lazyValue.memo.representation;
 }

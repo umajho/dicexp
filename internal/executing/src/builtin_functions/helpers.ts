@@ -38,7 +38,7 @@ export function makeFunction(
   logic: (
     args: RegularFunctionArgument[],
     rtm: RuntimeProxy,
-  ) => RuntimeResult<{ value: Value; pure: boolean } | { lazy: LazyValue }>,
+  ) => RuntimeResult<{ value: Value } | { lazy: LazyValue }>,
 ): RegularFunction {
   return (args_, rtm) => {
     const unwrapResult = unwrapArguments(spec, args_, rtm);
@@ -60,7 +60,6 @@ export function makeFunction(
 
           return {
             value: { ok: result.ok.value },
-            volatile: unwrapResult.ok.volatile || !result.ok.pure,
             representation: representValue(result.ok.value),
           };
         },
@@ -73,23 +72,21 @@ function unwrapArguments(
   spec: ArgumentSpec[],
   args: LazyValue[],
   rtm: RuntimeProxy,
-): RuntimeResult<{ values: RegularFunctionArgument[]; volatile: boolean }> {
+): RuntimeResult<{ values: RegularFunctionArgument[] }> {
   if (spec.length !== args.length) {
     return { error: runtimeError_wrongArity(spec.length, args.length) };
   }
 
   const values: RegularFunctionArgument[] = Array(args.length);
-  let volatile = false;
 
   for (const [i, arg] of args.entries()) {
     const result = unwrapValue(spec[i], arg, rtm, { nth: i + 1 });
     if ("error" in result) return result;
-    const { value, volatile: valueVolatile } = result.ok;
+    const { value } = result.ok;
     values[i] = value;
-    volatile = volatile || valueVolatile;
   }
 
-  return { ok: { values, volatile } };
+  return { ok: { values } };
 }
 
 export function unwrapValue(
@@ -97,10 +94,10 @@ export function unwrapValue(
   value: LazyValue,
   rtm: RuntimeProxy,
   opts?: CheckTypeOptions,
-): RuntimeResult<{ value: RegularFunctionArgument; volatile: boolean }> {
+): RuntimeResult<{ value: RegularFunctionArgument }> {
   if (spec === "lazy") {
     // 是否多变就交由函数内部判断了
-    return { ok: { value, volatile: false } };
+    return { ok: { value } };
   }
 
   const concrete = concretize(value, rtm);
@@ -111,7 +108,7 @@ export function unwrapValue(
     return { error: adapted.error };
   }
 
-  return { ok: { value: adapted.ok, volatile: concrete.volatile } };
+  return { ok: { value: adapted.ok } };
 }
 
 function tryAdaptType(
@@ -172,7 +169,7 @@ export function flattenListAll(
   spec: Exclude<ArgumentSpec, "lazy">,
   list: LazyValue[],
   rtm: RuntimeProxy,
-): RuntimeResult<{ values: Value[]; volatile: boolean }> {
+): RuntimeResult<{ values: Value[] }> {
   if (spec !== "*") {
     if (Array.isArray(spec)) {
       if (spec[spec.length - 1] !== "list") {
@@ -184,7 +181,6 @@ export function flattenListAll(
   }
 
   const values: Value[] = [];
-  let volatile = false;
 
   for (const [i, elem] of list.entries()) {
     const result = unwrapValue(spec, elem, rtm);
@@ -197,14 +193,12 @@ export function flattenListAll(
       const listResult = flattenListAll(spec, value as LazyValue[], rtm);
       if ("error" in listResult) return listResult;
       values.push(...listResult.ok.values);
-      volatile = volatile || listResult.ok.volatile;
     } else {
       values[i] = value;
-      volatile = volatile || result.ok.volatile;
     }
   }
 
-  return { ok: { values, volatile } };
+  return { ok: { values } };
 }
 
 /**
@@ -217,12 +211,11 @@ export function unwrapListOneOf(
   specOneOf: ValueTypeName[],
   list: LazyValue[],
   rtm: RuntimeProxy,
-): RuntimeResult<{ values: Value[]; volatile: boolean }> {
-  if (!list.length) return { ok: { values: [], volatile: false } };
+): RuntimeResult<{ values: Value[] }> {
+  if (!list.length) return { ok: { values: [] } };
 
   const values: Value[] = Array(list.length);
   let firstType: ValueTypeName;
-  let volatile = false;
 
   for (const [i, elem] of list.entries()) {
     let valueResult: ReturnType<typeof unwrapValue>;
@@ -241,8 +234,7 @@ export function unwrapListOneOf(
       firstType = getTypeNameOfValue(value);
     }
     values[i] = value;
-    volatile = volatile || valueResult.ok.volatile;
   }
 
-  return { ok: { values, volatile } };
+  return { ok: { values } };
 }

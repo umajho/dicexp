@@ -47,19 +47,9 @@ export function concretize(
   } else {
     concrete = concreteOrLazy;
   }
-  if (concrete.volatile) {
-    if (v.memo) throw new Unreachable();
-    v.memo = false;
 
-    v.stabilizedAs ??= [];
-    v.stabilizedAs.push(concrete);
-
-    return concrete;
-  } else {
-    if (Array.isArray(concrete)) throw new Unreachable();
-    v.memo = concrete;
-    return v.memo;
-  }
+  v.memo = concrete;
+  return v.memo;
 }
 
 export class LazyValueFactory {
@@ -77,7 +67,6 @@ export class LazyValueFactory {
         const inner = concretize(lazyValue, this.runtime);
         const c: Concrete = {
           value: inner.value,
-          volatile: false,
           // 使用 `inner.value` 是为了切断之前的 representation，以免过于冗长
           //（而且函数调用中的参数列表已经将对应的内容展示过了）
           representation: [`(${ident}=`, representResult(inner.value), `)`],
@@ -95,7 +84,6 @@ export class LazyValueFactory {
     return {
       memo: {
         value: { ok: value },
-        volatile: false,
         representation: representValue(value),
       },
     };
@@ -108,7 +96,6 @@ export class LazyValueFactory {
     return {
       memo: {
         value: { error: error },
-        volatile: false,
         representation: source
           ? ["(", ...source, "=>", representError(error), ")"]
           : representError(error),
@@ -116,44 +103,10 @@ export class LazyValueFactory {
     };
   }
 
-  stabilized(underlying: LazyValue): LazyValue {
-    let stabilized: Concrete | null = null;
-    return {
-      _yield: () => {
-        if (stabilized) return stabilized;
-        const concrete = concretize(underlying, this.runtime);
-
-        underlying.stabilizedAs ??= [];
-        underlying.stabilizedAs.push(concrete);
-
-        if ("error" in concrete.value) {
-          stabilized = concrete;
-        } else {
-          let value = concrete.value.ok;
-          if (Array.isArray(value)) {
-            value = this._stabilizeList(value);
-          }
-          stabilized = {
-            value: { ok: value },
-            volatile: false,
-            representation: representValue(value),
-          };
-        }
-
-        return stabilized;
-      },
-    };
-  }
-
-  private _stabilizeList(list: Value_List): Value_List {
-    return list.map((el) => this.stabilized(el));
-  }
-
   list(list: LazyValue[]): LazyValueWithMemo {
     return {
       memo: {
         value: { ok: list },
-        volatile: false,
         representation: representValue(list),
       },
     };
@@ -193,7 +146,6 @@ export class LazyValueFactory {
 
         return {
           value,
-          volatile: concrete.volatile,
           representation: ["(", ...calling, "=>", representResult(value), ")"],
         };
       },
@@ -224,7 +176,7 @@ export class LazyValueFactory {
               error: runtimeError_duplicateClosureParameterNames(ident),
             };
           }
-          deeperScope[ident] = this.stabilized(args[i]);
+          deeperScope[ident] = args[i];
         }
 
         let interpreted = runtime.interpret(deeperScope, body);
@@ -256,7 +208,6 @@ export class LazyValueFactory {
     return {
       memo: {
         value: { ok: closure },
-        volatile: false,
         representation: representValue(closure),
       },
     };
@@ -293,7 +244,6 @@ export class LazyValueFactory {
     return {
       memo: {
         value: { ok: captured },
-        volatile: false,
         representation: representValue(captured),
       },
     };
@@ -331,7 +281,6 @@ export class LazyValueFactory {
         const value = concrete.value;
         return {
           value,
-          volatile: concrete.volatile,
           representation: ["(", ...calling, "=>", representResult(value), ")"],
         };
       },
@@ -365,17 +314,14 @@ export class LazyValueFactory {
           _at: (index) => {
             let current = underlying[index];
             if (!current) {
-              const newlyInterpreted = this.runtime.interpret(scope, body);
-              current = this.stabilized(newlyInterpreted);
-              underlying[index] = current;
+              underlying[index] = this.runtime.interpret(scope, body);
             }
             return current;
           },
           _asList: () => {
             for (let i = 0; i < countValue; i++) {
               if (!underlying[i]) {
-                const newlyInterpreted = this.runtime.interpret(scope, body);
-                underlying[i] = this.stabilized(newlyInterpreted);
+                underlying[i] = this.runtime.interpret(scope, body);
               }
             }
             return underlying.slice(0, countValue);
@@ -384,7 +330,6 @@ export class LazyValueFactory {
 
         return {
           value: { ok: list },
-          volatile: true,
           representation,
         };
       },

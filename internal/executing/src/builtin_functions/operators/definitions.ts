@@ -10,29 +10,29 @@ import type { builtinOperatorDeclarations } from "./declarations";
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   typeof builtinOperatorDeclarations
 > = {
-  "or/2": (_rtm, a, b) => ({ ok: { value: a || b, pure: true } }),
-  "and/2": (_rtm, a, b) => ({ ok: { value: a && b, pure: true } }),
+  "or/2": (_rtm, a, b) => ({ ok: { value: a || b } }),
+  "and/2": (_rtm, a, b) => ({ ok: { value: a && b } }),
 
   "==/2": (_rtm, a, b) => {
     if (typeof a !== typeof b) {
       return { error: runtimeError_LeftRightTypeMismatch("==") };
     }
-    return { ok: { value: a === b, pure: true } };
+    return { ok: { value: a === b } };
   },
   "!=/2": (_rtm, a, b) => {
     if (typeof a !== typeof b) {
       return { error: runtimeError_LeftRightTypeMismatch("!=") };
     }
-    return { ok: { value: a !== b, pure: true } };
+    return { ok: { value: a !== b } };
   },
 
-  "</2": (_rtm, a, b) => ({ ok: { value: a < b, pure: true } }),
-  ">/2": (_rtm, a, b) => ({ ok: { value: a > b, pure: true } }),
-  "<=/2": (_rtm, a, b) => ({ ok: { value: a <= b, pure: true } }),
-  ">=/2": (_rtm, a, b) => ({ ok: { value: a >= b, pure: true } }),
+  "</2": (_rtm, a, b) => ({ ok: { value: a < b } }),
+  ">/2": (_rtm, a, b) => ({ ok: { value: a > b } }),
+  "<=/2": (_rtm, a, b) => ({ ok: { value: a <= b } }),
+  ">=/2": (_rtm, a, b) => ({ ok: { value: a >= b } }),
 
   "~/2": (rtm, lower, upper) => ({
-    ok: { value: rtm.random.integer(lower, upper), pure: false },
+    ok: { value: rtm.random.integer(lower, upper) },
   }),
   "~/1": (rtm, upper) => {
     const errRange = ensureUpperBound("~", null, 1, upper);
@@ -41,19 +41,19 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     return builtinOperatorDefinitions["~/2"](rtm, 1, upper);
   },
 
-  "+/2": (_rtm, a, b) => ({ ok: { value: a + b, pure: true } }),
-  "-/2": (_rtm, a, b) => ({ ok: { value: a - b, pure: true } }),
-  "+/1": (_rtm, a) => ({ ok: { value: +a, pure: true } }),
-  "-/1": (_rtm, a) => ({ ok: { value: -a, pure: true } }),
+  "+/2": (_rtm, a, b) => ({ ok: { value: a + b } }),
+  "-/2": (_rtm, a, b) => ({ ok: { value: a - b } }),
+  "+/1": (_rtm, a) => ({ ok: { value: +a } }),
+  "-/1": (_rtm, a) => ({ ok: { value: -a } }),
 
-  "*/2": (_rtm, a, b) => ({ ok: { value: a * b, pure: true } }),
+  "*/2": (_rtm, a, b) => ({ ok: { value: a * b } }),
   "///2": (_rtm, a, b) => {
     if (b === 0) {
       const opRendered = renderOperation("//", `${a}`, `${b}`);
       const reason = "除数不能为零";
       return { error: runtimeError_illegalOperation(opRendered, reason) };
     }
-    return { ok: { value: a / b | 0, pure: true } };
+    return { ok: { value: a / b | 0 } };
   },
   "%/2": (_rtm, a, b) => {
     if (a < 0) {
@@ -67,7 +67,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
       const reason = "除数必须为正数";
       return { error: runtimeError_illegalOperation(opRendered, reason) };
     }
-    return { ok: { value: (a | 0) % b, pure: true } };
+    return { ok: { value: (a | 0) % b } };
   },
   "^/2": (_rtm, a, n) => {
     if (n < 0) {
@@ -75,7 +75,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
       const reason = "指数不能为负数";
       return { error: runtimeError_illegalOperation(opRendered, reason) };
     }
-    return { ok: { value: a ** n, pure: true } };
+    return { ok: { value: a ** n } };
   },
 
   "d/2": (rtm, n, x) => {
@@ -107,7 +107,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
       },
     };
 
-    return { ok: { value: sum, pure: false } };
+    return { ok: { value: sum } };
   },
   "d/1": (rtm, x) => {
     const errRange = ensureUpperBound("d", 1, 1, x);
@@ -116,7 +116,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     return builtinOperatorDefinitions["~/2"](rtm, 1, x);
   },
 
-  "not/1": (_rtm, a) => ({ ok: { value: !a, pure: true } }),
+  "not/1": (_rtm, a) => ({ ok: { value: !a } }),
 };
 
 function ensureUpperBound(
