@@ -1,3 +1,4 @@
+import { Unreachable } from "@dicexp/errors";
 import { representValue } from "../representations_impl";
 import type { RegularFunction, RuntimeProxy } from "../runtime";
 import {
@@ -117,18 +118,37 @@ function tryAdaptType(
   opts: CheckTypeOptions = {},
 ): RuntimeResult<Value> {
   let typeName: ValueTypeName = getTypeNameOfValue(value);
-  if (
-    typeName === "integer$sum_extendable" && spec !== "integer$sum_extendable"
-  ) {
-    value = asInteger(value)!;
-    typeName = "integer";
-  } else if (typeName === "list$extendable" && spec !== "list$extendable") {
-    value = asList(value)!;
-    typeName = "list";
+  let shouldConvert = false;
+  if (typeName === "integer$sum_extendable") {
+    if (
+      spec !== "integer$sum_extendable" &&
+      !(spec instanceof Set && spec.has("integer$sum_extendable"))
+    ) {
+      typeName = "integer";
+      shouldConvert = true;
+    }
+  } else if (typeName === "list$extendable") {
+    if (
+      spec !== "list$extendable" &&
+      !(spec instanceof Set && spec.has("list$extendable"))
+    ) {
+      typeName = "list";
+      shouldConvert = true;
+    }
   }
 
   const error = checkType(spec, typeName, opts);
   if (error) return { error };
+
+  if (shouldConvert) {
+    if (typeName === "integer") {
+      value = asInteger(value)!;
+    } else if (typeName === "list") {
+      value = asList(value)!;
+    } else {
+      throw new Unreachable();
+    }
+  }
 
   return { ok: value };
 }
