@@ -15,7 +15,7 @@ input#restrictions-pane-modal.modal-toggle(type="checkbox")
         span(title="运行时尝试在超过后停止，保留运行时信息。") 软性超时（毫秒）
       common-optional-number-input(v-model="maxCallsValue" v-model:enabled="maxCallsEnabled")
         //- 偷个懒
-        span(title="直接或间接调用通常函数、调用闭包或捕获都会计入。") {{ "　　" }} 最多调用次数
+        span(title="直接或间接地调用通常函数、闭包或捕获都会计入。") {{ "　　" }} 最多调用次数
       //- common-optional-number-input(v-model="maxClosureCallDepthValue" v-model:enabled="maxClosureCallDepthEnabled")
       //-   | 最大闭包调用深度
 
