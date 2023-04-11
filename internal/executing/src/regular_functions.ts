@@ -5,7 +5,7 @@ import type {
   Value_Callable,
   Value_Integer$SumExtendable,
   Value_List$Extendable,
-} from "./runtime_values/mod";
+} from "@dicexp/runtime-values";
 import type { ValueTypeName } from "./values_impl";
 
 /**

@@ -30,7 +30,7 @@ import {
   type RuntimeError,
   type RuntimeResult,
   type Value_List,
-} from "./runtime_values/mod";
+} from "@dicexp/runtime-values";
 
 export interface RuntimeOptions {
   /**

@@ -14,7 +14,7 @@ import {
   type RuntimeError,
   type RuntimeResult,
   type Value,
-} from "../runtime_values/mod";
+} from "@dicexp/runtime-values";
 import {
   concretize,
   getTypeNameOfValue,

@@ -9,7 +9,7 @@ import {
   type RuntimeRepresentation,
   type RuntimeResult,
   type Value,
-} from "./runtime_values/mod";
+} from "@dicexp/runtime-values";
 
 export function finalizeRepresentation(
   r: RuntimeRepresentation,

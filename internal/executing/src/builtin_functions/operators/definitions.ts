@@ -4,7 +4,7 @@ import { runtimeError_illegalOperation } from "../../runtime_errors_impl";
 import type {
   RuntimeError,
   Value_Integer$SumExtendable,
-} from "../../runtime_values/mod";
+} from "@dicexp/runtime-values";
 import { sum } from "../utils";
 import type { builtinOperatorDeclarations } from "./declarations";
 

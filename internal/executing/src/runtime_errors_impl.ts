@@ -1,5 +1,5 @@
 import { Unreachable } from "@dicexp/errors";
-import { makeRuntimeError, type RuntimeError } from "./runtime_values/mod";
+import { makeRuntimeError, type RuntimeError } from "@dicexp/runtime-values";
 import type { ValueTypeName } from "./values_impl";
 
 export function runtimeError_limitationExceeded(

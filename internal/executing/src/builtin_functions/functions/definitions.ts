@@ -7,7 +7,7 @@ import {
   type RuntimeResult,
   type Value_Callable,
   type Value_List,
-} from "../../runtime_values/mod";
+} from "@dicexp/runtime-values";
 import {
   concretize,
   getTypeNameOfValue,
