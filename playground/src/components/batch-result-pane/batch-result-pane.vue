@@ -33,8 +33,27 @@
 
       .h2(v-if="report.error && report.ok")
 
-      template(v-if="report.ok")
-        batch-result-pane-bar-chart(:report="report.ok")
+      .grid.gap-2(v-if="report.ok" class="grid-cols-1 md:grid-cols-3")
+        .flex.justify-center
+          batch-result-pane-bar-chart(
+            class="w-[25rem] md:w-60 lg:w-80",
+            :report="report.ok", v-model:highlighted="highlighted", :mode="'at-least'"
+          )
+            .text-xl ≥
+        hr(class="md:hidden")
+        .flex.justify-center
+          batch-result-pane-bar-chart(
+            class="w-[25rem] md:w-60 lg:w-80",
+            :report="report.ok", v-model:highlighted="highlighted", :mode="'normal'"
+          )
+            .text-xl =
+        hr(class="md:hidden")
+        .flex.justify-center
+          batch-result-pane-bar-chart(
+            class="w-[25rem] md:w-60 lg:w-80",
+            :report="report.ok", v-model:highlighted="highlighted", :mode="'at-most'"
+          )
+            .text-xl ≤
 </template>
 
 <script setup lang="ts">
@@ -44,6 +63,8 @@ import type { BatchReportForWorker } from "dicexp/internal";
 const props = defineProps<{
   report: BatchReportForWorker;
 }>();
+
+const highlighted: Ref<number | null> = ref(null);
 
 const statis = computed(() => {
   return props.report.statistics;

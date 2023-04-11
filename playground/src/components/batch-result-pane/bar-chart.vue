@@ -1,15 +1,18 @@
 <template lang="pug">
-svg(v-once, ref="svgEl")
-  svg:style(type="text/css").
-    .highlighting rect {
-      opacity: 40%;
-    }
-    rect.highlighted {
-      opacity: unset;
-    }
+.grid.grid-cols-1
+  .flex.justify-center
+    slot
+  svg(v-once, ref="svgEl")
+    svg:style(type="text/css").
+      .highlighting rect {
+        opacity: 40%;
+      }
+      rect.highlighted {
+        opacity: unset;
+      }
 
-teleport(to="body")
-  div.absolute(v-once, ref="tooltipEl")
+  teleport(to="body")
+    div.absolute.hidden.bg-white.text-black.border-2.z-10.rounded.opacity-60(class="p-[3px]" ref="tooltipEl") {{ tooltipText }}
 </template>
 
 <script setup lang="ts">
@@ -21,6 +24,12 @@ const tooltipEl: Ref<HTMLDivElement | null> = ref(null);
 
 const props = defineProps<{
   report: NonNullable<BatchReport["ok"]>;
+  mode: "normal" | "at-least" | "at-most";
+  highlighted: number | null;
+}>();
+
+const emit = defineEmits<{
+  (e: "update:highlighted", value: number | null): void;
 }>();
 
 type DatumForD3 = {
@@ -29,20 +38,100 @@ type DatumForD3 = {
   portion: number;
 };
 const data: ComputedRef<DatumForD3[]> = computed(() => {
-  return Object.entries(props.report.counts) //
-    .map(([key, value]) => ({
-      resultNumber: Number(key),
-      count: value,
-      portion: value / props.report.samples,
-    }));
+  let data = Object.entries(props.report.counts).map(([key, value]) => ({
+    resultNumber: Number(key),
+    count: value,
+  }));
+
+  if (props.mode !== "normal") {
+    data.sort(({ resultNumber: a }, { resultNumber: b }) => a - b);
+    let i = props.mode === "at-least" ? data.length - 1 : 0;
+    const condition =
+      props.mode === "at-least" ? () => i >= 0 : () => i < data.length;
+    const advancement = props.mode === "at-least" ? () => i-- : () => i++;
+    let acc = 0;
+
+    let last: typeof data[0] | null = null,
+      lastI: number | null = null;
+    const missing: typeof data = [];
+
+    for (; condition(); advancement()) {
+      if (lastI !== null) {
+        let numA = data[i].resultNumber,
+          numB = data[lastI].resultNumber;
+        if (numA > numB) {
+          [numA, numB] = [numB, numA];
+        }
+        if (numB - numA !== 1) {
+          for (let num = numA + 1; num < numB; num++) {
+            missing.push({
+              ...last!,
+              resultNumber: num,
+            });
+          }
+        }
+      }
+
+      const _acc = acc;
+      acc += data[i].count;
+      data[i].count += _acc;
+
+      last = data[i];
+      lastI = i;
+    }
+
+    if (missing.length) {
+      data.push(...missing);
+    }
+  }
+
+  return data.map((d) => ({ ...d, portion: d.count / props.report.samples }));
+});
+
+const highlighted = computed({
+  get() {
+    return props.highlighted;
+  },
+  set(value) {
+    emit("update:highlighted", value);
+  },
+});
+watch(
+  highlighted,
+  (newValue, oldValue) => {
+    if (newValue !== null) {
+      svgEl.value
+        ?.querySelector(`[data-result-number="${newValue}"]`)
+        ?.classList.add("highlighted");
+      svgEl.value?.classList.add("highlighting");
+    } else {
+      svgEl.value?.classList.remove("highlighting");
+    }
+    if (oldValue !== null) {
+      svgEl.value
+        ?.querySelector(`[data-result-number="${oldValue}"]`)
+        ?.classList.remove("highlighted");
+    }
+  },
+  { immediate: true }
+);
+
+const tooltipText = computed(() => {
+  if (!highlighted.value) return "";
+  const datum = data.value.find((d) => d.resultNumber === highlighted.value);
+  if (!datum) return "";
+  const count = datum.count as number;
+  const portion = count / props.report.samples;
+  return `${highlighted.value}: ${(portion * 100).toFixed(2)}% (${count})`;
 });
 
 onMounted(() => {
-  const graphWidth = 320,
-    graphHeight = 320,
-    paddingBetween = 1.2,
-    axisXHeight = 20,
-    axisYWidth = 40;
+  const graphWidth = 280,
+    graphHeight = 280,
+    paddingBetween = 0,
+    axisXHeight = 40,
+    axisYWidth = 40,
+    marginRight = 15;
 
   const chartWidth = graphWidth + axisYWidth,
     chartHeight = graphHeight + axisXHeight;
@@ -53,31 +142,18 @@ onMounted(() => {
   // - https://d3-graph-gallery.com/graph/interactivity_tooltip.html
   const svg = d3
     .select(svgEl.value!) //
-    .attr("width", chartWidth)
-    .attr("height", chartHeight)
-    .attr("viewBox", [0, 0, chartWidth, chartHeight]);
+    .attr("viewBox", [0, 0, chartWidth + marginRight, chartHeight]);
 
   let bar: d3.Selection<d3.BaseType, DatumForD3, SVGGElement, unknown> = svg
     .append("g") //
     .attr("fill", "steelblue")
-    .attr("transform", `translate(${axisYWidth}, 0)`)
+    .attr("transform", `translate(${axisYWidth}, ${axisXHeight})`)
     .selectAll("rect");
 
-  let axisX = svg
-    .append("g")
-    .attr("transform", `translate(${axisYWidth}, ${graphHeight})`);
+  let axisX = svg.append("g");
   let axisY = svg.append("g");
 
-  const tooltip = d3
-    .select(tooltipEl.value!)
-    // .style("position", "absolute")
-    .style("z-index", "10")
-    .style("opacity", 0)
-    .style("background-color", "white")
-    .style("border", "solid")
-    .style("border-width", "2px")
-    .style("border-radius", "4px")
-    .style("padding", "3px");
+  const tooltip = d3.select(tooltipEl.value!);
 
   watch(
     data,
@@ -91,18 +167,24 @@ onMounted(() => {
         .fill(null)
         .map((_, i) => i);
       const barHeight = graphHeight / bars;
+      const axesOffsetY = (barHeight + paddingBetween) / 2;
 
       const x = d3 // 横轴：几率
         .scaleLinear()
         .domain([0, maxPortion])
         .range([0, graphWidth]);
 
-      axisX = axisX.call(
-        d3
-          .axisBottom(x)
-          .ticks(10)
-          .tickFormat((d) => ((d as number) * 100).toFixed() + "%")
-      );
+      axisX = axisX
+        .call(
+          d3
+            .axisTop(x)
+            .ticks(10)
+            .tickFormat((d) => ((d as number) * 100).toFixed() + "%")
+        )
+        .attr(
+          "transform",
+          `translate(${axisYWidth}, ${axisXHeight - axesOffsetY})`
+        );
 
       const y = d3 // 纵轴：结果数字
         .scaleQuantize()
@@ -113,7 +195,7 @@ onMounted(() => {
         .call(d3.axisLeft(y))
         .attr(
           "transform",
-          `translate(${axisYWidth}, ${(barHeight + paddingBetween) / 2})`
+          `translate(${axisYWidth}, ${axisXHeight + axesOffsetY})`
         );
 
       function setAttr(sel: any) {
@@ -129,22 +211,20 @@ onMounted(() => {
         .join((enter) =>
           enter
             .append("rect")
+            .attr("data-result-number", (d) => d.resultNumber)
             .call(setAttr)
-            .on("mouseover", function () {
-              tooltip.style("opacity", 1);
-              svg.node()!.classList.add("highlighting");
-              this.classList.add("highlighted");
+            .on("mouseover", function (_ev, d) {
+              tooltip.style("display", "block");
+              highlighted.value = d.resultNumber;
             })
             .on("mousemove", (ev, d) => {
               tooltip
-                .text(`${(d.portion * 100).toFixed(2)}% (${d.count})`)
                 .style("left", `${ev.pageX + 16}px`)
                 .style("top", `${ev.pageY}px`);
             })
             .on("mouseleave", function () {
-              tooltip.style("opacity", 0);
-              svg.node()!.classList.remove("highlighting");
-              this.classList.remove("highlighted");
+              tooltip.style("display", "none");
+              highlighted.value = null;
             })
         )
         .call((bar) => bar.transition().call(setAttr));
