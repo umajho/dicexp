@@ -1,7 +1,8 @@
 import { Unreachable } from "@dicexp/errors";
-import type {
-  RegularFunction,
-  RuntimeProxyForFunction,
+import {
+  concrete_error,
+  type RegularFunction,
+  type RuntimeProxyForFunction,
 } from "@dicexp/runtime-values";
 import {
   runtimeError_callArgumentTypeMismatch,
@@ -21,7 +22,6 @@ import {
   type ValueTypeName,
 } from "@dicexp/runtime-values";
 import { concretize } from "../values_impl";
-import { concrete_error } from "./concrete_factory";
 
 export type ArgumentSpec =
   | "lazy"

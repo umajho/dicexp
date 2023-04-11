@@ -1,6 +1,7 @@
 import type { DeclarationListToDefinitionMap } from "../../regular_functions";
 import {
   callCallable,
+  concrete_literal,
   getDisplayNameFromTypeName,
   getTypeNameOfValue,
   makeRuntimeError,
@@ -14,7 +15,6 @@ import { concretize } from "../../values_impl";
 import { flattenListAll, unwrapListOneOf } from "../helpers";
 import { sum } from "../utils";
 import type { builtinFunctionDeclarations } from "./declarations";
-import { concrete_literal } from "../concrete_factory";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations

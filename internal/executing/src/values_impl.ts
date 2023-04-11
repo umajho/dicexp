@@ -3,6 +3,8 @@ import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
   type Concrete,
+  concrete_error,
+  concrete_literal,
   getDisplayNameOfValue,
   type LazyValue,
   type LazyValueWithMemo,
@@ -80,30 +82,14 @@ export class LazyValueFactory {
   }
 
   literal(value: Value): LazyValueWithMemo {
-    // if (typeof value === "number") { // 由 parsing 负责，这里无需检查
-    //   const err = checkInteger(value);
-    //   if (err) return this.error(err, [{ v: value }]);
-    // }
-    return {
-      memo: {
-        value: { ok: value },
-        representation: representValue(value),
-      },
-    };
+    return { memo: concrete_literal(value) };
   }
 
   error(
     error: RuntimeError,
     source?: RuntimeRepresentation,
   ): LazyValueWithMemo {
-    return {
-      memo: {
-        value: { error: error },
-        representation: source
-          ? ["(", ...source, "=>", representError(error), ")"]
-          : representError(error),
-      },
-    };
+    return { memo: concrete_error(error, source) };
   }
 
   list(list: LazyValue[]): LazyValueWithMemo {

@@ -1,13 +1,14 @@
 import { Unreachable } from "@dicexp/errors";
 import type { DeclarationListToDefinitionMap } from "../../regular_functions";
 import { runtimeError_illegalOperation } from "../../runtime_errors_impl";
-import type {
-  RuntimeError,
-  Value_Integer$SumExtendable,
+import {
+  concrete_literal,
+  type RuntimeError,
+  type Value_Integer$SumExtendable,
 } from "@dicexp/runtime-values";
 import { sum } from "../utils";
 import type { builtinOperatorDeclarations } from "./declarations";
-import { concrete_literal } from "../concrete_factory";
+import {} from "@dicexp/runtime-values";
 
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   typeof builtinOperatorDeclarations
