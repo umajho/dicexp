@@ -1,5 +1,4 @@
 import { Unreachable } from "@dicexp/errors";
-import { representValue } from "../representations_impl";
 import type {
   RegularFunction,
   RuntimeProxyForFunction,
@@ -15,6 +14,7 @@ import {
   asList,
   getTypeNameOfValue,
   type LazyValue,
+  representValue,
   type RuntimeError,
   type RuntimeResult,
   type Value,

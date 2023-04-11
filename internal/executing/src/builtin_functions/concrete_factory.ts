@@ -1,10 +1,11 @@
-import type {
-  Concrete,
-  RuntimeError,
-  RuntimeRepresentation,
-  Value,
+import {
+  type Concrete,
+  representError,
+  representValue,
+  type RuntimeError,
+  type RuntimeRepresentation,
+  type Value,
 } from "@dicexp/runtime-values";
-import { representError, representValue } from "../representations_impl";
 
 // NOTE: 临时，与 LazyValueFactory.literal 重复
 export function concrete_literal(value: Value): Concrete {

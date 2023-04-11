@@ -16,6 +16,7 @@ import {
   type Value_List$Extendable,
 } from "@dicexp/runtime-values";
 import {
+  type RegularFunction,
   representCall,
   representCaptured,
   representError,
@@ -23,11 +24,8 @@ import {
   representRepetition,
   representResult,
   representValue,
-} from "./representations_impl";
-import type {
-  RegularFunction,
-  RuntimeProxyForFunction,
-  Scope,
+  type RuntimeProxyForFunction,
+  type Scope,
 } from "@dicexp/runtime-values";
 import {
   runtimeError_duplicateClosureParameterNames,

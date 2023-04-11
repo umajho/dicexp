@@ -15,12 +15,12 @@ import {
 } from "./runtime_errors_impl";
 import { concretize, LazyValueFactory } from "./values_impl";
 import type { Restrictions } from "./restrictions";
-import { finalizeRepresentation } from "./representations_impl";
 import { RandomGenerator, type RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   asPlain,
   type Concrete,
+  finalizeRepresentation,
   getTypeNameOfValue,
   type LazyValue,
   type Representation,

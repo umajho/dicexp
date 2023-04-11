@@ -1,0 +1,11 @@
+{
+  "packageManager": "pnpm@7.29.1",
+  "name": "@dicexp/js-utils",
+  "version": "0.0.0",
+  "main": "lib.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false
+}

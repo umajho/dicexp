@@ -1,5 +1,5 @@
 import type { RuntimeError } from "./runtime_errors";
-import type { RuntimeRepresentation } from "./representations";
+import type { RuntimeRepresentation } from "./representations/mod";
 
 export type RuntimeResult<OkType> =
   | { ok: OkType }

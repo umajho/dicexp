@@ -10,6 +10,7 @@
   "sideEffects": false,
   "dependencies": {
     "@dicexp/errors": "workspace:*",
+    "@dicexp/js-utils": "workspace:*",
     "@dicexp/nodes": "workspace:*"
   }
 }

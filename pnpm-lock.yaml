@@ -47,6 +47,9 @@ importers:
       typescript: 5.0.2
       vitest: 0.29.3
 
+  internal/js-utils:
+    specifiers: {}
+
   internal/lezer:
     specifiers:
       '@lezer/generator': ^1.2.2
@@ -100,9 +103,11 @@ importers:
   internal/runtime-values:
     specifiers:
       '@dicexp/errors': workspace:*
+      '@dicexp/js-utils': workspace:*
       '@dicexp/nodes': workspace:*
     dependencies:
       '@dicexp/errors': link:../errors
+      '@dicexp/js-utils': link:../js-utils
       '@dicexp/nodes': link:../nodes
 
   packages/dicexp:
