@@ -1,78 +1,113 @@
-import { bench } from "vitest";
+import { bench, describe } from "vitest";
+
+import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Unreachable } from "@dicexp/errors";
 import { parse, ParsingResult } from "@dicexp/parsing";
 import { execute, ExecutionResult } from "../lib";
+import { RandomGenerator, RandomSource } from "../src/random";
 
-const codes = [
-  "~10",
-  "1~10",
-  "d9007199254740991",
-  "d10 ~ 3d8+10",
+describe("各种表达式", () => {
+  const codes = [
+    "~10",
+    "1~10",
+    "d9007199254740991",
+    "d10 ~ 3d8+10",
 
-  String.raw`sum([1, 2, 3])`,
-  String.raw`\(a, b -> a + b).(1, 2)`,
+    String.raw`sum([1, 2, 3])`,
+    String.raw`\(a, b -> a + b).(1, 2)`,
 
-  String.raw`100#any?(3#(d100<=5)) |> count \(x -> not x)`,
+    String.raw`100#any?(3#(d100<=5)) |> count \(x -> not x)`,
 
-  // 模拟 if-else（现在已经不需要了），速度竟然差不多
-  String.raw`append(filter([10], \(_ -> false)), 100) |> head`,
-  String.raw`if(false, 10, 100)`,
+    // 模拟 if-else（现在已经不需要了），速度竟然差不多
+    String.raw`append(filter([10], \(_ -> false)), 100) |> head`,
+    String.raw`if(false, 10, 100)`,
 
-  // 0..<99
-  String
-    .raw`\(f, n, l -> append(filter([\( -> l)], \(_ -> n == 100)), \( -> f.(f, n+1, append(l, n)))) |> head |> \(f -> f.()).()) |> \(f -> f.(f, 0, [])).()`,
-  String
-    .raw`\(f, n, l -> if(n == 100, l, f.(f, n+1, append(l, n)))) |> \(f -> f.(f, 0, [])).()`,
+    // 0..<99
+    String
+      .raw`\(f, n, l -> append(filter([\( -> l)], \(_ -> n == 100)), \( -> f.(f, n+1, append(l, n)))) |> head |> \(f -> f.()).()) |> \(f -> f.(f, 0, [])).()`,
+    String
+      .raw`\(f, n, l -> if(n == 100, l, f.(f, n+1, append(l, n)))) |> \(f -> f.(f, 0, [])).()`,
 
-  ...(() => {
-    const yCombinators = [
-      String
-        .raw`\(fn -> \(f -> fn.(\(x -> f.(f).(x)))).(\(f -> fn.(\(x -> f.(f).(x))))))`,
-      // String.raw`\(f -> \(x -> x.(x))).(\(x -> f.(\(y -> x.(x).(y)))))`,
-    ];
-    return yCombinators.flatMap((yCombinator) => {
-      return [
-        // 两例 Y 组合子：
-        // see: https://zhuanlan.zhihu.com/p/51856257
-        // see: https://blog.klipse.tech/lambda/2016/08/10/pure-y-combinator-javascript.html
+    ...(() => {
+      const yCombinators = [
         String
-          .raw`\(if -> \(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if.(n == 0, \(-> 0), \(-> n + f.(n-1))))))).(\(cond, t, f -> head(append(filter([t], \(_ -> cond)), f)).()))`,
-        // 用真正的 if-else：
-        String
-          .raw`\(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if(n == 0, 0, n + f.(n-1)))))`,
-
-        // 0..<99，但是用 Y 组合子：
-        String
-          .raw`\(Y, g -> Y.(g).([0, []])).(${yCombinator}, \(f -> \(nl -> if((nl|>at(0)) == 100, nl|>at(1), f.([(nl|>at(0))+1, append((nl|>at(1)), nl|>at(0))])))))`,
+          .raw`\(fn -> \(f -> fn.(\(x -> f.(f).(x)))).(\(f -> fn.(\(x -> f.(f).(x))))))`,
+        // String.raw`\(f -> \(x -> x.(x))).(\(x -> f.(\(y -> x.(x).(y)))))`,
       ];
-    });
-  })(),
-];
+      return yCombinators.flatMap((yCombinator) => {
+        return [
+          // 两例 Y 组合子：
+          // see: https://zhuanlan.zhihu.com/p/51856257
+          // see: https://blog.klipse.tech/lambda/2016/08/10/pure-y-combinator-javascript.html
+          String
+            .raw`\(if -> \(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if.(n == 0, \(-> 0), \(-> n + f.(n-1))))))).(\(cond, t, f -> head(append(filter([t], \(_ -> cond)), f)).()))`,
+          // 用真正的 if-else：
+          String
+            .raw`\(Y, g -> Y.(g).(10)).(${yCombinator}, \(f -> \(n -> if(n == 0, 0, n + f.(n-1)))))`,
 
-for (const code of codes) {
-  let parseResult: ParsingResult;
-  try {
-    parseResult = parse(code);
-  } catch (e) {
-    console.error(`${code}: unknown error during parsing: ${e}`);
-    continue;
-  }
-  if ("error" in parseResult) {
-    console.error(`${code}: parsing error: ${parseResult.error.message}`);
-    continue;
-  }
+          // 0..<99，但是用 Y 组合子：
+          String
+            .raw`\(Y, g -> Y.(g).([0, []])).(${yCombinator}, \(f -> \(nl -> if((nl|>at(0)) == 100, nl|>at(1), f.([(nl|>at(0))+1, append((nl|>at(1)), nl|>at(0))])))))`,
+        ];
+      });
+    })(),
+  ];
 
-  bench(`${code}`, () => {
-    let result: ExecutionResult;
+  for (const code of codes) {
+    let parseResult: ParsingResult;
     try {
-      if ("error" in parseResult) throw new Unreachable();
-      result = execute(parseResult.ok);
+      parseResult = parse(code);
     } catch (e) {
-      throw new Error(`${code}: unknown error during executing: ${e}`);
+      console.error(`${code}: unknown error during parsing: ${e}`);
+      continue;
     }
-    if ("error" in result) {
-      throw new Error(`${code}: runtime error: ${result.error.message}`);
+    if ("error" in parseResult) {
+      console.error(`${code}: parsing error: ${parseResult.error.message}`);
+      continue;
     }
+
+    bench(`${code}`, () => {
+      let result: ExecutionResult;
+      try {
+        if ("error" in parseResult) throw new Unreachable();
+        result = execute(parseResult.ok);
+      } catch (e) {
+        throw new Error(`${code}: unknown error during executing: ${e}`);
+      }
+      if ("error" in result) {
+        throw new Error(`${code}: runtime error: ${result.error.message}`);
+      }
+    });
+  }
+});
+
+describe("d100 vs 直接生成随机数", () => {
+  // 来自 execute.ts
+  class RandomSourceWrapper implements RandomSource {
+    rng: { int32: () => number };
+
+    constructor(rng: { int32: () => number }) {
+      this.rng = rng;
+    }
+
+    uint32(): number {
+      return this.rng.int32() >>> 0;
+    }
+  }
+
+  const randomSourceA = new RandomSourceWrapper(prng_xorshift7(42));
+  const randomSourceB = new RandomSourceWrapper(prng_xorshift7(42));
+
+  const d100Parsed = parse("d100");
+  if ("error" in d100Parsed) throw new Unreachable();
+
+  const rng = new RandomGenerator(randomSourceB);
+
+  bench("d100", () => {
+    execute(d100Parsed.ok, { randomSource: randomSourceA });
   });
-}
+  bench("用 RandomGenerator 生成 1 到 100 之间的随机数", () => {
+    rng.integer(1, 100);
+  });
+});
