@@ -12,7 +12,7 @@
               span.font-mono {{ statisText.samples }}
               | {{ " 个" }}
             div(v-if="statisText.duration")
-              | 目前用时：
+              | {{ report.stopped ? "" : "目前" }}用时：
               span.font-mono {{ statisText.duration }}
               | {{ " 秒" }}
             div(v-if="statisText.speed")

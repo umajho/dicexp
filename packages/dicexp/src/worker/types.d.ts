@@ -47,4 +47,5 @@ export interface BatchReport { // 为了不浪费已有数据， ok 和 error �
     start: { ms: number };
     now: { ms: number };
   };
+  stopped?: boolean;
 }

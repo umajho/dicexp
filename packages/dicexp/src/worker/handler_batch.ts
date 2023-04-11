@@ -37,6 +37,7 @@ export class BatchHandler {
     this.report = {
       ok: { samples: 0, counts: {} },
       statistics: { start: { ms: nowMs }, now: { ms: nowMs } },
+      stopped: false,
     };
     this.shouldStop = false;
 
@@ -52,6 +53,7 @@ export class BatchHandler {
   private initBatchReporter() {
     const intervalId = setInterval(() => {
       if (this.shouldStop) {
+        this.report.stopped = true;
         if (this.shouldStop instanceof Error) {
           this.report.error = this.shouldStop;
         } else {
