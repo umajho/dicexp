@@ -1,6 +1,9 @@
 import { Unreachable } from "@dicexp/errors";
 import { representValue } from "../representations_impl";
-import type { RegularFunction, RuntimeProxy } from "../runtime";
+import type {
+  RegularFunction,
+  RuntimeProxyForFunction,
+} from "@dicexp/runtime-values";
 import {
   runtimeError_callArgumentTypeMismatch,
   runtimeError_typeMismatch,
@@ -18,6 +21,7 @@ import {
   type ValueTypeName,
 } from "@dicexp/runtime-values";
 import { concretize } from "../values_impl";
+import { concrete_error } from "./concrete_factory";
 
 export type ArgumentSpec =
   | "lazy"
@@ -36,7 +40,7 @@ export function makeFunction(
   spec: ArgumentSpec[],
   logic: (
     args: RegularFunctionArgument[],
-    rtm: RuntimeProxy,
+    rtm: RuntimeProxyForFunction,
   ) => RuntimeResult<{ value: Value } | { lazy: LazyValue }>,
 ): RegularFunction {
   return (args_, rtm) => {
@@ -50,7 +54,7 @@ export function makeFunction(
         _yield: () => {
           const result = logic(unwrapResult.ok.values, rtm);
           if ("error" in result) {
-            return rtm.lazyValueFactory.error(result.error).memo;
+            return concrete_error(result.error);
           }
 
           if ("lazy" in result.ok) {
@@ -70,7 +74,7 @@ export function makeFunction(
 function unwrapArguments(
   spec: ArgumentSpec[],
   args: LazyValue[],
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
 ): RuntimeResult<{ values: RegularFunctionArgument[] }> {
   if (spec.length !== args.length) {
     return { error: runtimeError_wrongArity(spec.length, args.length) };
@@ -88,10 +92,10 @@ function unwrapArguments(
   return { ok: { values } };
 }
 
-export function unwrapValue(
+function unwrapValue(
   spec: ArgumentSpec,
   value: LazyValue,
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
   opts?: CheckTypeOptions,
 ): RuntimeResult<{ value: RegularFunctionArgument }> {
   if (spec === "lazy") {
@@ -182,7 +186,7 @@ function checkType(
 export function flattenListAll(
   spec: Exclude<ArgumentSpec, "lazy">,
   list: LazyValue[],
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
 ): RuntimeResult<{ values: Value[] }> {
   if (spec !== "*") {
     if (spec instanceof Set) {
@@ -222,7 +226,7 @@ export function flattenListAll(
 export function unwrapListOneOf(
   specOneOf: Set<ValueTypeName>,
   list: LazyValue[],
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
 ): RuntimeResult<{ values: Value[] }> {
   if (!list.length) return { ok: { values: [] } };
 

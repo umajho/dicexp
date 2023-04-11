@@ -7,6 +7,7 @@ import type {
 } from "@dicexp/runtime-values";
 import { sum } from "../utils";
 import type { builtinOperatorDeclarations } from "./declarations";
+import { concrete_literal } from "../concrete_factory";
 
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   typeof builtinOperatorDeclarations
@@ -94,7 +95,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
           current = rtm.random.integer(1, x);
           underlying[index] = current;
         }
-        return rtm.lazyValueFactory.literal(current);
+        return ({ memo: concrete_literal(current) });
       },
       _sum: () => {
         if (sumResult !== null) return sumResult;

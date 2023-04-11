@@ -25,7 +25,9 @@ import {
   type LazyValue,
   type Representation,
   type RuntimeError,
+  type RuntimeProxyForFunction,
   type RuntimeResult,
+  type Scope,
   type Value_List,
 } from "@dicexp/runtime-values";
 
@@ -125,7 +127,6 @@ export class Runtime {
     };
 
     this._lazyValueFactory = new LazyValueFactory(this._proxy);
-    this._proxy.lazyValueFactory = this._lazyValueFactory;
   }
 
   private _reportCalled(): RuntimeError | null {
@@ -348,16 +349,6 @@ export class Runtime {
   }
 }
 
-export type Scope = { [ident: string]: RegularFunction | LazyValue };
-
-export type RegularFunction = (
-  args: Value_List,
-  rtm: RuntimeProxy,
-) => RuntimeResult<LazyValue>;
-
-export interface RuntimeProxy {
-  interpret: (scope: Scope, node: Node) => LazyValue; // TODO: 似乎没必要？
-  random: RandomGenerator;
-  lazyValueFactory: LazyValueFactory;
+export interface RuntimeProxy extends RuntimeProxyForFunction {
   reporter: RuntimeReporter;
 }

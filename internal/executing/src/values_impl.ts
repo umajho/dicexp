@@ -24,7 +24,11 @@ import {
   representResult,
   representValue,
 } from "./representations_impl";
-import type { RegularFunction, RuntimeProxy, Scope } from "./runtime";
+import type {
+  RegularFunction,
+  RuntimeProxyForFunction,
+  Scope,
+} from "@dicexp/runtime-values";
 import {
   runtimeError_duplicateClosureParameterNames,
   runtimeError_limitationExceeded,
@@ -32,10 +36,11 @@ import {
   runtimeError_valueIsNotCallable,
   runtimeError_wrongArity,
 } from "./runtime_errors_impl";
+import type { RuntimeProxy } from "./runtime";
 
 export function concretize(
   v: LazyValue,
-  rtm: RuntimeProxy | null,
+  rtm: RuntimeProxyForFunction | null,
 ): Concrete {
   if (v.memo) return v.memo;
 

@@ -20,11 +20,12 @@ import {
   runtimeError_unknownVariable,
   runtimeError_wrongArity,
 } from "../src/runtime_errors_impl";
-import { JSValue, Scope } from "../src/runtime";
+import { JSValue } from "../src/runtime";
 import { flatten } from "./utils";
 import { makeFunction } from "../src/builtin_functions/helpers";
 import { Restrictions } from "../src/restrictions";
 import { builtinScope } from "../src/builtin_functions/mod";
+import { Scope } from "@dicexp/runtime-values";
 
 describe("值", () => {
   describe("整数", () => {

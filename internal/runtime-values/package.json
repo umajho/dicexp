@@ -9,6 +9,7 @@
   "type": "module",
   "sideEffects": false,
   "dependencies": {
-    "@dicexp/errors": "workspace:*"
+    "@dicexp/errors": "workspace:*",
+    "@dicexp/nodes": "workspace:*"
   }
 }

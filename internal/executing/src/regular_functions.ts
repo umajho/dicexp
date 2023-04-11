@@ -1,4 +1,4 @@
-import type { RuntimeProxy } from "./runtime";
+import type { RuntimeProxyForFunction } from "@dicexp/runtime-values";
 import type {
   LazyValue,
   RuntimeResult,
@@ -114,7 +114,7 @@ type ParameterListToFunction<
   ParamList extends readonly DeclarationParameter[],
   ReturnValueType extends DeclarationReturnValueTypeSpec,
 > = (
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
   ...args: ParameterListToTuple<ParamList>
 ) => RuntimeResult<
   ReturnValueType extends { lazy: true } ? { lazy: LazyValue }

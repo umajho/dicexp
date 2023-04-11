@@ -1,10 +1,11 @@
 import { Unimplemented } from "@dicexp/errors";
+import type { RandomGenerator as IRandomGenerator } from "@dicexp/runtime-values";
 
 export interface RandomSource {
   uint32(): number;
 }
 
-export class RandomGenerator {
+export class RandomGenerator implements IRandomGenerator {
   constructor(
     private readonly source: RandomSource,
   ) {}

@@ -100,8 +100,10 @@ importers:
   internal/runtime-values:
     specifiers:
       '@dicexp/errors': workspace:*
+      '@dicexp/nodes': workspace:*
     dependencies:
       '@dicexp/errors': link:../errors
+      '@dicexp/nodes': link:../nodes
 
   packages/dicexp:
     specifiers:

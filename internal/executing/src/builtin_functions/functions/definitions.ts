@@ -1,10 +1,10 @@
 import type { DeclarationListToDefinitionMap } from "../../regular_functions";
-import type { RuntimeProxy } from "../../runtime";
 import {
   callCallable,
   getDisplayNameFromTypeName,
   getTypeNameOfValue,
   makeRuntimeError,
+  type RuntimeProxyForFunction,
   type RuntimeResult,
   type Value_Callable,
   type Value_List,
@@ -14,6 +14,7 @@ import { concretize } from "../../values_impl";
 import { flattenListAll, unwrapListOneOf } from "../helpers";
 import { sum } from "../utils";
 import type { builtinFunctionDeclarations } from "./declarations";
+import { concrete_literal } from "../concrete_factory";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations
@@ -62,7 +63,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const sortedList = listJs.sort((a, b) => +a - +b);
     return {
       ok: {
-        value: sortedList.map((el) => rtm.lazyValueFactory.literal(el)),
+        value: sortedList.map((el) => ({ memo: concrete_literal(el) })),
       },
     };
   },
@@ -140,7 +141,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
 function filter(
   list: Value_List,
   callable: Value_Callable,
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
 ): RuntimeResult<Value_List> {
   const filtered: Value_List = [];
   for (const el of list) {

@@ -1,6 +1,6 @@
 import { type ArgumentSpec, makeFunction } from "./helpers";
 
-import type { Scope } from "../runtime";
+import type { Scope } from "@dicexp/runtime-values";
 import { builtinOperatorDeclarations } from "./operators/declarations";
 import { builtinOperatorDefinitions } from "./operators/definitions";
 import type {
