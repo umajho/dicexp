@@ -5,8 +5,8 @@ import type {
   Value_Callable,
   Value_Integer$SumExtendable,
   Value_List$Extendable,
+  ValueTypeName,
 } from "@dicexp/runtime-values";
-import type { ValueTypeName } from "./values_impl";
 
 /**
  * 通常函数声明。

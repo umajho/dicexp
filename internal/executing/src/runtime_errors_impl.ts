@@ -1,6 +1,10 @@
 import { Unreachable } from "@dicexp/errors";
-import { makeRuntimeError, type RuntimeError } from "@dicexp/runtime-values";
-import type { ValueTypeName } from "./values_impl";
+import {
+  getDisplayNameFromTypeName,
+  makeRuntimeError,
+  type RuntimeError,
+  type ValueTypeName,
+} from "@dicexp/runtime-values";
 
 export function runtimeError_limitationExceeded(
   name: string,
@@ -38,9 +42,9 @@ export function runtimeError_typeMismatch(
 ): RuntimeError {
   const expectedType = expectedTypeArray(expectedType_);
 
-  const expected = expectedType.map((x) => `「${getTypeDisplayName(x)}」`).join(
-    "",
-  );
+  const expected = expectedType.map((x) =>
+    `「${getDisplayNameFromTypeName(x)}」`
+  ).join("");
   const kindText = (() => {
     if (!kind) return "";
     if (kind === "list-inconsistency") {
@@ -50,7 +54,7 @@ export function runtimeError_typeMismatch(
   })();
   return makeRuntimeError(
     `期待类型${expected}` +
-      `与实际类型「${getTypeDisplayName(actualType)}」不符` +
+      `与实际类型「${getDisplayNameFromTypeName(actualType)}」不符` +
       kindText,
   );
 }
@@ -62,12 +66,13 @@ export function runtimeError_callArgumentTypeMismatch(
 ): RuntimeError {
   const expectedType = expectedTypeArray(expectedType_);
 
-  const expected = expectedType.map((x) => `「${getTypeDisplayName(x)}」`)
-    .join("");
+  const expected = expectedType.map((x) =>
+    `「${getDisplayNameFromTypeName(x)}」`
+  ).join("");
   return makeRuntimeError(
     `调用的第 ${position} 个参数类型不匹配：` +
       `期待类型${expected}` +
-      `与实际类型「${getTypeDisplayName(actualType)}」不符`,
+      `与实际类型「${getDisplayNameFromTypeName(actualType)}」不符`,
   );
 }
 
@@ -108,7 +113,7 @@ export function runtimeError_badFinalResult(
   typeName: ValueTypeName,
 ): RuntimeError {
   return makeRuntimeError(
-    `「${getTypeDisplayName(typeName)}」不能作为最终结果`,
+    `「${getDisplayNameFromTypeName(typeName)}」不能作为最终结果`,
   );
 }
 
@@ -116,27 +121,4 @@ function expectedTypeArray(
   expectedType_: ValueTypeName | Set<ValueTypeName>,
 ): ValueTypeName[] {
   return expectedType_ instanceof Set ? [...expectedType_] : [expectedType_];
-}
-
-export function getTypeDisplayName(name: ValueTypeName) {
-  switch (name) {
-    case "integer":
-      return "整数";
-    case "boolean":
-      return "布尔";
-    case "list":
-      return "列表";
-    // case "closure":
-    //   return "匿名函数";
-    // case "captured":
-    //   return "被捕获的通常函数";
-    case "callable":
-      return "可调用的";
-    case "integer$sum_extendable":
-      return "整数（求和，可扩展）";
-    case "list$extendable":
-      return "列表（可扩展）";
-    default:
-      return `【内部实现泄漏】未知（${name}）`;
-  }
 }

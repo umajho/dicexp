@@ -3,6 +3,7 @@ import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
   type Concrete,
+  getDisplayNameOfValue,
   type LazyValue,
   type LazyValueWithMemo,
   makeRuntimeError,
@@ -25,7 +26,6 @@ import {
 } from "./representations_impl";
 import type { RegularFunction, RuntimeProxy, Scope } from "./runtime";
 import {
-  getTypeDisplayName,
   runtimeError_duplicateClosureParameterNames,
   runtimeError_limitationExceeded,
   runtimeError_unknownRegularFunction,
@@ -302,7 +302,7 @@ export class LazyValueFactory {
         }
         const countValue = countResult.ok;
         if (typeof countValue != "number") {
-          const typeName = getTypeDisplayName(getTypeNameOfValue(countValue));
+          const typeName = getDisplayNameOfValue(countValue);
           const errMsg = `反复次数期待「整数」，实际类型为「${typeName}」`;
           return this.error(makeRuntimeError(errMsg), representation).memo;
         }
@@ -350,20 +350,6 @@ function getFunctionFromScope(
   if (typeof fn !== "function") throw new Unreachable();
   return { ok: fn };
 }
-
-export function getTypeNameOfValue(v: Value) {
-  switch (typeof v) {
-    case "number":
-      return "integer";
-    case "boolean":
-      return "boolean";
-    default:
-      if (Array.isArray(v)) return "list";
-      return v.type;
-      throw new Unreachable();
-  }
-}
-export type ValueTypeName = ReturnType<typeof getTypeNameOfValue>;
 
 const MAX_SAFE_INTEGER = 2 ** 53 - 1;
 const MIN_SAFE_INTEGER = -(2 ** 53) + 1;

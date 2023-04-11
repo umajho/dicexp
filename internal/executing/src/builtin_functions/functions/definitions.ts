@@ -1,18 +1,16 @@
 import type { DeclarationListToDefinitionMap } from "../../regular_functions";
 import type { RuntimeProxy } from "../../runtime";
-import { getTypeDisplayName } from "../../runtime_errors_impl";
 import {
   callCallable,
+  getDisplayNameFromTypeName,
+  getTypeNameOfValue,
   makeRuntimeError,
   type RuntimeResult,
   type Value_Callable,
   type Value_List,
-} from "@dicexp/runtime-values";
-import {
-  concretize,
-  getTypeNameOfValue,
   type ValueTypeName,
-} from "../../values_impl";
+} from "@dicexp/runtime-values";
+import { concretize } from "../../values_impl";
 import { flattenListAll, unwrapListOneOf } from "../helpers";
 import { sum } from "../utils";
 import type { builtinFunctionDeclarations } from "./declarations";
@@ -173,8 +171,8 @@ function runtimeError_givenClosureReturnValueTypeMismatch(
   actualReturnValueType: ValueTypeName,
   position: number,
 ) {
-  const expectedTypeText = getTypeDisplayName(expectedReturnValueType);
-  const actualTypeText = getTypeDisplayName(actualReturnValueType);
+  const expectedTypeText = getDisplayNameFromTypeName(expectedReturnValueType);
+  const actualTypeText = getDisplayNameFromTypeName(actualReturnValueType);
   return makeRuntimeError(
     `作为第 ${position} 个参数传入通常函数 ${name} 的返回值类型与期待不符：` +
       `期待「${expectedTypeText}」，实际「${actualTypeText}」。`,

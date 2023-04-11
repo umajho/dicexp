@@ -10,16 +10,14 @@ import {
 import {
   asInteger,
   asList,
+  getTypeNameOfValue,
   type LazyValue,
   type RuntimeError,
   type RuntimeResult,
   type Value,
-} from "@dicexp/runtime-values";
-import {
-  concretize,
-  getTypeNameOfValue,
   type ValueTypeName,
-} from "../values_impl";
+} from "@dicexp/runtime-values";
+import { concretize } from "../values_impl";
 
 export type ArgumentSpec =
   | "lazy"

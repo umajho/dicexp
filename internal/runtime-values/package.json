@@ -7,5 +7,8 @@
   "author": "Umaĵo",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false
+  "sideEffects": false,
+  "dependencies": {
+    "@dicexp/errors": "workspace:*"
+  }
 }

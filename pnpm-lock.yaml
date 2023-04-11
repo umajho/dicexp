@@ -98,7 +98,10 @@ importers:
       vitest: 0.29.3
 
   internal/runtime-values:
-    specifiers: {}
+    specifiers:
+      '@dicexp/errors': workspace:*
+    dependencies:
+      '@dicexp/errors': link:../errors
 
   packages/dicexp:
     specifiers:
