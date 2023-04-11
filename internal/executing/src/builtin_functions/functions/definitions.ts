@@ -14,6 +14,7 @@ import {
   type ValueTypeName,
 } from "../../values_impl";
 import { flattenListAll, unwrapListOneOf } from "../helpers";
+import { sum } from "../utils";
 import type { builtinFunctionDeclarations } from "./declarations";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
@@ -33,7 +34,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     if ("error" in result) return result;
     return {
       ok: {
-        value: (result.ok.values as number[]).reduce((acc, cur) => acc + cur),
+        value: sum(result.ok.values as number[]),
       },
     };
   },

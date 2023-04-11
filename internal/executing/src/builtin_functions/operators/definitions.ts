@@ -5,6 +5,7 @@ import type {
   RuntimeError,
   Value_Integer$SumExtendable,
 } from "../../runtime_values/mod";
+import { sum } from "../utils";
 import type { builtinOperatorDeclarations } from "./declarations";
 
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
@@ -84,7 +85,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
 
     const underlying: number[] = Array(n);
     let sumResult: number | null = null;
-    const sum: Value_Integer$SumExtendable = {
+    const sumValue: Value_Integer$SumExtendable = {
       type: "integer$sum_extendable",
       nominalLength: n,
       _at: (index) => {
@@ -102,12 +103,12 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
             underlying[i] = rtm.random.integer(1, x);
           }
         }
-        sumResult = underlying.slice(0, n).reduce((acc, cur) => acc + cur);
+        sumResult = sum(underlying.slice(0, n));
         return sumResult;
       },
     };
 
-    return { ok: { value: sum } };
+    return { ok: { value: sumValue } };
   },
   "d/1": (rtm, x) => {
     const errRange = ensureUpperBound("d", 1, 1, x);
