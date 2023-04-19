@@ -1,0 +1,32 @@
+# see: https://github.com/actions/starter-workflows/blob/main/pages/static.yml
+# see: https://github.com/actions/deploy-pages
+
+name: 测试
+
+on:
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "19"
+          cache: pnpm
+      - name: Setup Just
+        uses: extractions/setup-just@v1
+      - name: Install dependencies
+        run: |
+          pnpm i -r
+      - name: Run tests
+        run: |
+          just test
