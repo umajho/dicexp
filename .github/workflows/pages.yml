@@ -44,7 +44,7 @@ jobs:
       - name: Build playground
         run: |
           cd playground
-          just pre-build
+          just prepare
           pnpm exec vite build --base="/${{ github.event.repository.name }}/"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1

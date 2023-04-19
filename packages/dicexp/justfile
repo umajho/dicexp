@@ -1,10 +1,10 @@
-pre-run:
-	just -f ../../justfile lezer build # 语法
+prepare:
+	cd .. && just build-grammar
 
-type-check: pre-run
+type-check: prepare
 	tsc --noEmit
 
 test: type-check
 
-build: pre-run type-check
+build: prepare type-check
 	pnpm run build

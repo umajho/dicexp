@@ -1,7 +1,8 @@
-pre-run:
+prepare:
+	cd .. && just build-grammar
 
-test: pre-run
+test: prepare
 	pnpm exec vitest --dir=test --run
 
-bench: pre-run
+bench: prepare
 	pnpm exec vitest bench --dir=test --run

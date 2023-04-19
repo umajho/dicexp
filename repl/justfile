@@ -1,8 +1,8 @@
-pre-run:
-	just -f ../justfile lezer build # 语法
-	just -f ../justfile dicexp build
+prepare:
+	cd .. && just build-grammar
+	cd .. && just build-dicexp
 
-run: pre-run
+run: prepare
 	rollup -c
 	node dist/main.js
 

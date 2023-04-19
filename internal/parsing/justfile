@@ -1,10 +1,8 @@
-pre-run:
-	just -f ../../justfile lezer build # 语法
+prepare:
+	cd .. && just build-grammar
 
-build: pre-run
-
-test: pre-run
+test: prepare
 	pnpm exec vitest --dir=test --run
 
-bench: pre-run
+bench: prepare
 	pnpm exec vitest bench --dir=test --run

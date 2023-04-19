@@ -1,12 +1,12 @@
-pre-build:
-	just -f ../justfile lezer build # 语法
+prepare:
+	cd .. && just build-grammar
 
-build: pre-build
+build: prepare
 	pnpm run build
 	gzip -k dist/**/*.js
 	brotli -k dist/**/*.js
 
-test: pre-build
+test: prepare
 	pnpm run type-check
 
 serve: build serve-no-build
