@@ -117,7 +117,7 @@ watch(
 );
 
 const tooltipText = computed(() => {
-  if (!highlighted.value) return "";
+  if (!highlighted.value === null) return "";
   const datum = data.value.find((d) => d.resultNumber === highlighted.value);
   if (!datum) return "";
   const count = datum.count as number;
