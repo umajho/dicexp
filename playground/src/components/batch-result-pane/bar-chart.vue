@@ -51,7 +51,7 @@ const data: ComputedRef<DatumForD3[]> = computed(() => {
     const advancement = props.mode === "at-least" ? () => i-- : () => i++;
     let acc = 0;
 
-    let last: typeof data[0] | null = null,
+    let last: (typeof data)[0] | null = null,
       lastI: number | null = null;
     const missing: typeof data = [];
 
