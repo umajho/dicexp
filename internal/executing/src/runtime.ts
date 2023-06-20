@@ -7,12 +7,12 @@ import type {
   NodeValue_Closure,
   NodeValue_List,
 } from "@dicexp/nodes";
-import { builtinScope } from "./builtin_functions/mod";
+import { standardScope } from "@dicexp/builtins";
 import {
   runtimeError_badFinalResult,
   runtimeError_restrictionExceeded,
   runtimeError_unknownVariable,
-} from "./runtime_errors_impl";
+} from "@dicexp/runtime-errors";
 import { concretize, LazyValueFactory } from "./values_impl";
 import type { Restrictions } from "./restrictions";
 import { RandomGenerator, type RandomSource } from "./random";
@@ -91,7 +91,7 @@ export class Runtime {
   constructor(root: Node, opts: RuntimeOptions) {
     this._root = root;
 
-    this._topLevelScope = opts.topLevelScope ?? builtinScope;
+    this._topLevelScope = opts.topLevelScope ?? standardScope;
 
     this._rng = new RandomGenerator(opts.randomSource);
 
@@ -121,6 +121,7 @@ export class Runtime {
     this._proxy = {
       interpret: (scope, node) => this._interpret(scope, node),
       random: this._rng,
+      concretize,
       // @ts-ignore
       lazyValueFactory: null, // 之后才有，所以之后再赋值
       reporter: this.reporter,

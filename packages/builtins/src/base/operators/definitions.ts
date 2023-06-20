@@ -1,14 +1,13 @@
 import { Unreachable } from "@dicexp/errors";
-import type { DeclarationListToDefinitionMap } from "../../regular_functions";
-import { runtimeError_illegalOperation } from "../../runtime_errors_impl";
+import type { DeclarationListToDefinitionMap } from "@dicexp/runtime-regular-functions";
 import {
   concrete_literal,
+  makeRuntimeError,
   type RuntimeError,
   type Value_Integer$SumExtendable,
 } from "@dicexp/runtime-values";
-import { sum } from "../utils";
 import type { builtinOperatorDeclarations } from "./declarations";
-import {} from "@dicexp/runtime-values";
+import { sum } from "../utils";
 
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   typeof builtinOperatorDeclarations
@@ -155,4 +154,11 @@ function renderOperation(
 function runtimeError_LeftRightTypeMismatch(op: string) {
   const reason = "两侧操作数的类型不相同";
   return runtimeError_illegalOperation(op, reason);
+}
+
+export function runtimeError_illegalOperation(
+  operation: string,
+  reason: string,
+): RuntimeError {
+  return makeRuntimeError(`操作 “${operation}” 非法：${reason}`);
 }

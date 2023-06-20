@@ -1,0 +1,15 @@
+{
+  "packageManager": "pnpm@7.29.1",
+  "name": "@dicexp/runtime-errors",
+  "version": "0.0.0",
+  "main": "lib.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "dependencies": {
+    "@dicexp/errors": "workspace:*",
+    "@dicexp/runtime-values": "workspace:*"
+  }
+}

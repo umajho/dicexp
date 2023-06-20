@@ -34,7 +34,7 @@ import {
   runtimeError_unknownRegularFunction,
   runtimeError_valueIsNotCallable,
   runtimeError_wrongArity,
-} from "./runtime_errors_impl";
+} from "@dicexp/runtime-errors";
 import type { RuntimeProxy } from "./runtime";
 
 export function concretize(

@@ -1,4 +1,4 @@
-import type { RegularFunctionDeclaration } from "../../regular_functions";
+import type { RegularFunctionDeclaration } from "@dicexp/runtime-regular-functions";
 
 export const builtinFunctionDeclarations = ([
   // 投骰子：

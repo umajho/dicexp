@@ -5,10 +5,9 @@ import { inspect } from "util";
 
 import { parse, type ParseOptions } from "@dicexp/parsing";
 
-import { ValueTypeName } from "../src/values_impl";
+import type { RuntimeError, ValueTypeName } from "@dicexp/runtime-values";
 import { execute, ExecuteOptions, ExecutionResult } from "../src/execute";
-import { RuntimeError } from "../src/runtime_values/mod";
-import { runtimeError_callArgumentTypeMismatch } from "../src/runtime_errors_impl";
+import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime-errors";
 import { JSValue } from "../src/runtime";
 import { Unreachable } from "@dicexp/errors";
 

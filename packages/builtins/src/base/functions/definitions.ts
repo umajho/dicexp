@@ -1,4 +1,8 @@
-import type { DeclarationListToDefinitionMap } from "../../regular_functions";
+import {
+  type DeclarationListToDefinitionMap,
+  flattenListAll,
+  unwrapListOneOf,
+} from "@dicexp/runtime-regular-functions";
 import {
   callCallable,
   concrete_literal,
@@ -11,10 +15,8 @@ import {
   type Value_List,
   type ValueTypeName,
 } from "@dicexp/runtime-values";
-import { concretize } from "../../values_impl";
-import { flattenListAll, unwrapListOneOf } from "../helpers";
-import { sum } from "../utils";
 import type { builtinFunctionDeclarations } from "./declarations";
+import { sum } from "../utils";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations
@@ -147,7 +149,7 @@ function filter(
   for (const el of list) {
     const result = callCallable(callable, [el]);
     if ("error" in result) return result;
-    const concrete = concretize(result.ok, rtm);
+    const concrete = rtm.concretize(result.ok, rtm);
     if ("error" in concrete.value) return concrete.value;
     const value = concrete.value.ok;
 

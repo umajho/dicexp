@@ -1,6 +1,6 @@
 import type { Node } from "@dicexp/nodes";
 
-import type { LazyValue, RuntimeResult, Value_List } from "./values";
+import type { Concrete, LazyValue, RuntimeResult, Value_List } from "./values";
 
 export type Scope = { [ident: string]: RegularFunction | LazyValue };
 
@@ -12,6 +12,7 @@ export type RegularFunction = (
 export interface RuntimeProxyForFunction {
   interpret: (scope: Scope, node: Node) => LazyValue;
   random: RandomGenerator;
+  concretize(v: LazyValue, rtm: RuntimeProxyForFunction | null): Concrete;
 }
 
 export interface RandomGenerator {

@@ -1,6 +1,6 @@
-import type { RuntimeProxyForFunction } from "@dicexp/runtime-values";
 import type {
   LazyValue,
+  RuntimeProxyForFunction,
   RuntimeResult,
   Value_Callable,
   Value_Integer$SumExtendable,
@@ -90,7 +90,7 @@ type DeclarationReturnValueTypeSpec =
  */
 export type DeclarationListToDefinitionMap<DeclList extends readonly any[]> =
   DeclList extends
-    readonly [infer Head extends RegularFunctionDeclaration, ...infer Tail] ? 
+    readonly [infer Head extends RegularFunctionDeclaration, ...infer Tail] ?
       & { [name in FullName<Head>]: DeclarationToFunction<Head> }
       & DeclarationListToDefinitionMap<Tail>
     : {};

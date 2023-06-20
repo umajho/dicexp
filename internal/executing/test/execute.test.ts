@@ -19,12 +19,12 @@ import {
   runtimeError_duplicateClosureParameterNames,
   runtimeError_unknownVariable,
   runtimeError_wrongArity,
-} from "../src/runtime_errors_impl";
+} from "@dicexp/runtime-errors";
 import { JSValue } from "../src/runtime";
 import { flatten } from "./utils";
-import { makeFunction } from "../src/builtin_functions/helpers";
+import { makeFunction } from "@dicexp/runtime-regular-functions";
 import { Restrictions } from "../src/restrictions";
-import { builtinScope } from "../src/builtin_functions/mod";
+import { standardScope } from "@dicexp/builtins";
 import { Scope } from "@dicexp/runtime-values";
 
 describe("值", () => {
@@ -619,7 +619,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
-            { topLevelScope: { ...builtinScope, ...scope }, restrictions },
+            { topLevelScope: { ...standardScope, ...scope }, restrictions },
           );
         });
       });

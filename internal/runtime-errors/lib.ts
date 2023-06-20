@@ -76,13 +76,6 @@ export function runtimeError_callArgumentTypeMismatch(
   );
 }
 
-export function runtimeError_illegalOperation(
-  operation: string,
-  reason: string,
-): RuntimeError {
-  return makeRuntimeError(`操作 “${operation}” 非法：${reason}`);
-}
-
 // TODO: 给出可能的推荐，比如同名不同 arity 或名称相似的标识符。
 //       也许可以用 `npm:string-similarity`
 export function runtimeError_unknownRegularFunction(

@@ -1,21 +1,11 @@
-import { type ArgumentSpec, makeFunction } from "./helpers";
-
 import type { Scope } from "@dicexp/runtime-values";
-import { builtinOperatorDeclarations } from "./operators/declarations";
-import { builtinOperatorDefinitions } from "./operators/definitions";
 import type {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,
-} from "../regular_functions";
-import { builtinFunctionDeclarations } from "./functions/declarations";
-import { builtinFunctionDefinitions } from "./functions/definitions";
+} from "./decl-def";
+import { type ArgumentSpec, makeFunction } from "./make_function";
 
-export const builtinScope: Scope = {
-  ...makeScope(builtinOperatorDeclarations, builtinOperatorDefinitions),
-  ...makeScope(builtinFunctionDeclarations, builtinFunctionDefinitions),
-};
-
-function makeScope<T extends readonly RegularFunctionDeclaration[]>(
+export function makeScope<T extends readonly RegularFunctionDeclaration[]>(
   declarations: T,
   definitions: DeclarationListToDefinitionMap<T>,
 ) {

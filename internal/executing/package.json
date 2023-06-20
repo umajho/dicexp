@@ -9,8 +9,10 @@
   "type": "module",
   "sideEffects": false,
   "dependencies": {
+    "@dicexp/builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/nodes": "workspace:*",
+    "@dicexp/runtime-errors": "workspace:*",
     "@dicexp/runtime-values": "workspace:*",
     "@lezer/common": "^1.0.2",
     "@lezer/lr": "^1.3.3",
@@ -18,6 +20,7 @@
   },
   "devDependencies": {
     "@dicexp/parsing": "workspace:*",
+    "@dicexp/runtime-regular-functions": "workspace:*",
     "@rollup/plugin-typescript": "^11.0.0",
     "assertion-error": "^2.0.0",
     "rollup": "^3.20.0",

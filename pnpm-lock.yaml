@@ -21,12 +21,18 @@ importers:
 
   internal/executing:
     dependencies:
+      '@dicexp/builtins':
+        specifier: workspace:*
+        version: link:../../packages/builtins
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../errors
       '@dicexp/nodes':
         specifier: workspace:*
         version: link:../nodes
+      '@dicexp/runtime-errors':
+        specifier: workspace:*
+        version: link:../runtime-errors
       '@dicexp/runtime-values':
         specifier: workspace:*
         version: link:../runtime-values
@@ -43,6 +49,9 @@ importers:
       '@dicexp/parsing':
         specifier: workspace:*
         version: link:../parsing
+      '@dicexp/runtime-regular-functions':
+        specifier: workspace:*
+        version: link:../runtime-regular-functions
       '@rollup/plugin-typescript':
         specifier: ^11.0.0
         version: 11.0.0(rollup@3.20.0)(tslib@2.5.0)(typescript@5.0.2)
@@ -129,6 +138,27 @@ importers:
         specifier: ^0.29.3
         version: 0.29.3
 
+  internal/runtime-errors:
+    dependencies:
+      '@dicexp/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@dicexp/runtime-values':
+        specifier: workspace:*
+        version: link:../runtime-values
+
+  internal/runtime-regular-functions:
+    dependencies:
+      '@dicexp/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@dicexp/runtime-errors':
+        specifier: workspace:*
+        version: link:../runtime-errors
+      '@dicexp/runtime-values':
+        specifier: workspace:*
+        version: link:../runtime-values
+
   internal/runtime-values:
     dependencies:
       '@dicexp/errors':
@@ -140,6 +170,18 @@ importers:
       '@dicexp/nodes':
         specifier: workspace:*
         version: link:../nodes
+
+  packages/builtins:
+    dependencies:
+      '@dicexp/errors':
+        specifier: workspace:*
+        version: link:../../internal/errors
+      '@dicexp/runtime-regular-functions':
+        specifier: workspace:*
+        version: link:../../internal/runtime-regular-functions
+      '@dicexp/runtime-values':
+        specifier: workspace:*
+        version: link:../../internal/runtime-values
 
   packages/dicexp:
     dependencies:
