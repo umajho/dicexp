@@ -21,7 +21,6 @@ import {
   type RegularFunction,
   representCall,
   representCaptured,
-  representError,
   representLazyValue,
   representRepetition,
   representResult,
