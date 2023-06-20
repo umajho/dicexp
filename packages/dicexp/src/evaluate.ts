@@ -5,8 +5,7 @@ import {
   type RuntimeError,
   type RuntimeStatistics,
 } from "@dicexp/executing";
-import type { JSValue } from "@dicexp/executing/src/runtime";
-import type { Representation } from "@dicexp/executing";
+import type { JSValue, Representation } from "@dicexp/executing";
 
 export type EvaluateOptions = ExecuteOptions & {
   parseOpts?: ParseOptions;
