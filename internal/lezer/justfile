@@ -1,2 +1,4 @@
+set fallback
+
 build:
 	node scripts/compile-lezer.js ./src/dicexp.grammar
