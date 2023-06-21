@@ -1,9 +1,9 @@
-import type { Scope } from "@dicexp/runtime-values";
+import type { Scope, ValueSpec } from "@dicexp/runtime-values";
 import type {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,
 } from "./decl-def";
-import { type ArgumentSpec, makeFunction } from "./make_function";
+import { makeFunction } from "./make_function";
 
 export function makeScope<T extends readonly RegularFunctionDeclaration[]>(
   declarations: T,
@@ -20,7 +20,7 @@ export function makeScope<T extends readonly RegularFunctionDeclaration[]>(
     // @ts-ignore 类型推不出来了
     const impl = definitions[fullName];
     opScope[fullName] = makeFunction(
-      argSpec as ArgumentSpec[],
+      argSpec as ValueSpec[],
       (args, rtm) => impl(rtm, ...args),
     );
   }

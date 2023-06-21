@@ -155,6 +155,21 @@ importers:
       '@dicexp/runtime-errors':
         specifier: workspace:*
         version: link:../runtime-errors
+      '@dicexp/runtime-value-utils':
+        specifier: workspace:*
+        version: link:../runtime-value-utils
+      '@dicexp/runtime-values':
+        specifier: workspace:*
+        version: link:../runtime-values
+
+  internal/runtime-value-utils:
+    dependencies:
+      '@dicexp/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@dicexp/runtime-errors':
+        specifier: workspace:*
+        version: link:../runtime-errors
       '@dicexp/runtime-values':
         specifier: workspace:*
         version: link:../runtime-values
@@ -179,6 +194,9 @@ importers:
       '@dicexp/runtime-regular-functions':
         specifier: workspace:*
         version: link:../../internal/runtime-regular-functions
+      '@dicexp/runtime-value-utils':
+        specifier: workspace:*
+        version: link:../../internal/runtime-value-utils
       '@dicexp/runtime-values':
         specifier: workspace:*
         version: link:../../internal/runtime-values

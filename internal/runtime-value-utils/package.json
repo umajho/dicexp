@@ -1,6 +1,6 @@
 {
   "packageManager": "pnpm@7.29.1",
-  "name": "@dicexp/builtins",
+  "name": "@dicexp/runtime-value-utils",
   "version": "0.0.0",
   "main": "lib.ts",
   "keywords": [],
@@ -10,8 +10,7 @@
   "sideEffects": false,
   "dependencies": {
     "@dicexp/errors": "workspace:*",
-    "@dicexp/runtime-values": "workspace:*",
-    "@dicexp/runtime-value-utils": "workspace:*",
-    "@dicexp/runtime-regular-functions": "workspace:*"
+    "@dicexp/runtime-errors": "workspace:*",
+    "@dicexp/runtime-values": "workspace:*"
   }
 }

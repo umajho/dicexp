@@ -1,8 +1,7 @@
-import {
-  type DeclarationListToDefinitionMap,
-  flattenListAll,
-  unwrapListOneOf,
+import type {
+  DeclarationListToDefinitionMap,
 } from "@dicexp/runtime-regular-functions";
+import { flattenListAll, unwrapListOneOf } from "@dicexp/runtime-value-utils";
 import {
   callCallable,
   concrete_literal,
