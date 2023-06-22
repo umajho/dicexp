@@ -5,7 +5,7 @@
       .flex
         .flex-1
         //- 运行统计
-        .flex-none.text-xs.text-slate-500(v-if="ok || statis")
+        .flex-none.text-xs.text-slate-500(v-if="report.ok || statis")
           .grid.grid-cols-1
             div(v-if="statisText.samples")
               | 样本：
@@ -31,9 +31,9 @@
           :showsStack="errorDisplayInfo.showsStack"
         )
 
-      .h2(v-if="report.error && report.ok")
+      .h2(v-if="report.error && hasData")
 
-      .grid.gap-2(v-if="report.ok" class="grid-cols-1 md:grid-cols-3")
+      .grid.gap-2(v-if="hasData" class="grid-cols-1 md:grid-cols-3") 
         .flex.justify-center
           batch-result-pane-bar-chart(
             class="w-[25rem] md:w-60 lg:w-80",
@@ -74,9 +74,9 @@ const timeConsumption = computed(() => {
   return statis.value.now.ms - statis.value.start.ms;
 });
 
-const ok = computed(() => {
-  return props.report.ok;
-});
+const hasData = computed(() => {
+  return props.report.ok?.samples ?? 0 > 0
+})
 
 const numberFormat = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 3,
@@ -84,16 +84,16 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 });
 const statisText = computed(() => {
   return {
-    samples: ok.value?.samples.toLocaleString(),
+    samples: props.report.ok?.samples.toLocaleString(),
     ...(timeConsumption.value
       ? { duration: numberFormat.format(timeConsumption.value / 1000) }
       : {}),
-    ...(timeConsumption.value && ok.value
+    ...(timeConsumption.value && props.report.ok
       ? {
-          speed: numberFormat.format(
-            (ok.value.samples / timeConsumption.value) * 1000
-          ),
-        }
+        speed: numberFormat.format(
+          (props.report.ok.samples / timeConsumption.value) * 1000
+        ),
+      }
       : {}),
   };
 });
