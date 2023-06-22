@@ -21,9 +21,6 @@ importers:
 
   internal/executing:
     dependencies:
-      '@dicexp/builtins':
-        specifier: workspace:*
-        version: link:../../packages/builtins
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../errors
@@ -46,6 +43,9 @@ importers:
         specifier: ^3.0.5
         version: 3.0.5
     devDependencies:
+      '@dicexp/builtins':
+        specifier: workspace:*
+        version: link:../../packages/builtins
       '@dicexp/parsing':
         specifier: workspace:*
         version: link:../parsing
@@ -203,6 +203,9 @@ importers:
 
   packages/dicexp:
     dependencies:
+      '@dicexp/builtins':
+        specifier: workspace:*
+        version: link:../builtins
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../../internal/errors
@@ -328,6 +331,9 @@ importers:
 
   repl:
     dependencies:
+      '@dicexp/builtins':
+        specifier: workspace:*
+        version: link:../packages/builtins
       dicexp:
         specifier: workspace:*
         version: link:../packages/dicexp

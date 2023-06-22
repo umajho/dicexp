@@ -14,7 +14,7 @@ import {
   unaryOperatorOnlyAcceptsNumbers,
 } from "./test_helpers";
 
-import { evaluate } from "./test_helpers";
+import { evaluateForTest } from "./test_helpers";
 import {
   runtimeError_duplicateClosureParameterNames,
   runtimeError_unknownVariable,
@@ -62,7 +62,7 @@ describe("值", () => {
           const lower = 10;
           const code = `${lower}~${lower * 2}`;
           for (let j = 0; j < 100; j++) {
-            const result = assertNumber(evaluate(code));
+            const result = assertNumber(evaluateForTest(code));
 
             assert(
               result >= lower && result <= lower * 2,
@@ -82,7 +82,7 @@ describe("值", () => {
           const upper = 10;
           const code = `~${upper}`;
           for (let j = 0; j < 100; j++) {
-            const result = assertNumber(evaluate(code));
+            const result = assertNumber(evaluateForTest(code));
             assert(
               result >= 1 && result <= upper,
               `\`${code}\` => ${result}`,
@@ -104,7 +104,7 @@ describe("值", () => {
             const code = `${isBinary ? 100 : ""}d${upper}`;
 
             for (let j = 0; j < 100; j++) {
-              const result = assertNumber(evaluate(code));
+              const result = assertNumber(evaluateForTest(code));
               assert(
                 result >= 1 * times && result <= upper * times,
                 `\`${code}\` => ${result}`,
@@ -142,7 +142,7 @@ describe("值", () => {
             const code = `${isBinary ? 100 : ""}d%${upper}`;
 
             for (let j = 0; j < 100; j++) {
-              const result = assertNumber(evaluate(code));
+              const result = assertNumber(evaluateForTest(code));
               assert(
                 result >= 0 && result <= (upper - 1) * times,
                 `\`${code}\` => ${result}`,

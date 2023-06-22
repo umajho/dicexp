@@ -7,11 +7,11 @@ import type { EvaluationResult } from "./evaluate";
 import type {
   DataFromWorker,
   DataToWorker,
+  EvaluateOptionsForWorker,
   InitializationResult,
 } from "./worker/types";
 import type {
   BatchReportForWorker,
-  EvaluateOptionsForWorker,
   EvaluationResultForWorker,
 } from "./worker_manager";
 
@@ -229,7 +229,7 @@ export class EvaluatingWorkerClient {
     this._terminate();
   }
 
-  async evaluate(code: string, opts?: EvaluateOptionsForWorker) {
+  async evaluate(code: string, opts: EvaluateOptionsForWorker) {
     return new Promise<EvaluationResult>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
         reject(new Error("Worker 客户端正忙"));
@@ -240,7 +240,7 @@ export class EvaluatingWorkerClient {
 
       this.taskState = ["processing", id, resolve];
 
-      if (opts?.restrictions?.hardTimeout) {
+      if (opts.restrictions?.hardTimeout) {
         const ms = opts.restrictions.hardTimeout.ms;
         setTimeout(() => {
           if (this.taskState[0] === "idle") return;
@@ -285,7 +285,7 @@ export class EvaluatingWorkerClient {
 
   async batch(
     code: string,
-    opts: EvaluateOptionsForWorker | undefined,
+    opts: EvaluateOptionsForWorker,
     reporter: (r: BatchReportForWorker) => void,
   ) {
     return new Promise<void>((resolve, reject) => {

@@ -28,8 +28,14 @@ export class Server {
           }
           const clear = () => this.batchHandler = null;
           const init = this.init, pulser = this.pulser;
-          const bh = new BatchHandler(id, code, opts, init, pulser, clear);
-          this.batchHandler = bh;
+          this.batchHandler = new BatchHandler(
+            id,
+            code,
+            opts,
+            init,
+            pulser,
+            clear,
+          );
         }
         return;
       }

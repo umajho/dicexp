@@ -29,6 +29,7 @@
     "build": "tsc && vite build"
   },
   "dependencies": {
+    "@dicexp/builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/executing": "workspace:*",
     "@dicexp/parsing": "workspace:*"

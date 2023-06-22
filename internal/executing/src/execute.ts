@@ -2,39 +2,49 @@
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import type { Node } from "@dicexp/nodes";
-import { type ExecutionResult, Runtime, type RuntimeOptions } from "./runtime";
+import { type ExecutionResult, Runtime } from "./runtime";
 import type { RandomSource } from "./random";
+import type { Restrictions } from "./restrictions";
+import type { Scope } from "@dicexp/runtime-values";
 export type { ExecutionResult } from "./runtime";
 
-export type ExecuteOptions = Partial<RuntimeOptions> & {
-  seed?: number;
-};
+export type ExecuteOptions =
+  & {
+    topLevelScope: Scope;
+    restrictions?: Restrictions;
+  }
+  & (
+    {
+      randomSource: RandomSource;
+    } | {
+      seed?: number;
+    }
+  );
 
+/**
+ * @param node
+ * @param opts
+ * @returns
+ */
 export function execute(
   node: Node,
-  opts: ExecuteOptions = {},
+  opts: ExecuteOptions,
 ): ExecutionResult {
-  if (!opts.randomSource) {
-    if (opts.seed === undefined) {
-      opts.seed = Math.random();
-    }
-    opts.randomSource = new RandomSourceWrapper(prng_xorshift7(opts.seed));
+  let randomSource: RandomSource;
+  if ("randomSource" in opts) {
+    randomSource = opts.randomSource;
   } else {
-    if (opts.seed !== undefined) {
-      if (
-        "console" in globalThis && "warn" in globalThis.console &&
-        typeof globalThis.console.warn === "function"
-      ) {
-        globalThis.console.warn("由于已传入随机数生成器，seed 被忽略。");
-      }
-    }
+    const seed = opts.seed ?? Math.random();
+    randomSource = new RandomSourceWrapper(prng_xorshift7(seed));
   }
 
-  if (!opts.restrictions) {
-    opts.restrictions = {};
-  }
+  const restrictions = opts.restrictions ?? {};
 
-  const runtime = new Runtime(node, opts as RuntimeOptions);
+  const runtime = new Runtime(node, {
+    topLevelScope: opts.topLevelScope,
+    randomSource,
+    restrictions,
+  });
   return runtime.execute();
 }
 

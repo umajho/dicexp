@@ -8,6 +8,7 @@
   "type": "module",
   "sideEffects": false,
   "dependencies": {
+    "@dicexp/builtins": "workspace:*",
     "dicexp": "workspace:*",
     "prompt-sync": "^4.2.0"
   },

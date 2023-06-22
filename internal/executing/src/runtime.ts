@@ -35,7 +35,7 @@ export interface RuntimeOptions {
   /**
    * 为空（undefined）则使用默认作用域
    */
-  topLevelScope?: Scope;
+  topLevelScope: Scope;
   randomSource: RandomSource;
   restrictions: Restrictions;
   // TODO: noRepresentations

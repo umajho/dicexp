@@ -9,7 +9,6 @@
   "type": "module",
   "sideEffects": false,
   "dependencies": {
-    "@dicexp/builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/nodes": "workspace:*",
     "@dicexp/runtime-errors": "workspace:*",
@@ -19,6 +18,7 @@
     "esm-seedrandom": "^3.0.5"
   },
   "devDependencies": {
+    "@dicexp/builtins": "workspace:*",
     "@dicexp/parsing": "workspace:*",
     "@dicexp/runtime-regular-functions": "workspace:*",
     "@rollup/plugin-typescript": "^11.0.0",
