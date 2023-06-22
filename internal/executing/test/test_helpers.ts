@@ -14,7 +14,24 @@ import { execute, ExecuteOptions, ExecutionResult } from "../src/execute";
 import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime-errors";
 import { JSValue } from "../src/runtime";
 import { Unreachable } from "@dicexp/errors";
-import { standardScope } from "@dicexp/builtins";
+import { barebonesScope, standardScope } from "@dicexp/builtins";
+
+const testScope = ((): Scope => {
+  const pickedFunctions: string[] = [
+    ...["count/2", "sum/1", "sort/1", "append/2", "at/2"],
+    ...["map/2", "filter/2", "head/1", "tail/1", "zip/2", "zipWith/3"],
+  ];
+  const pickedScope: Scope = {};
+  for (const picked of pickedFunctions) {
+    if (!standardScope[picked]) {
+      throw new Unreachable(
+        `"测试用的函数 \`${picked}\` 不存在于标准作用域中"`,
+      );
+    }
+    pickedScope[picked] = standardScope[picked];
+  }
+  return { ...barebonesScope, ...pickedScope };
+})();
 
 type ExecuteOptionsForTest = Omit<ExecuteOptions, "topLevelScope"> & {
   topLevelScope?: Scope;
@@ -26,12 +43,10 @@ export function evaluateForTest(
 ): ExecutionResult {
   const parseResult = parse(code, parseOpts);
   if ("error" in parseResult) throw new Unreachable();
-
-  if (!executeOpts?.topLevelScope) {
-    executeOpts ??= {};
-    executeOpts.topLevelScope = standardScope;
-  }
-  return execute(parseResult.ok, executeOpts as ExecuteOptions);
+  return execute(parseResult.ok, {
+    ...executeOpts,
+    topLevelScope: executeOpts?.topLevelScope ?? testScope,
+  });
 }
 
 export function assertNumber(result: ExecutionResult): number {

@@ -24,7 +24,7 @@ import { JSValue } from "../src/runtime";
 import { flatten } from "./utils";
 import { makeFunction } from "@dicexp/runtime-regular-functions";
 import { Restrictions } from "../src/restrictions";
-import { standardScope } from "@dicexp/builtins";
+import { barebonesScope } from "@dicexp/builtins";
 import { Scope } from "@dicexp/runtime-values";
 
 describe("值", () => {
@@ -600,6 +600,7 @@ describe("限制", () => {
 
       describe("超时则返回运行时错误", () => {
         const scope: Scope = {
+          ...barebonesScope,
           "sleep/1": makeFunction(["integer"], (args, _rtm) => {
             const [ms] = args as [number];
             const start = performance.now();
@@ -619,7 +620,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
-            { topLevelScope: { ...standardScope, ...scope }, restrictions },
+            { topLevelScope: scope, restrictions },
           );
         });
       });
