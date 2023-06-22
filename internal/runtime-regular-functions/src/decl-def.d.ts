@@ -1,12 +1,12 @@
-import type { RuntimeProxy } from "./runtime";
 import type {
   LazyValue,
+  RuntimeProxyForFunction,
   RuntimeResult,
   Value_Callable,
   Value_Integer$SumExtendable,
   Value_List$Extendable,
-} from "./runtime_values/mod";
-import type { ValueTypeName } from "./values_impl";
+  ValueTypeName,
+} from "@dicexp/runtime-values";
 
 /**
  * 通常函数声明。
@@ -90,7 +90,7 @@ type DeclarationReturnValueTypeSpec =
  */
 export type DeclarationListToDefinitionMap<DeclList extends readonly any[]> =
   DeclList extends
-    readonly [infer Head extends RegularFunctionDeclaration, ...infer Tail] ? 
+    readonly [infer Head extends RegularFunctionDeclaration, ...infer Tail] ?
       & { [name in FullName<Head>]: DeclarationToFunction<Head> }
       & DeclarationListToDefinitionMap<Tail>
     : {};
@@ -114,7 +114,7 @@ type ParameterListToFunction<
   ParamList extends readonly DeclarationParameter[],
   ReturnValueType extends DeclarationReturnValueTypeSpec,
 > = (
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
   ...args: ParameterListToTuple<ParamList>
 ) => RuntimeResult<
   ReturnValueType extends { lazy: true } ? { lazy: LazyValue }

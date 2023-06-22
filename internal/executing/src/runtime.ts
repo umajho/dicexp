@@ -7,36 +7,35 @@ import type {
   NodeValue_Closure,
   NodeValue_List,
 } from "@dicexp/nodes";
-import { builtinScope } from "./builtin_functions/mod";
+import { standardScope } from "@dicexp/builtins";
 import {
   runtimeError_badFinalResult,
   runtimeError_restrictionExceeded,
   runtimeError_unknownVariable,
-} from "./runtime_errors_impl";
-import {
-  concretize,
-  getTypeNameOfValue,
-  LazyValueFactory,
-} from "./values_impl";
+} from "@dicexp/runtime-errors";
+import { concretize, LazyValueFactory } from "./values_impl";
 import type { Restrictions } from "./restrictions";
-import { finalizeRepresentation } from "./representations_impl";
 import { RandomGenerator, type RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   asPlain,
   type Concrete,
+  finalizeRepresentation,
+  getTypeNameOfValue,
   type LazyValue,
   type Representation,
   type RuntimeError,
+  type RuntimeProxyForFunction,
   type RuntimeResult,
+  type Scope,
   type Value_List,
-} from "./runtime_values/mod";
+} from "@dicexp/runtime-values";
 
 export interface RuntimeOptions {
   /**
    * 为空（undefined）则使用默认作用域
    */
-  topLevelScope?: Scope;
+  topLevelScope: Scope;
   randomSource: RandomSource;
   restrictions: Restrictions;
   // TODO: noRepresentations
@@ -92,7 +91,7 @@ export class Runtime {
   constructor(root: Node, opts: RuntimeOptions) {
     this._root = root;
 
-    this._topLevelScope = opts.topLevelScope ?? builtinScope;
+    this._topLevelScope = opts.topLevelScope ?? standardScope;
 
     this._rng = new RandomGenerator(opts.randomSource);
 
@@ -122,13 +121,13 @@ export class Runtime {
     this._proxy = {
       interpret: (scope, node) => this._interpret(scope, node),
       random: this._rng,
+      concretize,
       // @ts-ignore
       lazyValueFactory: null, // 之后才有，所以之后再赋值
       reporter: this.reporter,
     };
 
     this._lazyValueFactory = new LazyValueFactory(this._proxy);
-    this._proxy.lazyValueFactory = this._lazyValueFactory;
   }
 
   private _reportCalled(): RuntimeError | null {
@@ -351,16 +350,6 @@ export class Runtime {
   }
 }
 
-export type Scope = { [ident: string]: RegularFunction | LazyValue };
-
-export type RegularFunction = (
-  args: Value_List,
-  rtm: RuntimeProxy,
-) => RuntimeResult<LazyValue>;
-
-export interface RuntimeProxy {
-  interpret: (scope: Scope, node: Node) => LazyValue; // TODO: 似乎没必要？
-  random: RandomGenerator;
-  lazyValueFactory: LazyValueFactory;
+export interface RuntimeProxy extends RuntimeProxyForFunction {
   reporter: RuntimeReporter;
 }

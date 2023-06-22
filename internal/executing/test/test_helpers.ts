@@ -5,21 +5,48 @@ import { inspect } from "util";
 
 import { parse, type ParseOptions } from "@dicexp/parsing";
 
-import { ValueTypeName } from "../src/values_impl";
+import type {
+  RuntimeError,
+  Scope,
+  ValueTypeName,
+} from "@dicexp/runtime-values";
 import { execute, ExecuteOptions, ExecutionResult } from "../src/execute";
-import { RuntimeError } from "../src/runtime_values/mod";
-import { runtimeError_callArgumentTypeMismatch } from "../src/runtime_errors_impl";
+import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime-errors";
 import { JSValue } from "../src/runtime";
 import { Unreachable } from "@dicexp/errors";
+import { barebonesScope, standardScope } from "@dicexp/builtins";
 
-type EvaluateOptions = ExecuteOptions & { parseOpts?: ParseOptions };
-export function evaluate(
+const testScope = ((): Scope => {
+  const pickedFunctions: string[] = [
+    ...["count/2", "sum/1", "sort/1", "append/2", "at/2"],
+    ...["map/2", "filter/2", "head/1", "tail/1", "zip/2", "zipWith/3"],
+  ];
+  const pickedScope: Scope = {};
+  for (const picked of pickedFunctions) {
+    if (!standardScope[picked]) {
+      throw new Unreachable(
+        `"测试用的函数 \`${picked}\` 不存在于标准作用域中"`,
+      );
+    }
+    pickedScope[picked] = standardScope[picked];
+  }
+  return { ...barebonesScope, ...pickedScope };
+})();
+
+type ExecuteOptionsForTest = Omit<ExecuteOptions, "topLevelScope"> & {
+  topLevelScope?: Scope;
+};
+export function evaluateForTest(
   code: string,
-  opts: EvaluateOptions = {},
+  executeOpts?: ExecuteOptionsForTest,
+  parseOpts?: ParseOptions,
 ): ExecutionResult {
-  const parseResult = parse(code, opts.parseOpts);
+  const parseResult = parse(code, parseOpts);
   if ("error" in parseResult) throw new Unreachable();
-  return execute(parseResult.ok, opts);
+  return execute(parseResult.ok, {
+    ...executeOpts,
+    topLevelScope: executeOpts?.topLevelScope ?? testScope,
+  });
 }
 
 export function assertNumber(result: ExecutionResult): number {
@@ -42,9 +69,9 @@ export function assertNumberArray(result: ExecutionResult): number[] {
 export function assertExecutionOk(
   code: string,
   expectedResult?: unknown,
-  opts?: EvaluateOptions,
+  opts?: ExecuteOptionsForTest,
 ): JSValue {
-  const result = evaluate(code, opts);
+  const result = evaluateForTest(code, opts);
   if (!("error" in result)) {
     if (result.ok === null) throw new Unreachable();
     if (expectedResult === undefined) return result.ok!;
@@ -68,9 +95,9 @@ export function assertExecutionOk(
 export function assertExecutionRuntimeError(
   code: string,
   expectedError: string | RuntimeError,
-  opts?: EvaluateOptions,
+  opts?: ExecuteOptionsForTest,
 ) {
-  const result = evaluate(code, opts);
+  const result = evaluateForTest(code, opts);
   if (!("error" in result)) {
     const actualResultInspected = inspect(result.ok);
     throw new AssertionError(
@@ -163,13 +190,13 @@ function binaryOperatorOnlyAccepts(
 
 export function assertResultsAreRandom(code: string) {
   const results = Array(10).fill(null)
-    .map((_) => assertNumber(evaluate(code)));
+    .map((_) => assertNumber(evaluateForTest(code)));
   assert(new Set(results).size > 1);
 }
 
 export function theyAreOk<T extends JSValue = JSValue>(
   table: ([string, T] | string)[],
-  opts?: EvaluateOptions,
+  opts?: ExecuteOptionsForTest,
 ) {
   for (const [i, row] of table.entries()) {
     let code: string, expected: unknown | undefined;

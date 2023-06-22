@@ -1,11 +1,16 @@
-import { asRuntimeError, execute, RuntimeError } from "@dicexp/executing";
+import { asRuntimeError, type RuntimeError } from "@dicexp/executing";
 import { parse } from "@dicexp/parsing";
 import type { Node } from "@dicexp/nodes";
-import { EvaluateOptions } from "../evaluate";
-import { BatchReport, WorkerInit } from "./types";
+import type {
+  BatchReport,
+  EvaluateOptionsForWorker,
+  ExecuteOptionsForWorker,
+  WorkerInit,
+} from "./types";
 import { safe } from "./utils";
 import { Pulser } from "./heartbeat";
 import { tryPostMessage } from "./post_message";
+import { executeForWorker } from "./evaluate";
 
 export class BatchHandler {
   private readonly id!: string;
@@ -20,12 +25,12 @@ export class BatchHandler {
   constructor(
     id: string,
     code: string,
-    opts: EvaluateOptions | undefined,
+    opts: EvaluateOptionsForWorker,
     init: WorkerInit,
     pulser: Pulser,
     stoppedCb: () => void,
   ) {
-    const parsed = safe(() => parse(code, opts?.parseOpts));
+    const parsed = safe(() => parse(code, opts.parse));
     if ("error" in parsed) {
       tryPostMessage(["batch_report", id, { error: parsed.error }, true, null]);
       stoppedCb();
@@ -47,7 +52,7 @@ export class BatchHandler {
 
     this.initBatchReporter();
 
-    this.samplingLoop(parsed.ok);
+    this.samplingLoop(parsed.ok, opts.execute);
   }
 
   private initBatchReporter() {
@@ -80,7 +85,7 @@ export class BatchHandler {
     this.report.statistics!.now.ms = Date.now();
   }
 
-  private async samplingLoop(node: Node) {
+  private async samplingLoop(node: Node, executeOpts: ExecuteOptionsForWorker) {
     while (true) {
       const durationSinceLastHeartbeat = Date.now() - this.pulser.lastHeartbeat;
       if (durationSinceLastHeartbeat > this.init.minHeartbeatInterval.ms) {
@@ -88,7 +93,7 @@ export class BatchHandler {
       }
       if (this.shouldStop) break;
 
-      const executed = safe(() => execute(node));
+      const executed = safe(() => executeForWorker(node, executeOpts));
       if ("error" in executed) {
         this.markBatchToStop(executed.error);
         break;

@@ -3,6 +3,9 @@ import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
   type Concrete,
+  concrete_error,
+  concrete_literal,
+  getDisplayNameOfValue,
   type LazyValue,
   type LazyValueWithMemo,
   makeRuntimeError,
@@ -13,29 +16,30 @@ import {
   type Value_Callable,
   type Value_List,
   type Value_List$Extendable,
-} from "./runtime_values/mod";
+} from "@dicexp/runtime-values";
 import {
+  type RegularFunction,
   representCall,
   representCaptured,
-  representError,
   representLazyValue,
   representRepetition,
   representResult,
   representValue,
-} from "./representations_impl";
-import type { RegularFunction, RuntimeProxy, Scope } from "./runtime";
+  type RuntimeProxyForFunction,
+  type Scope,
+} from "@dicexp/runtime-values";
 import {
-  getTypeDisplayName,
   runtimeError_duplicateClosureParameterNames,
   runtimeError_limitationExceeded,
   runtimeError_unknownRegularFunction,
   runtimeError_valueIsNotCallable,
   runtimeError_wrongArity,
-} from "./runtime_errors_impl";
+} from "@dicexp/runtime-errors";
+import type { RuntimeProxy } from "./runtime";
 
 export function concretize(
   v: LazyValue,
-  rtm: RuntimeProxy | null,
+  rtm: RuntimeProxyForFunction | null,
 ): Concrete {
   if (v.memo) return v.memo;
 
@@ -77,30 +81,14 @@ export class LazyValueFactory {
   }
 
   literal(value: Value): LazyValueWithMemo {
-    // if (typeof value === "number") { // 由 parsing 负责，这里无需检查
-    //   const err = checkInteger(value);
-    //   if (err) return this.error(err, [{ v: value }]);
-    // }
-    return {
-      memo: {
-        value: { ok: value },
-        representation: representValue(value),
-      },
-    };
+    return { memo: concrete_literal(value) };
   }
 
   error(
     error: RuntimeError,
     source?: RuntimeRepresentation,
   ): LazyValueWithMemo {
-    return {
-      memo: {
-        value: { error: error },
-        representation: source
-          ? ["(", ...source, "=>", representError(error), ")"]
-          : representError(error),
-      },
-    };
+    return { memo: concrete_error(error, source) };
   }
 
   list(list: LazyValue[]): LazyValueWithMemo {
@@ -302,7 +290,7 @@ export class LazyValueFactory {
         }
         const countValue = countResult.ok;
         if (typeof countValue != "number") {
-          const typeName = getTypeDisplayName(getTypeNameOfValue(countValue));
+          const typeName = getDisplayNameOfValue(countValue);
           const errMsg = `反复次数期待「整数」，实际类型为「${typeName}」`;
           return this.error(makeRuntimeError(errMsg), representation).memo;
         }
@@ -350,20 +338,6 @@ function getFunctionFromScope(
   if (typeof fn !== "function") throw new Unreachable();
   return { ok: fn };
 }
-
-export function getTypeNameOfValue(v: Value) {
-  switch (typeof v) {
-    case "number":
-      return "integer";
-    case "boolean":
-      return "boolean";
-    default:
-      if (Array.isArray(v)) return "list";
-      return v.type;
-      throw new Unreachable();
-  }
-}
-export type ValueTypeName = ReturnType<typeof getTypeNameOfValue>;
 
 const MAX_SAFE_INTEGER = 2 ** 53 - 1;
 const MIN_SAFE_INTEGER = -(2 ** 53) + 1;

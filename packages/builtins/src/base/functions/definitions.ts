@@ -1,21 +1,21 @@
-import type { DeclarationListToDefinitionMap } from "../../regular_functions";
-import type { RuntimeProxy } from "../../runtime";
-import { getTypeDisplayName } from "../../runtime_errors_impl";
+import type {
+  DeclarationListToDefinitionMap,
+} from "@dicexp/runtime-regular-functions";
+import { flattenListAll, unwrapListOneOf } from "@dicexp/runtime-value-utils";
 import {
   callCallable,
+  concrete_literal,
+  getDisplayNameFromTypeName,
+  getTypeNameOfValue,
   makeRuntimeError,
+  type RuntimeProxyForFunction,
   type RuntimeResult,
   type Value_Callable,
   type Value_List,
-} from "../../runtime_values/mod";
-import {
-  concretize,
-  getTypeNameOfValue,
   type ValueTypeName,
-} from "../../values_impl";
-import { flattenListAll, unwrapListOneOf } from "../helpers";
-import { sum } from "../utils";
+} from "@dicexp/runtime-values";
 import type { builtinFunctionDeclarations } from "./declarations";
+import { sum } from "../utils";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations
@@ -64,7 +64,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const sortedList = listJs.sort((a, b) => +a - +b);
     return {
       ok: {
-        value: sortedList.map((el) => rtm.lazyValueFactory.literal(el)),
+        value: sortedList.map((el) => ({ memo: concrete_literal(el) })),
       },
     };
   },
@@ -142,13 +142,13 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
 function filter(
   list: Value_List,
   callable: Value_Callable,
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
 ): RuntimeResult<Value_List> {
   const filtered: Value_List = [];
   for (const el of list) {
     const result = callCallable(callable, [el]);
     if ("error" in result) return result;
-    const concrete = concretize(result.ok, rtm);
+    const concrete = rtm.concretize(result.ok, rtm);
     if ("error" in concrete.value) return concrete.value;
     const value = concrete.value.ok;
 
@@ -173,8 +173,8 @@ function runtimeError_givenClosureReturnValueTypeMismatch(
   actualReturnValueType: ValueTypeName,
   position: number,
 ) {
-  const expectedTypeText = getTypeDisplayName(expectedReturnValueType);
-  const actualTypeText = getTypeDisplayName(actualReturnValueType);
+  const expectedTypeText = getDisplayNameFromTypeName(expectedReturnValueType);
+  const actualTypeText = getDisplayNameFromTypeName(actualReturnValueType);
   return makeRuntimeError(
     `作为第 ${position} 个参数传入通常函数 ${name} 的返回值类型与期待不符：` +
       `期待「${expectedTypeText}」，实际「${actualTypeText}」。`,

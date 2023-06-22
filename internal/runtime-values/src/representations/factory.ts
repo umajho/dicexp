@@ -1,37 +1,15 @@
 import { Unreachable } from "@dicexp/errors";
 import type { RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
-import { intersperse } from "./utils";
+import { intersperse } from "@dicexp/js-utils";
+
+import type { RuntimeError } from "../runtime_errors";
 import {
   asPlain,
   type LazyValue,
-  type Representation,
-  type RuntimeError,
-  type RuntimeRepresentation,
   type RuntimeResult,
   type Value,
-} from "./runtime_values/mod";
-
-export function finalizeRepresentation(
-  r: RuntimeRepresentation,
-): Representation {
-  const flatten = r.flatMap((piece) => {
-    if (typeof piece === "string") return piece;
-    if (Array.isArray(piece)) return finalizeRepresentation(piece);
-    if ("error" in piece) return piece;
-    return finalizeRepresentation(piece.defer());
-  });
-
-  const merged: Representation = [];
-  for (const piece of flatten) {
-    const last = merged.length ? merged[merged.length - 1] : null;
-    if (typeof last === "string" && typeof piece === "string") {
-      merged[merged.length - 1] = last + piece;
-    } else {
-      merged.push(piece);
-    }
-  }
-  return merged;
-}
+} from "../values";
+import type { RuntimeRepresentation } from "./types";
 
 export function representLazyValue(
   lazyValue: LazyValue,

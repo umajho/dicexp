@@ -14,8 +14,10 @@ Playground: https://umajho.github.io/dicexp/
 
 ## 预备工作
 
-- 安装 [just](https://just.systems)，用于执行命令。
-- 安装 [Node.js](https://nodejs.org)、[pnpm](https://pnpm.io)，用于此外的事情。
+- 安装 [just](https://just.systems)。
+- 安装 [Node.js](https://nodejs.org)、[pnpm](https://pnpm.io)。
+- 安装 tsc、rollup（`pnpm install -g typescript rollup`）。
+- 安装 brotli：构建 playground 用。
 
 ## REPL
 

@@ -7,9 +7,10 @@ import {
 } from "@dicexp/executing";
 import type { JSValue, Representation } from "@dicexp/executing";
 
-export type EvaluateOptions = ExecuteOptions & {
-  parseOpts?: ParseOptions;
-};
+export interface EvaluateOptions {
+  execute: ExecuteOptions;
+  parse?: ParseOptions;
+}
 
 export type EvaluationResult = {
   ok: JSValue;
@@ -25,11 +26,11 @@ export type EvaluationResult = {
 
 export function evaluate(
   code: string,
-  opts: EvaluateOptions = {},
+  opts: EvaluateOptions,
 ): EvaluationResult {
-  const parseResult = parse(code, opts.parseOpts);
+  const parseResult = parse(code, opts.parse);
   if ("error" in parseResult) {
     return { error: parseResult.error };
   }
-  return execute(parseResult.ok, opts);
+  return execute(parseResult.ok, opts.execute);
 }

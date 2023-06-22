@@ -1,4 +1,5 @@
-import { execute, parse, RuntimeError } from "dicexp";
+import { execute, parse } from "dicexp";
+import { standardScope } from "@dicexp/builtins";
 
 // import inspect from "browser-util-inspect";
 // REPL 不用在非 Node 环境下运行，就直接用了
@@ -62,7 +63,10 @@ while (1) {
       continue;
     }
 
-    const executeResult = execute(parsed, { seed });
+    const executeResult = execute(parsed, {
+      topLevelScope: standardScope,
+      seed,
+    });
     if ("error" in executeResult) {
       console.error(`runtime error:`, executeResult.error.message);
       continue;

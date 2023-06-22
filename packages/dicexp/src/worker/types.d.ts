@@ -1,10 +1,39 @@
+import { ExecuteOptions } from "@dicexp/executing";
 import { ErrorDataFromWorker } from "../error_from_worker";
-import type { EvaluateOptions, EvaluationResult } from "../evaluate";
+import { ParseOptions } from "@dicexp/parsing";
+
+export interface EvaluateOptionsForWorker {
+  execute: ExecuteOptionsForWorker;
+  parse?: ParseOptions;
+
+  restrictions?: {
+    hardTimeout?: { ms: number };
+  };
+}
+
+export type EvaluationRestrictionsForWorker =
+  EvaluateOptionsForWorker["restrictions"];
+
+export interface ExecuteOptionsForWorker {
+  topLevelScopeName: "barebones" | "standard";
+  restrictions?: Restrictions;
+  seed?: number;
+}
 
 export type DataToWorker =
   | [type: "initialize", init: WorkerInit]
-  | [type: "evaluate", id: string, code: string, opts?: EvaluateOptions]
-  | [type: "batch_start", id: string, code: string, opts?: EvaluateOptions]
+  | [
+    type: "evaluate",
+    id: string,
+    code: string,
+    opts: EvaluateOptionsForWorker,
+  ]
+  | [
+    type: "batch_start",
+    id: string,
+    code: string,
+    opts: EvaluateOptionsForWorker,
+  ]
   | [type: "batch_stop", id: string];
 
 export type DataFromWorker =

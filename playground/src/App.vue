@@ -63,7 +63,13 @@ import type {
   EvaluationRestrictionsForWorker,
   EvaluatingWorkerManager,
   BatchReport,
+  EvaluateOptionsForWorker,
 } from "dicexp/internal";
+
+// TODO: 允许自行选择
+const TOP_LEVEL_SCOPE_NAME:
+  EvaluateOptionsForWorker["execute"]["topLevelScopeName"]
+  = "standard"
 
 const mode: Ref<"single" | "batch"> = ref("single");
 function switchMode(newMode: "single" | "batch") {
@@ -127,9 +133,12 @@ async function roll() {
     }
 
     try {
-      const opts = {
-        seed: seed.value,
-        restrictions: restrictions.value ?? undefined,
+      const opts: EvaluateOptionsForWorker = {
+        execute: {
+          topLevelScopeName: TOP_LEVEL_SCOPE_NAME,
+          seed: seed.value,
+          restrictions: restrictions.value ?? undefined,
+        }
       };
       result.value = await evaluatingWorkerManager.value!.evaluate(
         code.value,
@@ -146,9 +155,12 @@ async function roll() {
     rolling.value = "batching";
 
     try {
-      const opts = {
-        // seed 不生效
-        restrictions: restrictions.value ?? undefined,
+      const opts: EvaluateOptionsForWorker = {
+        execute: {
+          topLevelScopeName: TOP_LEVEL_SCOPE_NAME,
+          restrictions: restrictions.value ?? undefined,
+          // seed 不生效
+        }
       };
       await evaluatingWorkerManager.value!.batch(code.value, opts, (report) => {
         batchReport.value = report;

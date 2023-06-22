@@ -1,107 +1,34 @@
 import { Unreachable } from "@dicexp/errors";
-import { representValue } from "../representations_impl";
-import type { RegularFunction, RuntimeProxy } from "../runtime";
 import {
   runtimeError_callArgumentTypeMismatch,
   runtimeError_typeMismatch,
-  runtimeError_wrongArity,
   type TypeMismatchKind,
-} from "../runtime_errors_impl";
+} from "@dicexp/runtime-errors";
 import {
   asInteger,
   asList,
+  getTypeNameOfValue,
   type LazyValue,
   type RuntimeError,
+  type RuntimeProxyForFunction,
   type RuntimeResult,
   type Value,
-} from "../runtime_values/mod";
-import {
-  concretize,
-  getTypeNameOfValue,
+  type ValueSpec,
   type ValueTypeName,
-} from "../values_impl";
-
-export type ArgumentSpec =
-  | "lazy"
-  | ValueTypeName
-  | "*"
-  | Set<ValueTypeName>;
-
-export type RegularFunctionArgument = LazyValue | Exclude<Value, RuntimeError>;
-
-/**
- * NOTE: 由于目前没有错误恢复机制，出现错误必然无法挽回，
- *       因此返回的错误都视为不会改变。
- *       如果未来要引入错误恢复机制，不要忘记修改与上述内容相关的代码。
- */
-export function makeFunction(
-  spec: ArgumentSpec[],
-  logic: (
-    args: RegularFunctionArgument[],
-    rtm: RuntimeProxy,
-  ) => RuntimeResult<{ value: Value } | { lazy: LazyValue }>,
-): RegularFunction {
-  return (args_, rtm) => {
-    const unwrapResult = unwrapArguments(spec, args_, rtm);
-    if ("error" in unwrapResult) {
-      return { error: unwrapResult.error };
-    }
-
-    return {
-      ok: {
-        _yield: () => {
-          const result = logic(unwrapResult.ok.values, rtm);
-          if ("error" in result) {
-            return rtm.lazyValueFactory.error(result.error).memo;
-          }
-
-          if ("lazy" in result.ok) {
-            return result.ok;
-          }
-
-          return {
-            value: { ok: result.ok.value },
-            representation: representValue(result.ok.value),
-          };
-        },
-      },
-    };
-  };
-}
-
-function unwrapArguments(
-  spec: ArgumentSpec[],
-  args: LazyValue[],
-  rtm: RuntimeProxy,
-): RuntimeResult<{ values: RegularFunctionArgument[] }> {
-  if (spec.length !== args.length) {
-    return { error: runtimeError_wrongArity(spec.length, args.length) };
-  }
-
-  const values: RegularFunctionArgument[] = Array(args.length);
-
-  for (const [i, arg] of args.entries()) {
-    const result = unwrapValue(spec[i], arg, rtm, { nth: i + 1 });
-    if ("error" in result) return result;
-    const { value } = result.ok;
-    values[i] = value;
-  }
-
-  return { ok: { values } };
-}
+} from "@dicexp/runtime-values";
 
 export function unwrapValue(
-  spec: ArgumentSpec,
+  spec: ValueSpec,
   value: LazyValue,
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
   opts?: CheckTypeOptions,
-): RuntimeResult<{ value: RegularFunctionArgument }> {
+): RuntimeResult<{ value: LazyValue | Value }> {
   if (spec === "lazy") {
     // 是否多变就交由函数内部判断了
     return { ok: { value } };
   }
 
-  const concrete = concretize(value, rtm);
+  const concrete = rtm.concretize(value, rtm);
   if ("error" in concrete.value) return concrete.value;
 
   const adapted = tryAdaptType(spec, concrete.value.ok, opts);
@@ -113,7 +40,7 @@ export function unwrapValue(
 }
 
 function tryAdaptType(
-  spec: Exclude<ArgumentSpec, "lazy">,
+  spec: Exclude<ValueSpec, "lazy">,
   value: Value,
   opts: CheckTypeOptions = {},
 ): RuntimeResult<Value> {
@@ -159,7 +86,7 @@ interface CheckTypeOptions {
 }
 
 function checkType(
-  expected: Exclude<ArgumentSpec, "lazy">,
+  expected: Exclude<ValueSpec, "lazy">,
   actual: ValueTypeName,
   opts: CheckTypeOptions = {},
 ): null | RuntimeError {
@@ -182,9 +109,9 @@ function checkType(
  * @param list
  */
 export function flattenListAll(
-  spec: Exclude<ArgumentSpec, "lazy">,
+  spec: Exclude<ValueSpec, "lazy">,
   list: LazyValue[],
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
 ): RuntimeResult<{ values: Value[] }> {
   if (spec !== "*") {
     if (spec instanceof Set) {
@@ -224,7 +151,7 @@ export function flattenListAll(
 export function unwrapListOneOf(
   specOneOf: Set<ValueTypeName>,
   list: LazyValue[],
-  rtm: RuntimeProxy,
+  rtm: RuntimeProxyForFunction,
 ): RuntimeResult<{ values: Value[] }> {
   if (!list.length) return { ok: { values: [] } };
 

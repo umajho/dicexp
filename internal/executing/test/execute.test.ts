@@ -14,17 +14,18 @@ import {
   unaryOperatorOnlyAcceptsNumbers,
 } from "./test_helpers";
 
-import { evaluate } from "./test_helpers";
+import { evaluateForTest } from "./test_helpers";
 import {
   runtimeError_duplicateClosureParameterNames,
   runtimeError_unknownVariable,
   runtimeError_wrongArity,
-} from "../src/runtime_errors_impl";
-import { JSValue, Scope } from "../src/runtime";
+} from "@dicexp/runtime-errors";
+import { JSValue } from "../src/runtime";
 import { flatten } from "./utils";
-import { makeFunction } from "../src/builtin_functions/helpers";
+import { makeFunction } from "@dicexp/runtime-regular-functions";
 import { Restrictions } from "../src/restrictions";
-import { builtinScope } from "../src/builtin_functions/mod";
+import { barebonesScope } from "@dicexp/builtins";
+import { Scope } from "@dicexp/runtime-values";
 
 describe("值", () => {
   describe("整数", () => {
@@ -61,7 +62,7 @@ describe("值", () => {
           const lower = 10;
           const code = `${lower}~${lower * 2}`;
           for (let j = 0; j < 100; j++) {
-            const result = assertNumber(evaluate(code));
+            const result = assertNumber(evaluateForTest(code));
 
             assert(
               result >= lower && result <= lower * 2,
@@ -81,7 +82,7 @@ describe("值", () => {
           const upper = 10;
           const code = `~${upper}`;
           for (let j = 0; j < 100; j++) {
-            const result = assertNumber(evaluate(code));
+            const result = assertNumber(evaluateForTest(code));
             assert(
               result >= 1 && result <= upper,
               `\`${code}\` => ${result}`,
@@ -103,7 +104,7 @@ describe("值", () => {
             const code = `${isBinary ? 100 : ""}d${upper}`;
 
             for (let j = 0; j < 100; j++) {
-              const result = assertNumber(evaluate(code));
+              const result = assertNumber(evaluateForTest(code));
               assert(
                 result >= 1 * times && result <= upper * times,
                 `\`${code}\` => ${result}`,
@@ -141,7 +142,7 @@ describe("值", () => {
             const code = `${isBinary ? 100 : ""}d%${upper}`;
 
             for (let j = 0; j < 100; j++) {
-              const result = assertNumber(evaluate(code));
+              const result = assertNumber(evaluateForTest(code));
               assert(
                 result >= 0 && result <= (upper - 1) * times,
                 `\`${code}\` => ${result}`,
@@ -599,6 +600,7 @@ describe("限制", () => {
 
       describe("超时则返回运行时错误", () => {
         const scope: Scope = {
+          ...barebonesScope,
           "sleep/1": makeFunction(["integer"], (args, _rtm) => {
             const [ms] = args as [number];
             const start = performance.now();
@@ -618,7 +620,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
-            { topLevelScope: { ...builtinScope, ...scope }, restrictions },
+            { topLevelScope: scope, restrictions },
           );
         });
       });

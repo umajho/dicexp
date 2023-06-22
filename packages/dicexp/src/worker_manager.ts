@@ -1,26 +1,12 @@
 import EvaluatingWorker from "./worker/worker?worker";
 
-import type { EvaluateOptions, EvaluationResult } from "./evaluate";
-import type { BatchReport } from "./worker/types";
+import type { EvaluationResult } from "./evaluate";
+import type { BatchReport, EvaluateOptionsForWorker } from "./worker/types";
 import {
   EvaluatingWorkerClient,
   type EvaluatingWorkerClientOptions,
 } from "./worker_client";
 import type { EvaluatingSpecialErrorType } from "./error_from_worker";
-
-export type EvaluateOptionsForWorker = EvaluateOptions & {
-  restrictions?: {
-    /**
-     * 硬性的超时限制，必定生效，但若触发会失去所有执行信息。
-     *
-     * 默认无超时。
-     */
-    hardTimeout?: { ms: number };
-  };
-};
-
-export type EvaluationRestrictionsForWorker =
-  EvaluateOptionsForWorker["restrictions"];
 
 export type EvaluationResultForWorker = EvaluationResult & {
   specialErrorType?: EvaluatingSpecialErrorType;
@@ -66,7 +52,7 @@ export class EvaluatingWorkerManager {
     this.readinessWatcher(true);
   }
 
-  async evaluate(code: string, opts?: EvaluateOptionsForWorker) {
+  async evaluate(code: string, opts: EvaluateOptionsForWorker) {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
@@ -80,7 +66,7 @@ export class EvaluatingWorkerManager {
 
   async batch(
     code: string,
-    opts: EvaluateOptionsForWorker | undefined,
+    opts: EvaluateOptionsForWorker,
     reporter: (r: BatchReport) => void,
   ) {
     if (!this.client) {
