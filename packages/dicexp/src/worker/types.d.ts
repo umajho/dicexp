@@ -1,13 +1,15 @@
-import { ExecuteOptions } from "@dicexp/executing";
-import { ErrorDataFromWorker } from "../error_from_worker";
-import { ParseOptions } from "@dicexp/parsing";
+import type { ExecuteOptions, RuntimeRestrictions } from "@dicexp/executing";
+import type { ErrorDataFromWorker } from "../error_from_worker";
+import type { EvaluationResult } from "../evaluate";
+import type { ParseOptions } from "@dicexp/parsing";
 
 export interface EvaluateOptionsForWorker {
-  execute: ExecuteOptionsForWorker;
+  execute: Omit<ExecuteOptionsForWorker, "restrictions">;
   parse?: ParseOptions;
 
   restrictions?: {
     hardTimeout?: { ms: number };
+    execute: ExecuteOptionsForWorker["restrictions"];
   };
 }
 
@@ -16,7 +18,7 @@ export type EvaluationRestrictionsForWorker =
 
 export interface ExecuteOptionsForWorker {
   topLevelScopeName: "barebones" | "standard";
-  restrictions?: Restrictions;
+  restrictions?: RuntimeRestrictions;
   seed?: number;
 }
 

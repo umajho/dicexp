@@ -54,13 +54,15 @@ const restrictions = computed((): EvaluationRestrictionsForWorker | null => {
     ...(hardTimeoutEnabled.value
       ? { hardTimeout: { ms: hardTimeoutValue.value } }
       : {}),
-    ...(softTimeoutEnabled.value
-      ? { softTimeout: { ms: softTimeoutValue.value } }
-      : {}),
-    ...(maxCallsEnabled.value ? { maxCalls: maxCallsValue.value } : {}),
-    // ...(maxClosureCallDepthEnabled.value
-    //   ? { maxClosureCallDepth: maxClosureCallDepthValue.value }
-    //   : {}),
+    execute: {
+      ...(softTimeoutEnabled.value
+        ? { softTimeout: { ms: softTimeoutValue.value } }
+        : {}),
+      ...(maxCallsEnabled.value ? { maxCalls: maxCallsValue.value } : {}),
+      // ...(maxClosureCallDepthEnabled.value
+      //   ? { maxClosureCallDepth: maxClosureCallDepthValue.value }
+      //   : {}),
+    }
   };
   if (Object.keys(r).length === 0) return null;
   return r;

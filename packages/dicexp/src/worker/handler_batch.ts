@@ -4,13 +4,12 @@ import type { Node } from "@dicexp/nodes";
 import type {
   BatchReport,
   EvaluateOptionsForWorker,
-  ExecuteOptionsForWorker,
   WorkerInit,
 } from "./types";
 import { safe } from "./utils";
 import { Pulser } from "./heartbeat";
 import { tryPostMessage } from "./post_message";
-import { executeForWorker } from "./evaluate";
+import { executeForWorker, makeExecuteOptions } from "./evaluate";
 
 export class BatchHandler {
   private readonly id!: string;
@@ -52,7 +51,7 @@ export class BatchHandler {
 
     this.initBatchReporter();
 
-    this.samplingLoop(parsed.ok, opts.execute);
+    this.samplingLoop(parsed.ok, opts);
   }
 
   private initBatchReporter() {
@@ -85,7 +84,9 @@ export class BatchHandler {
     this.report.statistics!.now.ms = Date.now();
   }
 
-  private async samplingLoop(node: Node, executeOpts: ExecuteOptionsForWorker) {
+  private async samplingLoop(node: Node, opts: EvaluateOptionsForWorker) {
+    const executeOpts = makeExecuteOptions(opts);
+
     while (true) {
       const durationSinceLastHeartbeat = Date.now() - this.pulser.lastHeartbeat;
       if (durationSinceLastHeartbeat > this.init.minHeartbeatInterval.ms) {

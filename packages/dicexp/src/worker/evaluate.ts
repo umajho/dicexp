@@ -5,8 +5,8 @@ import { execute, ExecuteOptions } from "@dicexp/executing";
 import { Node } from "@dicexp/nodes";
 import { evaluate } from "../evaluate";
 
-export function executeForWorker(node: Node, opts: ExecuteOptionsForWorker) {
-  return execute(node, convertExecuteOpts(opts));
+export function executeForWorker(node: Node, opts: ExecuteOptions) {
+  return execute(node, opts);
 }
 
 export function evaluateForWorker(
@@ -14,17 +14,18 @@ export function evaluateForWorker(
   opts: EvaluateOptionsForWorker,
 ) {
   return evaluate(code, {
-    execute: convertExecuteOpts(opts.execute),
+    execute: makeExecuteOptions(opts),
     parse: opts.parse,
   });
 }
 
-function convertExecuteOpts(opts: ExecuteOptionsForWorker): ExecuteOptions {
-  const topLevelScope = getScope(opts.topLevelScopeName);
+export function makeExecuteOptions(
+  opts: EvaluateOptionsForWorker,
+): ExecuteOptions {
   return {
-    topLevelScope,
-    restrictions: opts.restrictions,
-    seed: opts.seed,
+    topLevelScope: getScope(opts.execute.topLevelScopeName),
+    restrictions: opts.restrictions?.execute,
+    seed: opts.execute.seed,
   };
 }
 

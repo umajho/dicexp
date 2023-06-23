@@ -3,13 +3,13 @@
   //- 顶部导航栏
   .absolute.z-10.w-full.p-2
     layout-header
-    
+
   .h-32
 
   //- 内容
   main
     .grid.grid-cols-1.gap-10
-      
+
       .flex.justify-center
         .card.bg-base-100.shadow-xl
           //-.card-body
@@ -37,7 +37,7 @@
                 .btn.btn-primary(
                   v-else @click="roll()" :class="rollStatus === 'ready' ? null : 'btn-disabled'"
                 ) ROLL!
-              
+
               //- 基本的设置
               .justify-center.gap-4(class="md:flex max-md:grid max-md:grid-cols-1 md:min-w-[36rem] max-md:min-w-[20rem] md:h-8")
                 template(v-if="mode === 'single'")
@@ -46,7 +46,7 @@
                   .flex.flex-col.h-full.justify-center(class="max-md:hidden") |
                 .flex.flex-col.h-full.justify-center
                   restrictions-pane(@update:restrictions="onUpdateRestrictions" :mode="mode")
-    
+
       //- 结果展现
       div(v-if="result")
         result-pane(:result="result")
@@ -137,8 +137,8 @@ async function roll() {
         execute: {
           topLevelScopeName: TOP_LEVEL_SCOPE_NAME,
           seed: seed.value,
-          restrictions: restrictions.value ?? undefined,
-        }
+        },
+        restrictions: restrictions.value ?? undefined,
       };
       result.value = await evaluatingWorkerManager.value!.evaluate(
         code.value,
@@ -158,9 +158,9 @@ async function roll() {
       const opts: EvaluateOptionsForWorker = {
         execute: {
           topLevelScopeName: TOP_LEVEL_SCOPE_NAME,
-          restrictions: restrictions.value ?? undefined,
           // seed 不生效
-        }
+        },
+        restrictions: restrictions.value ?? undefined,
       };
       await evaluatingWorkerManager.value!.batch(code.value, opts, (report) => {
         batchReport.value = report;

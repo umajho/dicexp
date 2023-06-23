@@ -9,7 +9,7 @@
   "type": "module",
   "sideEffects": false,
   "dependencies": {
-    "@codemirror/language": "^6.6.0",
+    "@codemirror/language": "^6.8.0",
     "@dicexp/lezer": "workspace:*"
   }
 }

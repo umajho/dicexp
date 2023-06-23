@@ -9,3 +9,4 @@ export type {
   EvaluateOptionsForWorker,
   EvaluationRestrictionsForWorker,
 } from "./worker/types";
+export type { BatchReportForWorker, EvaluationResultForWorker } from "./types";

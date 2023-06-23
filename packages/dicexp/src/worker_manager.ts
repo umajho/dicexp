@@ -1,20 +1,10 @@
 import EvaluatingWorker from "./worker/worker?worker";
 
-import type { EvaluationResult } from "./evaluate";
 import type { BatchReport, EvaluateOptionsForWorker } from "./worker/types";
 import {
   EvaluatingWorkerClient,
   type EvaluatingWorkerClientOptions,
 } from "./worker_client";
-import type { EvaluatingSpecialErrorType } from "./error_from_worker";
-
-export type EvaluationResultForWorker = EvaluationResult & {
-  specialErrorType?: EvaluatingSpecialErrorType;
-};
-
-export type BatchReportForWorker = BatchReport & {
-  specialErrorType?: EvaluatingSpecialErrorType;
-};
 
 export class EvaluatingWorkerManager {
   options: EvaluatingWorkerClientOptions;

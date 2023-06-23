@@ -10,10 +10,7 @@ import type {
   EvaluateOptionsForWorker,
   InitializationResult,
 } from "./worker/types";
-import type {
-  BatchReportForWorker,
-  EvaluationResultForWorker,
-} from "./worker_manager";
+import type { BatchReportForWorker, EvaluationResultForWorker } from "./types";
 
 export interface EvaluatingWorkerClientOptions {
   /**
