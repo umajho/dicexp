@@ -7,9 +7,9 @@ import {
   type RuntimeResult,
   type Value,
   type ValueSpec,
-} from "@dicexp/runtime-values";
-import { runtimeError_wrongArity } from "@dicexp/runtime-errors";
-import { unwrapValue } from "@dicexp/runtime-value-utils";
+} from "../values/mod";
+import { runtimeError_wrongArity } from "../errors/mod";
+import { unwrapValue } from "../value-utils/mod";
 
 /**
  * NOTE: 由于目前没有错误恢复机制，出现错误必然无法挽回，

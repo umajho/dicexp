@@ -12,7 +12,7 @@ import {
   runtimeError_badFinalResult,
   runtimeError_restrictionExceeded,
   runtimeError_unknownVariable,
-} from "@dicexp/runtime-errors";
+} from "@dicexp/runtime/errors";
 import { concretize, LazyValueFactory } from "./values_impl";
 import type { Restrictions } from "./restrictions";
 import { RandomGenerator, type RandomSource } from "./random";
@@ -29,7 +29,7 @@ import {
   type RuntimeResult,
   type Scope,
   type Value_List,
-} from "@dicexp/runtime-values";
+} from "@dicexp/runtime/values";
 
 export interface RuntimeOptions {
   /**

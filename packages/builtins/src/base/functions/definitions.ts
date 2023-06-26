@@ -1,7 +1,7 @@
 import type {
   DeclarationListToDefinitionMap,
-} from "@dicexp/runtime-regular-functions";
-import { flattenListAll, unwrapListOneOf } from "@dicexp/runtime-value-utils";
+} from "@dicexp/runtime/regular-functions";
+import { flattenListAll, unwrapListOneOf } from "@dicexp/runtime/value-utils";
 import {
   callCallable,
   concrete_literal,
@@ -13,7 +13,7 @@ import {
   type Value_Callable,
   type Value_List,
   type ValueTypeName,
-} from "@dicexp/runtime-values";
+} from "@dicexp/runtime/values";
 import type { builtinFunctionDeclarations } from "./declarations";
 import { sum } from "../utils";
 

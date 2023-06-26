@@ -16,7 +16,7 @@ import {
   type Value_Callable,
   type Value_List,
   type Value_List$Extendable,
-} from "@dicexp/runtime-values";
+} from "@dicexp/runtime/values";
 import {
   type RegularFunction,
   representCall,
@@ -27,14 +27,14 @@ import {
   representValue,
   type RuntimeProxyForFunction,
   type Scope,
-} from "@dicexp/runtime-values";
+} from "@dicexp/runtime/values";
 import {
   runtimeError_duplicateClosureParameterNames,
   runtimeError_limitationExceeded,
   runtimeError_unknownRegularFunction,
   runtimeError_valueIsNotCallable,
   runtimeError_wrongArity,
-} from "@dicexp/runtime-errors";
+} from "@dicexp/runtime/errors";
 import type { RuntimeProxy } from "./runtime";
 
 export function concretize(

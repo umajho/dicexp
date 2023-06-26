@@ -3,7 +3,7 @@ import {
   runtimeError_callArgumentTypeMismatch,
   runtimeError_typeMismatch,
   type TypeMismatchKind,
-} from "@dicexp/runtime-errors";
+} from "../errors/mod";
 import {
   asInteger,
   asList,
@@ -15,7 +15,7 @@ import {
   type Value,
   type ValueSpec,
   type ValueTypeName,
-} from "@dicexp/runtime-values";
+} from "../values/mod";
 
 export function unwrapValue(
   spec: ValueSpec,

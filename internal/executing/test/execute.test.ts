@@ -19,13 +19,13 @@ import {
   runtimeError_duplicateClosureParameterNames,
   runtimeError_unknownVariable,
   runtimeError_wrongArity,
-} from "@dicexp/runtime-errors";
+} from "@dicexp/runtime/errors";
 import { JSValue } from "../src/runtime";
 import { flatten } from "./utils";
-import { makeFunction } from "@dicexp/runtime-regular-functions";
+import { makeFunction } from "@dicexp/runtime/regular-functions";
 import { Restrictions } from "../src/restrictions";
 import { barebonesScope } from "@dicexp/builtins";
-import { Scope } from "@dicexp/runtime-values";
+import { Scope } from "@dicexp/runtime/values";
 
 describe("值", () => {
   describe("整数", () => {

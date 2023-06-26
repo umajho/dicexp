@@ -9,9 +9,9 @@ import type {
   RuntimeError,
   Scope,
   ValueTypeName,
-} from "@dicexp/runtime-values";
+} from "@dicexp/runtime/values";
 import { execute, ExecuteOptions, ExecutionResult } from "../src/execute";
-import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime-errors";
+import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
 import { JSValue } from "../src/runtime";
 import { Unreachable } from "@dicexp/errors";
 import { barebonesScope, standardScope } from "@dicexp/builtins";

@@ -1,5 +1,5 @@
-import { makeScope } from "@dicexp/runtime-regular-functions";
-import type { Scope } from "@dicexp/runtime-values";
+import { makeScope } from "@dicexp/runtime/regular-functions";
+import type { Scope } from "@dicexp/runtime/values";
 import { builtinOperatorDeclarations } from "./src/base/operators/declarations";
 import { builtinOperatorDefinitions } from "./src/base/operators/definitions";
 import { builtinFunctionDeclarations } from "./src/base/functions/declarations";

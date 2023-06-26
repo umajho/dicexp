@@ -1,4 +1,4 @@
-import type { RegularFunctionDeclaration } from "@dicexp/runtime-regular-functions";
+import type { RegularFunctionDeclaration } from "@dicexp/runtime/regular-functions";
 
 export const builtinOperatorDeclarations = ([
   {

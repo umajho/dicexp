@@ -1,8 +1,13 @@
 {
   "packageManager": "pnpm@8.6.1",
-  "name": "@dicexp/runtime-values",
+  "name": "@dicexp/runtime",
   "version": "0.0.0",
-  "main": "lib.ts",
+  "exports": {
+    "./errors": "./src/errors/mod.ts",
+    "./values": "./src/values/mod.ts",
+    "./value-utils": "./src/value-utils/mod.ts",
+    "./regular-functions": "./src/regular-functions/mod.ts"
+  },
   "keywords": [],
   "author": "Umaĵo",
   "license": "MIT",

@@ -6,7 +6,7 @@ import type {
   Value_Integer$SumExtendable,
   Value_List$Extendable,
   ValueTypeName,
-} from "@dicexp/runtime-values";
+} from "../values/mod";
 
 /**
  * 通常函数声明。

@@ -1,4 +1,4 @@
-import type { Scope, ValueSpec } from "@dicexp/runtime-values";
+import type { Scope, ValueSpec } from "../values/mod";
 import type {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,

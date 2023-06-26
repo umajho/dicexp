@@ -9,4 +9,4 @@ export {
   asRuntimeError,
   type Representation,
   type RuntimeError,
-} from "@dicexp/runtime-values";
+} from "@dicexp/runtime/values";

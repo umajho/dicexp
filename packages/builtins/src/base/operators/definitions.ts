@@ -1,11 +1,11 @@
 import { Unreachable } from "@dicexp/errors";
-import type { DeclarationListToDefinitionMap } from "@dicexp/runtime-regular-functions";
+import type { DeclarationListToDefinitionMap } from "@dicexp/runtime/regular-functions";
 import {
   concrete_literal,
   makeRuntimeError,
   type RuntimeError,
   type Value_Integer$SumExtendable,
-} from "@dicexp/runtime-values";
+} from "@dicexp/runtime/values";
 import type { builtinOperatorDeclarations } from "./declarations";
 import { sum } from "../utils";
 

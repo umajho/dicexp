@@ -5,7 +5,7 @@ import type { Node } from "@dicexp/nodes";
 import { type ExecutionResult, Runtime } from "./runtime";
 import type { RandomSource } from "./random";
 import type { Restrictions } from "./restrictions";
-import type { Scope } from "@dicexp/runtime-values";
+import type { Scope } from "@dicexp/runtime/values";
 export type { ExecutionResult } from "./runtime";
 
 export type ExecuteOptions =

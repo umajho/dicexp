@@ -4,7 +4,7 @@ import {
   makeRuntimeError,
   type RuntimeError,
   type ValueTypeName,
-} from "@dicexp/runtime-values";
+} from "../values/mod";
 
 export function runtimeError_limitationExceeded(
   name: string,
