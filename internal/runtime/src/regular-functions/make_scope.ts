@@ -8,7 +8,7 @@ import { makeFunction } from "./make_function";
 export function makeScope<T extends readonly RegularFunctionDeclaration[]>(
   declarations: T,
   definitions: DeclarationListToDefinitionMap<T>,
-) {
+): Scope {
   const opScope: Scope = {};
 
   for (const decl_ of declarations) {

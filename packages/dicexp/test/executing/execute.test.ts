@@ -24,7 +24,7 @@ import { JSValue } from "../../src/executing/mod";
 import { Restrictions } from "../../src/executing/restrictions";
 import { flatten } from "./utils";
 import { makeFunction } from "@dicexp/runtime/regular-functions";
-import { barebonesScope } from "@dicexp/builtins/internal";
+import { barebonesScopeCollection } from "@dicexp/builtins/internal";
 import { Scope } from "@dicexp/runtime/values";
 
 describe("值", () => {
@@ -599,19 +599,21 @@ describe("限制", () => {
       });
 
       describe("超时则返回运行时错误", () => {
-        const scope: Scope = {
-          ...barebonesScope,
-          "sleep/1": makeFunction(["integer"], (args, _rtm) => {
-            const [ms] = args as [number];
-            const start = performance.now();
-            while (performance.now() - start <= ms) { /* noop */ }
-            return { ok: { value: true } };
-          }),
-        };
+        const scopeCollection: Scope[] = [
+          ...barebonesScopeCollection,
+          {
+            "sleep/1": makeFunction(["integer"], (args, _rtm) => {
+              const [ms] = args as [number];
+              const start = performance.now();
+              while (performance.now() - start <= ms) { /* noop */ }
+              return { ok: { value: true } };
+            }),
+          },
+        ];
 
         it("超时后如果再也没有调用过函数则不会被触发", () => {
           assertExecutionOk(`[[sleep(20)]]`, [[true]], {
-            topLevelScope: scope,
+            topLevelScope: scopeCollection,
             restrictions,
           });
         });
@@ -620,7 +622,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
-            { topLevelScope: scope, restrictions },
+            { topLevelScope: scopeCollection, restrictions },
           );
         });
       });

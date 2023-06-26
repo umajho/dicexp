@@ -12,11 +12,15 @@ export {
   builtinOperatorDefinitions,
 };
 
-export const barebonesScope: Scope = {
-  ...makeScope(builtinOperatorDeclarations, builtinOperatorDefinitions),
-};
+export const operatorScope = makeScope(
+  builtinOperatorDeclarations,
+  builtinOperatorDefinitions,
+);
 
-export const standardScope: Scope = {
-  ...barebonesScope,
-  ...makeScope(builtinFunctionDeclarations, builtinFunctionDefinitions),
-};
+export const functionScope = makeScope(
+  builtinFunctionDeclarations,
+  builtinFunctionDefinitions,
+);
+
+export const barebonesScopeCollection: Scope[] = [operatorScope];
+export const standardScopeCollection: Scope[] = [operatorScope, functionScope];

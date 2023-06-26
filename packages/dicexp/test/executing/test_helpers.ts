@@ -18,27 +18,27 @@ import {
 } from "../../src/executing/mod";
 import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
-import { barebonesScope, standardScope } from "@dicexp/builtins/internal";
+import { functionScope, operatorScope } from "@dicexp/builtins/internal";
 
-const testScope = ((): Scope => {
+const testScopeCollection = ((): Scope[] => {
   const pickedFunctions: string[] = [
     ...["count/2", "sum/1", "sort/1", "append/2", "at/2"],
     ...["map/2", "filter/2", "head/1", "tail/1", "zip/2", "zipWith/3"],
   ];
   const pickedScope: Scope = {};
   for (const picked of pickedFunctions) {
-    if (!standardScope[picked]) {
+    if (!functionScope[picked]) {
       throw new Unreachable(
         `"测试用的函数 \`${picked}\` 不存在于标准作用域中"`,
       );
     }
-    pickedScope[picked] = standardScope[picked];
+    pickedScope[picked] = functionScope[picked];
   }
-  return { ...barebonesScope, ...pickedScope };
+  return [operatorScope, functionScope];
 })();
 
 type ExecuteOptionsForTest = Omit<ExecuteOptions, "topLevelScope"> & {
-  topLevelScope?: Scope;
+  topLevelScope?: Scope | Scope[];
 };
 export function evaluateForTest(
   code: string,
@@ -49,7 +49,7 @@ export function evaluateForTest(
   if ("error" in parseResult) throw new Unreachable();
   return execute(parseResult.ok, {
     ...executeOpts,
-    topLevelScope: executeOpts?.topLevelScope ?? testScope,
+    topLevelScope: executeOpts?.topLevelScope ?? testScopeCollection,
   });
 }
 
