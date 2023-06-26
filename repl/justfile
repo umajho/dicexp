@@ -1,8 +1,7 @@
 set fallback
 
 prepare:
-	cd .. && just build-grammar
-	cd .. && just build-dicexp
+	just build-dicexp
 
 run: prepare
 	rollup -c

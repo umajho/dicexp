@@ -1,7 +1,7 @@
 import { barebonesScope, standardScope } from "@dicexp/builtins";
 import { EvaluateOptionsForWorker, ExecuteOptionsForWorker } from "./types";
 import { Unreachable } from "@dicexp/errors";
-import { execute, ExecuteOptions } from "@dicexp/executing";
+import { execute, ExecuteOptions } from "../../executing/mod";
 import { Node } from "@dicexp/nodes";
 import { evaluate } from "../evaluate";
 

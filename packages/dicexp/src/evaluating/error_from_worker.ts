@@ -1,5 +1,5 @@
-import { asRuntimeError, type RuntimeError } from "@dicexp/executing";
-import { ParsingError } from "@dicexp/parsing";
+import { asRuntimeError, type RuntimeError } from "../executing/mod";
+import { ParsingError } from "../parsing/mod";
 
 export interface ErrorDataFromWorker {
   message: string;

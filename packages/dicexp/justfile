@@ -1,12 +1,26 @@
 set fallback
 
 prepare:
-	cd .. && just build-grammar
+	just build-grammar
 
 type-check: prepare
 	tsc --noEmit
 
-test: type-check
+test: type-check parsing--test executing--test
+
+parsing--test: prepare
+	pnpm exec vitest --dir=test/parsing --run
+
+executing--test: prepare
+	pnpm exec vitest --dir=test/executing --run
+
+bench: parsing--bench executing--bench
+
+parsing--bench: prepare
+	pnpm exec vitest bench --dir=test/parsing --run
+
+executing--bench: prepare
+	pnpm exec vitest bench --dir=test/executing --run
 
 build: prepare type-check
 	pnpm run build

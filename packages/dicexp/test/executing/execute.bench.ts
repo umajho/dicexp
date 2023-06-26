@@ -3,9 +3,9 @@ import { bench, describe } from "vitest";
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Unreachable } from "@dicexp/errors";
-import { parse, ParsingResult } from "@dicexp/parsing";
-import { execute, ExecutionResult } from "../lib";
-import { RandomGenerator, RandomSource } from "../src/random";
+import { parse, ParsingResult } from "../../src/parsing/mod";
+import { execute, ExecutionResult } from "../../src/executing/mod";
+import { RandomGenerator, RandomSource } from "../../src/executing/random";
 
 describe("各种表达式", () => {
   const codes = [

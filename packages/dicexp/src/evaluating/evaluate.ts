@@ -1,11 +1,11 @@
-import { parse, type ParseOptions } from "@dicexp/parsing";
+import { parse, type ParseOptions } from "../parsing/mod";
 import {
   execute,
   type ExecuteOptions,
   type RuntimeError,
   type RuntimeStatistics,
-} from "@dicexp/executing";
-import type { JSValue, Representation } from "@dicexp/executing";
+} from "../executing/mod";
+import type { JSValue, Representation } from "../executing/mod";
 
 export interface EvaluateOptions {
   execute: ExecuteOptions;

@@ -3,16 +3,20 @@ import { AssertionError } from "assertion-error";
 
 import { inspect } from "util";
 
-import { parse, type ParseOptions } from "@dicexp/parsing";
+import { parse, type ParseOptions } from "../../src/parsing/mod";
 
 import type {
   RuntimeError,
   Scope,
   ValueTypeName,
 } from "@dicexp/runtime/values";
-import { execute, ExecuteOptions, ExecutionResult } from "../src/execute";
+import {
+  execute,
+  ExecuteOptions,
+  ExecutionResult,
+  JSValue,
+} from "../../src/executing/mod";
 import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
-import { JSValue } from "../src/runtime";
 import { Unreachable } from "@dicexp/errors";
 import { barebonesScope, standardScope } from "@dicexp/builtins";
 

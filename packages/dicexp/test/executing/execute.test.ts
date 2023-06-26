@@ -20,10 +20,10 @@ import {
   runtimeError_unknownVariable,
   runtimeError_wrongArity,
 } from "@dicexp/runtime/errors";
-import { JSValue } from "../src/runtime";
+import { JSValue } from "../../src/executing/mod";
+import { Restrictions } from "../../src/executing/restrictions";
 import { flatten } from "./utils";
 import { makeFunction } from "@dicexp/runtime/regular-functions";
-import { Restrictions } from "../src/restrictions";
 import { barebonesScope } from "@dicexp/builtins";
 import { Scope } from "@dicexp/runtime/values";
 

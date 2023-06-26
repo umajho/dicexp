@@ -1,7 +1,7 @@
-import type { ExecuteOptions, RuntimeRestrictions } from "@dicexp/executing";
+import type { ExecuteOptions, RuntimeRestrictions } from "../../executing/mod";
 import type { ErrorDataFromWorker } from "../error_from_worker";
 import type { EvaluationResult } from "../evaluate";
-import type { ParseOptions } from "@dicexp/parsing";
+import type { ParseOptions } from "../../parsing/mod";
 
 export interface EvaluateOptionsForWorker {
   execute: Omit<ExecuteOptionsForWorker, "restrictions">;

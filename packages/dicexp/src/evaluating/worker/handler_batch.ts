@@ -1,5 +1,5 @@
-import { asRuntimeError, type RuntimeError } from "@dicexp/executing";
-import { parse } from "@dicexp/parsing";
+import { asRuntimeError, type RuntimeError } from "../../executing/mod";
+import { parse } from "../../parsing/mod";
 import type { Node } from "@dicexp/nodes";
 import type {
   BatchReport,

@@ -1,4 +1,4 @@
-import { parse } from "../lib";
+import { parse } from "../../src/parsing/mod";
 
 import { bench } from "vitest";
 

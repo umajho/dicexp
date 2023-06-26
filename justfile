@@ -2,10 +2,6 @@ nodes *args:
 	just -f internal/nodes/justfile {{args}}
 lezer *args:
 	just -f internal/lezer/justfile {{args}}
-parsing *args:
-	just -f internal/parsing/justfile {{args}}
-executing *args:
-	just -f internal/executing/justfile {{args}}
 dicexp *args:
 	just -f packages/dicexp/justfile {{args}}
 playground *args:
@@ -24,7 +20,5 @@ repl-no-build:
 	just -f repl/justfile run-no-build
 
 test:
-	just parsing test
-	just executing test
 	just dicexp test
 	just playground test
