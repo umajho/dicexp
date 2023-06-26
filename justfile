@@ -24,3 +24,4 @@ repl-no-build:
 test:
 	just dicexp test
 	just playground test
+	just builtins test

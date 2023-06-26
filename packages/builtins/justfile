@@ -3,5 +3,7 @@ set fallback
 type-check:
 	tsc --noEmit
 
+test: type-check
+
 build: type-check
 	pnpm run build
