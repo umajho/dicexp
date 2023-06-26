@@ -134,9 +134,6 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   },
 
   // 控制流
-  "if/3": (_rtm, condition, whenTrue, whenFalse) => {
-    return condition ? { ok: { lazy: whenTrue } } : { ok: { lazy: whenFalse } };
-  },
 };
 
 function filter(

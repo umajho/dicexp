@@ -138,15 +138,4 @@ export const builtinFunctionDeclarations = ([
   },
 
   // 控制流
-  {
-    name: "if",
-    parameters: [
-      { label: "condition", type: "boolean" },
-      { label: "whenTrue", type: "$lazy" },
-      { label: "whenFalse", type: "$lazy" },
-    ],
-    returnValue: {
-      type: { dynamic: true, lazy: true },
-    },
-  },
 ] as const) satisfies readonly RegularFunctionDeclaration[];

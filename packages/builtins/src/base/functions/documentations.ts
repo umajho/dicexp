@@ -110,13 +110,4 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
   },
 
   // 控制流
-  "if/3": {
-    parameters: {
-      "condition": "判断",
-      "whenTrue": "判断为真时的结果",
-      "whenFalse": "判断为假时的结果",
-    },
-    description: "根据判断返回对应的结果。",
-    returnValue: { type: { description: "根据判断结果而定" } },
-  },
 };
