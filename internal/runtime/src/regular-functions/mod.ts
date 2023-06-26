@@ -1,6 +1,6 @@
 export type {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,
-} from "./decl-def";
+} from "./types/mod";
 export * from "./make_function";
 export * from "./make_scope";
