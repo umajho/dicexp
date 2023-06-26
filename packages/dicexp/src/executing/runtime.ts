@@ -7,7 +7,6 @@ import type {
   NodeValue_Closure,
   NodeValue_List,
 } from "@dicexp/nodes";
-import { standardScope } from "@dicexp/builtins";
 import {
   runtimeError_badFinalResult,
   runtimeError_restrictionExceeded,
@@ -91,7 +90,7 @@ export class Runtime {
   constructor(root: Node, opts: RuntimeOptions) {
     this._root = root;
 
-    this._topLevelScope = opts.topLevelScope ?? standardScope;
+    this._topLevelScope = opts.topLevelScope;
 
     this._rng = new RandomGenerator(opts.randomSource);
 

@@ -1,5 +1,5 @@
 import { execute, parse } from "dicexp";
-import { standardScope } from "@dicexp/builtins";
+import { standardScope } from "@dicexp/builtins/internal";
 
 // import inspect from "browser-util-inspect";
 // REPL 不用在非 Node 环境下运行，就直接用了

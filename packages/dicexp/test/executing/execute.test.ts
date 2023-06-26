@@ -24,7 +24,7 @@ import { JSValue } from "../../src/executing/mod";
 import { Restrictions } from "../../src/executing/restrictions";
 import { flatten } from "./utils";
 import { makeFunction } from "@dicexp/runtime/regular-functions";
-import { barebonesScope } from "@dicexp/builtins";
+import { barebonesScope } from "@dicexp/builtins/internal";
 import { Scope } from "@dicexp/runtime/values";
 
 describe("值", () => {

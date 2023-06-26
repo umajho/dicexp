@@ -1,4 +1,4 @@
-import { barebonesScope, standardScope } from "@dicexp/builtins";
+import { barebonesScope, standardScope } from "@dicexp/builtins/internal";
 import { EvaluateOptionsForWorker, ExecuteOptionsForWorker } from "./types";
 import { Unreachable } from "@dicexp/errors";
 import { execute, ExecuteOptions } from "../../executing/mod";

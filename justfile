@@ -4,6 +4,8 @@ lezer *args:
 	just -f internal/lezer/justfile {{args}}
 dicexp *args:
 	just -f packages/dicexp/justfile {{args}}
+builtins *args:
+	just -f packages/builtins/justfile {{args}}
 playground *args:
 	just -f playground/justfile {{args}}
 

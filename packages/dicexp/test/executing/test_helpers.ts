@@ -18,7 +18,7 @@ import {
 } from "../../src/executing/mod";
 import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
-import { barebonesScope, standardScope } from "@dicexp/builtins";
+import { barebonesScope, standardScope } from "@dicexp/builtins/internal";
 
 const testScope = ((): Scope => {
   const pickedFunctions: string[] = [

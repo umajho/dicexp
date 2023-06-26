@@ -1,0 +1,7 @@
+set fallback
+
+type-check:
+	tsc --noEmit
+
+build: type-check
+	pnpm run build
