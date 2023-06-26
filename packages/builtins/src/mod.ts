@@ -5,7 +5,7 @@ import { builtinOperatorDocumentations } from "./base/operators/documentations";
 import { builtinFunctionDeclarations } from "./base/functions/declarations";
 import { builtinFunctionDefinitions } from "./base/functions/definitions";
 import { builtinFunctionDocumentations } from "./base/functions/documentations";
-import { asScope, makeScope } from "@dicexp/runtime/regular-functions";
+import { makeScope } from "@dicexp/runtime/regular-functions";
 
 export {
   builtinFunctionDeclarations,
@@ -29,11 +29,3 @@ export const functionRawScope = makeRawScope(
 );
 export const functionScope = makeScope(functionRawScope);
 export const fnuctionScopeDocumentation = builtinFunctionDocumentations;
-
-// 基础作用域，用作顶部作用域，只含运算符
-export const barebonesRawScope = asScope([operatorRawScope]);
-export const barebonesScope = asScope(barebonesRawScope);
-
-// 标准作用域，用作顶部作用域，含运算符和非运算符函数
-export const standardRawScope = asScope([operatorRawScope, functionRawScope]);
-export const standardScopeCollection = asScope(standardRawScope);

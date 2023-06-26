@@ -1,13 +1,11 @@
-import {
-  barebonesScope,
-  standardScopeCollection,
-} from "@dicexp/builtins/internal";
+import { functionScope, operatorScope } from "@dicexp/builtins/internal";
 import { EvaluateOptionsForWorker, ExecuteOptionsForWorker } from "./types";
 import { Unreachable } from "@dicexp/errors";
 import { execute, ExecuteOptions } from "../../executing/mod";
 import { Node } from "@dicexp/nodes";
 import { evaluate } from "../evaluate";
 import { Scope } from "@dicexp/runtime/values";
+import { asScope } from "@dicexp/runtime/regular-functions";
 
 export function executeForWorker(node: Node, opts: ExecuteOptions) {
   return execute(node, opts);
@@ -38,9 +36,9 @@ function getScopeCollection(
 ): Scope {
   switch (scopeName) {
     case "barebones":
-      return barebonesScope;
+      return operatorScope;
     case "standard":
-      return standardScopeCollection;
+      return asScope([operatorScope, functionScope]);
     default:
       throw new Unreachable();
   }

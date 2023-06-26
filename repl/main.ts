@@ -1,5 +1,5 @@
-import { execute, parse } from "dicexp";
-import { standardScopeCollection } from "@dicexp/builtins/internal";
+import { asScope, execute, parse } from "dicexp";
+import { functionScope, operatorScope } from "@dicexp/builtins/internal";
 
 // import inspect from "browser-util-inspect";
 // REPL 不用在非 Node 环境下运行，就直接用了
@@ -64,7 +64,7 @@ while (1) {
     }
 
     const executeResult = execute(parsed, {
-      topLevelScope: standardScopeCollection,
+      topLevelScope: asScope([operatorScope, functionScope]),
       seed,
     });
     if ("error" in executeResult) {

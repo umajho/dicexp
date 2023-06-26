@@ -6,3 +6,4 @@ export {
   type Representation,
   type RuntimeError,
 } from "@dicexp/runtime/values";
+export { asScope } from "@dicexp/runtime/regular-functions";
