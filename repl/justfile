@@ -1,7 +1,7 @@
 set fallback
 
 prepare:
-	just build-dicexp
+	just dicexp build
 
 run: prepare
 	rollup -c
