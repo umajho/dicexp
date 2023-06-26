@@ -1,5 +1,5 @@
 import {
-  barebonesScopeCollection,
+  barebonesScope,
   standardScopeCollection,
 } from "@dicexp/builtins/internal";
 import { EvaluateOptionsForWorker, ExecuteOptionsForWorker } from "./types";
@@ -35,10 +35,10 @@ export function makeExecuteOptions(
 
 function getScopeCollection(
   scopeName: ExecuteOptionsForWorker["topLevelScopeName"],
-): Scope[] {
+): Scope {
   switch (scopeName) {
     case "barebones":
-      return barebonesScopeCollection;
+      return barebonesScope;
     case "standard":
       return standardScopeCollection;
     default:

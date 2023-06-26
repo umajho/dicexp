@@ -6,6 +6,7 @@ import { inspect } from "util";
 import { parse, type ParseOptions } from "../../src/parsing/mod";
 
 import type {
+  RawScope,
   RuntimeError,
   Scope,
   ValueTypeName,
@@ -19,8 +20,9 @@ import {
 import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
 import { functionScope, operatorScope } from "@dicexp/builtins/internal";
+import { asScope } from "@dicexp/runtime/regular-functions";
 
-const testScopeCollection = ((): Scope[] => {
+const testScopeCollection = ((): Scope => {
   const pickedFunctions: string[] = [
     ...["count/2", "sum/1", "sort/1", "append/2", "at/2"],
     ...["map/2", "filter/2", "head/1", "tail/1", "zip/2", "zipWith/3"],
@@ -34,11 +36,11 @@ const testScopeCollection = ((): Scope[] => {
     }
     pickedScope[picked] = functionScope[picked];
   }
-  return [operatorScope, functionScope];
+  return asScope([operatorScope, pickedScope]);
 })();
 
 type ExecuteOptionsForTest = Omit<ExecuteOptions, "topLevelScope"> & {
-  topLevelScope?: Scope | Scope[];
+  topLevelScope?: Scope;
 };
 export function evaluateForTest(
   code: string,

@@ -10,7 +10,7 @@ export type { ExecutionResult } from "./runtime";
 
 export type ExecuteOptions =
   & {
-    topLevelScope: Scope | Scope[];
+    topLevelScope: Scope;
     restrictions?: Restrictions;
   }
   & (
@@ -30,16 +30,6 @@ export function execute(
   node: Node,
   opts: ExecuteOptions,
 ): ExecutionResult {
-  let topLevelScope: Scope;
-  if (Array.isArray(opts.topLevelScope)) {
-    topLevelScope = {};
-    for (const scope of opts.topLevelScope) {
-      topLevelScope = { ...topLevelScope, ...scope };
-    }
-  } else {
-    topLevelScope = opts.topLevelScope;
-  }
-
   let randomSource: RandomSource;
   if ("randomSource" in opts) {
     randomSource = opts.randomSource;
@@ -51,7 +41,7 @@ export function execute(
   const restrictions = opts.restrictions ?? {};
 
   const runtime = new Runtime(node, {
-    topLevelScope,
+    topLevelScope: opts.topLevelScope,
     randomSource,
     restrictions,
   });
