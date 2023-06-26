@@ -11,6 +11,9 @@ export default defineConfig({
       name: "dicexp",
       fileName: "dicexp",
     },
+    rollupOptions: {
+      external: [/^@?(codemirror|lezer)\//, "esm-seedrandom"],
+    },
   },
-  plugins: [dts({ entryRoot: "." })],
+  plugins: [dts({ entryRoot: ".", outputDir: resolve(__dirname, "./dist") })],
 });

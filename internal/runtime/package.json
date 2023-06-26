@@ -13,7 +13,7 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "dependencies": {
+  "peerDependencies": {
     "@dicexp/errors": "workspace:*",
     "@dicexp/js-utils": "workspace:*",
     "@dicexp/nodes": "workspace:*"
