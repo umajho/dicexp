@@ -11,32 +11,25 @@ export const builtinFunctionDeclarations = ([
   {
     name: "count",
     parameters: [
-      { label: "list", type: "list", description: "要计数的列表" },
-      {
-        label: "callable",
-        type: "callable",
-        description: "用于判断元素是否计入。输入列表元素，期待输出布尔值",
-      },
+      { label: "list", type: "list" },
+      { label: "callable", type: "callable" },
     ],
     returnValue: { type: "integer" },
-    description: "对 list 计数，只计入 callable 返回真的元素。",
   },
   // has?/2
   {
     name: "sum",
     parameters: [
-      { label: "list", type: "list", description: "由整数组成的列表" },
+      { label: "list", type: "list" },
     ],
     returnValue: { type: "integer" },
-    description: "list 所有元素相加。",
   },
   {
     name: "product",
     parameters: [
-      { label: "list", type: "list", description: "由整数组成的列表" },
+      { label: "list", type: "list" },
     ],
     returnValue: { type: "integer" },
-    description: "list 所有元素相乘",
   },
   // min/1
   // max/1
@@ -45,23 +38,17 @@ export const builtinFunctionDeclarations = ([
   {
     name: "any?",
     parameters: [
-      { label: "list", type: "list", description: "由布尔值组成的列表" },
+      { label: "list", type: "list" },
     ],
     returnValue: { type: "boolean" },
-    description: "判断 list 中是否存在为真的元素。（不存在则返回假。）",
   },
   // any?/2
   {
     name: "sort",
     parameters: [
-      {
-        label: "list",
-        type: "list",
-        description: "要排序的列表。所有元素类型一致，可以是整数或布尔值",
-      },
+      { label: "list", type: "list" },
     ],
     returnValue: { type: "list" },
-    description: "将 list 由小到大排序。",
   },
   // sort/2
   // reverse/1
@@ -70,26 +57,20 @@ export const builtinFunctionDeclarations = ([
   {
     name: "append",
     parameters: [
-      { label: "list", type: "list", description: "要添加元素的列表" },
-      { label: "el", type: "$lazy", description: "要添加的元素" },
+      { label: "list", type: "list" },
+      { label: "el", type: "$lazy" },
     ],
     returnValue: { type: "list" },
-    description: "将 el 添加到 list 后方。",
   },
   {
     name: "at",
     parameters: [
-      { label: "list", type: "list", description: "要取出元素的列表" },
-      {
-        label: "index",
-        type: "integer",
-        description: "要取出的元素的索引，以 0 开始",
-      },
+      { label: "list", type: "list" },
+      { label: "index", type: "integer" },
     ],
     returnValue: {
-      type: { dynamic: true, lazy: true, description: "取出的元素" },
+      type: { dynamic: true, lazy: true },
     },
-    description: "从 list 中取出第 index+1 个元素。",
   },
   // at/3
   // duplicate/2
@@ -100,49 +81,37 @@ export const builtinFunctionDeclarations = ([
   {
     name: "map",
     parameters: [
-      { label: "list", type: "list", description: "目标列表" },
-      {
-        label: "callable",
-        type: "callable",
-        description: "对每个元素的映射操作。输入列表元素，期待输出映射结果",
-      },
+      { label: "list", type: "list" },
+      { label: "callable", type: "callable" },
     ],
     returnValue: { type: "list" },
-    description: "将 list 的元素由 callable 一一映射，得到映射后的列表。",
   },
   // flatMap/2
   {
     name: "filter",
     parameters: [
-      { label: "list", type: "list", description: "目标列表" },
-      {
-        label: "callable",
-        type: "callable",
-        description: "用于判断元素是否保留。输入列表元素，期待输出布尔值",
-      },
+      { label: "list", type: "list" },
+      { label: "callable", type: "callable" },
     ],
     returnValue: { type: "list" },
-    description: "将 list 的元素用 callable 过滤，得到过滤后的列表。",
   },
   // foldl/3
   // foldr/3
   {
     name: "head",
     parameters: [
-      { label: "list", type: "list", description: "目标列表" },
+      { label: "list", type: "list" },
     ],
     returnValue: {
-      type: { dynamic: true, lazy: true, description: "头部元素的类型" },
+      type: { dynamic: true, lazy: true },
     },
-    description: "取出列表的头部（第一个）元素。",
   },
   {
     name: "tail",
     parameters: [
-      { label: "list", type: "list", description: "目标列表" },
+      { label: "list", type: "list" },
     ],
     returnValue: { type: "list" },
-    description: "获得除去头部（第一个）元素的列表。",
   },
   // last/1
   // init/1
@@ -153,43 +122,31 @@ export const builtinFunctionDeclarations = ([
   {
     name: "zip",
     parameters: [
-      { label: "list1", type: "list", description: "第一个列表" },
-      { label: "list2", type: "list", description: "第二个列表" },
+      { label: "list1", type: "list" },
+      { label: "list2", type: "list" },
     ],
     returnValue: { type: "list" },
-    description: "将两个列表合并成新的列表，" +
-      "新的列表的每个元素是由原先两个列表对应位置元素组合而成的长度为 2 的列表。" +
-      "如果两个列表长度不同，只会合并到较短列表的结束位置。",
   },
   {
     name: "zipWith",
     parameters: [
-      { label: "list1", type: "list", description: "第一个列表" },
-      { label: "list2", type: "list", description: "第二个列表" },
-      {
-        label: "callable",
-        type: "callable",
-        description:
-          "合并两个元素的操作。输入两个列表位置对应的两个元素，期待输出合并结果",
-      },
+      { label: "list1", type: "list" },
+      { label: "list2", type: "list" },
+      { label: "callable", type: "callable" },
     ],
     returnValue: { type: "list" },
-    description: "将两个列表合并成新的列表，" +
-      "新的列表的每个元素是由原先两个列表对应位置元素由 callable 合并而成。" +
-      "如果两个列表长度不同，只会合并到较短列表的结束位置。",
   },
 
   // 控制流
   {
     name: "if",
     parameters: [
-      { label: "condition", type: "boolean", description: "判断" },
-      { label: "whenTrue", type: "$lazy", description: "判断为真时的结果" },
-      { label: "whenFalse", type: "$lazy", description: "判断为假时的结果" },
+      { label: "condition", type: "boolean" },
+      { label: "whenTrue", type: "$lazy" },
+      { label: "whenFalse", type: "$lazy" },
     ],
     returnValue: {
-      type: { dynamic: true, lazy: true, description: "根据判断结果而定" },
+      type: { dynamic: true, lazy: true },
     },
-    description: "根据判断返回对应的结果。",
   },
 ] as const) satisfies readonly RegularFunctionDeclaration[];

@@ -1,8 +1,10 @@
 import { makeRawScope } from "@dicexp/runtime/values";
 import { builtinOperatorDeclarations } from "./base/operators/declarations";
 import { builtinOperatorDefinitions } from "./base/operators/definitions";
+import { builtinOperatorDocumentations } from "./base/operators/documentations";
 import { builtinFunctionDeclarations } from "./base/functions/declarations";
 import { builtinFunctionDefinitions } from "./base/functions/definitions";
+import { builtinFunctionDocumentations } from "./base/functions/documentations";
 import { asScope, makeScope } from "@dicexp/runtime/regular-functions";
 
 export {
@@ -18,6 +20,7 @@ export const operatorRawScope = makeRawScope(
   builtinOperatorDefinitions,
 );
 export const operatorScope = makeScope(operatorRawScope);
+export const operatorScopeDocumentation = builtinOperatorDocumentations;
 
 // 包含非运算符函数的作用域
 export const functionRawScope = makeRawScope(
@@ -25,6 +28,7 @@ export const functionRawScope = makeRawScope(
   builtinFunctionDefinitions,
 );
 export const functionScope = makeScope(functionRawScope);
+export const fnuctionScopeDocumentation = builtinFunctionDocumentations;
 
 // 基础作用域，用作顶部作用域，只含运算符
 export const barebonesRawScope = asScope([operatorRawScope]);

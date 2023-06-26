@@ -12,6 +12,7 @@ import type {
   DeclarationReturnValueTypeSpec,
   RegularFunctionDeclaration,
 } from "./decl";
+import type { FullName } from "./utils";
 
 /**
  * 将通常函数声明列表的常量类型转换成通常函数定义 Map 的类型。
@@ -24,12 +25,6 @@ export type DeclarationListToDefinitionMap<DeclList extends readonly any[]> =
       & { [name in FullName<Head>]: DeclarationToFunction<Head> }
       & DeclarationListToDefinitionMap<Tail>
     : {};
-
-/**
- * 根据声明得到函数的完整名称。（即包含 arity 的名称。）
- */
-type FullName<T extends RegularFunctionDeclaration> =
-  `${T["name"]}/${T["parameters"]["length"]}`;
 
 /**
  * 把声明转换成定义时对应的实现的函数类型。
@@ -58,7 +53,7 @@ type ParameterListToFunction<
  *
  * `[{type: "string", ...}, {type: "integer", ...}]` -> `[string, number]`。
  */
-type ParameterListToTuple<T extends readonly DeclarationParameter[]> = {
+export type ParameterListToTuple<T extends readonly DeclarationParameter[]> = {
   [P in keyof T]: ParameterTypeSpecToType<T[P]["type"]>;
 };
 
