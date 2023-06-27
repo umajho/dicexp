@@ -4,8 +4,11 @@ import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Unreachable } from "@dicexp/errors";
 import { parse, ParsingResult } from "../../src/parsing/mod";
-import { execute, ExecutionResult } from "../../src/executing/mod";
+import { asScope, execute, ExecutionResult } from "../../src/executing/mod";
 import { RandomGenerator, RandomSource } from "../../src/executing/random";
+import { functionScope, operatorScope } from "@dicexp/builtins";
+
+const topLevelScope = asScope([operatorScope, functionScope]);
 
 describe("各种表达式", () => {
   const codes = [
@@ -71,7 +74,7 @@ describe("各种表达式", () => {
       let result: ExecutionResult;
       try {
         if ("error" in parseResult) throw new Unreachable();
-        result = execute(parseResult.ok);
+        result = execute(parseResult.ok, { topLevelScope });
       } catch (e) {
         throw new Error(`${code}: unknown error during executing: ${e}`);
       }
@@ -105,7 +108,7 @@ describe("d100 vs 直接生成随机数", () => {
   const rng = new RandomGenerator(randomSourceB);
 
   bench("d100", () => {
-    execute(d100Parsed.ok, { randomSource: randomSourceA });
+    execute(d100Parsed.ok, { topLevelScope, randomSource: randomSourceA });
   });
   bench("用 RandomGenerator 生成 1 到 100 之间的随机数", () => {
     rng.integer(1, 100);
