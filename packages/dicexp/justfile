@@ -2,6 +2,7 @@ set fallback
 
 prepare:
 	just build-grammar
+	just builtins build
 
 type-check: prepare
 	tsc --noEmit
