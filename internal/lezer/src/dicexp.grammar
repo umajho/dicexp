@@ -29,7 +29,7 @@ expression {
   List |
   Closure |
   Capture |
-  Variable { identifier } |
+  Variable { idBuiltin | idUserDefined | idExternal } |
   literal
 }
 
@@ -46,8 +46,8 @@ BinaryExpression {
   expression !pipe BinaryOperator<"|>"> expression |
   expression !compare BinaryOperator<$[<>] "="?> expression |
   expression !equal BinaryOperator<"==" | "!="> expression |
-  expression !and @specialize[@name=BinaryOperator]<identifier, "and"> expression |
-  expression !or @specialize[@name=BinaryOperator]<identifier, "or"> expression
+  expression !and @specialize[@name=BinaryOperator]<idBuiltin, "and"> expression |
+  expression !or @specialize[@name=BinaryOperator]<idBuiltin, "or"> expression
 }
 
 aroundDiceRoll[@dynamicPrecedence=1] {
@@ -62,7 +62,7 @@ binaryOperatorDiceRoll {
 UnaryExpression {
   !diceRollUnary unaryOperatorDiceRoll aroundDiceRoll |
 
-  !not @specialize[@name=UnaryOperator]<identifier, "not"> expression |
+  !not @specialize[@name=UnaryOperator]<idBuiltin, "not"> expression |
   !negate (UnaryOperator<"+" | "-">) expression |
   !rangeRollUnary UnaryOperator<"~"> expression |
   FakeWorkaroundUnaryOperator<
@@ -94,7 +94,7 @@ Grouping {
 }
 
 RegularCall {
-  FunctionName { identifier } (ArgumentList | Closure)
+  FunctionName { idBuiltin } (ArgumentList | Closure)
 }
 
 ArgumentList {
@@ -106,12 +106,12 @@ List {
 }
 
 Closure {
-  "\\" OpenParen ParameterListBody { commaSeparated<identifier> } "->" expression CloseParen
+  "\\" OpenParen ParameterListBody { commaSeparated<idUserDefined | idIgnore> } "->" expression CloseParen
 }
 
 @skip {} {
   Capture {
-    "&" Identifier { identifier } "/" LiteralInteger |
+    "&" Identifier { idBuiltin } "/" LiteralInteger |
     "&" Identifier {
       keywordD | /*keywordDRemainder |*/
       "^" |
@@ -121,9 +121,9 @@ Closure {
       // "#" | "|>" | // 比较特殊，会改变代码结构，因此不允许被捕获
       ("<"|">") "="? 
       "==" | "!=" |
-      @specialize[@name=BinaryOperator]<identifier, "and"> |
-      @specialize[@name=BinaryOperator]<identifier, "or"> |
-      @specialize[@name=UnaryOperator]<identifier, "not">
+      @specialize[@name=BinaryOperator]<idBuiltin, "and"> |
+      @specialize[@name=BinaryOperator]<idBuiltin, "or"> |
+      @specialize[@name=UnaryOperator]<idBuiltin, "not">
     } "/" LiteralInteger
   }
 }
@@ -137,7 +137,7 @@ literalBoolean {
   literalKeyword<"LiteralBoolean", "true"> | literalKeyword<"LiteralBoolean", "false">
 }
 
-literalKeyword<expr, term> { @specialize[@name={expr}]<identifier, term> }
+literalKeyword<expr, term> { @specialize[@name={expr}]<idBuiltin, term> }
 
 commaSeparated<item> {
   "" | (Item { item } ("," Item {item})*)
@@ -161,7 +161,11 @@ commaSeparated<item> {
 }
 
 @external tokens identifierTokenizer from "./tokens"  { 
-  identifier, 
+  idBuiltin,
+  idUserDefined, // `$(<...>)`
+  idExternal, // `@(<...>)` | `@@(<...>)` | `@_(<...>)`
+  idIgnore, // `_`
+
   keywordD
 }
 

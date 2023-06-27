@@ -48,7 +48,9 @@ export function evaluateForTest(
   parseOpts?: ParseOptions,
 ): ExecutionResult {
   const parseResult = parse(code, parseOpts);
-  if ("error" in parseResult) throw new Unreachable();
+  if ("error" in parseResult) {
+    throw new Unreachable(`解析错误：${parseResult.error.message}`);
+  }
   return execute(parseResult.ok, {
     ...executeOpts,
     topLevelScope: executeOpts?.topLevelScope ?? testScopeCollection,

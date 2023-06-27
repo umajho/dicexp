@@ -23,13 +23,13 @@ describe("空白", () => {
 
     for (
       const closureTestCode of [
-        String.raw`foo \( bar , baz -> qux )`,
-        String.raw`foo\(bar,baz->qux)`,
+        String.raw`foo \( $bar , $baz -> $qux )`,
+        String.raw`foo\($bar,$baz->$qux)`,
       ]
     ) {
       const closurePart = closureTestCode.slice(closureTestCode.indexOf("\\"));
       const expected = regularCall("function", "foo", [
-        closure(["bar", "baz"], "qux", closurePart),
+        closure(["$bar", "$baz"], "$qux", closurePart),
       ]);
       table.push([closureTestCode, expected]);
     }
@@ -66,6 +66,9 @@ describe("常量", () => {
     });
     describe("不能解析不合规的整数常量", () => {
       theyAreBad(literalIntegerBadTable);
+    });
+    it("可以跟在 `d` 之后", () => {
+      assertOk("d1_1", regularCall("operator", "d", [value(11)]));
     });
 
     describe("能解析在安全整数范围之内的常量", () => {
@@ -106,18 +109,26 @@ describe("掷骰的操作数", () => {
   });
 
   describe("但是连用需要用括号确定优先级", () => {
-    const table = [
-      "(d4)d4",
-      "3d(4d5)",
+    const table: { code: string; ok: boolean | "id" }[] = [
+      { code: "(d4)d4", ok: true },
+      { code: "d4d4", ok: "id" }, // 视为名为 “d4d4” 的标识符
+      { code: "3d(4d5)", ok: true },
+      { code: "3d4d5", ok: false },
     ];
-    for (const [i, code] of table.entries()) {
-      it(`case ${i + 1}a: ${code} => ok`, () => {
-        parse(code);
-      });
-      const codeWithoutParens = code.replace(/[()]/g, "");
-      it(`case ${i + 1}b: ${codeWithoutParens} => error`, () => {
-        assertBad(codeWithoutParens);
-      });
+    for (const [i, { code, ok }] of table.entries()) {
+      if (ok === "id") {
+        it(`case ${i + 1}: ${code} => ok (as an identifier)`, () => {
+          assertOk(code, code);
+        });
+      } else if (ok) {
+        it(`case ${i + 1}: ${code} => ok`, () => {
+          assertOk(code, null);
+        });
+      } else {
+        it(`case ${i + 1}b: ${code} => error`, () => {
+          assertBad(code);
+        });
+      }
     }
   });
 });
@@ -153,78 +164,118 @@ describe("优先级", () => {
 });
 
 describe("标识符", () => {
-  describe("一般", () => {
-    const table: { id: string; var: boolean; fn: boolean }[] = [
-      { id: "foo", var: true, fn: true },
-      { id: "foo!", var: false, fn: false },
-      { id: "foo?", var: true, fn: true },
-      { id: "_a1", var: true, fn: true },
-      { id: "1a", var: false, fn: false },
+  const idPrefixes = ["$", "@", "@@", "@_"];
+
+  describe("前缀", () => {
+    describe("不能只有前缀", () => {
+      theyAreBad(idPrefixes);
+    });
+    describe("带前缀的标识符不能以通常函数的方式调用", () => {
+      theyAreBad(idPrefixes.map((p) => `${p}foo()`));
+    });
+    describe("带前缀的标识符可以以值的方式调用", () => {
+      theyAreOk(idPrefixes.map((p) => `${p}foo.()`));
+    });
+  });
+
+  describe("一般名称", () => {
+    const goodNames = ["foo", "foo?", "_a1"];
+    const badNames = ["foo!", "1a"];
+    const names = [
+      ...goodNames.map((name) => ({ name, ok: true })),
+      ...badNames.map((name) => ({ name, ok: false })),
     ];
-    for (const [i, { id, var: varOk, fn: fnOk }] of table.entries()) {
-      it(`case ${i + 1} for var: ${id} => ${varOk ? "ok" : "error"}`, () => {
-        if (varOk) {
-          parse(id);
-        } else {
-          assertBad(id);
-        }
-      });
-      const fnCode = `${id}()`;
-      it(`case ${i + 1} for fn: ${fnCode} => ${fnOk ? "ok" : "error"}`, () => {
-        if (fnOk) {
-          parse(fnCode);
-        } else {
-          assertBad(fnCode);
-        }
-      });
+
+    for (const [i, prefix] of ["", ...idPrefixes].entries()) {
+      for (const [j, { name, ok }] of names.entries()) {
+        const caseNumber = i * names.length + j + 1;
+        const id = `${prefix}${name}`;
+
+        it(`case ${caseNumber} for var: ${id} => ${ok ? "ok" : "error"}`, () => {
+          if (ok) {
+            assertOk(id, id);
+          } else {
+            assertBad(id);
+          }
+        });
+
+        const fnCode = `${id}()`;
+        const fnOk = prefix === "" && ok;
+        it(`case ${caseNumber} for fn: ${fnCode} => ${fnOk ? "ok" : "error"}`, () => {
+          if (fnOk) {
+            assertOk(fnCode, regularCall("function", id, []));
+          } else {
+            assertBad(fnCode);
+          }
+        });
+      }
     }
   });
 
-  describe("不能把单独的 `d` 作为标识符", () => {
-    describe("`d` 不能作为匿名函数形式参数", () => {
-      theyAreBad([
-        String.raw`\(d -> d).(1)`,
-        String.raw`\(d1 -> d1).(1)`,
-      ]);
+  describe("`_`", () => {
+    it("不能作为变量", () => {
+      assertBad("_");
     });
-    describe("更长的名称则没问题", () => {
-      const table = [
-        "da",
-        "dd",
-        "ad",
-        "ada",
-        "a",
-      ];
-      for (const [i, id] of table.entries()) {
-        it(`case ${i + 1}: ${id}`, () => {
-          parse(String.raw`\(${id} -> ${id}).(1)`);
+    describe("不允许除去前缀后只剩 `_`", () => {
+      theyAreBad(idPrefixes.map((p) => `${p}_`));
+    });
+  });
+
+  describe("关键词与标识符", () => {
+    // NOTE: 由于用户不再能定义不带前缀的标识符，关键词不可能与标识符重叠，
+    //       因此不再能/不再需要测试 “不能重叠两者”。
+
+    const fragmentsOfIdentifier = [
+      ...["d", "d1"],
+      ...[/* 单目 */ "not", /* 双目 */ "or"],
+      "true",
+    ];
+
+    const goodConditions = fragmentsOfIdentifier.flatMap((c) => [
+      ...(/^d\d*$/.test(c) ? [] : [`${c}1`]), // `d` 后面不能一直是数字，但其他可以是
+      ...["a", "_"].flatMap((x) => [`${c}${x}`, `${x}${c}`, `${x}${c}${x}`]),
+      ...[`${c}or${c}`, `not${c}`],
+      `${c}${c}`,
+    ]);
+
+    describe("关键词字符序列可以作为标识符名称的一部分", () => {
+      for (const [i, condition] of goodConditions.entries()) {
+        it(`case ${i + 1}: \`${condition}\` & \`${condition}()\` => ok`, () => {
+          assertOk(condition, condition);
+          assertOk(`${condition}()`, regularCall("function", condition, []));
         });
+      }
+    });
+
+    describe("带前缀的标识符，前缀之后可以只有关键词字符序列", () => {
+      for (const [i, prefix] of idPrefixes.entries()) {
+        for (const [j, fragment] of fragmentsOfIdentifier.entries()) {
+          const caseNumber = i * fragment.length + j + 1;
+          const code = `${prefix}${fragment}`;
+          it(`case ${caseNumber}: ${code}`, () => {
+            assertOk(code, code);
+          });
+        }
       }
     });
   });
 
-  describe("名称中含有关键词", () => {
-    const table: string[] = [
-      "true1",
-      "trueA",
-      "_true",
-      "trueortrue",
-      "nottrue",
-    ];
-    for (const [i, id] of table.entries()) {
-      it(`case ${i + 1} for var: ${id}`, () => {
-        assertOk(id, id);
-      });
-      const fnCode = `${id}()`;
-      it(`case ${i + 1} for fn: ${fnCode}`, () => {
-        assertOk(fnCode, regularCall("function", id, []));
-      });
-    }
+  describe("闭包参数列表", () => {
+    it("除了 `_` 外，参数名必须以 `$` 开头", () => {
+      theyAreBad([
+        String.raw`\(x -> 1)`,
+        String.raw`\(@x -> 1)`,
+        String.raw`\(_x -> 1)`,
+      ]);
+    });
+    it("参数名可以是 `_`", () => {
+      theyAreOk([String.raw`\($x -> 1)`]);
+    });
   });
 
   describe("Unicode", () => {
     theyAreOk([
-      String.raw`\(参数 -> 函数(参数)).(甲#乙d丙)`,
+      String.raw`\($参数 -> 函数($参数)).(甲#乙d丙)`,
     ]);
   });
 });
@@ -245,9 +296,10 @@ describe("捕获", () => {
     assertOk("&foo?/1", captured("foo?", 1));
   });
 
-  it("不能捕获以 `!` 结尾的特殊函数", () => {
-    assertBad("&foo!/1");
-  });
+  // // NOTE: 先前移除了 `!` 后缀，但未来可能会加回来
+  // it("不能捕获以 `!` 结尾的特殊函数", () => {
+  //   assertBad("&foo!/1");
+  // });
 });
 
 describe("管道运算符", () => {
@@ -260,14 +312,14 @@ describe("管道运算符", () => {
     ["[2, 3, 1] |> append(4)", "append([2, 3, 1], 4)"],
     // 闭包简写
     [
-      String.raw`[2, 3, 1] |> map \(x -> x^2)`,
-      String.raw`map([2, 3, 1], \(x -> x^2))`,
+      String.raw`[2, 3, 1] |> map \($x -> $x^2)`,
+      String.raw`map([2, 3, 1], \($x -> $x^2))`,
     ],
     // 值调用
-    [String.raw`10 |> \(x -> x*2).()`, String.raw`\(x -> x*2).(10)`],
+    [String.raw`10 |> \($x -> $x*2).()`, String.raw`\($x -> $x*2).(10)`],
     [
-      String.raw`10 |> \(x, y -> x*2).(20)`,
-      String.raw`\(x, y -> x*2).(10, 20)`,
+      String.raw`10 |> \($x, $y -> $x*2).(20)`,
+      String.raw`\($x, $y -> $x*2).(10, 20)`,
     ],
     // 捕获
     ["10 |> &-/1.()", "&-/1.(10)"],
@@ -305,7 +357,9 @@ function theyAreOk(
 
 function mustParse(code: string): Node {
   const parseResult = parse(code);
-  if ("error" in parseResult) throw new Unreachable();
+  if ("error" in parseResult) {
+    throw new Unreachable(`解析错误：${parseResult.error.message}`);
+  }
   return parseResult.ok;
 }
 
@@ -315,7 +369,10 @@ function assertOk(
   parseFn: (code: string) => ParsingResult = parse,
 ) {
   const result = parseFn(code);
-  assert(!("error" in result));
+  const assertMessage = "error" in result
+    ? `error: ${result.error.message}`
+    : "";
+  assert(!("error" in result), assertMessage);
   if (expected) {
     assert.deepEqual(result.ok, expected);
   }
