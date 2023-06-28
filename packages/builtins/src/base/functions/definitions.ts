@@ -15,7 +15,7 @@ import {
   type ValueTypeName,
 } from "@dicexp/runtime/values";
 import type { builtinFunctionDeclarations } from "./declarations";
-import { sum } from "../utils";
+import { product, sum } from "../utils";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations
@@ -43,7 +43,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     if ("error" in result) return result;
     return {
       ok: {
-        value: (result.ok.values as number[]).reduce((acc, cur) => acc * cur),
+        value: product(result.ok.values as number[]),
       },
     };
   },
@@ -132,7 +132,6 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     }
     return { ok: { value: result } };
   },
-
   // 控制流
 };
 
