@@ -26,6 +26,14 @@ const emit = defineEmits<{
 
 let view: EditorView;
 
+watch(() => props.modelValue, () => {
+  if (props.modelValue === view.state.doc.toString()) return
+  const doc = props.modelValue
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: doc },
+  })
+})
+
 onMounted(() => {
   const singleLine = EditorState.transactionFilter.of((tr) =>
     tr.newDoc.lines > 1 ? [] : tr

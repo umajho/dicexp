@@ -15,16 +15,21 @@
           //-.card-body
           .pt-4.p-8
             .grid.grid-cols-1.gap-4
-              //- 选择模式用的标签页
-              .tabs.flex-1
-                .tab.tab-bordered.tab-lg.font-bold(
-                  :class="mode === 'single' ? 'tab-active' : null"
-                  @click="switchMode('single')"
-                ) 单次
-                .tab.tab-bordered.tab-lg.font-bold(
-                  :class="mode === 'batch' ? 'tab-active' : null"
-                  @click="switchMode('batch')"
-                ) 批量
+              .flex.items-center
+                //- 选择模式用的标签页
+                .tabs.flex-1
+                  .tab.tab-bordered.tab-lg.font-bold(
+                    :class="mode === 'single' ? 'tab-active' : null"
+                    @click="switchMode('single')"
+                  ) 单次
+                  .tab.tab-bordered.tab-lg.font-bold(
+                    :class="mode === 'batch' ? 'tab-active' : null"
+                    @click="switchMode('batch')"
+                  ) 批量
+                select.w-32(v-model="exmapleSelected")
+                  option(:value="null" disabled) 查看示例
+                  option(v-for="example in examples" :value="example")
+                    | “{{ example.label }}” {{ example.code }}
 
               //- 输入框和按钮
               .flex.justify-center.gap-6
@@ -91,6 +96,29 @@ const code = ref(localStorage.getItem("autosave") ?? "");
 watch(code, () => {
   localStorage.setItem("autosave", code.value);
 });
+
+const examples = [
+  { label: "范围随机", code: "10~20" },
+  { label: "掷骰", code: "3d6+4" },
+  { label: "生成列表", code: "3#(d10 * 2)" },
+  { label: "通常函数的调用", code: "sort(10#d100)" },
+  { label: "通常函数的调用（管道）", code: "10#d100 |> sort" },
+  { label: "数组", code: "sum([1, 2, 3])" },
+  { label: "匿名函数作为参数", code: String.raw`3#d10 |> map(\($x -> -$x))` },
+  { label: "匿名函数作为参数（简写）", code: String.raw`3#d10 |> map \($x -> -$x)` },
+  { label: "匿名函数的调用", code: String.raw`\(_ -> 42).(-d100)` },
+  { label: "匿名函数的调用（管道）", code: String.raw`-d100 |> \(_ -> 42).()` },
+  { label: "匿名函数的调用（嵌套）", code: String.raw`\($f -> $f.(-d100)).(\(_ -> 42))` },
+  { label: "综合", code: String.raw`10#d100 |> filter \($x -> $x >= 50) |> sum` },
+]
+
+const exmapleSelected = ref(null as (typeof examples)[number] | null)
+watch(exmapleSelected, () => {
+  if (exmapleSelected.value) {
+    code.value = exmapleSelected.value.code;
+    exmapleSelected.value = null
+  }
+})
 
 const fixesSeed = ref(false);
 const seed = ref(0);
