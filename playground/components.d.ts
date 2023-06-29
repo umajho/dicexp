@@ -14,6 +14,7 @@ declare module 'vue' {
     CommonSkeleton: typeof import('./src/components/common/skeleton.vue')['default']
     DicexpEditor: typeof import('./src/components/dicexp-editor.vue')['default']
     LayoutHeader: typeof import('./src/components/layout/header.vue')['default']
+    LayoutHeaderDropdown: typeof import('./src/components/layout/header-dropdown.vue')['default']
     RestrictionsPane: typeof import('./src/components/restrictions-pane.vue')['default']
     ResultPane: typeof import('./src/components/result-pane/result-pane.vue')['default']
     ResultPaneTabRepresentation: typeof import('./src/components/result-pane/tab-representation.vue')['default']

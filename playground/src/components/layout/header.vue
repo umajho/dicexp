@@ -1,6 +1,7 @@
 <template lang="pug">
 .navbar.bg-base-100.shadow-xl.rounded-box
   .flex-1
+    HeaderDropdown
     a.btn.btn-ghost.normal-case.text-xl Dicexp Playground
   .flex-none
     ul.menu.menu-horizontal.px-1
@@ -21,5 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowTopRightOnSquareIcon } from '@heroicons/vue/20/solid'
+import HeaderDropdown from "./header-dropdown.vue"
+
+import { ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/solid'
 </script> 
