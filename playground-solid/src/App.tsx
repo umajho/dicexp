@@ -1,8 +1,17 @@
-import type { Component } from 'solid-js';
+import type { Component } from "solid-js";
+
+import { NavBar } from "./components/layout";
+import { Main } from "./components/main/mod";
 
 const App: Component = () => {
   return (
-    <p class="text-4xl text-green-700 text-center py-20">Hello tailwind!</p>
+    <div class="app-container min-h-screen bg-base-300">
+      <nav class="absolute z-10 w-full p-2">
+        <NavBar />
+      </nav>
+      <div class="h-32" />
+      <Main />
+    </div>
   );
 };
 

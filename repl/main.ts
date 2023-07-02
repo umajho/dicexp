@@ -1,4 +1,4 @@
-import { asScope, execute, parse } from "dicexp";
+import { asScope, execute, parse } from "dicexp/internal";
 import { functionScope, operatorScope } from "@dicexp/builtins/internal";
 
 // import inspect from "browser-util-inspect";
