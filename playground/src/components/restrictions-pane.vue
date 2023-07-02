@@ -4,9 +4,9 @@ label.btn.btn-info.btn-sm.normal-case(for="restrictions-pane-modal") {{ restrict
 input#restrictions-pane-modal.modal-toggle(type="checkbox")
 .modal
   .modal-box
-    .grid.grid-cols-1.gap-4
+    .flex.flex-col.gap-4
       h1.text-xl 单次限制
-      .grid.grid-cols-1
+      .flex.flex-col
         common-optional-number-input(v-model="hardTimeoutValue" v-model:enabled="hardTimeoutEnabled")
           span(title="超过后强制停止，无法保留运行时信息。") 硬性超时（毫秒）
         .flex.justify-center

@@ -1,5 +1,5 @@
 <template lang="pug">
-.flex.justify-center.gap-2
+.flex.justify-center.items-center.gap-2
   .flex.flex-col.h-full.justify-center
     .form-control
       .label.cursor-pointer
