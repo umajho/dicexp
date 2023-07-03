@@ -252,6 +252,9 @@ importers:
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.0.3)
+      d3:
+        specifier: ^7.8.5
+        version: 7.8.5
       dicexp:
         specifier: workspace:*
         version: link:../packages/dicexp
@@ -262,6 +265,9 @@ importers:
         specifier: ^1.7.6
         version: 1.7.6
     devDependencies:
+      '@types/d3':
+        specifier: ^7.4.0
+        version: 7.4.0
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.14(postcss@8.4.24)

@@ -16,7 +16,9 @@ import type { RuntimeStatistics } from "dicexp/internal";
 import type { EvaluationResultForWorker } from "dicexp/internal";
 import { getErrorDisplayInfo } from "../../misc";
 
-export const ResultPane: Component<{ result: EvaluationResultForWorker }> = (
+export const ResultPaneForSingle: Component<
+  { result: EvaluationResultForWorker }
+> = (
   props,
 ) => {
   const statis = (): RuntimeStatistics | null => {

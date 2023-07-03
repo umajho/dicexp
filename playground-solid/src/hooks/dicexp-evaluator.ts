@@ -47,21 +47,25 @@ export default function createDicexpEvaluator(
     return Number.isInteger(opts.seed());
   };
 
-  const [isRolling, setIsRolling] = createSignal(false);
+  const [isRolling, setIsRolling] = createSignal<false | "single" | "batch">(
+    false,
+  );
   const [result, setResult] = createSignal<Result>({ type: null });
 
   const status = (): Status => {
     if (loading()) return { type: "loading" };
-    if (isRolling()) return { type: "rolling", mode: opts.mode()! };
-    if (isCodeValid()) return { type: "ready" };
-    return { type: "invalid" };
+
+    const isRollingValue = isRolling();
+    if (isRollingValue) return { type: "rolling", mode: isRollingValue };
+
+    return { type: isCodeValid() ? "ready" : "invalid" };
   };
 
   async function roll() {
     if (status().type !== "ready") return;
     setResult({ type: null });
 
-    setIsRolling(true);
+    setIsRolling(opts.mode()!);
     switch (opts.mode()) {
       case "single": {
         try {
