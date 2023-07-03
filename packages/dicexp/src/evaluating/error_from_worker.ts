@@ -1,4 +1,4 @@
-import { asRuntimeError, type RuntimeError } from "../executing/mod";
+import { asRuntimeError, RuntimeError } from "../executing/mod";
 import { ParsingError } from "../parsing/mod";
 
 export interface ErrorDataFromWorker {

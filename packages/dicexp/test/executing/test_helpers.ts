@@ -3,9 +3,9 @@ import { AssertionError } from "assertion-error";
 
 import { inspect } from "util";
 
-import { parse, type ParseOptions } from "../../src/parsing/mod";
+import { parse, ParseOptions } from "../../src/parsing/mod";
 
-import type {
+import {
   RawScope,
   RuntimeError,
   Scope,

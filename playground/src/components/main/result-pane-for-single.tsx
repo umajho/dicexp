@@ -12,8 +12,8 @@ import {
 import { Card, Skeleton, Tab, Tabs } from "../ui";
 import { ResultErrorAlert } from "./ui";
 
-import type { RuntimeStatistics } from "dicexp/internal";
-import type { EvaluationResultForWorker } from "dicexp/internal";
+import { RuntimeStatistics } from "dicexp/internal";
+import { EvaluationResultForWorker } from "dicexp/internal";
 import { getErrorDisplayInfo } from "../../misc";
 
 export const ResultPaneForSingle: Component<

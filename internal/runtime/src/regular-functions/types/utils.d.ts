@@ -1,4 +1,4 @@
-import type { RegularFunctionDeclaration } from "./decl";
+import { RegularFunctionDeclaration } from "./decl";
 
 /**
  * 根据声明得到函数的完整名称。（即包含 arity 的名称。）

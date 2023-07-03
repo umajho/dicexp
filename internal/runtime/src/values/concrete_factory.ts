@@ -1,10 +1,10 @@
 import {
   representError,
   representValue,
-  type RuntimeRepresentation,
+  RuntimeRepresentation,
 } from "./representations/mod";
-import type { RuntimeError } from "./runtime_errors";
-import type { Concrete, Value } from "./values";
+import { RuntimeError } from "./runtime_errors";
+import { Concrete, Value } from "./values";
 
 // NOTE: 临时，与 LazyValueFactory.literal 重复
 export function concrete_literal(value: Value): Concrete {

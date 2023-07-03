@@ -1,9 +1,9 @@
 import EvaluatingWorker from "./worker/worker?worker";
 
-import type { BatchReport, EvaluateOptionsForWorker } from "./worker/types";
+import { BatchReport, EvaluateOptionsForWorker } from "./worker/types";
 import {
   EvaluatingWorkerClient,
-  type EvaluatingWorkerClientOptions,
+  EvaluatingWorkerClientOptions,
 } from "./worker_client";
 
 export class EvaluatingWorkerManager {

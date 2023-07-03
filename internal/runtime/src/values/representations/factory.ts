@@ -1,15 +1,10 @@
 import { Unreachable } from "@dicexp/errors";
-import type { RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
+import { RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import { intersperse } from "@dicexp/js-utils";
 
-import type { RuntimeError } from "../runtime_errors";
-import {
-  asPlain,
-  type LazyValue,
-  type RuntimeResult,
-  type Value,
-} from "../values";
-import type { RuntimeRepresentation } from "./types";
+import { RuntimeError } from "../runtime_errors";
+import { asPlain, LazyValue, RuntimeResult, Value } from "../values";
+import { RuntimeRepresentation } from "./types";
 
 export function representLazyValue(
   lazyValue: LazyValue,

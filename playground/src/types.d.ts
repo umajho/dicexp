@@ -1,4 +1,4 @@
-import type { BatchReport, EvaluationResult } from "dicexp/internal";
+import { BatchReport, EvaluationResult } from "dicexp/internal";
 
 export type Result = {
   type: null;

@@ -1,10 +1,10 @@
-import type { SyntaxNode, Tree } from "@lezer/common";
+import { SyntaxNode, Tree } from "@lezer/common";
 
 import {
   captured,
   closure,
   list,
-  type Node,
+  Node,
   regularCall,
   repetition,
   valueCall,
@@ -13,7 +13,7 @@ import { negateInteger, parseBoolean, parseInteger } from "./utils";
 import {
   ParsingError_BadPipeTarget,
   ParsingError_General,
-  type Range,
+  Range,
 } from "./parsing_error";
 
 export class Transformer {

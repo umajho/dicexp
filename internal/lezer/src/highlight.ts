@@ -1,4 +1,4 @@
-import type { NodePropSource } from "@lezer/common";
+import { NodePropSource } from "@lezer/common";
 import { styleTags, tags as t } from "@lezer/highlight";
 
 export const dicexpHighlight: NodePropSource = styleTags({

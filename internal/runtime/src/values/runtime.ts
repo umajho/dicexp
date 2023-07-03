@@ -1,7 +1,7 @@
-import type { Node } from "@dicexp/nodes";
+import { Node } from "@dicexp/nodes";
 
-import type { Concrete, LazyValue, RuntimeResult, Value_List } from "./values";
-import type {
+import { Concrete, LazyValue, RuntimeResult, Value_List } from "./values";
+import {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,
 } from "../regular-functions/mod";

@@ -1,32 +1,32 @@
 import { Unreachable } from "@dicexp/errors";
-import type { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
+import { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
-  type Concrete,
+  Concrete,
   concrete_error,
   concrete_literal,
   getDisplayNameOfValue,
-  type LazyValue,
-  type LazyValueWithMemo,
+  LazyValue,
+  LazyValueWithMemo,
   makeRuntimeError,
-  type RuntimeError,
-  type RuntimeRepresentation,
-  type RuntimeResult,
-  type Value,
-  type Value_Callable,
-  type Value_List,
-  type Value_List$Extendable,
+  RuntimeError,
+  RuntimeRepresentation,
+  RuntimeResult,
+  Value,
+  Value_Callable,
+  Value_List,
+  Value_List$Extendable,
 } from "@dicexp/runtime/values";
 import {
-  type RegularFunction,
+  RegularFunction,
   representCall,
   representCaptured,
   representLazyValue,
   representRepetition,
   representResult,
   representValue,
-  type RuntimeProxyForFunction,
-  type Scope,
+  RuntimeProxyForFunction,
+  Scope,
 } from "@dicexp/runtime/values";
 import {
   runtimeError_duplicateClosureParameterNames,
@@ -35,7 +35,7 @@ import {
   runtimeError_valueIsNotCallable,
   runtimeError_wrongArity,
 } from "@dicexp/runtime/errors";
-import type { RuntimeProxy } from "./runtime";
+import { RuntimeProxy } from "./runtime";
 
 export function concretize(
   v: LazyValue,

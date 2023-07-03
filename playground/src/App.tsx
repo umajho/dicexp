@@ -1,4 +1,4 @@
-import type { Component } from "solid-js";
+import { Component } from "solid-js";
 
 import { NavBar } from "./components/layout";
 import { Main } from "./components/main/mod";

@@ -1,7 +1,7 @@
-import type { ExecuteOptions, RuntimeRestrictions } from "../../executing/mod";
-import type { ErrorDataFromWorker } from "../error_from_worker";
-import type { EvaluationResult } from "../evaluate";
-import type { ParseOptions } from "../../parsing/mod";
+import { ExecuteOptions, RuntimeRestrictions } from "../../executing/mod";
+import { ErrorDataFromWorker } from "../error_from_worker";
+import { EvaluationResult } from "../evaluate";
+import { ParseOptions } from "../../parsing/mod";
 
 export interface EvaluateOptionsForWorker {
   execute: Omit<ExecuteOptionsForWorker, "restrictions">;

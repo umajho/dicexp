@@ -1,11 +1,11 @@
 // import { MersenneTwister } from "npm:random-seedable@1";
 import { prng_xorshift7 } from "esm-seedrandom";
 
-import type { Node } from "@dicexp/nodes";
-import { type ExecutionResult, Runtime } from "./runtime";
-import type { RandomSource } from "./random";
-import type { Restrictions } from "./restrictions";
-import type { Scope } from "@dicexp/runtime/values";
+import { Node } from "@dicexp/nodes";
+import { ExecutionResult, Runtime } from "./runtime";
+import { RandomSource } from "./random";
+import { Restrictions } from "./restrictions";
+import { Scope } from "@dicexp/runtime/values";
 export type { ExecutionResult } from "./runtime";
 
 export type ExecuteOptions =

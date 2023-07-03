@@ -1,4 +1,4 @@
-import type {
+import {
   LazyValue,
   RuntimeProxyForFunction,
   RuntimeResult,
@@ -7,12 +7,12 @@ import type {
   Value_List$Extendable,
   ValueTypeName,
 } from "../../values/mod";
-import type {
+import {
   DeclarationParameter,
   DeclarationReturnValueTypeSpec,
   RegularFunctionDeclaration,
 } from "./decl";
-import type { FullName } from "./utils";
+import { FullName } from "./utils";
 
 /**
  * 将通常函数声明列表的常量类型转换成通常函数定义 Map 的类型。

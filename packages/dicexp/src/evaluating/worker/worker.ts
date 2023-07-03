@@ -1,4 +1,4 @@
-import type { DataToWorker } from "./types";
+import { DataToWorker } from "./types";
 import { Server } from "./server";
 import { tryPostMessage } from "./post_message";
 import { errorAsErrorData } from "../error_from_worker";

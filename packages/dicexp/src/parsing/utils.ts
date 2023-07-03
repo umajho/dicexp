@@ -1,5 +1,5 @@
 import { Unreachable } from "@dicexp/errors";
-import { type Node_Value, value } from "@dicexp/nodes";
+import { Node_Value, value } from "@dicexp/nodes";
 import { ParsingError_BadIntegerLiteral } from "./parsing_error";
 
 // see: https://stackoverflow.com/q/20486551

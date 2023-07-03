@@ -1,11 +1,11 @@
-import { parse, type ParseOptions } from "../parsing/mod";
+import { parse, ParseOptions } from "../parsing/mod";
 import {
   execute,
-  type ExecuteOptions,
-  type RuntimeError,
-  type RuntimeStatistics,
+  ExecuteOptions,
+  RuntimeError,
+  RuntimeStatistics,
 } from "../executing/mod";
-import type { JSValue, Representation } from "../executing/mod";
+import { JSValue, Representation } from "../executing/mod";
 
 export interface EvaluateOptions {
   execute: ExecuteOptions;

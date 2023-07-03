@@ -1,10 +1,10 @@
-import type { ValueTypeName } from "../../values/mod";
+import { ValueTypeName } from "../../values/mod";
 import {
   DeclarationParameter,
   DeclarationReturnValue,
   RegularFunctionDeclaration,
 } from "./decl";
-import type { FullName } from "./utils";
+import { FullName } from "./utils";
 
 /**
  * 将通常函数声明列表的常量类型转换成通常函数文档 Map 的类型。

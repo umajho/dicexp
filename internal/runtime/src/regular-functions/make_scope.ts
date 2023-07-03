@@ -1,5 +1,5 @@
-import type { RawScope, Scope, ValueSpec } from "../values/mod";
-import type { RegularFunctionDeclaration } from "./types/mod";
+import { RawScope, Scope, ValueSpec } from "../values/mod";
+import { RegularFunctionDeclaration } from "./types/mod";
 import { makeFunction } from "./make_function";
 
 export function makeScope(rawScope: RawScope): Scope {

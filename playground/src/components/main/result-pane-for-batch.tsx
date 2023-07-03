@@ -4,7 +4,7 @@ import { Card } from "../ui";
 import { ResultErrorAlert } from "./ui";
 import { BarChartForBatchResult } from "./bar-chart-for-batch-result";
 
-import type { BatchReportForWorker } from "dicexp/internal";
+import { BatchReportForWorker } from "dicexp/internal";
 import { getErrorDisplayInfo } from "../../misc";
 
 const numberFormat = new Intl.NumberFormat(undefined, {

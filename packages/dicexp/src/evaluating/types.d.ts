@@ -1,6 +1,6 @@
-import type { EvaluationResult } from "./evaluate";
-import type { EvaluatingSpecialErrorType } from "./error_from_worker";
-import type { BatchReport } from "./worker/types";
+import { EvaluationResult } from "./evaluate";
+import { EvaluatingSpecialErrorType } from "./error_from_worker";
+import { BatchReport } from "./worker/types";
 
 export type EvaluationResultForWorker = EvaluationResult & {
   specialErrorType?: EvaluatingSpecialErrorType;

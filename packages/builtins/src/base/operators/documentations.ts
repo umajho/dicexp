@@ -1,4 +1,4 @@
-import type { DeclarationListToDocumentationMap } from "@dicexp/runtime/src/regular-functions/types/docs";
+import { DeclarationListToDocumentationMap } from "@dicexp/runtime/src/regular-functions/types/docs";
 import { builtinOperatorDeclarations } from "./declarations";
 
 export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<

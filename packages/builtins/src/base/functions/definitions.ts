@@ -1,4 +1,4 @@
-import type {
+import {
   DeclarationListToDefinitionMap,
 } from "@dicexp/runtime/regular-functions";
 import { flattenListAll, unwrapListOneOf } from "@dicexp/runtime/value-utils";
@@ -8,13 +8,13 @@ import {
   getDisplayNameFromTypeName,
   getTypeNameOfValue,
   makeRuntimeError,
-  type RuntimeProxyForFunction,
-  type RuntimeResult,
-  type Value_Callable,
-  type Value_List,
-  type ValueTypeName,
+  RuntimeProxyForFunction,
+  RuntimeResult,
+  Value_Callable,
+  Value_List,
+  ValueTypeName,
 } from "@dicexp/runtime/values";
-import type { builtinFunctionDeclarations } from "./declarations";
+import { builtinFunctionDeclarations } from "./declarations";
 import { product, sum } from "../utils";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<

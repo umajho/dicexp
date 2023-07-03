@@ -1,6 +1,6 @@
-import type { EvaluationResult } from "../evaluate";
+import { EvaluationResult } from "../evaluate";
 import { evaluateForWorker } from "./evaluate";
-import type { DataFromWorker, EvaluateOptionsForWorker } from "./types";
+import { DataFromWorker, EvaluateOptionsForWorker } from "./types";
 import { safe } from "./utils";
 
 export function handleEvaluate(

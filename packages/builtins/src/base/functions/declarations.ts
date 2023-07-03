@@ -1,4 +1,4 @@
-import type { RegularFunctionDeclaration } from "@dicexp/runtime/regular-functions";
+import { RegularFunctionDeclaration } from "@dicexp/runtime/regular-functions";
 
 export const builtinFunctionDeclarations = ([
   // 投骰子：
@@ -136,6 +136,5 @@ export const builtinFunctionDeclarations = ([
     ],
     returnValue: { type: "list" },
   },
-
   // 控制流
 ] as const) satisfies readonly RegularFunctionDeclaration[];

@@ -1,4 +1,4 @@
-import type { DeclarationListToDocumentationMap } from "@dicexp/runtime/src/regular-functions/types/docs";
+import { DeclarationListToDocumentationMap } from "@dicexp/runtime/src/regular-functions/types/docs";
 import { builtinFunctionDeclarations } from "./declarations";
 
 export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
@@ -108,6 +108,5 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       "新的列表的每个元素是由原先两个列表对应位置元素由 callable 合并而成。" +
       "如果两个列表长度不同，只会合并到较短列表的结束位置。",
   },
-
   // 控制流
 };

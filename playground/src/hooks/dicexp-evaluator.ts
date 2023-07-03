@@ -1,7 +1,7 @@
 import { createSignal, untrack } from "solid-js";
 
 import { Unreachable } from "@dicexp/errors";
-import type {
+import {
   EvaluateOptionsForWorker,
   EvaluatingWorkerManager,
   EvaluationRestrictionsForWorker,

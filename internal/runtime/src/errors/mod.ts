@@ -2,8 +2,8 @@ import { Unreachable } from "@dicexp/errors";
 import {
   getDisplayNameFromTypeName,
   makeRuntimeError,
-  type RuntimeError,
-  type ValueTypeName,
+  RuntimeError,
+  ValueTypeName,
 } from "../values/mod";
 
 export function runtimeError_limitationExceeded(

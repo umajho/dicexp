@@ -1,12 +1,12 @@
 import {
   concrete_error,
-  type LazyValue,
-  type RegularFunction,
+  LazyValue,
+  RegularFunction,
   representValue,
-  type RuntimeProxyForFunction,
-  type RuntimeResult,
-  type Value,
-  type ValueSpec,
+  RuntimeProxyForFunction,
+  RuntimeResult,
+  Value,
+  ValueSpec,
 } from "../values/mod";
 import { runtimeError_wrongArity } from "../errors/mod";
 import { unwrapValue } from "../value-utils/mod";

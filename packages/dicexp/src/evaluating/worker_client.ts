@@ -1,16 +1,13 @@
 import { Unreachable } from "@dicexp/errors";
+import { ErrorDataFromWorker, proxyErrorFromWorker } from "./error_from_worker";
+import { EvaluationResult } from "./evaluate";
 import {
-  type ErrorDataFromWorker,
-  proxyErrorFromWorker,
-} from "./error_from_worker";
-import type { EvaluationResult } from "./evaluate";
-import type {
   DataFromWorker,
   DataToWorker,
   EvaluateOptionsForWorker,
   InitializationResult,
 } from "./worker/types";
-import type { BatchReportForWorker, EvaluationResultForWorker } from "./types";
+import { BatchReportForWorker, EvaluationResultForWorker } from "./types";
 
 export interface EvaluatingWorkerClientOptions {
   /**

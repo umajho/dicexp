@@ -1,4 +1,4 @@
-import type {
+import {
   Node,
   Node_RegularCall,
   Node_Repetition,
@@ -13,21 +13,21 @@ import {
   runtimeError_unknownVariable,
 } from "@dicexp/runtime/errors";
 import { concretize, LazyValueFactory } from "./values_impl";
-import type { Restrictions } from "./restrictions";
-import { RandomGenerator, type RandomSource } from "./random";
+import { Restrictions } from "./restrictions";
+import { RandomGenerator, RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   asPlain,
-  type Concrete,
+  Concrete,
   finalizeRepresentation,
   getTypeNameOfValue,
-  type LazyValue,
-  type Representation,
-  type RuntimeError,
-  type RuntimeProxyForFunction,
-  type RuntimeResult,
-  type Scope,
-  type Value_List,
+  LazyValue,
+  Representation,
+  RuntimeError,
+  RuntimeProxyForFunction,
+  RuntimeResult,
+  Scope,
+  Value_List,
 } from "@dicexp/runtime/values";
 
 export interface RuntimeOptions {

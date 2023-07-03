@@ -1,4 +1,4 @@
-import type { Representation, RuntimeRepresentation } from "./types";
+import { Representation, RuntimeRepresentation } from "./types";
 
 export function finalizeRepresentation(
   r: RuntimeRepresentation,

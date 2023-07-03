@@ -1,4 +1,4 @@
-import type { ValueTypeName } from "../../values/mod";
+import { ValueTypeName } from "../../values/mod";
 
 /**
  * 通常函数声明。

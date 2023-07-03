@@ -2,19 +2,19 @@ import { Unreachable } from "@dicexp/errors";
 import {
   runtimeError_callArgumentTypeMismatch,
   runtimeError_typeMismatch,
-  type TypeMismatchKind,
+  TypeMismatchKind,
 } from "../errors/mod";
 import {
   asInteger,
   asList,
   getTypeNameOfValue,
-  type LazyValue,
-  type RuntimeError,
-  type RuntimeProxyForFunction,
-  type RuntimeResult,
-  type Value,
-  type ValueSpec,
-  type ValueTypeName,
+  LazyValue,
+  RuntimeError,
+  RuntimeProxyForFunction,
+  RuntimeResult,
+  Value,
+  ValueSpec,
+  ValueTypeName,
 } from "../values/mod";
 
 export function unwrapValue(

@@ -1,7 +1,7 @@
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { type Diagnostic, linter } from "@codemirror/lint";
+import { Diagnostic, linter } from "@codemirror/lint";
 
 /**
  * 只允许单行。

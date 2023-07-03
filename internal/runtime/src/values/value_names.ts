@@ -1,6 +1,6 @@
 import { Unreachable } from "@dicexp/errors";
 
-import type { Value } from "./values";
+import { Value } from "./values";
 
 export function getTypeNameOfValue(v: Value) {
   switch (typeof v) {

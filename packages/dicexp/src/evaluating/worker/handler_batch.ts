@@ -1,11 +1,7 @@
-import { asRuntimeError, type RuntimeError } from "../../executing/mod";
+import { asRuntimeError, RuntimeError } from "../../executing/mod";
 import { parse } from "../../parsing/mod";
-import type { Node } from "@dicexp/nodes";
-import type {
-  BatchReport,
-  EvaluateOptionsForWorker,
-  WorkerInit,
-} from "./types";
+import { Node } from "@dicexp/nodes";
+import { BatchReport, EvaluateOptionsForWorker, WorkerInit } from "./types";
 import { safe } from "./utils";
 import { Pulser } from "./heartbeat";
 import { tryPostMessage } from "./post_message";
