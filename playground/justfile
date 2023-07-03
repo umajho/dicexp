@@ -1,0 +1,20 @@
+set fallback
+
+prepare:
+	just build-grammar
+
+build: prepare
+	pnpm run build
+	gzip -k dist/**/*.js
+	brotli -k dist/**/*.js
+
+type-check:
+	tsc --noEmit
+
+test: prepare type-check
+
+serve: build serve-no-build
+
+serve-no-build:
+	# https://github.com/http-party/http-server
+	http-server ./dist --brotli --gzip

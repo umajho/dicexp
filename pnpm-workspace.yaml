@@ -3,4 +3,3 @@ packages:
   - packages/*
   - repl
   - playground
-  - playground-solid
