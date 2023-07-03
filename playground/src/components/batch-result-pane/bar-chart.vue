@@ -1,7 +1,7 @@
 <template lang="pug">
-.grid.grid-cols-1
-  .flex.justify-center
-    slot
+.flex.flex-col.items-center
+  slot
+
   svg(v-once, ref="svgEl")
     svg:style(type="text/css").
       .highlighting rect {
