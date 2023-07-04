@@ -1,13 +1,23 @@
-import { Component, createMemo, createSignal, Show } from "solid-js";
+import {
+  Component,
+  createMemo,
+  createSignal,
+  lazy,
+  Show,
+  Suspense,
+} from "solid-js";
 
 import { HiOutlineXMark } from "solid-icons/hi";
-import { Button, Card } from "../ui";
+import { Button, Card, Loading } from "../ui";
 import { ResultErrorAlert } from "./ui";
-import { BarChartForBatchResult } from "./bar-chart-for-batch-result";
 import * as store from "../../stores/store";
 
 import { BatchReportForWorker } from "dicexp/internal";
 import { getErrorDisplayInfo } from "../../misc";
+
+const LazyBarChartForBatchResult = lazy(() =>
+  import("./bar-chart-for-batch-result")
+);
 
 const numberFormat = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 3,
@@ -73,32 +83,28 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
       {/* 条形图 */}
       <Show when={(props.report.ok?.samples ?? 0) > 0}>
         <div class="flex flex-col md:flex-row justify-around items-center gap-2 max-md:divide-y">
-          <BarChartForBatchResult
-            report={props.report!.ok!}
-            mode="at-least"
-            highlighted={highlighted()}
+          <LazyBarChartForBatchResultWithSuspense
+            report={() => props.report!.ok!}
+            mode={() => "at-least"}
+            highlighted={highlighted}
             setHighlighted={setHighlighted}
-            class="w-[25rem] md:w-60 lg:w-80"
+            sizeClass={() => "w-[25rem] min-h-[25rem] md:w-60 lg:w-80"}
           />
 
-          <hr class="md:hidden" />
-
-          <BarChartForBatchResult
-            report={props.report!.ok!}
-            mode="normal"
-            highlighted={highlighted()}
+          <LazyBarChartForBatchResultWithSuspense
+            report={() => props.report!.ok!}
+            mode={() => "normal"}
+            highlighted={highlighted}
             setHighlighted={setHighlighted}
-            class="w-[25rem] md:w-60 lg:w-80"
+            sizeClass={() => "w-[25rem] min-h-[25rem] md:w-60 lg:w-80"}
           />
 
-          <hr class="md:hidden" />
-
-          <BarChartForBatchResult
-            report={props.report!.ok!}
-            mode="at-most"
-            highlighted={highlighted()}
+          <LazyBarChartForBatchResultWithSuspense
+            report={() => props.report!.ok!}
+            mode={() => "at-most"}
+            highlighted={highlighted}
             setHighlighted={setHighlighted}
-            class="w-[25rem] md:w-60 lg:w-80"
+            sizeClass={() => "w-[25rem] min-h-[25rem] md:w-60 lg:w-80"}
           />
         </div>
       </Show>
@@ -131,5 +137,31 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
         </div>
       </Show>
     </Card>
+  );
+};
+
+const LazyBarChartForBatchResultWithSuspense: Component<{
+  report: () => NonNullable<BatchReportForWorker["ok"]>;
+  mode: () => "normal" | "at-least" | "at-most";
+  highlighted: () => number | null;
+  setHighlighted: (value: number | null) => void;
+  sizeClass: () => string;
+}> = (props) => {
+  return (
+    <Suspense
+      fallback={
+        <div class={`flex justify-center items-center ${props.sizeClass()}`}>
+          <Loading type="bars" size="lg" />
+        </div>
+      }
+    >
+      <LazyBarChartForBatchResult
+        class={props.sizeClass()}
+        report={props.report()}
+        mode={props.mode()}
+        highlighted={props.highlighted()}
+        setHighlighted={props.setHighlighted}
+      />
+    </Suspense>
   );
 };

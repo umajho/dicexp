@@ -208,3 +208,19 @@ export const OptionalNumberInput: Component<
 export const Skeleton: Component = (props) => (
   <div class="w-full h-full bg-slate-700 animate-pulse" />
 );
+
+export const Loading: Component<{ type?: "spinner" | "bars"; size?: "lg" }> = (
+  props,
+) => {
+  const classes = () =>
+    [
+      `loading-${props.type ?? "spinner"}` satisfies
+        | "loading-spinner"
+        | "loading-bars",
+      props.size ? `loading-${props.size}` : "" satisfies
+        | ""
+        | "loading-lg",
+    ].join(" ");
+
+  return <span class={`loading ${classes()}`}></span>;
+};

@@ -6,7 +6,7 @@ import { BatchReport } from "dicexp/internal";
 import { Unreachable } from "@dicexp/errors";
 import { Portal } from "solid-js/web";
 
-export const BarChartForBatchResult: Component<{
+const BarChartForBatchResult: Component<{
   report: NonNullable<BatchReport["ok"]>;
   mode: "normal" | "at-least" | "at-most";
   highlighted: number | null;
@@ -244,3 +244,4 @@ export const BarChartForBatchResult: Component<{
     </div>
   );
 };
+export default BarChartForBatchResult;
