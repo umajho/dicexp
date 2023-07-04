@@ -9,6 +9,7 @@ import {
   Switch,
 } from "solid-js";
 
+import { ShowKeepAlive } from "../utils";
 import { HiOutlineXMark } from "solid-icons/hi";
 import { Button, Card, Skeleton, Tab, Tabs } from "../ui";
 import { ResultErrorAlert } from "./ui";
@@ -72,13 +73,11 @@ export const ResultPaneForSingle: Component<
       <Show when={currentTab() === "result"}>
         <ResultTab result={props.result} />
       </Show>
-      <Show
-        when={currentTab() === "representation" || representationTabLoaded()}
+      <ShowKeepAlive
+        when={() => currentTab() === "representation"}
       >
-        <div class={currentTab() === "representation" ? "" : "hidden"}>
-          <RepresentationTab result={props.result} />
-        </div>
-      </Show>
+        <RepresentationTab result={props.result} />
+      </ShowKeepAlive>
 
       {/* 统计 */}
       <Show when={statis() !== null}>
