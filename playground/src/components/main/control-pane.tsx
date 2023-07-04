@@ -162,7 +162,7 @@ export const ControlPane: Component = () => {
             >
               固定种子
             </OptionalNumberInput>
-            |
+            <span class="max-md:hidden">|</span>
           </Show>
 
           {/* 限制 */}
