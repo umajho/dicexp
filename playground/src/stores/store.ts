@@ -15,6 +15,9 @@ export const result = () => store.result;
 export function setResult(result: Result) {
   setStore("result", result);
 }
+export function clearResult() {
+  setStore("result", { type: null });
+}
 
 export const doc = () => store.doc;
 export function setDoc(doc: string) {

@@ -99,26 +99,44 @@ export const DropdownItem: Component<{ children: JSX.Element }> = (props) => {
 
 export const Button: Component<
   {
-    type: "primary" | "secondary" | "error";
+    type?: "primary" | "secondary" | "error";
     children?: JSX.Element;
+    icon?: JSX.Element;
+    size?: "sm" | "xs";
+    shape?: "square" | "circle";
+    hasOutline?: boolean;
     disabled?: boolean;
     loading?: boolean;
     onClick?: () => void;
   }
 > = (props) => {
-  const typeClass = ():
-    | "btn-primary"
-    | "btn-secondary"
-    | "btn-info"
-    | "btn-error" => `btn-${props.type}`;
-  const disabledClass = () => props.disabled ? "btn-disabled" : "";
-  const loadingClass = () => props.loading ? "loading" : "";
+  const classes = () =>
+    [
+      (props.type ? `btn-${props.type}` : "") satisfies
+        | ""
+        | "btn-primary"
+        | "btn-secondary"
+        | "btn-info"
+        | "btn-error",
+      (props.size ? `btn-${props.size}` : "") satisfies
+        | ""
+        | "btn-sm"
+        | "btn-xs",
+      (props.shape ? `btn-${props.shape}` : "") satisfies
+        | ""
+        | "btn-square"
+        | "btn-circle",
+      props.hasOutline ? "btn-outline" : "",
+      props.disabled ? "btn-disabled" : "",
+      props.loading ? "loading" : "",
+    ].join(" ");
 
   return (
     <div
-      class={`btn ${typeClass()} ${disabledClass()} ${loadingClass()}`}
+      class={`btn ${classes()}`}
       onClick={props.onClick}
     >
+      {props.icon}
       {props.children}
     </div>
   );

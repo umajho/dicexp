@@ -9,8 +9,10 @@ import {
   Switch,
 } from "solid-js";
 
-import { Card, Skeleton, Tab, Tabs } from "../ui";
+import { HiOutlineXMark } from "solid-icons/hi";
+import { Button, Card, Skeleton, Tab, Tabs } from "../ui";
 import { ResultErrorAlert } from "./ui";
+import * as store from "../../stores/store";
 
 import { RuntimeStatistics } from "dicexp/internal";
 import { EvaluationResultForWorker } from "dicexp/internal";
@@ -38,7 +40,7 @@ export const ResultPaneForSingle: Component<
   });
 
   return (
-    <Card class="min-w-[80vw]" bodyClass="p-6">
+    <Card class="min-w-[80vw]" bodyClass="p-6 gap-4">
       <div class="flex">
         {/* 标签页 */}
         <Tabs class="flex-1">
@@ -56,23 +58,15 @@ export const ResultPaneForSingle: Component<
           </Tab>
         </Tabs>
 
-        {/* 统计 */}
-        <Show when={statis() !== null}>
-          <div class="flex-none text-xs text-slate-500">
-            <div class="flex flex-col">
-              <div>运行耗时：{statis()!.timeConsumption.ms} 毫秒</div>
-              <Show when={statis()!.calls ?? null !== null}>
-                <div>调用次数：{statis()!.calls!} 次</div>
-              </Show>
-              <Show when={statis()!.maxClosureCallDepth ?? null !== null}>
-                <div>最大闭包调用深度：{statis()!.maxClosureCallDepth!} 层</div>
-              </Show>
-            </div>
-          </div>
-        </Show>
+        {/* 关闭 */}
+        <Button
+          icon={<HiOutlineXMark size={24} />}
+          size="sm"
+          shape="square"
+          hasOutline={true}
+          onClick={() => store.clearResult()}
+        />
       </div>
-
-      <div class="h-2" />
 
       {/* 标签页下的内容 */}
       <Show when={currentTab() === "result"}>
@@ -83,6 +77,21 @@ export const ResultPaneForSingle: Component<
       >
         <div class={currentTab() === "representation" ? "" : "hidden"}>
           <RepresentationTab result={props.result} />
+        </div>
+      </Show>
+
+      {/* 统计 */}
+      <Show when={statis() !== null}>
+        <div class="flex-none text-xs text-slate-500">
+          <div class="flex flex-col">
+            <div>运行耗时：{statis()!.timeConsumption.ms} 毫秒</div>
+            <Show when={statis()!.calls ?? null !== null}>
+              <div>调用次数：{statis()!.calls!} 次</div>
+            </Show>
+            <Show when={statis()!.maxClosureCallDepth ?? null !== null}>
+              <div>最大闭包调用深度：{statis()!.maxClosureCallDepth!} 层</div>
+            </Show>
+          </div>
         </div>
       </Show>
     </Card>
