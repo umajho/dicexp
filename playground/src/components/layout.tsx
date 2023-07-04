@@ -27,7 +27,7 @@ export const NavBar: Component = () => {
         </Dropdown>
         <a class="btn btn-ghost normal-case text-xl">
           <span>
-            Dicexp Playground
+            Dicexp
           </span>
         </a>
       </div>
@@ -47,7 +47,7 @@ export const NavBar: Component = () => {
               class="inline-flex items-center"
               href="https://github.com/umajho/dicexp"
             >
-              代码仓库
+              代码
               <HiSolidArrowTopRightOnSquare size={16} />
             </a>
           </li>
