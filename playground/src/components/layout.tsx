@@ -36,7 +36,7 @@ export const NavBar: Component = () => {
           <li>
             <a
               class="inline-flex items-center"
-              href="https://github.com/umajho/rotext-lite"
+              href="https://github.com/umajho/dicexp/blob/main/docs/Dicexp.md"
             >
               文档
               <HiSolidArrowTopRightOnSquare size={16} />
@@ -45,7 +45,7 @@ export const NavBar: Component = () => {
           <li>
             <a
               class="inline-flex items-center"
-              href="https://github.com/umajho/rotext-lite"
+              href="https://github.com/umajho/dicexp"
             >
               代码仓库
               <HiSolidArrowTopRightOnSquare size={16} />
