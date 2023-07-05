@@ -1,4 +1,4 @@
-import { functionScope, operatorScope } from "@dicexp/builtins/internal";
+import * as builtins from "@dicexp/builtins/internal";
 import { EvaluateOptionsForWorker, ExecuteOptionsForWorker } from "./types";
 import { Unreachable } from "@dicexp/errors";
 import { execute, ExecuteOptions } from "../../executing/mod";
@@ -36,9 +36,9 @@ function getScopeCollection(
 ): Scope {
   switch (scopeName) {
     case "barebones":
-      return operatorScope;
+      return builtins.operatorScope;
     case "standard":
-      return asScope([operatorScope, functionScope]);
+      return asScope([builtins.operatorScope, builtins.functionScope]);
     default:
       throw new Unreachable();
   }

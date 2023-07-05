@@ -24,7 +24,7 @@ import { JSValue } from "../../src/executing/mod";
 import { Restrictions } from "../../src/executing/restrictions";
 import { flatten } from "./utils";
 import { asScope, makeFunction } from "@dicexp/runtime/regular-functions";
-import { operatorScope } from "@dicexp/builtins/internal";
+import * as builtins from "@dicexp/builtins/internal";
 import { Scope } from "@dicexp/runtime/values";
 
 describe("值", () => {
@@ -595,7 +595,7 @@ describe("限制", () => {
 
       describe("超时则返回运行时错误", () => {
         const scope: Scope = asScope([
-          operatorScope,
+          builtins.operatorScope,
           {
             "sleep/1": makeFunction(["integer"], (args, _rtm) => {
               const [ms] = args as [number];

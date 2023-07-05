@@ -19,7 +19,7 @@ import {
 } from "../../src/executing/mod";
 import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
-import { functionScope, operatorScope } from "@dicexp/builtins/internal";
+import * as builtins from "@dicexp/builtins/internal";
 import { asScope } from "@dicexp/runtime/regular-functions";
 
 const testScopeCollection = ((): Scope => {
@@ -29,14 +29,14 @@ const testScopeCollection = ((): Scope => {
   ];
   const pickedScope: Scope = {};
   for (const picked of pickedFunctions) {
-    if (!functionScope[picked]) {
+    if (!builtins.functionScope[picked]) {
       throw new Unreachable(
         `"测试用的函数 \`${picked}\` 不存在于标准作用域中"`,
       );
     }
-    pickedScope[picked] = functionScope[picked];
+    pickedScope[picked] = builtins.functionScope[picked];
   }
-  return asScope([operatorScope, pickedScope]);
+  return asScope([builtins.operatorScope, pickedScope]);
 })();
 
 type ExecuteOptionsForTest = Omit<ExecuteOptions, "topLevelScope"> & {

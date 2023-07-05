@@ -6,9 +6,9 @@ import { Unreachable } from "@dicexp/errors";
 import { parse, ParsingResult } from "../../src/parsing/mod";
 import { asScope, execute, ExecutionResult } from "../../src/executing/mod";
 import { RandomGenerator, RandomSource } from "../../src/executing/random";
-import { functionScope, operatorScope } from "@dicexp/builtins";
+import * as builtins from "@dicexp/builtins/internal";
 
-const topLevelScope = asScope([operatorScope, functionScope]);
+const topLevelScope = asScope([builtins.operatorScope, builtins.functionScope]);
 
 describe("各种表达式", () => {
   const codes = [
