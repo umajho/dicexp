@@ -7,7 +7,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
   // 实用：
   "count/2": {
     parameters: {
-      "list": "要计数的列a",
+      "list": "要计数的列表",
       "callable": "用于判断元素是否计入。输入列表元素，期待输出布尔值",
     },
     description: "对 list 计数，只计入 callable 返回真的元素。",
@@ -23,7 +23,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     parameters: {
       "list": "由整数组成的列表",
     },
-    description: "list 所有元素相乘",
+    description: "list 所有元素相乘。",
   },
   // ...
   "any?/1": {
@@ -53,7 +53,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       "index": "要取出的元素的索引，以 0 开始",
     },
     description: "从 list 中取出第 index+1 个元素。",
-    returnValue: { type: { description: "取出的元素" } },
+    returnValue: { type: { description: "取出元素的类型" } },
   },
   // ...
 
