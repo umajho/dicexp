@@ -32,11 +32,11 @@ export function getDisplayNameFromTypeName(name: ValueTypeName): string {
     case "callable":
       return "可调用的";
     case "integer$sum_extendable":
-      return "整数（求和，可扩展）";
+      return "整数【求和，可扩展】";
     case "list$extendable":
-      return "列表（可扩展）";
+      return "列表【可扩展】";
     default:
-      return `【内部实现泄漏】未知（${name}）`;
+      return `未知（内部实现泄漏，${name}）`;
   }
 }
 

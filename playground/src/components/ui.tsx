@@ -1,15 +1,41 @@
-import { Component, JSX, onMount } from "solid-js";
+import { Component, createSignal, JSX, onMount, Show } from "solid-js";
 
 export const Card: Component<
-  { children: JSX.Element; class?: string; bodyClass?: string }
+  {
+    children: JSX.Element;
+    title?: JSX.Element;
+    class?: string;
+    bodyClass?: string;
+  }
 > = (
   props,
 ) => {
   return (
     <div class={`card bg-base-100 shadow-xl ${props.class ?? ""}`}>
       <div class={`card-body h-full ${props.bodyClass ?? ""}`}>
+        <Show when={props.title}>
+          <div class="card-title">{props.title}</div>
+        </Show>
         {props.children}
       </div>
+    </div>
+  );
+};
+
+export const Badge: Component<
+  { children: JSX.Element; type?: "neutral"; outline?: boolean; size?: "lg" }
+> = (
+  props,
+) => {
+  const typeClass = (): "" | `badge-neutral` =>
+    props.type ? `badge-${props.type}` : "";
+  const outlineClass = () => props.outline ? "badge-outline" : "";
+  const sizeType = (): "" | `badge-lg` =>
+    props.size ? `badge-${props.size}` : "";
+
+  return (
+    <div class={`badge ${typeClass()} ${outlineClass()} ${sizeType()}`}>
+      {props.children}
     </div>
   );
 };
@@ -29,12 +55,13 @@ export const Tab: Component<
     children: JSX.Element;
     isActive?: boolean;
     onClick?: JSX.EventHandlerUnion<HTMLDivElement, MouseEvent>;
-    size?: "lg";
+    size?: "lg" | "sm";
   }
 > = (
   props,
 ) => {
-  const size = (): "tab-lg" | "" => props.size ? `tab-${props.size}` : "";
+  const size = (): "tab-lg" | "tab-sm" | "" =>
+    props.size ? `tab-${props.size}` : "";
   return (
     <div
       class={`tab ${props.isActive ? "tab-active" : ""} tab-bordered ${size()}`}
@@ -223,4 +250,32 @@ export const Loading: Component<{ type?: "spinner" | "bars"; size?: "lg" }> = (
     ].join(" ");
 
   return <span class={`loading ${classes()}`}></span>;
+};
+
+export const Collapse: Component<
+  {
+    title: JSX.Element;
+    children: JSX.Element;
+    bindOpen?: [() => boolean, (_: boolean) => void];
+    defaultOpen?: boolean;
+  }
+> = (props) => {
+  const [open, setOpen] = props.bindOpen ??
+    createSignal(props.defaultOpen ?? false);
+
+  return (
+    <div class="collapse bg-base-200">
+      <input
+        type="checkbox"
+        checked={open()}
+        onChange={(ev) => setOpen(ev.target.checked)}
+      />
+      <div class="collapse-title text-xl font-medium">
+        {props.title}
+      </div>
+      <div class="collapse-content">
+        {props.children}
+      </div>
+    </div>
+  );
 };

@@ -24,6 +24,10 @@ type DeclarationToDocumentation<Decl extends RegularFunctionDeclaration> = {
    */
   isOperator?: true;
   /**
+   * 所属分组。（仅用于文档。）
+   */
+  groups: string[];
+  /**
    * 参数列表的文档。
    */
   parameters: ParameterListToLabelDocumentationMap<Decl["parameters"]>;

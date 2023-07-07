@@ -6,6 +6,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
 > = {
   "or/2": {
     isOperator: true,
+    groups: ["逻辑"],
     parameters: {
       "a": "第一个布尔值",
       "b": "第二个布尔值",
@@ -14,6 +15,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "and/2": {
     isOperator: true,
+    groups: ["逻辑"],
     parameters: {
       "a": "第一个布尔值",
       "b": "第二个布尔值",
@@ -23,6 +25,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
 
   "==/2": {
     isOperator: true,
+    groups: ["比较"],
     parameters: {
       "a": "第一个值",
       "b": "第二个值，类型与第一个值相同",
@@ -32,6 +35,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "!=/2": {
     isOperator: true,
+    groups: ["比较"],
     parameters: {
       "a": "第一个值",
       "b": "第二个值，类型与第一个值相同",
@@ -42,6 +46,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
 
   "</2": {
     isOperator: true,
+    groups: ["比较"],
     parameters: {
       "a": "第一个值",
       "b": "第二个值",
@@ -50,6 +55,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   ">/2": {
     isOperator: true,
+    groups: ["比较"],
     parameters: {
       "a": "第一个值",
       "b": "第二个值",
@@ -58,6 +64,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "<=/2": {
     isOperator: true,
+    groups: ["比较"],
     parameters: {
       "a": "第一个值",
       "b": "第二个值",
@@ -66,6 +73,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   ">=/2": {
     isOperator: true,
+    groups: ["比较"],
     parameters: {
       "a": "第一个值",
       "b": "第二个值",
@@ -75,6 +83,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
 
   "~/2": {
     isOperator: true,
+    groups: ["掷骰"],
     parameters: {
       "lower": "最小值，大于 0",
       "upper": "最大值，不小于最小值",
@@ -83,6 +92,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "~/1": {
     isOperator: true,
+    groups: ["掷骰"],
     parameters: {
       "upper": "最大值，大于 0",
     },
@@ -90,6 +100,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "+/2": {
     isOperator: true,
+    groups: ["算术"],
     parameters: {
       "a": "第一个加数",
       "b": "第二个加数",
@@ -98,6 +109,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "-/2": {
     isOperator: true,
+    groups: ["算术"],
     parameters: {
       "a": "被减数",
       "b": "减数",
@@ -106,6 +118,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "+/1": {
     isOperator: true,
+    groups: ["算术"],
     parameters: {
       "a": "一个数",
     },
@@ -113,6 +126,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "-/1": {
     isOperator: true,
+    groups: ["算术"],
     parameters: {
       "a": "一个数",
     },
@@ -121,6 +135,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
 
   "*/2": {
     isOperator: true,
+    groups: ["算术"],
     parameters: {
       "a": "第一个乘数",
       "b": "第二个乘数",
@@ -129,6 +144,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "///2": {
     isOperator: true,
+    groups: ["算术"],
     parameters: {
       "a": "被除数",
       "b": "除数，不能为 0",
@@ -137,6 +153,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "%/2": {
     isOperator: true,
+    groups: ["算术"],
     parameters: {
       "a": "被除数，不小于 0",
       "b": "除数，大于 0",
@@ -145,6 +162,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "^/2": {
     isOperator: true,
+    groups: ["算术"],
     parameters: {
       "a": "底数",
       "n": "指数，不小于 0",
@@ -154,6 +172,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
 
   "d/2": {
     isOperator: true,
+    groups: ["掷骰"],
     parameters: {
       "n": "投掷次数，大于 0",
       "x": "面数，大于 0",
@@ -162,6 +181,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "d/1": {
     isOperator: true,
+    groups: ["掷骰"],
     parameters: {
       "x": "面数，大于 0",
     },
@@ -170,6 +190,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
 
   "not/1": {
     isOperator: true,
+    groups: ["逻辑"],
     parameters: {
       "a": "一个布尔值",
     },

@@ -1,5 +1,6 @@
 packages:
   - internal/*
   - packages/*
+  - third-party/solid-mason/packages/*
   - repl
   - playground

@@ -6,6 +6,7 @@ import { ResultPaneForSingle } from "./result-pane-for-single";
 
 import { BatchReportForWorker, ExecutionResult } from "dicexp/internal";
 import { ResultPaneForBatch } from "./result-pane-for-batch";
+import { DocumentationPane } from "./documentation-pane";
 
 export const Main: Component = () => {
   return (
@@ -23,6 +24,8 @@ export const Main: Component = () => {
           report={(store.result() as { report: BatchReportForWorker }).report}
         />
       </Show>
+
+      <DocumentationPane />
     </main>
   );
 };

@@ -1,0 +1,16 @@
+{
+  "name": "@dicexp/third-party-solid-mason",
+  "type": "module",
+  "version": "0.1.4",
+  "engines": {
+    "node": ">=10"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "solid-js": "^1.6"
+  },
+  "dependencies": {
+    "solid-use": "^0.6.2"
+  },
+  "main": "./src/index.ts"
+}

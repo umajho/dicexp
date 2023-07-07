@@ -36,15 +36,6 @@ export const NavBar: Component = () => {
           <li>
             <a
               class="inline-flex items-center"
-              href="https://github.com/umajho/dicexp/blob/main/docs/Dicexp.md"
-            >
-              文档
-              <HiSolidArrowTopRightOnSquare size={16} />
-            </a>
-          </li>
-          <li>
-            <a
-              class="inline-flex items-center"
               href="https://github.com/umajho/dicexp"
             >
               代码
