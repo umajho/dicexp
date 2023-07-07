@@ -7,10 +7,7 @@ import {
   Show,
   Switch,
 } from "solid-js";
-import {
-  createMasonryBreakpoints,
-  Mason,
-} from "@dicexp/third-party-solid-mason";
+import { createMasonryBreakpoints, Mason } from "solid-mason";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
 import { Badge, Card, Tab, Tabs } from "../ui";
@@ -98,7 +95,6 @@ const RegularFunctionsTab: Component = () => {
             //       视为 0，再考虑到目前没有让标签页内容维持状态的需求，因此决定使用一般的
             //       <Show />。
             <Show when={currentTab() === i()}>
-              {/* FIXME: 目前版本高度计算有问题，可能是因为这个：https://github.com/lxsmnsyc/solid-mason/issues/2 */}
               <Mason
                 items={scope.declarations as RegularFunctionDeclaration[]}
                 columns={breakpoints()}

@@ -33,7 +33,7 @@
     "@dicexp/codemirror-lang-dicexp": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/runtime": "workspace:*",
-    "@dicexp/third-party-solid-mason": "workspace:^0.1.4",
+    "solid-mason": "^0.1.5",
     "codemirror": "^6.0.1",
     "d3": "^7.8.5",
     "dicexp": "workspace:*",

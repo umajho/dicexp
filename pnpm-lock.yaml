@@ -152,9 +152,6 @@ importers:
       '@dicexp/runtime':
         specifier: workspace:*
         version: link:../internal/runtime
-      '@dicexp/third-party-solid-mason':
-        specifier: workspace:^0.1.4
-        version: link:../third-party/solid-mason/packages/solid-mason
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.0.3)
@@ -170,6 +167,9 @@ importers:
       solid-js:
         specifier: ^1.7.6
         version: 1.7.6
+      solid-mason:
+        specifier: ^0.1.5
+        version: 0.1.5(solid-js@1.7.6)
     devDependencies:
       '@types/d3':
         specifier: ^7.4.0
@@ -235,15 +235,6 @@ importers:
       rollup-plugin-typescript2:
         specifier: ^0.35.0
         version: 0.35.0(rollup@3.25.1)(typescript@5.1.3)
-
-  third-party/solid-mason/packages/solid-mason:
-    dependencies:
-      solid-js:
-        specifier: ^1.6
-        version: 1.7.6
-      solid-use:
-        specifier: ^0.6.2
-        version: 0.6.2(solid-js@1.7.6)
 
 packages:
 
@@ -3103,6 +3094,18 @@ packages:
       csstype: 3.1.2
       seroval: 0.5.1
 
+  /solid-mason@0.1.5(solid-js@1.7.6):
+    resolution: {integrity: sha512-6vNY5B5/jtUDl7xMIBYoXhYp6G698ibS38taJvK/lKftaW5WveA+iACUMsBS2wchupDbunWIRaVHAMmAr7vZww==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      solid-js: ^1.6
+    dependencies:
+      solid-js: 1.7.6
+      solid-use: 0.7.1(solid-js@1.7.6)
+    transitivePeerDependencies:
+      - seroval
+    dev: false
+
   /solid-refresh@0.5.3(solid-js@1.7.6):
     resolution: {integrity: sha512-Otg5it5sjOdZbQZJnvo99TEBAr6J7PQ5AubZLNU6szZzg3RQQ5MX04oteBIIGDs0y2Qv8aXKm9e44V8z+UnFdw==}
     peerDependencies:
@@ -3114,11 +3117,15 @@ packages:
       solid-js: 1.7.6
     dev: true
 
-  /solid-use@0.6.2(solid-js@1.7.6):
-    resolution: {integrity: sha512-0ShJ5s+4PIN0pJB/BtsQucsZB+xnUeeTGaxErQDu6USn5jygZWXicAtOEvFbI8gv40xE751uY1Tz7Aib9lxL/Q==}
+  /solid-use@0.7.1(solid-js@1.7.6):
+    resolution: {integrity: sha512-tgWcnTSzCw4/eSp4qkEnic5/wEiqeXz/4aexvDECEVhnMDCNJNXJUz2kaBfB85r+GpEAsyncorgN9wiYOdRFJg==}
     engines: {node: '>=10'}
     peerDependencies:
-      solid-js: ^1.5
+      seroval: '>=0.9.0'
+      solid-js: ^1.7
+    peerDependenciesMeta:
+      seroval:
+        optional: true
     dependencies:
       solid-js: 1.7.6
     dev: false
