@@ -101,7 +101,7 @@ const RegularFunctionsTab: Component = () => {
               >
                 {(decl) => (
                   <div class="p-2">
-                    <ScopeBlock decl={decl} scope={scope} />
+                    <FunctionCard decl={decl} scope={scope} />
                   </div>
                 )}
               </Mason>
@@ -113,7 +113,7 @@ const RegularFunctionsTab: Component = () => {
   );
 };
 
-export const ScopeBlock: Component<{
+export const FunctionCard: Component<{
   decl: RegularFunctionDeclaration;
   scope: ScopeInfo;
 }> = (props) => {
