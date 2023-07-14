@@ -25,11 +25,14 @@ export const NavBar: Component = () => {
             <a>骰子表达式 Dicexp（当前）</a>
           </DropdownItem>
         </Dropdown>
-        <a class="btn btn-ghost normal-case text-xl">
+        <button
+          class="btn btn-ghost normal-case text-xl max-sm:p-0"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
           <span>
             Dicexp
           </span>
-        </a>
+        </button>
       </div>
       <div class="flex-none">
         <ul class="menu menu-horizontal px-1">

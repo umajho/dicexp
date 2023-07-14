@@ -15,6 +15,7 @@ import { EvaluationRestrictionsForWorker } from "dicexp/internal";
 
 import {
   Button,
+  Card,
   LabelButton,
   OptionalNumberInput,
   Skeleton,
@@ -69,117 +70,118 @@ export const ControlPane: Component = () => {
   }
 
   return (
-    <Card class="pt-4 p-8">
-      <div class="flex flex-col gap-4 min-w-[20rem] md:min-w-[36rem]">
-        {/* 标签页和示例选择 */}
-        <div class="flex items-center">
-          {/* 选择模式用的标签页 */}
-          <Tabs class="flex-1">
-            <Tab
-              isActive={mode() === "single"}
-              onClick={() => setMode("single")}
-              size="lg"
-            >
-              <span class="font-bold">单次</span>
-            </Tab>
-            <Tab
-              isActive={mode() === "batch"}
-              onClick={() => setMode("batch")}
-              size="lg"
-            >
-              <span class="font-bold">批量</span>
-            </Tab>
-          </Tabs>
-
-          {/* 示例选择 */}
-          <select
-            class="w-32"
-            value={exampleSelectValue()}
-            onChange={(ev) => setExampleSelectValue(ev.target.value)}
+    <Card
+      class="min-w-full sm:min-w-[40rem]"
+      bodyClass={"flex flex-col gap-4 pt-4 pb-8 px-4 sm:px-8"}
+    >
+      {/* 标签页和示例选择 */}
+      <div class="flex items-center">
+        {/* 选择模式用的标签页 */}
+        <Tabs class="flex-1">
+          <Tab
+            isActive={mode() === "single"}
+            onClick={() => setMode("single")}
+            size="lg"
           >
-            <option value="" disabled>查看示例</option>
-            <For each={examples}>
-              {(example) => (
-                <option value={example.code}>
-                  {example.label} | {example.code}
-                </option>
-              )}
-            </For>
-          </select>
-        </div>
-
-        {/* 输入框和按钮 */}
-        <div class="flex justify-center items-center gap-6">
-          {/* 输入框 */}
-          <div class="flex flex-col justify-center h-full w-full">
-            <LazyDicexpEditorWithSuspense
-              doc={store.doc}
-              setDoc={store.setDoc}
-              onSubmit={roll}
-            />
-          </div>
-
-          {/* 按钮 */}
-          <Switch>
-            <Match when={evaluator.status().type === "loading"}>
-              <Button type="primary" disabled={true} loading={true} />
-            </Match>
-            <Match when={evaluator.status().type === "rolling"}>
-              <Switch>
-                <Match when={rollingMode() === "single"}>
-                  <Button type="error" onClick={evaluator.terminate}>
-                    终止
-                  </Button>
-                </Match>
-                <Match when={rollingMode() === "batch"}>
-                  <Button type="secondary" onClick={evaluator.stopBatching}>
-                    停止
-                  </Button>
-                </Match>
-              </Switch>
-            </Match>
-            <Match when={true}>
-              <Button
-                type="primary"
-                disabled={evaluator.status().type !== "ready"}
-                onClick={roll}
-              >
-                ROLL!
-              </Button>
-            </Match>
-          </Switch>
-        </div>
-
-        {/* 基本的设置 */}
-        <div class="flex flex-col md:flex-row md:h-8 justify-center gap-4">
-          {/* 种子 */}
-          <Show when={mode() === "single"}>
-            <OptionalNumberInput
-              number={seed()}
-              setNumber={setSeed}
-              enabled={isSeedFrozen()}
-              setEnabled={(enabled) => setIsSeedFrozen(enabled)}
-            >
-              固定种子
-            </OptionalNumberInput>
-            <span class="max-md:hidden">|</span>
-          </Show>
-
-          {/* 限制 */}
-          <LabelButton
-            for="restrictions-modal"
-            type="info"
-            size="sm"
-            class="normal-case"
+            <span class="font-bold">单次</span>
+          </Tab>
+          <Tab
+            isActive={mode() === "batch"}
+            onClick={() => setMode("batch")}
+            size="lg"
           >
-            {restrictionsText()}
-          </LabelButton>
-          <RestrictionsModal
-            mode={mode()}
-            setRestrictions={setRestrictions}
-            setRestrictionsText={setRestrictionsText}
+            <span class="font-bold">批量</span>
+          </Tab>
+        </Tabs>
+
+        {/* 示例选择 */}
+        <select
+          class="w-32"
+          value={exampleSelectValue()}
+          onChange={(ev) => setExampleSelectValue(ev.target.value)}
+        >
+          <option value="" disabled>查看示例</option>
+          <For each={examples}>
+            {(example) => (
+              <option value={example.code}>
+                {example.label} | {example.code}
+              </option>
+            )}
+          </For>
+        </select>
+      </div>
+
+      {/* 输入框和按钮 */}
+      <div class="flex justify-center items-center gap-6">
+        {/* 输入框 */}
+        <div class="flex flex-col justify-center h-full w-full">
+          <LazyDicexpEditorWithSuspense
+            doc={store.doc}
+            setDoc={store.setDoc}
+            onSubmit={roll}
           />
         </div>
+
+        {/* 按钮 */}
+        <Switch>
+          <Match when={evaluator.status().type === "loading"}>
+            <Button type="primary" disabled={true} loading={true} />
+          </Match>
+          <Match when={evaluator.status().type === "rolling"}>
+            <Switch>
+              <Match when={rollingMode() === "single"}>
+                <Button type="error" onClick={evaluator.terminate}>
+                  终止
+                </Button>
+              </Match>
+              <Match when={rollingMode() === "batch"}>
+                <Button type="secondary" onClick={evaluator.stopBatching}>
+                  停止
+                </Button>
+              </Match>
+            </Switch>
+          </Match>
+          <Match when={true}>
+            <Button
+              type="primary"
+              disabled={evaluator.status().type !== "ready"}
+              onClick={roll}
+            >
+              ROLL!
+            </Button>
+          </Match>
+        </Switch>
+      </div>
+
+      {/* 基本的设置 */}
+      <div class="flex flex-col md:flex-row md:h-8 justify-center gap-4">
+        {/* 种子 */}
+        <Show when={mode() === "single"}>
+          <OptionalNumberInput
+            number={seed()}
+            setNumber={setSeed}
+            enabled={isSeedFrozen()}
+            setEnabled={(enabled) => setIsSeedFrozen(enabled)}
+          >
+            固定种子
+          </OptionalNumberInput>
+          <span class="max-md:hidden">|</span>
+        </Show>
+
+        {/* 限制 */}
+        <LabelButton
+          for="restrictions-modal"
+          type="info"
+          size="sm"
+          class="normal-case"
+        >
+          {restrictionsText()}
+        </LabelButton>
+        <RestrictionsModal
+          mode={mode()}
+          setRestrictions={setRestrictions}
+          setRestrictionsText={setRestrictionsText}
+        />
       </div>
     </Card>
   );
@@ -297,14 +299,14 @@ const RestrictionsModal: Component<{
   );
 };
 
-// 由于不是标准的 daisy-ui card（缺少 card-body），就直接放在这里
-const Card: Component<{ children: JSX.Element; class?: string }> = (props) => {
-  return (
-    <div class={`card bg-base-100 shadow-xl ${props.class ?? ""}`}>
-      {props.children}
-    </div>
-  );
-};
+// // 由于不是标准的 daisy-ui card（缺少 card-body），就直接放在这里
+// const Card: Component<{ children: JSX.Element; class?: string }> = (props) => {
+//   return (
+//     <div class={`card bg-base-100 shadow-xl ${props.class ?? ""}`}>
+//       {props.children}
+//     </div>
+//   );
+// };
 
 const LazyDicexpEditorWithSuspense: Component<
   { doc: () => string; setDoc: (doc: string) => void; onSubmit: () => void }

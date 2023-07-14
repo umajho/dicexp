@@ -32,7 +32,7 @@ export const DocumentationPane: Component = () => {
   return (
     <Card
       class="w-full h-fit"
-      bodyClass="p-6 gap-4"
+      bodyClass="p-3 sm:p-6 gap-4"
     >
       <Tabs class="flex-1">
         <Tab
@@ -100,7 +100,7 @@ const RegularFunctionsTab: Component = () => {
                 columns={breakpoints()}
               >
                 {(decl) => (
-                  <div class="p-2">
+                  <div class="sm:p-2">
                     <FunctionCard decl={decl} scope={scope} />
                   </div>
                 )}
