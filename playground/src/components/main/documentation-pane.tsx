@@ -100,7 +100,7 @@ const RegularFunctionsTab: Component = () => {
                 columns={breakpoints()}
               >
                 {(decl) => (
-                  <div class="sm:p-2">
+                  <div class="sm:px-2 py-2">
                     <FunctionCard decl={decl} scope={scope} />
                   </div>
                 )}
