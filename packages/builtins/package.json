@@ -1,7 +1,7 @@
 {
   "packageManager": "pnpm@8.6.1",
   "name": "@dicexp/builtins",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/dicexp-builtins.umd.cjs",
