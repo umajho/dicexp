@@ -7,3 +7,6 @@ test: type-check
 
 build: type-check
 	pnpm run build
+
+publish-no-build:
+	npm publish --access public

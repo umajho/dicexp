@@ -22,3 +22,10 @@ test:
 	just dicexp test
 	just playground test
 	just builtins test
+
+build:
+	just dicexp build
+
+publish: build
+	just dicexp publish-no-build
+	just builtins publish-no-build
