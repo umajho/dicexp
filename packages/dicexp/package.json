@@ -5,6 +5,7 @@
   "description": "A Dicexp evaluator.",
   "type": "module",
   "sideEffects": false,
+  "files": ["dist"],
   "main": "./dist/dicexp.umd.cjs",
   "module": "./dist/dicexp.js",
   "types": "./dist/src/mod.d.ts",

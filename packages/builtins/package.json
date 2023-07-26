@@ -4,6 +4,7 @@
   "version": "0.1.1",
   "type": "module",
   "sideEffects": false,
+  "files": ["dist"],
   "main": "./dist/dicexp-builtins.umd.cjs",
   "module": "./dist/dicexp-builtins.js",
   "types": "./dist/src/mod.d.ts",
