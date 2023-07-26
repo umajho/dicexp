@@ -53,14 +53,13 @@ importers:
         version: link:../nodes
 
   packages/builtins:
-    dependencies:
+    devDependencies:
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../../internal/errors
       '@dicexp/runtime':
         specifier: workspace:*
         version: link:../../internal/runtime
-    devDependencies:
       typescript:
         specifier: ^5.1.3
         version: 5.1.3
