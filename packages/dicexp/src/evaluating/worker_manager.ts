@@ -1,15 +1,19 @@
+import { Scope } from "@dicexp/runtime/values";
+
 import { BatchReport, EvaluateOptionsForWorker } from "./worker-builder/types";
 import {
   EvaluatingWorkerClient,
   EvaluatingWorkerClientOptions,
 } from "./worker_client";
 
-export class EvaluatingWorkerManager {
+export class EvaluatingWorkerManager<
+  AvailableScopes extends Record<string, Scope>,
+> {
   options: EvaluatingWorkerClientOptions;
 
   private readinessWatcher: (ready: boolean) => void;
 
-  client: EvaluatingWorkerClient | null = null;
+  client: EvaluatingWorkerClient<AvailableScopes> | null = null;
 
   constructor(
     workerProvider: () => Worker,
@@ -38,7 +42,10 @@ export class EvaluatingWorkerManager {
     this.readinessWatcher(true);
   }
 
-  async evaluate(code: string, opts: EvaluateOptionsForWorker) {
+  async evaluate(
+    code: string,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
+  ) {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
@@ -52,7 +59,7 @@ export class EvaluatingWorkerManager {
 
   async batch(
     code: string,
-    opts: EvaluateOptionsForWorker,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
     reporter: (r: BatchReport) => void,
   ) {
     if (!this.client) {

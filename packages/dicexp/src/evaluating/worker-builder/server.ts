@@ -1,18 +1,34 @@
+import { Scope } from "@dicexp/runtime/values";
+
 import { errorAsErrorData } from "../error_from_worker";
 import { BatchHandler } from "./handler_batch";
-import { handleEvaluate } from "./handler_single";
 import { Pulser } from "./heartbeat";
-import { DataFromWorker, DataToWorker, WorkerInit } from "./types";
+import {
+  DataFromWorker,
+  DataToWorker,
+  EvaluateOptionsForWorker,
+  WorkerInit,
+} from "./types";
+import { safe } from "./utils";
+import { EvaluationResult } from "../evaluate";
+import { Evaluator } from "./evaluate";
 
 declare function postMessage(data: DataFromWorker): void;
 
-export class Server {
+export class Server<AvailableScopes extends Record<string, Scope>> {
   init!: WorkerInit;
   pulser!: Pulser;
 
-  batchHandler: BatchHandler | null = null;
+  evaluator: Evaluator<AvailableScopes>;
+  batchHandler: BatchHandler<AvailableScopes> | null = null;
 
-  async handle(data: DataToWorker): Promise<void> {
+  constructor(
+    public availableScopes: AvailableScopes,
+  ) {
+    this.evaluator = new Evaluator(availableScopes);
+  }
+
+  async handle(data: DataToWorker<AvailableScopes>): Promise<void> {
     const dataToWorkerType = data[0];
 
     if (dataToWorkerType === "initialize") {
@@ -38,7 +54,7 @@ export class Server {
         const id = data[1];
         const code = data[2], opts = data[3];
         if (dataToWorkerType === "evaluate") {
-          this.tryPostMessage(handleEvaluate(id, code, opts));
+          this.tryPostMessage(this.handleEvaluateSingle(id, code, opts));
         } else {
           if (this.batchHandler) {
             const error = new Error("已在进行批量处理");
@@ -84,5 +100,16 @@ export class Server {
       const errorMessage = (e instanceof Error) ? e.message : `${e}`;
       postMessage(["fatal", "无法发送消息：" + errorMessage]);
     }
+  }
+
+  handleEvaluateSingle(
+    id: string,
+    code: string,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
+  ): DataFromWorker {
+    const result = safe((): EvaluationResult =>
+      this.evaluator.evaluate(code, opts)
+    );
+    return ["evaluate_result", id, result, null];
   }
 }

@@ -1,3 +1,5 @@
+import { Scope } from "@dicexp/runtime/values";
+
 import { RuntimeRestrictions } from "../../executing/mod";
 import { ErrorDataFromWorker } from "../error_from_worker";
 import { EvaluationResult } from "../evaluate";
@@ -7,38 +9,41 @@ export interface MessagePoster {
   tryPostMessage(data: DataFromWorker): void;
 }
 
-export interface EvaluateOptionsForWorker {
-  execute: Omit<ExecuteOptionsForWorker, "restrictions">;
+export interface EvaluateOptionsForWorker<
+  AvailableScopes extends Record<string, Scope>,
+> {
+  execute: Omit<ExecuteOptionsForWorker<AvailableScopes>, "restrictions">;
   parse?: ParseOptions;
 
-  restrictions?: {
-    hardTimeout?: { ms: number };
-    execute: ExecuteOptionsForWorker["restrictions"];
-  };
+  restrictions?: EvaluationRestrictionsForWorker;
 }
 
-export type EvaluationRestrictionsForWorker =
-  EvaluateOptionsForWorker["restrictions"];
+export interface EvaluationRestrictionsForWorker {
+  hardTimeout?: { ms: number };
+  execute: RuntimeRestrictions;
+}
 
-export interface ExecuteOptionsForWorker {
-  topLevelScopeName: "barebones" | "standard";
+export interface ExecuteOptionsForWorker<
+  AvailableScopes extends Record<string, Scope>,
+> {
+  topLevelScopeName: keyof AvailableScopes;
   restrictions?: RuntimeRestrictions;
   seed?: number;
 }
 
-export type DataToWorker =
+export type DataToWorker<AvailableScopes extends Record<string, Scope>> =
   | [type: "initialize", init: WorkerInit]
   | [
     type: "evaluate",
     id: string,
     code: string,
-    opts: EvaluateOptionsForWorker,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
   ]
   | [
     type: "batch_start",
     id: string,
     code: string,
-    opts: EvaluateOptionsForWorker,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
   ]
   | [type: "batch_stop", id: string];
 

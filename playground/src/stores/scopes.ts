@@ -1,8 +1,10 @@
 import {
+  asScope,
   DeclarationListToDocumentationMap,
   RegularFunctionDeclaration,
 } from "@dicexp/runtime/regular-functions";
 import * as builtins from "@dicexp/builtins/internal";
+import { Scope } from "@dicexp/runtime/values";
 
 export interface ScopeInfo {
   displayName: string;
@@ -27,3 +29,8 @@ export const scopes: ScopeInfo[] = [
 export function getFunctionFullName(decl: RegularFunctionDeclaration) {
   return `${decl.name}/${decl.parameters.length}`;
 }
+
+export const scopesForRuntime = {
+  "barebones": builtins.operatorScope,
+  "standard": asScope([builtins.operatorScope, builtins.functionScope]),
+} as const satisfies Record<string, Scope>;

@@ -1,12 +1,13 @@
+import { Node } from "@dicexp/nodes";
+import { Scope } from "@dicexp/runtime/values";
+
 import { asRuntimeError, RuntimeError } from "../../executing/mod";
 import { parse } from "../../parsing/mod";
-import { Node } from "@dicexp/nodes";
 import { BatchReport, EvaluateOptionsForWorker } from "./types";
 import { safe } from "./utils";
-import { executeForWorker, makeExecuteOptions } from "./evaluate";
 import { Server } from "./server";
 
-export class BatchHandler {
+export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
   private readonly id!: string;
   private readonly report!: BatchReport; //Required<Omit<BatchReport, "error">>;
   private shouldStop!: boolean | Error | RuntimeError;
@@ -16,8 +17,8 @@ export class BatchHandler {
   constructor(
     id: string,
     code: string,
-    opts: EvaluateOptionsForWorker,
-    private server: Server,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    private server: Server<AvailableScopes>,
     stoppedCb: () => void,
   ) {
     const parsed = safe(() => parse(code, opts.parse));
@@ -77,8 +78,11 @@ export class BatchHandler {
     this.report.statistics!.now.ms = Date.now();
   }
 
-  private async samplingLoop(node: Node, opts: EvaluateOptionsForWorker) {
-    const executeOpts = makeExecuteOptions(opts);
+  private async samplingLoop(
+    node: Node,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
+  ) {
+    const executeOpts = this.server.evaluator.makeExecuteOptions(opts);
 
     while (true) {
       const durationSinceLastHB = Date.now() - this.server.pulser.lastHeartbeat;
@@ -87,7 +91,9 @@ export class BatchHandler {
       }
       if (this.shouldStop) break;
 
-      const executed = safe(() => executeForWorker(node, executeOpts));
+      const executed = safe(() =>
+        this.server.evaluator.execute(node, executeOpts)
+      );
       if ("error" in executed) {
         this.markBatchToStop(executed.error);
         break;

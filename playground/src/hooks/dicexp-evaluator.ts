@@ -9,6 +9,7 @@ import {
   EvaluationRestrictionsForWorker,
 } from "dicexp/internal";
 import { Result } from "../types";
+import { scopesForRuntime } from "../stores/scopes";
 
 export type Status = {
   type: "loading"; // worker manager 尚未完成加载
@@ -28,13 +29,12 @@ export default function createDicexpEvaluator(
     seed: () => number;
     isSeedFrozen: () => boolean;
     restrictions: () => EvaluationRestrictionsForWorker | null;
-    topLevelScopeName: () =>
-      EvaluateOptionsForWorker["execute"]["topLevelScopeName"];
+    topLevelScopeName: () => keyof typeof scopesForRuntime;
   },
 ) {
   const [loading, setLoading] = createSignal(true);
   const [workerManager, setWorkerManager] = createSignal<
-    EvaluatingWorkerManager | null
+    EvaluatingWorkerManager<typeof scopesForRuntime> | null
   >(null);
   (async () => {
     const dicexp = await import("dicexp/internal");
@@ -74,7 +74,7 @@ export default function createDicexpEvaluator(
     switch (opts.mode()) {
       case "single": {
         try {
-          const evalOpts: EvaluateOptionsForWorker = {
+          const evalOpts: EvaluateOptionsForWorker<typeof scopesForRuntime> = {
             execute: {
               topLevelScopeName: opts.topLevelScopeName() ?? "standard",
               seed: opts.seed(),
@@ -96,7 +96,7 @@ export default function createDicexpEvaluator(
       }
       case "batch": {
         try {
-          const evalOpts: EvaluateOptionsForWorker = {
+          const evalOpts: EvaluateOptionsForWorker<typeof scopesForRuntime> = {
             execute: {
               topLevelScopeName: opts.topLevelScopeName() ?? "standard",
               // seed 不生效

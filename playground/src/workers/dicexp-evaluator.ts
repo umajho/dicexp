@@ -1,3 +1,5 @@
 import { startWorkerServer } from "dicexp/internal";
 
-startWorkerServer();
+import { scopesForRuntime } from "../stores/scopes";
+
+startWorkerServer(scopesForRuntime);

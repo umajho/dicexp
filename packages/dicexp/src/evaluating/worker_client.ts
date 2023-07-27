@@ -1,3 +1,5 @@
+import { Scope } from "@dicexp/runtime/values";
+
 import { Unreachable } from "@dicexp/errors";
 import { ErrorDataFromWorker, proxyErrorFromWorker } from "./error_from_worker";
 import { EvaluationResult } from "./evaluate";
@@ -30,7 +32,9 @@ export interface EvaluatingWorkerClientOptions {
   batchReportInterval: { ms: number };
 }
 
-export class EvaluatingWorkerClient {
+export class EvaluatingWorkerClient<
+  AvailableScopes extends Record<string, Scope>,
+> {
   constructor(
     private worker: Worker,
     private options: EvaluatingWorkerClientOptions,
@@ -144,7 +148,7 @@ export class EvaluatingWorkerClient {
     this.afterTerminate?.();
   }
 
-  private postMessage(data: DataToWorker) {
+  private postMessage(data: DataToWorker<AvailableScopes>) {
     // 防止由于 vue 之类的外部库把 data 中的内容用 Proxy 替代掉，
     // 导致无法用 postMessage 传递 data
     data = JSON.parse(JSON.stringify(data));
@@ -223,7 +227,10 @@ export class EvaluatingWorkerClient {
     this._terminate();
   }
 
-  async evaluate(code: string, opts: EvaluateOptionsForWorker) {
+  async evaluate(
+    code: string,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
+  ) {
     return new Promise<EvaluationResult>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
         reject(new Error("Worker 客户端正忙"));
@@ -279,7 +286,7 @@ export class EvaluatingWorkerClient {
 
   async batch(
     code: string,
-    opts: EvaluateOptionsForWorker,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
     reporter: (r: BatchReportForWorker) => void,
   ) {
     return new Promise<void>((resolve, reject) => {

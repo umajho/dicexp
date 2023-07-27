@@ -1,45 +1,45 @@
-import * as builtins from "@dicexp/builtins/internal";
-import { EvaluateOptionsForWorker, ExecuteOptionsForWorker } from "./types";
 import { Unreachable } from "@dicexp/errors";
+import { Scope } from "@dicexp/runtime/values";
+
+import { EvaluateOptionsForWorker } from "./types";
 import { execute, ExecuteOptions } from "../../executing/mod";
 import { Node } from "@dicexp/nodes";
 import { evaluate } from "../evaluate";
-import { Scope } from "@dicexp/runtime/values";
-import { asScope } from "@dicexp/runtime/regular-functions";
 
-export function executeForWorker(node: Node, opts: ExecuteOptions) {
-  return execute(node, opts);
-}
+export class Evaluator<AvailableScopes extends Record<string, Scope>> {
+  constructor(
+    private availableScopes: AvailableScopes,
+  ) {}
 
-export function evaluateForWorker(
-  code: string,
-  opts: EvaluateOptionsForWorker,
-) {
-  return evaluate(code, {
-    execute: makeExecuteOptions(opts),
-    parse: opts.parse,
-  });
-}
+  execute(node: Node, opts: ExecuteOptions) {
+    return execute(node, opts);
+  }
 
-export function makeExecuteOptions(
-  opts: EvaluateOptionsForWorker,
-): ExecuteOptions {
-  return {
-    topLevelScope: getScopeCollection(opts.execute.topLevelScopeName),
-    restrictions: opts.restrictions?.execute,
-    seed: opts.execute.seed,
-  };
-}
+  evaluate(
+    code: string,
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
+  ) {
+    return evaluate(code, {
+      execute: this.makeExecuteOptions(opts),
+      parse: opts.parse,
+    });
+  }
 
-function getScopeCollection(
-  scopeName: ExecuteOptionsForWorker["topLevelScopeName"],
-): Scope {
-  switch (scopeName) {
-    case "barebones":
-      return builtins.operatorScope;
-    case "standard":
-      return asScope([builtins.operatorScope, builtins.functionScope]);
-    default:
-      throw new Unreachable();
+  makeExecuteOptions(
+    opts: EvaluateOptionsForWorker<AvailableScopes>,
+  ): ExecuteOptions {
+    return {
+      topLevelScope: this.getScopeCollection(opts.execute.topLevelScopeName),
+      restrictions: opts.restrictions?.execute,
+      seed: opts.execute.seed,
+    };
+  }
+
+  getScopeCollection(
+    scopeName: keyof AvailableScopes,
+  ): Scope {
+    const scope = this.availableScopes[scopeName];
+    if (!scope) throw new Unreachable();
+    return scope;
   }
 }
