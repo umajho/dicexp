@@ -1,5 +1,7 @@
 import { createSignal, untrack } from "solid-js";
 
+import DicexpEvaluatingWorker from "../workers/dicexp-evaluator?worker";
+
 import { Unreachable } from "@dicexp/errors";
 import {
   EvaluateOptionsForWorker,
@@ -37,7 +39,10 @@ export default function createDicexpEvaluator(
   (async () => {
     const dicexp = await import("dicexp/internal");
     setWorkerManager(
-      new dicexp.EvaluatingWorkerManager((ready) => setLoading(!ready)),
+      new dicexp.EvaluatingWorkerManager(
+        () => new DicexpEvaluatingWorker(),
+        (ready) => setLoading(!ready),
+      ),
     );
   })();
 

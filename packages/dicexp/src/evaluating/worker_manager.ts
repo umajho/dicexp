@@ -1,6 +1,4 @@
-import EvaluatingWorker from "./worker/worker?worker";
-
-import { BatchReport, EvaluateOptionsForWorker } from "./worker/types";
+import { BatchReport, EvaluateOptionsForWorker } from "./worker-builder/types";
 import {
   EvaluatingWorkerClient,
   EvaluatingWorkerClientOptions,
@@ -14,6 +12,7 @@ export class EvaluatingWorkerManager {
   client: EvaluatingWorkerClient | null = null;
 
   constructor(
+    workerProvider: () => Worker,
     readinessWatcher: (ready: boolean) => void,
     optsPartial: Partial<EvaluatingWorkerClientOptions> = {},
   ) {
@@ -25,18 +24,15 @@ export class EvaluatingWorkerManager {
 
     this.readinessWatcher = readinessWatcher;
 
-    this.initClient();
+    this.initClient(workerProvider);
   }
 
-  private async initClient() {
-    this.client = new EvaluatingWorkerClient(
-      new EvaluatingWorker(),
-      this.options,
-    );
+  private async initClient(workerProvider: () => Worker) {
+    this.client = new EvaluatingWorkerClient(workerProvider(), this.options);
     this.client.afterTerminate = () => {
       this.client = null;
       this.readinessWatcher(false);
-      this.initClient();
+      this.initClient(workerProvider);
     };
     await this.client.init();
     this.readinessWatcher(true);

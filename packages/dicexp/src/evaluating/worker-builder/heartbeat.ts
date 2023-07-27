@@ -1,4 +1,4 @@
-import { tryPostMessage } from "./post_message";
+import { MessagePoster } from "./types";
 
 export class Pulser {
   private _lastHeartbeat!: number;
@@ -6,7 +6,10 @@ export class Pulser {
     return this._lastHeartbeat;
   }
 
-  constructor(interval: { ms: number }) {
+  constructor(
+    interval: { ms: number },
+    private poster: MessagePoster,
+  ) {
     const pulse = () => {
       this._lastHeartbeat = Date.now();
       this.postHeartbeat();
@@ -16,6 +19,6 @@ export class Pulser {
   }
 
   postHeartbeat() {
-    tryPostMessage(["heartbeat"]);
+    this.poster.tryPostMessage(["heartbeat"]);
   }
 }

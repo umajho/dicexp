@@ -1,7 +1,11 @@
-import { ExecuteOptions, RuntimeRestrictions } from "../../executing/mod";
+import { RuntimeRestrictions } from "../../executing/mod";
 import { ErrorDataFromWorker } from "../error_from_worker";
 import { EvaluationResult } from "../evaluate";
 import { ParseOptions } from "../../parsing/mod";
+
+export interface MessagePoster {
+  tryPostMessage(data: DataFromWorker): void;
+}
 
 export interface EvaluateOptionsForWorker {
   execute: Omit<ExecuteOptionsForWorker, "restrictions">;

@@ -1,19 +1,15 @@
 import { asRuntimeError, RuntimeError } from "../../executing/mod";
 import { parse } from "../../parsing/mod";
 import { Node } from "@dicexp/nodes";
-import { BatchReport, EvaluateOptionsForWorker, WorkerInit } from "./types";
+import { BatchReport, EvaluateOptionsForWorker } from "./types";
 import { safe } from "./utils";
-import { Pulser } from "./heartbeat";
-import { tryPostMessage } from "./post_message";
 import { executeForWorker, makeExecuteOptions } from "./evaluate";
+import { Server } from "./server";
 
 export class BatchHandler {
   private readonly id!: string;
   private readonly report!: BatchReport; //Required<Omit<BatchReport, "error">>;
   private shouldStop!: boolean | Error | RuntimeError;
-
-  private readonly init!: WorkerInit;
-  private readonly pulser!: Pulser;
 
   private readonly stoppedCb!: () => void;
 
@@ -21,13 +17,14 @@ export class BatchHandler {
     id: string,
     code: string,
     opts: EvaluateOptionsForWorker,
-    init: WorkerInit,
-    pulser: Pulser,
+    private server: Server,
     stoppedCb: () => void,
   ) {
     const parsed = safe(() => parse(code, opts.parse));
     if ("error" in parsed) {
-      tryPostMessage(["batch_report", id, { error: parsed.error }, true, null]);
+      this.server.tryPostMessage(
+        ["batch_report", id, { error: parsed.error }, true, null],
+      );
       stoppedCb();
       return;
     }
@@ -41,8 +38,6 @@ export class BatchHandler {
     };
     this.shouldStop = false;
 
-    this.init = init;
-    this.pulser = pulser;
     this.stoppedCb = stoppedCb;
 
     this.initBatchReporter();
@@ -71,8 +66,10 @@ export class BatchHandler {
         this.report.statistics!.now.ms = Date.now();
       }
       const shouldStop = !!this.shouldStop;
-      tryPostMessage(["batch_report", this.id, this.report, shouldStop, null]);
-    }, this.init.batchReportInterval.ms);
+      this.server.tryPostMessage(
+        ["batch_report", this.id, this.report, shouldStop, null],
+      );
+    }, this.server.init.batchReportInterval.ms);
   }
 
   private markBatchToStop(error?: Error | RuntimeError) {
@@ -84,8 +81,8 @@ export class BatchHandler {
     const executeOpts = makeExecuteOptions(opts);
 
     while (true) {
-      const durationSinceLastHeartbeat = Date.now() - this.pulser.lastHeartbeat;
-      if (durationSinceLastHeartbeat > this.init.minHeartbeatInterval.ms) {
+      const durationSinceLastHB = Date.now() - this.server.pulser.lastHeartbeat;
+      if (durationSinceLastHB > this.server.init.minHeartbeatInterval.ms) {
         await new Promise((r) => setTimeout(r, 0)); // 交回控制权
       }
       if (this.shouldStop) break;
