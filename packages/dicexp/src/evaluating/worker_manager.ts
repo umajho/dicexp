@@ -9,11 +9,11 @@ import {
 export class EvaluatingWorkerManager<
   AvailableScopes extends Record<string, Scope>,
 > {
-  options: EvaluatingWorkerClientOptions;
+  readonly options: EvaluatingWorkerClientOptions;
 
   private readinessWatcher: (ready: boolean) => void;
 
-  client: EvaluatingWorkerClient<AvailableScopes> | null = null;
+  private client: EvaluatingWorkerClient<AvailableScopes> | null = null;
 
   constructor(
     workerProvider: () => Worker,
@@ -50,6 +50,15 @@ export class EvaluatingWorkerManager<
       throw new Error("管理器下的客户端尚未初始化");
     }
     return this.client.evaluate(code, opts);
+  }
+
+  destroy() {
+    if (!this.client) return;
+    this.client.afterTerminate = () => {
+      this.client = null;
+      this.readinessWatcher(false);
+    };
+    this.terminateClient();
   }
 
   terminateClient() {
