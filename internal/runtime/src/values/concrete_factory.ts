@@ -6,7 +6,6 @@ import {
 import { RuntimeError } from "./runtime_errors";
 import { Concrete, Value } from "./values";
 
-// NOTE: 临时，与 LazyValueFactory.literal 重复
 export function concrete_literal(value: Value): Concrete {
   return {
     value: { ok: value },
@@ -14,7 +13,6 @@ export function concrete_literal(value: Value): Concrete {
   };
 }
 
-// NOTE: 临时，与 LazyValueFactory.literal 重复
 export function concrete_error(
   error: RuntimeError,
   source?: RuntimeRepresentation,
