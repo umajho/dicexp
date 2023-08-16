@@ -4,14 +4,14 @@ import {
 import { flattenListAll, unwrapListOneOf } from "@dicexp/runtime/value-utils";
 import {
   callCallable,
-  concrete_literal,
   getDisplayNameFromTypeName,
   getTypeNameOfValue,
   makeRuntimeError,
-  RuntimeProxyForFunction,
-  RuntimeResult,
+  RuntimeError,
   Value_Callable,
   Value_List,
+  ValueBoxDircet,
+  ValueBoxUnevaluated,
   ValueTypeName,
 } from "@dicexp/runtime/values";
 import { builtinFunctionDeclarations } from "./declarations";
@@ -23,95 +23,79 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   // 投骰子：
 
   // 实用：
-  "count/2": (rtm, list, callable) => {
-    const result = filter(list, callable, rtm);
-    if ("error" in result) return result;
-    return { ok: { value: result.ok.length } };
+  "count/2": (_rtm, list, callable) => {
+    const result = filter(list, callable);
+    if (result[0] === "error") return result;
+    return ["ok", result[1].length];
   },
   // ...
-  "sum/1": (rtm, list) => {
-    const result = flattenListAll("integer", list, rtm);
-    if ("error" in result) return result;
-    return {
-      ok: {
-        value: sum(result.ok.values as number[]),
-      },
-    };
+  "sum/1": (_rtm, list) => {
+    const result = flattenListAll("integer", list);
+    // FIXME:（在上面的函数支持区分错误原因后，）错误若非来自参数求值过程，则应返回自定错误。
+    //        不止这一处。
+    if (result === "error") return "error_from_argument";
+    return ["ok", sum(result[1] as number[])];
   },
-  "product/1": (rtm, list) => {
-    const result = flattenListAll("integer", list, rtm);
-    if ("error" in result) return result;
-    return {
-      ok: {
-        value: product(result.ok.values as number[]),
-      },
-    };
+  "product/1": (_rtm, list) => {
+    const result = flattenListAll("integer", list);
+    if (result === "error") return "error_from_argument";
+    return ["ok", product(result[1] as number[])];
   },
   // ...
-  "any?/1": (rtm, list) => {
-    const result = unwrapListOneOf(new Set(["boolean"]), list, rtm);
-    if ("error" in result) return result;
-    return {
-      ok: {
-        value: result.ok.values.some((x) => x),
-      },
-    };
+  "any?/1": (_rtm, list) => {
+    const result = unwrapListOneOf(new Set(["boolean"]), list);
+    if (result === "error") return "error_from_argument";
+    return ["ok", result[1].some((x) => x)];
   },
-  "sort/1": (rtm, list) => {
-    const result = unwrapListOneOf(new Set(["integer", "boolean"]), list, rtm);
-    if ("error" in result) return result;
-    const listJs = result.ok.values as number[] | boolean[];
+  "sort/1": (_rtm, list) => {
+    const result = unwrapListOneOf(new Set(["integer", "boolean"]), list);
+    if (result === "error") return "error_from_argument";
+    const listJs = result[1] as number[] | boolean[];
     const sortedList = listJs.sort((a, b) => +a - +b);
-    return {
-      ok: {
-        value: sortedList.map((el) => ({ memo: concrete_literal(el) })),
-      },
-    };
+    return ["ok", sortedList.map((el) => new ValueBoxDircet(el))];
   },
   // ...
   "append/2": (_rtm, list, el) => {
-    // FIXME: 目前无法在不失去惰性的前提下确定返回值是否多变，
-    //        而是暂时假定多变。
-    //        以列表作为输入而不求值的函数都有这个问题，就不一一标记了
-    return { ok: { value: [...(list), el] } };
+    return ["ok", [...(list), el]];
   },
   "at/2": (_rtm, list, index) => {
     if (index >= list.length || index < 0) {
-      const err = makeRuntimeError(
+      return [
+        "error",
         `访问列表越界：列表大小为 ${list.length}，提供的索引为 ${index}`,
-      );
-      return { error: err };
+      ];
     }
-    return { ok: { lazy: list[index] } };
+    return ["lazy", list[index]];
   },
   // ...
 
   // 函数式：
   "map/2": (_rtm, list, callable) => {
     const resultList: Value_List = Array(list.length);
-    for (let i = 0; i < list.length; i++) {
-      const callResult = callCallable(callable, [list[i]]);
-      if ("error" in callResult) return callResult;
-      resultList[i] = callResult.ok;
+    let i = 0;
+    for (; i < list.length; i++) {
+      resultList[i] = callCallable(callable, [list[i]]);
+      if (resultList[i].get()[1]) break;
     }
-    return { ok: { value: resultList } };
+    for (; i < list.length; i++) {
+      resultList[i] = new ValueBoxUnevaluated();
+    }
+    return ["ok", resultList];
   },
   // ...
-  "filter/2": (rtm, list, callable) => {
+  "filter/2": (_rtm, list, callable) => {
     // FIXME: 应该展现对每个值的过滤步骤
     // FIXME: 应该惰性求值
-    const filterResult = filter(list, callable, rtm);
-    if ("error" in filterResult) return filterResult;
-    return { ok: { value: filterResult.ok } };
+    return filter(list, callable);
   },
   // ...
   "head/1": (_rtm, list) => {
-    if (list.length === 0) return { error: makeRuntimeError("列表为空") };
-    return { ok: { lazy: list[0] } };
+    if (list.length === 0) return ["error", "列表为空"];
+    return ["lazy", list[0]];
   },
   "tail/1": (_rtm, list) => {
-    if (list.length === 0) return { error: makeRuntimeError("列表为空") };
-    return { ok: { value: list.slice(1) } };
+    if (list.length === 0) return ["error", "列表为空"];
+    return ["ok", list.slice(1)];
   },
   // ...
   "zip/2": (_rtm, list1, list2) => {
@@ -120,17 +104,20 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     for (let i = 0; i < zippedLength; i++) {
       result[i] = [list1[i], list2[i]];
     }
-    return { ok: { value: result } };
+    return ["ok", result];
   },
   "zipWith/3": (_rtm, list1, list2, callable) => {
     const zippedLength = Math.min(list1.length, list2.length);
     const result = Array(zippedLength);
-    for (let i = 0; i < zippedLength; i++) {
-      const callResult = callCallable(callable, [list1[i], list2[i]]);
-      if ("error" in callResult) return callResult;
-      result[i] = callResult.ok;
+    let i = 0;
+    for (; i < zippedLength; i++) {
+      result[i] = callCallable(callable, [list1[i], list2[i]]);
+      if (result[i].get()[1]) break;
     }
-    return { ok: { value: result } };
+    for (; i < zippedLength; i++) {
+      result[i] = new ValueBoxUnevaluated();
+    }
+    return ["ok", result];
   },
   // 控制流
 };
@@ -138,15 +125,13 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
 function filter(
   list: Value_List,
   callable: Value_Callable,
-  rtm: RuntimeProxyForFunction,
-): RuntimeResult<Value_List> {
+): ["ok", Value_List] | ["error", RuntimeError] {
   const filtered: Value_List = [];
   for (const el of list) {
-    const result = callCallable(callable, [el]);
-    if ("error" in result) return result;
-    const concrete = rtm.concretize(result.ok, rtm);
-    if ("error" in concrete.value) return concrete.value;
-    const value = concrete.value.ok;
+    const result = callCallable(callable, [el]).get();
+    if (result[0] === "error") return result;
+    // result[0] === "ok"
+    const value = result[1];
 
     if (typeof value !== "boolean") {
       const err = runtimeError_givenClosureReturnValueTypeMismatch(
@@ -155,12 +140,12 @@ function filter(
         getTypeNameOfValue(value),
         2,
       );
-      return { error: err };
+      return ["error", err];
     }
     if (!value) continue;
     filtered.push(el);
   }
-  return { ok: filtered };
+  return ["ok", filtered];
 }
 
 function runtimeError_givenClosureReturnValueTypeMismatch(

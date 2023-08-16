@@ -1,11 +1,10 @@
 import { EvaluationResult } from "./evaluate";
-import { EvaluatingSpecialErrorType } from "./error_from_worker";
 import { BatchReport } from "./worker-builder/types";
 
-export type EvaluationResultForWorker = EvaluationResult & {
-  specialErrorType?: EvaluatingSpecialErrorType;
-};
+export type EvaluationResultForWorker =
+  | EvaluationResult
+  | ["error", "worker_client", Error];
 
-export type BatchReportForWorker = BatchReport & {
-  specialErrorType?: EvaluatingSpecialErrorType;
-};
+export type BatchReportForWorker =
+  | BatchReport
+  | ["error", "worker_client", Error];

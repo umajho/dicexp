@@ -1,10 +1,10 @@
 import {
-  LazyValue,
+  RuntimeError,
   RuntimeProxyForFunction,
-  RuntimeResult,
   Value_Callable,
   Value_Integer$SumExtendable,
   Value_List$Extendable,
+  ValueBox,
   ValueTypeName,
 } from "../../values/mod";
 import {
@@ -41,10 +41,12 @@ type ParameterListToFunction<
 > = (
   rtm: RuntimeProxyForFunction,
   ...args: ParameterListToTuple<ParamList>
-) => RuntimeResult<
-  ReturnValueType extends { lazy: true } ? { lazy: LazyValue }
-    : { value: ReturnValueTypeSpecToType<ReturnValueType> }
->;
+) =>
+  | (ReturnValueType extends { lazy: true } //
+    ? ["lazy", ValueBox]
+    : ["ok", ReturnValueTypeSpecToType<ReturnValueType>])
+  | ["error", RuntimeError | string]
+  | "error_from_argument";
 
 /**
  * 把声明中的参数列表转换成一一对应的类型元组。
@@ -86,7 +88,7 @@ type ReturnValueTypeSpecToType<T> = T extends keyof BasicTypeSpecToTypeMap
 type BasicTypeSpecToTypeMap = {
   integer: number;
   boolean: boolean;
-  list: LazyValue[];
+  list: ValueBox[];
   callable: Value_Callable;
   list$extendable: Value_List$Extendable;
   integer$sum_extendable: Value_Integer$SumExtendable;
@@ -96,7 +98,7 @@ type BasicTypeSpecToTypeMap = {
  * 惰性类型的映射。（对于参数而已，是未经过 concretize；更进一步对于返回值而言，是不求参数的值。）
  */
 type LazyTypeSpecMap = {
-  $lazy: LazyValue;
+  $lazy: ValueBox;
 };
 
 /**

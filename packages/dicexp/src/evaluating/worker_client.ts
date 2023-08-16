@@ -1,7 +1,7 @@
 import { Scope } from "@dicexp/runtime/values";
 
 import { Unreachable } from "@dicexp/errors";
-import { ErrorDataFromWorker, proxyErrorFromWorker } from "./error_from_worker";
+import { proxyErrorFromWorker } from "./error_from_worker";
 import { EvaluationResult } from "./evaluate";
 import {
   DataFromWorker,
@@ -57,7 +57,11 @@ export class EvaluatingWorkerClient<
 
   private taskState:
     | [name: "idle"]
-    | [name: "processing", id: string, resolve: (r: EvaluationResult) => void]
+    | [
+      name: "processing",
+      id: string,
+      resolve: (r: EvaluationResultForWorker) => void,
+    ]
     | [
       name: "batch_processing",
       id: string,
@@ -104,10 +108,10 @@ export class EvaluatingWorkerClient<
         );
         if (this.taskState[0] === "processing") {
           const resolve = this.taskState[2];
-          resolve({ error });
+          resolve(["error", "worker_client", error]);
         } else { // "batch_processing"
           const report = this.taskState[2];
-          report({ error }); // FIXME: 应该保留之前的数据
+          report(["error", "worker_client", error]); // FIXME: 应该保留之前的数据
         }
         this.taskState = ["idle"];
       } else {
@@ -132,17 +136,17 @@ export class EvaluatingWorkerClient<
     if (this.taskState[0] === "processing") {
       const resolve = this.taskState[2];
       if (from === "internal") {
-        resolve({ error: new Error("内部中断") });
+        resolve(["error", "worker_client", new Error("内部中断")]);
       } else {
-        resolve({ error: new Error("外部中断") });
+        resolve(["error", "worker_client", new Error("外部中断")]);
       }
     } else if (this.taskState[0] === "batch_processing") {
       const report = this.taskState[2];
       if (from === "internal") {
-        report({ error: new Error("内部中断") }); // FIXME: 保留原先数据
+        report(["error", "worker_client", new Error("内部中断")]); // FIXME: 保留原先数据
       } else if (from === "external") {
         console.warn("批量任务不应该使用 terminate 终结。");
-        report({ error: new Error("外部中断") }); // FIXME: 保留原先数据
+        report(["error", "worker_client", new Error("外部中断")]); // FIXME: 保留原先数据
       }
     }
     this.afterTerminate?.();
@@ -165,21 +169,17 @@ export class EvaluatingWorkerClient<
         this.handleHeartbeat();
         return;
       case "fatal": {
-        const error = data[1];
-        this.handleFatal(new Error(error));
+        this.handleFatal(data[1]);
         return;
       }
       case "evaluate_result": {
-        const id = data[1], result = data[2], errorData = data[3];
-        this.handleEvaluateResult(id, result, errorData);
+        const id = data[1], result = data[2];
+        this.handleEvaluateResult(id, result);
         return;
       }
       case "batch_report": {
-        const id = data[1],
-          report = data[2],
-          stopped = data[3],
-          errorData = data[4];
-        this.handleBatchReport(id, report, stopped, errorData);
+        const id = data[1], report = data[2];
+        this.handleBatchReport(id, report);
         return;
       }
       default:
@@ -194,10 +194,10 @@ export class EvaluatingWorkerClient<
       throw new Error("Worker 客户端 init 状态异常");
     }
     const [_, resolve, reject] = this.initState;
-    if (result.ok) {
+    if (result === "ok") {
       resolve();
-    } else {
-      reject(proxyErrorFromWorker(result.error));
+    } else { // result[0] === "error"
+      reject(proxyErrorFromWorker(result[1]));
     }
   }
 
@@ -205,7 +205,9 @@ export class EvaluatingWorkerClient<
     this.lastHeartbeatTimestamp = Date.now();
   }
 
-  private handleFatal(error: Error) {
+  private handleFatal(reason: string | undefined) {
+    const error = new Error(reason);
+
     switch (this.taskState[0]) {
       case "idle": {
         console.error(error);
@@ -213,12 +215,12 @@ export class EvaluatingWorkerClient<
       }
       case "processing": {
         const [_1, _2, resolve] = this.taskState;
-        resolve({ error });
+        resolve(["error", "other", error]);
         break;
       }
       case "batch_processing": {
         const [_1, _2, report, resolve] = this.taskState;
-        report({ error });
+        report(["error", "other", error]);
         resolve();
         break;
       }
@@ -231,7 +233,7 @@ export class EvaluatingWorkerClient<
     code: string,
     opts: EvaluateOptionsForWorker<AvailableScopes>,
   ) {
-    return new Promise<EvaluationResult>((resolve, reject) => {
+    return new Promise<EvaluationResultForWorker>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
         reject(new Error("Worker 客户端正忙"));
         return;
@@ -248,7 +250,7 @@ export class EvaluatingWorkerClient<
           const [_, idRecorded, resolve] = this.taskState;
           if (idRecorded !== id) return;
 
-          resolve({ error: new Error("硬性超时") });
+          resolve(["error", "other", new Error("硬性超时")]);
           this.taskState = ["idle"];
 
           this.terminate();
@@ -259,11 +261,7 @@ export class EvaluatingWorkerClient<
     });
   }
 
-  private handleEvaluateResult(
-    id: string,
-    result: EvaluationResultForWorker,
-    errorData: ErrorDataFromWorker | null,
-  ) {
+  private handleEvaluateResult(id: string, result: EvaluationResult) {
     this.assertTaskStateName("processing");
     if (this.taskState[0] !== "processing") { // TS 类型推断
       throw new Unreachable();
@@ -274,10 +272,9 @@ export class EvaluatingWorkerClient<
       throw new Error(`Task ID 不匹配：期待 ${idRecorded}，实际为 ${id}`);
     }
 
-    if (errorData) {
-      result.error = proxyErrorFromWorker(errorData);
-      if (errorData.specialType) {
-        result.specialErrorType = errorData.specialType;
+    if (result[0] === "error") {
+      if (result[1] === "parse" || result[1] === "other") {
+        result = ["error", result[1], proxyErrorFromWorker(result[2])];
       }
     }
     resolve(result);
@@ -302,12 +299,7 @@ export class EvaluatingWorkerClient<
     });
   }
 
-  handleBatchReport(
-    id: string,
-    report: BatchReportForWorker,
-    stopped: boolean,
-    errorData: ErrorDataFromWorker | null,
-  ) {
+  handleBatchReport(id: string, report: BatchReportForWorker) {
     this.assertTaskStateName("batch_processing");
     if (this.taskState[0] !== "batch_processing") { // TS 类型推断
       throw new Unreachable();
@@ -317,14 +309,16 @@ export class EvaluatingWorkerClient<
     if (idRecorded !== id) {
       throw new Error(`Batch ID 不匹配：期待 ${idRecorded}，实际为 ${id}`);
     }
-    if (stopped) {
+    if (report[0] === "stop" || report[0] === "error") { // 批量执行结束了
       resolve();
       this.taskState = ["idle"];
     }
-    if (errorData) {
-      report.error = proxyErrorFromWorker(errorData);
-      if (errorData.specialType) {
-        report.specialErrorType = errorData.specialType;
+    if (report[0] === "error") {
+      const errProxy = proxyErrorFromWorker(report[2]);
+      if (report[1] === "batch") {
+        report = ["error", "batch", errProxy, report[3], report[4]];
+      } else { // report[1] === "parse" || report[1] === "other"
+        report = ["error", report[1], errProxy];
       }
     }
     reporter(report);

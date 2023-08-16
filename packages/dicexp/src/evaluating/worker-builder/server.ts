@@ -1,16 +1,15 @@
 import { Scope } from "@dicexp/runtime/values";
 
-import { errorAsErrorData } from "../error_from_worker";
 import { BatchHandler } from "./handler_batch";
 import { Pulser } from "./heartbeat";
 import {
+  BatchReport,
   DataFromWorker,
   DataToWorker,
   EvaluateOptionsForWorker,
   WorkerInit,
 } from "./types";
 import { safe } from "./utils";
-import { EvaluationResult } from "../evaluate";
 import { Evaluator } from "./evaluate";
 
 declare function postMessage(data: DataFromWorker): void;
@@ -34,14 +33,12 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
     if (dataToWorkerType === "initialize") {
       if (this.init) {
         const error = new Error("Worker 重复初始化");
-        this.tryPostMessage(["initialize_result", {
-          error: errorAsErrorData(error),
-        }]);
+        this.tryPostMessage(["initialize_result", ["error", error]]);
         return;
       }
       this.init = data[1];
       this.pulser = new Pulser(this.init.minHeartbeatInterval, this);
-      this.tryPostMessage(["initialize_result", { ok: true }]);
+      this.tryPostMessage(["initialize_result", "ok"]);
       return;
     } else if (!this.init) {
       console.error("Worker 尚未初始化！");
@@ -58,7 +55,8 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
         } else {
           if (this.batchHandler) {
             const error = new Error("已在进行批量处理");
-            this.tryPostMessage(["batch_report", id, { error }, true, null]);
+            const data: BatchReport = ["error", "other", error];
+            this.tryPostMessage(["batch_report", id, data]);
           }
           const clear = () => this.batchHandler = null;
           this.batchHandler = new BatchHandler(id, code, opts, this, clear);
@@ -82,16 +80,26 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
   }
 
   tryPostMessage(data: DataFromWorker): void {
-    if (data[0] === "evaluate_result") {
-      if (data[2].error) {
-        data[3] = errorAsErrorData(data[2].error);
-        // @ts-ignore
-        delete data[2].error;
+    if (data[0] === "initialize_result" && data[1] !== "ok") {
+      const result = data[1];
+      data[1] = ["error", makeSendableError(result[1])];
+    } else if (data[0] === "evaluate_result") {
+      let result = data[2];
+      if (
+        result[0] === "error" &&
+        (result[1] === "parse" || result[1] === "other")
+      ) {
+        data[2] = ["error", "parse", makeSendableError(result[2])];
       }
     } else if (data[0] === "batch_report") {
-      if (data[2].error) {
-        data[4] = errorAsErrorData(data[2].error);
-        delete data[2].error;
+      let report = data[2];
+      if (report[0] === "error") {
+        const sendableErr = makeSendableError(report[2]);
+        if (report[1] === "batch") {
+          data[2] = ["error", "batch", sendableErr, report[3], report[4]];
+        } else { // report[1] === "parse" || report[1] === "other"
+          data[2] = ["error", report[1], sendableErr];
+        }
       }
     }
     try {
@@ -107,9 +115,14 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
     code: string,
     opts: EvaluateOptionsForWorker<AvailableScopes>,
   ): DataFromWorker {
-    const result = safe((): EvaluationResult =>
-      this.evaluator.evaluate(code, opts)
-    );
-    return ["evaluate_result", id, result, null];
+    let result = safe(() => this.evaluator.evaluate(code, opts));
+    if (result[0] === "error" && typeof result[1] !== "string") {
+      result = ["error", "other", result[1]];
+    }
+    return ["evaluate_result", id, result];
   }
+}
+
+function makeSendableError(err: Error): Error {
+  return { name: err.name, message: err.message, stack: err.stack };
 }

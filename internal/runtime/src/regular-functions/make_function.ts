@@ -1,14 +1,18 @@
 import {
-  concrete_error,
-  LazyValue,
+  RawFunction,
   RegularFunction,
-  representValue,
-  RuntimeProxyForFunction,
-  RuntimeResult,
+  RuntimeError,
   Value,
+  ValueBox,
+  ValueBoxDircet,
+  ValueBoxError,
+  ValueBoxLazy,
   ValueSpec,
 } from "../values/mod";
-import { runtimeError_wrongArity } from "../errors/mod";
+import {
+  runtimeError_errorInArgument,
+  runtimeError_wrongArity,
+} from "../errors/mod";
 import { unwrapValue } from "../value-utils/mod";
 
 /**
@@ -18,56 +22,49 @@ import { unwrapValue } from "../value-utils/mod";
  */
 export function makeFunction(
   spec: ValueSpec[],
-  logic: (
-    args: (LazyValue | Value)[],
-    rtm: RuntimeProxyForFunction,
-  ) => RuntimeResult<{ value: Value } | { lazy: LazyValue }>,
+  logic: RawFunction,
 ): RegularFunction {
-  return (args_, rtm) => {
-    const unwrapResult = unwrapArguments(spec, args_, rtm);
-    if ("error" in unwrapResult) {
-      return { error: unwrapResult.error };
+  return (args, rtm) => {
+    const unwrapResult = unwrapArguments(spec, args);
+    if (unwrapResult[0] === "error") {
+      return new ValueBoxError(unwrapResult[1]);
+    } else { // unwrapResult[0] === "ok"
+      return new ValueBoxLazy(() => {
+        const result = logic(rtm, ...unwrapResult[1]);
+        if (result[0] === "ok") {
+          return new ValueBoxDircet(result[1]);
+        } else if (result[0] === "lazy") {
+          return result[1];
+        } else { // result[0] === "error"
+          return new ValueBoxError(result[1]);
+        }
+      });
     }
-
-    return {
-      ok: {
-        _yield: () => {
-          const result = logic(unwrapResult.ok.values, rtm);
-          if ("error" in result) {
-            return concrete_error(result.error);
-          }
-
-          if ("lazy" in result.ok) {
-            return result.ok;
-          }
-
-          return {
-            value: { ok: result.ok.value },
-            representation: representValue(result.ok.value),
-          };
-        },
-      },
-    };
   };
 }
 
+/**
+ * NOTE: 返回值 `[values, err]` 中的 err 只代表这一步中的错误，
+ *       而 `values` 中也可能存在错误。
+ */
 function unwrapArguments(
   spec: ValueSpec[],
-  args: LazyValue[],
-  rtm: RuntimeProxyForFunction,
-): RuntimeResult<{ values: (LazyValue | Value)[] }> {
+  args: ValueBox[],
+): ["ok", (Value | ValueBox)[]] | ["error", RuntimeError] {
   if (spec.length !== args.length) {
-    return { error: runtimeError_wrongArity(spec.length, args.length) };
+    return ["error", runtimeError_wrongArity(spec.length, args.length)];
   }
 
-  const values: (LazyValue | Value)[] = Array(args.length);
+  const result: (Value | ValueBox)[] = Array(args.length);
 
-  for (const [i, arg] of args.entries()) {
-    const result = unwrapValue(spec[i], arg, rtm, { nth: i + 1 });
-    if ("error" in result) return result;
-    const { value } = result.ok;
-    values[i] = value;
+  for (let [i, arg] of args.entries()) {
+    const unwrapResult = unwrapValue(spec[i], arg, { nth: i + 1 });
+    if (unwrapResult[0] === "error") {
+      return ["error", runtimeError_errorInArgument()];
+    } else { // unwrapResult[0] === "ok"
+      result[i] = unwrapResult[1];
+    }
   }
 
-  return { ok: { values } };
+  return ["ok", result];
 }

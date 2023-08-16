@@ -22,6 +22,6 @@ const codes: string[] = [
 for (const code of codes) {
   bench(code, () => {
     const result = parse(code);
-    if ("error" in result) throw result.error;
+    if (result[0] === "error") throw result[1];
   });
 }

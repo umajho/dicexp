@@ -7,4 +7,3 @@ export type {
   EvaluateOptionsForWorker,
   EvaluationRestrictionsForWorker,
 } from "./worker-builder/types";
-export type { BatchReportForWorker, EvaluationResultForWorker } from "./types";

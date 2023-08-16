@@ -597,12 +597,15 @@ describe("限制", () => {
         const scope: Scope = asScope([
           builtins.operatorScope,
           {
-            "sleep/1": makeFunction(["integer"], (args, _rtm) => {
-              const [ms] = args as [number];
-              const start = performance.now();
-              while (performance.now() - start <= ms) { /* noop */ }
-              return { ok: { value: true } };
-            }),
+            "sleep/1": makeFunction(
+              ["integer"],
+              (_rtm, ...args) => {
+                const [ms] = args as [number];
+                const start = performance.now();
+                while (performance.now() - start <= ms) { /* noop */ }
+                return ["ok", true];
+              },
+            ),
           },
         ]);
 

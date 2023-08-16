@@ -1,10 +1,11 @@
 import { Scope } from "@dicexp/runtime/values";
 
-import { BatchReport, EvaluateOptionsForWorker } from "./worker-builder/types";
+import { EvaluateOptionsForWorker } from "./worker-builder/types";
 import {
   EvaluatingWorkerClient,
   EvaluatingWorkerClientOptions,
 } from "./worker_client";
+import { BatchReportForWorker } from "./types";
 
 export class EvaluatingWorkerManager<
   AvailableScopes extends Record<string, Scope>,
@@ -69,7 +70,7 @@ export class EvaluatingWorkerManager<
   async batch(
     code: string,
     opts: EvaluateOptionsForWorker<AvailableScopes>,
-    reporter: (r: BatchReport) => void,
+    reporter: (r: BatchReportForWorker) => void,
   ) {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");

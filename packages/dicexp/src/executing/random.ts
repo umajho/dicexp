@@ -24,6 +24,7 @@ export class RandomGenerator implements IRandomGenerator {
     } else if (sides <= 2 ** 53) {
       return lower + this._integerN64(sides);
     }
+    console.log({ sides, lower, upper });
     throw new Unimplemented();
   }
 

@@ -10,8 +10,8 @@ export interface ParseOptions {
 }
 
 export type ParsingResult =
-  | { ok: Node; simple: false }
-  | { error: ParsingError };
+  | ["ok", Node]
+  | ["error", ParsingError];
 
 export function parse(code: string, _opts?: ParseOptions): ParsingResult {
   code = convertTextToHalfWidth(code);
@@ -19,9 +19,9 @@ export function parse(code: string, _opts?: ParseOptions): ParsingResult {
   const tree = lezerParser.parse(code);
   const transformer = new Transformer(tree, code);
   try {
-    return { ok: transformer.transform(), simple: false };
+    return ["ok", transformer.transform()];
   } catch (e) {
-    if (e instanceof ParsingError) return { error: e };
+    if (e instanceof ParsingError) return ["error", e];
     throw e;
   }
 }
