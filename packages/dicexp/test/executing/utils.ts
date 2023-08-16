@@ -1,6 +1,6 @@
 export function flatten<A>(arr: A, depth?: number): unknown[];
 export function flatten(arr: any, depth = 1) {
-  const result = [];
+  const result: any[] = [];
   for (let sub of arr) {
     if (Array.isArray(sub)) {
       if (depth !== 1) {
