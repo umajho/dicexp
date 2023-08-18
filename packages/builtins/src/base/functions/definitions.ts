@@ -75,7 +75,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     let i = 0;
     for (; i < list.length; i++) {
       resultList[i] = callCallable(callable, [list[i]]);
-      if (resultList[i].get()[1]) break;
+      if (resultList[i].confirmsError()) break;
     }
     for (; i < list.length; i++) {
       resultList[i] = new ValueBoxUnevaluated();
@@ -102,7 +102,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const zippedLength = Math.min(list1.length, list2.length);
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
-      result[i] = [list1[i], list2[i]];
+      result[i] = new ValueBoxDircet([list1[i], list2[i]]);
     }
     return ["ok", result];
   },
@@ -111,8 +111,9 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const result = Array(zippedLength);
     let i = 0;
     for (; i < zippedLength; i++) {
-      result[i] = callCallable(callable, [list1[i], list2[i]]);
-      if (result[i].get()[1]) break;
+      const valueBox = callCallable(callable, [list1[i], list2[i]]);
+      result[i] = valueBox;
+      if (valueBox.confirmsError()) break;
     }
     for (; i < zippedLength; i++) {
       result[i] = new ValueBoxUnevaluated();
