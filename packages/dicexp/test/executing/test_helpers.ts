@@ -12,7 +12,10 @@ import {
   ExecutionResult,
   JSValue,
 } from "../../src/executing/mod";
-import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
+import {
+  runtimeError_callArgumentTypeMismatch,
+  RuntimeErrorFromArgument,
+} from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
 import * as builtins from "@dicexp/builtins/internal";
 import { asScope } from "@dicexp/runtime/regular-functions";
@@ -170,7 +173,9 @@ function unaryOperatorOnlyAccepts(
     it(`case ${i + 1}: ${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
       assertExecutionRuntimeError(
         code,
-        runtimeError_callArgumentTypeMismatch(1, expected, rightType),
+        new RuntimeErrorFromArgument(
+          runtimeError_callArgumentTypeMismatch(1, expected, rightType),
+        ),
       );
     });
   }
@@ -189,7 +194,9 @@ function binaryOperatorOnlyAccepts(
     it(`case ${i + 1}: ${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
       assertExecutionRuntimeError(
         code,
-        runtimeError_callArgumentTypeMismatch(pos, expected, wrongType),
+        new RuntimeErrorFromArgument(
+          runtimeError_callArgumentTypeMismatch(pos, expected, wrongType),
+        ),
       );
     });
   }

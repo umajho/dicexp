@@ -10,8 +10,8 @@ import {
   ValueSpec,
 } from "../values/mod";
 import {
-  runtimeError_errorInArgument,
   runtimeError_wrongArity,
+  RuntimeErrorFromArgument,
 } from "../errors/mod";
 import { unwrapValue } from "../value-utils/mod";
 
@@ -60,7 +60,7 @@ function unwrapArguments(
   for (let [i, arg] of args.entries()) {
     const unwrapResult = unwrapValue(spec[i], arg, { nth: i + 1 });
     if (unwrapResult[0] === "error") {
-      return ["error", runtimeError_errorInArgument()];
+      return ["error", new RuntimeErrorFromArgument(unwrapResult[1])];
     } else { // unwrapResult[0] === "ok"
       result[i] = unwrapResult[1];
     }
