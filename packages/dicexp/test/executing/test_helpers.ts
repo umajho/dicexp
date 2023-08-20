@@ -5,19 +5,17 @@ import { inspect } from "util";
 
 import { parse, ParseOptions } from "../../src/parsing/mod";
 
-import {
-  RawScope,
-  RuntimeError,
-  Scope,
-  ValueTypeName,
-} from "@dicexp/runtime/values";
+import { RuntimeError, Scope, ValueTypeName } from "@dicexp/runtime/values";
 import {
   execute,
   ExecuteOptions,
   ExecutionResult,
   JSValue,
 } from "../../src/executing/mod";
-import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
+import {
+  runtimeError_callArgumentTypeMismatch,
+  RuntimeErrorFromArgument,
+} from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
 import * as builtins from "@dicexp/builtins/internal";
 import { asScope } from "@dicexp/runtime/regular-functions";
@@ -48,30 +46,31 @@ export function evaluateForTest(
   parseOpts?: ParseOptions,
 ): ExecutionResult {
   const parseResult = parse(code, parseOpts);
-  if ("error" in parseResult) {
-    throw new Unreachable(`解析错误：${parseResult.error.message}`);
+  if (parseResult[0] === "error") {
+    throw new Unreachable(`解析错误：${parseResult[1].message}`);
   }
-  return execute(parseResult.ok, {
+  // parseResult[0] === "ok"
+  return execute(parseResult[1], {
     ...executeOpts,
     topLevelScope: executeOpts?.topLevelScope ?? testScopeCollection,
   });
 }
 
 export function assertNumber(result: ExecutionResult): number {
-  assert(!("error" in result));
+  assert(result[0] === "ok");
 
-  assert.deepEqual(typeof result.ok, "number");
-  return result.ok as number;
+  assert.deepEqual(typeof result[1], "number");
+  return result[1] as number;
 }
 
 export function assertNumberArray(result: ExecutionResult): number[] {
-  assert(!("error" in result));
+  assert(result[0] === "ok");
 
-  assert(Array.isArray(result.ok));
-  for (const [i, item] of (result.ok as Array<unknown>).entries()) {
+  assert(Array.isArray(result[1]));
+  for (const [i, item] of (result[1] as Array<unknown>).entries()) {
     assert.deepEqual(typeof item, "number", `arr[${i}]`);
   }
-  return result.ok as number[];
+  return result[1] as number[];
 }
 
 export function assertExecutionOk(
@@ -80,21 +79,22 @@ export function assertExecutionOk(
   opts?: ExecuteOptionsForTest,
 ): JSValue {
   const result = evaluateForTest(code, opts);
-  if (!("error" in result)) {
-    if (result.ok === null) throw new Unreachable();
-    if (expectedResult === undefined) return result.ok!;
-    if (deepEqual(result.ok, expectedResult)) return result.ok!;
+  if (result[0] === "ok") {
+    const value = result[1];
+    if (value === null) throw new Unreachable();
+    if (expectedResult === undefined) return value;
+    if (deepEqual(value, expectedResult)) return value;
   }
 
   let msg: string;
   const msgRest = expectedResult === undefined
     ? ""
     : `!= ${inspect(expectedResult)}`;
-  if ("error" in result) {
+  if (result[0] === "error") {
     msg = `${code} => 运行时错误：` +
-      `「${result.error.message}」${msgRest}`;
-  } else {
-    const actualResultInspected = inspect(result.ok);
+      `「${result[1].message}」${msgRest}`;
+  } else { // result[0] === "ok"
+    const actualResultInspected = inspect(result[1]);
     msg = `${code} => ${actualResultInspected} ${msgRest}`;
   }
   throw new AssertionError(msg);
@@ -103,23 +103,42 @@ export function assertExecutionOk(
 export function assertExecutionRuntimeError(
   code: string,
   expectedError: string | RuntimeError,
-  opts?: ExecuteOptionsForTest,
+  opts?: ExecuteOptionsForTest & { fromArgument?: boolean },
 ) {
+  const fromArgument = !!opts?.fromArgument;
+  if (opts) {
+    delete opts.fromArgument;
+  }
+
   const result = evaluateForTest(code, opts);
-  if (!("error" in result)) {
-    const actualResultInspected = inspect(result.ok);
+  if (result[0] === "ok") {
+    const actualResultInspected = inspect(result[1]);
     throw new AssertionError(
       `${code} => ${actualResultInspected}, did not return error "${expectedError}`,
     );
   }
+  // result[0] === "error"
+  const err = result[1];
 
   if (typeof expectedError === "string") {
-    if (result.error.message === expectedError) return;
+    if (fromArgument) {
+      if (!(err instanceof RuntimeErrorFromArgument)) {
+        throw new AssertionError(
+          `the error returned by \`${code}\` is not RuntimeErrorFromArgument`,
+        );
+      }
+      if (err.originalError.message === expectedError) return;
+    } else if (err.message === expectedError) return;
     throw new AssertionError(
-      `${code} returned error "${result.error.message}", not "${expectedError}"`,
+      `\`${code}\` returned error` +
+        (fromArgument ? " (from argument)" : "") +
+        ` "${err.message}", not "${expectedError}"`,
     );
   } else {
-    assert.deepEqual(result.error, expectedError);
+    expectedError = fromArgument
+      ? new RuntimeErrorFromArgument(expectedError)
+      : expectedError;
+    assert.deepEqual(err, expectedError);
   }
 }
 
@@ -172,6 +191,7 @@ function unaryOperatorOnlyAccepts(
       assertExecutionRuntimeError(
         code,
         runtimeError_callArgumentTypeMismatch(1, expected, rightType),
+        { fromArgument: true },
       );
     });
   }
@@ -191,6 +211,7 @@ function binaryOperatorOnlyAccepts(
       assertExecutionRuntimeError(
         code,
         runtimeError_callArgumentTypeMismatch(pos, expected, wrongType),
+        { fromArgument: true },
       );
     });
   }

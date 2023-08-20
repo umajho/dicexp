@@ -5,7 +5,9 @@
   "description": "A Dicexp evaluator.",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/dicexp.umd.cjs",
   "module": "./dist/dicexp.js",
   "types": "./dist/src/mod.d.ts",
@@ -41,6 +43,7 @@
     "@dicexp/nodes": "workspace:^0.0.0",
     "@dicexp/runtime": "workspace:*",
     "@lezer/common": "^1.0.3",
+    "@vitest/ui": "^0.34.2",
     "assertion-error": "^2.0.0",
     "typescript": "^5.1.3",
     "vite": "^4.3.9",

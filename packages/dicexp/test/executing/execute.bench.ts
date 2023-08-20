@@ -71,21 +71,21 @@ describe("各种表达式", () => {
       console.error(`${code}: unknown error during parsing: ${e}`);
       continue;
     }
-    if ("error" in parseResult) {
-      console.error(`${code}: parsing error: ${parseResult.error.message}`);
+    if (parseResult[0] === "error") {
+      console.error(`${code}: parsing error: ${parseResult[1].message}`);
       continue;
     }
 
     bench(`${code}`, () => {
       let result: ExecutionResult;
       try {
-        if ("error" in parseResult) throw new Unreachable();
-        result = execute(parseResult.ok, { topLevelScope });
+        if (parseResult[0] === "error") throw new Unreachable();
+        result = execute(parseResult[1], { topLevelScope });
       } catch (e) {
         throw new Error(`${code}: unknown error during executing: ${e}`);
       }
-      if ("error" in result) {
-        throw new Error(`${code}: runtime error: ${result.error.message}`);
+      if (result[0] === "error") {
+        throw new Error(`${code}: runtime error: ${result[1].message}`);
       }
     });
   }
@@ -109,12 +109,12 @@ describe("d100 vs 直接生成随机数", () => {
   const randomSourceB = new RandomSourceWrapper(prng_xorshift7(42));
 
   const d100Parsed = parse("d100");
-  if ("error" in d100Parsed) throw new Unreachable();
+  if (d100Parsed[0] === "error") throw new Unreachable();
 
   const rng = new RandomGenerator(randomSourceB);
 
   bench("d100", () => {
-    execute(d100Parsed.ok, { topLevelScope, randomSource: randomSourceA });
+    execute(d100Parsed[1], { topLevelScope, randomSource: randomSourceA });
   });
   bench("用 RandomGenerator 生成 1 到 100 之间的随机数", () => {
     rng.integer(1, 100);

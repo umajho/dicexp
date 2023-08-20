@@ -1,9 +1,12 @@
+import { Unreachable } from "@dicexp/errors";
+
 import {
   Component,
   createEffect,
   createSignal,
   lazy,
   Match,
+  on,
   Show,
   Suspense,
   Switch,
@@ -15,30 +18,58 @@ import { Button, Card, Skeleton, Tab, Tabs } from "../ui";
 import { ResultErrorAlert } from "./ui";
 import * as store from "../../stores/store";
 
-import { RuntimeStatistics } from "dicexp/internal";
-import { EvaluationResultForWorker } from "dicexp/internal";
-import { getErrorDisplayInfo } from "../../misc";
+import {
+  EvaluationResultForWorker,
+  ExecutionAppendix,
+  JSValue,
+  Representation,
+  RuntimeError,
+} from "dicexp";
+import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
 
 export const ResultPaneForSingle: Component<
   { result: EvaluationResultForWorker }
 > = (
   props,
 ) => {
-  const statis = (): RuntimeStatistics | null => {
-    return props.result.statistics ?? null;
-  };
+  // TODO: 如果未来 JSValue 包含 null，则将这里的 null 移出
+  const [isOk, setIsOk] = createSignal(false),
+    [resultValue, setResultValue] = createSignal<JSValue | null>(null),
+    [appendix, setAppendix] = createSignal<ExecutionAppendix | null>(null),
+    [error, setError] = createSignal<ErrorWithType | null>(null),
+    [runtimeError, setRuntimeError] = createSignal<RuntimeError | null>(null);
+  createEffect(on([() => props.result], () => {
+    let isOk_ = false,
+      resultValue_: JSValue | null = null,
+      appendix_: ExecutionAppendix | null = null,
+      error_: ErrorWithType | null = null,
+      runtimeError_: RuntimeError | null = null;
+    if (props.result[0] === "ok") {
+      isOk_ = true;
+      resultValue_ = props.result[1];
+      appendix_ = props.result[2];
+    } else if (props.result[0] === "error") {
+      if (props.result[1] === "execute") {
+        appendix_ = props.result[3];
+        runtimeError_ = props.result[2];
+      } else {
+        error_ = props.result[2] as ErrorWithType;
+        error_.type = props.result[1];
+      }
+    } else {
+      error_ = new Unreachable() as ErrorWithType;
+      error_.type = "other";
+    }
+    setIsOk(isOk_);
+    setResultValue(resultValue_);
+    setAppendix(appendix_);
+    setError(error_);
+    setRuntimeError(runtimeError_);
+  }));
 
   const [currentTab, setCurrentTab] = createSignal<"result" | "representation">(
     "result",
   );
-  const [representationTabLoaded, setRepresentationTabLoaded] = createSignal(
-    false,
-  );
-  createEffect(() => {
-    if (currentTab() === "representation") {
-      setRepresentationTabLoaded(true);
-    }
-  });
 
   return (
     <Card class="min-w-[80vw]" bodyClass="p-6 gap-4">
@@ -71,49 +102,62 @@ export const ResultPaneForSingle: Component<
 
       {/* 标签页下的内容 */}
       <Show when={currentTab() === "result"}>
-        <ResultTab result={props.result} />
+        <ResultTab
+          resultValue={resultValue}
+          error={() => error() ?? runtimeError()}
+        />
       </Show>
       <ShowKeepAlive
         when={() => currentTab() === "representation"}
       >
-        <RepresentationTab result={props.result} />
+        <RepresentationTab representation={() => appendix()!.representation} />
       </ShowKeepAlive>
 
       {/* 统计 */}
-      <Show when={statis() !== null}>
-        <div class="flex-none text-xs text-slate-500">
-          <div class="flex flex-col">
-            <div>运行耗时：{statis()!.timeConsumption.ms} 毫秒</div>
-            <Show when={statis()!.calls ?? null !== null}>
-              <div>调用次数：{statis()!.calls!} 次</div>
-            </Show>
-            <Show when={statis()!.maxClosureCallDepth ?? null !== null}>
-              <div>最大闭包调用深度：{statis()!.maxClosureCallDepth!} 层</div>
-            </Show>
+      <Show when={appendix()?.statistics}>
+        {(statis) => (
+          <div class="flex-none text-xs text-slate-500">
+            <div class="flex flex-col">
+              <div>运行耗时：{statis().timeConsumption.ms} 毫秒</div>
+              <Show when={statis().calls ?? null !== null}>
+                <div>调用次数：{statis().calls!} 次</div>
+              </Show>
+              <Show when={statis().maxClosureCallDepth ?? null !== null}>
+                <div>最大闭包调用深度：{statis().maxClosureCallDepth!} 层</div>
+              </Show>
+            </div>
           </div>
-        </div>
+        )}
       </Show>
     </Card>
   );
 };
 
-const ResultTab: Component<{ result: EvaluationResultForWorker }> = (props) => {
+const ResultTab: Component<{
+  resultValue: () => JSValue | null;
+  error: () => ErrorWithType | RuntimeError | null;
+}> = (props) => {
   const errorDisplayInfo = () => {
-    if (!props.result.error) return null;
-    return getErrorDisplayInfo(props.result.specialErrorType);
+    const error_ = props.error();
+    if (!error_) return null;
+    if (error_ instanceof Error) {
+      return getErrorDisplayInfo(error_.type);
+    } else {
+      return getErrorDisplayInfo("runtime");
+    }
   };
 
   return (
     <Switch>
-      <Match when={props.result.error}>
+      <Match when={props.error()}>
         <ResultErrorAlert
           kind={errorDisplayInfo()!.kind}
-          error={props.result.error!}
+          error={props.error()!}
           showsStack={errorDisplayInfo()!.showsStack}
         />
       </Match>
       <Match when={true}>
-        <code class="break-all">{JSON.stringify(props.result.ok!)}</code>
+        <code class="break-all">{JSON.stringify(props.resultValue()!)}</code>
       </Match>
     </Switch>
   );
@@ -122,7 +166,7 @@ const ResultTab: Component<{ result: EvaluationResultForWorker }> = (props) => {
 const LazyJsonViewer = lazy(() => import("../json-viewer"));
 
 const RepresentationTab: Component<
-  { result: EvaluationResultForWorker; class?: string }
+  { representation: () => Representation; class?: string }
 > = (props) => {
   return (
     <Suspense
@@ -132,7 +176,7 @@ const RepresentationTab: Component<
         </div>
       }
     >
-      <LazyJsonViewer data={props.result.representation} />
+      <LazyJsonViewer data={props.representation()} />
     </Suspense>
   );
 };

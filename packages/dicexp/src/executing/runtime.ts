@@ -12,22 +12,20 @@ import {
   runtimeError_restrictionExceeded,
   runtimeError_unknownVariable,
 } from "@dicexp/runtime/errors";
-import { concretize, LazyValueFactory } from "./values_impl";
+import { LazyValueFactory } from "./values_impl";
 import { Restrictions } from "./restrictions";
 import { RandomGenerator, RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   asPlain,
-  Concrete,
   finalizeRepresentation,
   getTypeNameOfValue,
-  LazyValue,
   Representation,
   RuntimeError,
   RuntimeProxyForFunction,
-  RuntimeResult,
   Scope,
   Value_List,
+  ValueBox,
 } from "@dicexp/runtime/values";
 
 export interface RuntimeOptions {
@@ -62,17 +60,21 @@ export interface Statistics {
 
 export type JSValue = number | boolean | JSValue[];
 
-export type ExecutionResult = RuntimeResult<JSValue> & {
+export interface ExecutionAppendix {
   representation: Representation;
   statistics: Statistics;
-};
+}
+
+export type ExecutionResult =
+  | ["ok", JSValue, ExecutionAppendix]
+  | ["error", RuntimeError, ExecutionAppendix];
 
 export class Runtime {
   private readonly _root: Node;
 
   private _topLevelScope: Scope;
 
-  private _final: Concrete | null = null;
+  private _final: ValueBox | null = null;
   get executed() {
     return this._final !== null;
   }
@@ -120,7 +122,6 @@ export class Runtime {
     this._proxy = {
       interpret: (scope, node) => this._interpret(scope, node),
       random: this._rng,
-      concretize,
       // @ts-ignore
       lazyValueFactory: null, // 之后才有，所以之后再赋值
       reporter: this.reporter,
@@ -173,11 +174,10 @@ export class Runtime {
 
   execute(): ExecutionResult {
     this._statistics.start = { ms: Date.now() /*performance.now()*/ };
-    const concrete = this._interpretRoot();
-    const result = this._finalize({ memo: concrete });
-    return {
-      ...result,
-      representation: finalizeRepresentation(concrete.representation),
+    const interpreted = this._interpretRoot();
+    const result = this._finalize(interpreted);
+    const appendix = {
+      representation: finalizeRepresentation(interpreted.getRepresentation()),
       statistics: {
         timeConsumption: {
           ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
@@ -186,53 +186,54 @@ export class Runtime {
         maxClosureCallDepth: this._statistics.maxClosureCallDepth,
       },
     };
+    return [...result, appendix];
   }
 
-  private _finalize(value: LazyValue): RuntimeResult<JSValue> {
-    const concrete = concretize(value, this._proxy);
-    if ("error" in concrete.value) {
-      return concrete.value;
-    }
-    let okValue = asPlain(concrete.value.ok);
+  private _finalize(
+    valueBox: ValueBox,
+  ): ["ok", JSValue] | ["error", RuntimeError] {
+    const result = valueBox.get();
+    if (result[0] === "error") return result;
+    // result[0] === "ok"
+    let value = asPlain(result[1]);
 
-    switch (typeof okValue) {
+    switch (typeof value) {
       case "number":
       case "boolean":
-        return { ok: okValue };
+        return ["ok", value];
       default: {
-        if (Array.isArray(okValue)) return this._finalizeList(okValue);
-        return {
-          error: runtimeError_badFinalResult(getTypeNameOfValue(okValue)),
-        };
+        if (Array.isArray(value)) return this._finalizeList(value);
+        const err = runtimeError_badFinalResult(getTypeNameOfValue(value));
+        return ["error", err];
       }
     }
   }
 
-  private _finalizeList(list: Value_List): RuntimeResult<JSValue> {
+  private _finalizeList(
+    list: Value_List,
+  ): ["ok", JSValue] | ["error", RuntimeError] {
     const resultList: JSValue = Array(list.length);
     for (const [i, elem] of list.entries()) {
-      let result: RuntimeResult<JSValue>;
+      let result: ["ok", JSValue] | ["error", RuntimeError];
       if (Array.isArray(elem)) {
         result = this._finalizeList(elem);
       } else {
         result = this._finalize(elem);
       }
-      if ("error" in result) return result;
-      resultList[i] = result.ok;
+      if (result[0] === "error") return result;
+      // result[0] === "ok"
+      resultList[i] = result[1];
     }
-    return { ok: resultList };
+    return ["ok", resultList];
   }
 
-  private _interpretRoot(): Concrete {
-    if (this.executed) {
-      throw new Unimplemented();
-    }
-    const final = this._interpret(this._topLevelScope, this._root);
-    this._final = concretize(final, this._proxy);
+  private _interpretRoot(): ValueBox {
+    if (this.executed) throw new Unimplemented();
+    this._final = this._interpret(this._topLevelScope, this._root);
     return this._final;
   }
 
-  private _interpret(scope: Scope, node: Node): LazyValue {
+  private _interpret(scope: Scope, node: Node): ValueBox {
     if (typeof node === "string") {
       return this._interpretIdentifier(scope, node);
     }
@@ -264,7 +265,7 @@ export class Runtime {
     }
   }
 
-  private _interpretIdentifier(scope: Scope, ident: string): LazyValue {
+  private _interpretIdentifier(scope: Scope, ident: string): ValueBox {
     // FIXME: 为什么 `_` 有可能在 scope 里（虽然是 `undefined`）？
     if (ident in scope && scope[ident] !== undefined) {
       const thingInScope = scope[ident];
@@ -282,7 +283,7 @@ export class Runtime {
   private _interpretList(
     scope: Scope,
     list: NodeValue_List,
-  ): LazyValue {
+  ): ValueBox {
     const interpretedList = list.member.map((x) => this._interpret(scope, x));
     return this._lazyValueFactory.list(interpretedList);
   }
@@ -290,7 +291,7 @@ export class Runtime {
   private _interpretClosure(
     scope: Scope,
     closure: NodeValue_Closure,
-  ): LazyValue {
+  ): ValueBox {
     return this._lazyValueFactory.closure(
       closure.parameterIdentifiers,
       closure.body,
@@ -303,7 +304,7 @@ export class Runtime {
   private _interpretCaptured(
     scope: Scope,
     captured: NodeValue_Captured,
-  ): LazyValue {
+  ): ValueBox {
     return this._lazyValueFactory.captured(
       captured.identifier,
       captured.forceArity,
@@ -315,7 +316,7 @@ export class Runtime {
   private _interpretRegularCall(
     scope: Scope,
     regularCall: Node_RegularCall,
-  ): LazyValue {
+  ): ValueBox {
     const args = regularCall.args.map((arg) => this._interpret(scope, arg));
     return this._lazyValueFactory.callRegularFunction(
       scope,
@@ -329,7 +330,7 @@ export class Runtime {
   private _interpretValueCall(
     scope: Scope,
     valueCall: Node_ValueCall,
-  ): LazyValue {
+  ): ValueBox {
     const callee = this._interpret(scope, valueCall.variable);
     const args = valueCall.args.map((arg) => this._interpret(scope, arg));
     return this._lazyValueFactory.callValue(callee, args, valueCall.style);
@@ -338,7 +339,8 @@ export class Runtime {
   private _interpretRepetition(
     scope: Scope,
     repetition: Node_Repetition,
-  ): LazyValue {
+  ): ValueBox {
+    -0;
     const count = this._interpret(scope, repetition.count);
     return this._lazyValueFactory.repetition(
       count,

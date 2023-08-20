@@ -1,11 +1,24 @@
+export type ErrorType =
+  | "parse"
+  | "runtime"
+  | "batch"
+  | "worker_client"
+  | "other";
+
+export type ErrorWithType = Error & { type: ErrorType };
+
 export function getErrorDisplayInfo(
-  specialErrorType?: "parsing_error" | "runtime_error",
+  errorType?: ErrorType,
 ) {
-  switch (specialErrorType) {
-    case "parsing_error":
+  switch (errorType) {
+    case "parse":
       return { kind: "解析", showsStack: false };
-    case "runtime_error":
+    case "runtime":
+    case "batch":
       return { kind: "运行时", showsStack: false };
+    case "worker_client":
+      return { kind: "Worker 客户端", showsStack: false };
+    case "other":
     default:
       return { kind: "", showsStack: true };
   }

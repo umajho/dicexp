@@ -597,12 +597,15 @@ describe("限制", () => {
         const scope: Scope = asScope([
           builtins.operatorScope,
           {
-            "sleep/1": makeFunction(["integer"], (args, _rtm) => {
-              const [ms] = args as [number];
-              const start = performance.now();
-              while (performance.now() - start <= ms) { /* noop */ }
-              return { ok: { value: true } };
-            }),
+            "sleep/1": makeFunction(
+              ["integer"],
+              (_rtm, ...args) => {
+                const [ms] = args as [number];
+                const start = performance.now();
+                while (performance.now() - start <= ms) { /* noop */ }
+                return ["ok", true];
+              },
+            ),
           },
         ]);
 
@@ -617,7 +620,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
-            { topLevelScope: scope, restrictions },
+            { topLevelScope: scope, restrictions, fromArgument: true },
           );
         });
       });
@@ -642,7 +645,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`1+1+1+1`,
             "越过外加限制「调用次数」（允许 2 次）",
-            { restrictions },
+            { restrictions, fromArgument: true },
           );
         });
       });

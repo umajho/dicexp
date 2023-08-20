@@ -19,15 +19,6 @@ Playground: https://umajho.github.io/dicexp/
 - 安装 tsc、rollup（`pnpm install -g typescript rollup`）。
 - 安装 brotli：构建 playground 用。
 
-## REPL
-
-本项目仍处于早期开发阶段，暂不在文档中提供作为库使用的方式。如想尝试，可以在命令行执行以下命令进入
-REPL：
-
-```shell
-just repl
-```
-
 ## 文件夹结构
 
 - `internal`：项目内部代码，一般不会发布到 npm 上，即使发布了也完全不会对 API
@@ -36,7 +27,6 @@ just repl
   的兼容性。
   - `dicexp`：提供解析、执行 dicexp 代码的 API。
 - `playground`：一个简单的单网页应用，提供最基本的 dicexp 使用体验。
-- `repl`：一个简单的 REPL，便于快速得到反馈。
 
 ## TODO
 

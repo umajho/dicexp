@@ -3,27 +3,8 @@ import { RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import { intersperse } from "@dicexp/js-utils";
 
 import { RuntimeError } from "../runtime_errors";
-import { asPlain, LazyValue, RuntimeResult, Value } from "../values";
+import { asPlain, Value, ValueBox } from "../values";
 import { RuntimeRepresentation } from "./types";
-
-export function representLazyValue(
-  lazyValue: LazyValue,
-): RuntimeRepresentation {
-  if (lazyValue.replacedBy) {
-    return representLazyValue(lazyValue.replacedBy);
-  }
-  if (!lazyValue.memo) {
-    return ["_"];
-  }
-  return lazyValue.memo.representation;
-}
-
-export function representResult(
-  r: RuntimeResult<Value>,
-): RuntimeRepresentation {
-  if ("ok" in r) return representValue(r.ok);
-  return representError(r.error);
-}
 
 export function representError(error: RuntimeError): RuntimeRepresentation {
   return [{ error: error.message }];
@@ -41,10 +22,10 @@ export function representValue(value: Value): RuntimeRepresentation {
   return value.representation;
 }
 
-function representListElements(elements: LazyValue[]): RuntimeRepresentation {
+function representListElements(elements: ValueBox[]): RuntimeRepresentation {
   return [{
     defer: () => {
-      const elemReps = elements.map((el) => representLazyValue(el));
+      const elemReps = elements.map((el) => el.getRepresentation());
       return intersperse(elemReps, [","]);
     },
   }];
@@ -59,7 +40,7 @@ export function representCaptured(
 
 export function representCall(
   callee: RuntimeRepresentation,
-  args_: LazyValue[],
+  args_: ValueBox[],
   kind: "regular" | "value",
   style: RegularCallStyle | ValueCallStyle,
 ): RuntimeRepresentation {
@@ -69,12 +50,12 @@ export function representCall(
 
       if (style === "operator") {
         if (args.length === 1) {
-          const leftRepresentation = representLazyValue(args[0]);
+          const leftRepresentation = args[0].getRepresentation();
           return ["(", callee, leftRepresentation, ")"];
         }
         if (args.length === 2) {
-          const leftRepresentation = representLazyValue(args[0]);
-          const rightRepresentation = representLazyValue(args[1]);
+          const leftRepresentation = args[0].getRepresentation();
+          const rightRepresentation = args[1].getRepresentation();
           return ["(", leftRepresentation, callee, rightRepresentation, ")"];
         }
         throw new Unreachable();
@@ -82,7 +63,7 @@ export function representCall(
 
       const r: RuntimeRepresentation = [];
       if (style === "piped") {
-        r.push("(", representLazyValue(args[0]), " |> ");
+        r.push("(", args[0].getRepresentation(), " |> ");
         args = args.slice(1);
       }
       r.push(...callee);
@@ -100,12 +81,12 @@ export function representCall(
 }
 
 export function representRepetition(
-  count: LazyValue,
+  count: ValueBox,
   bodyRaw: string,
 ): RuntimeRepresentation {
   return [{
     defer: () => {
-      return ["(", representLazyValue(count), "#", bodyRaw, ")"];
+      return ["(", count.getRepresentation(), "#", bodyRaw, ")"];
     },
   }];
 }

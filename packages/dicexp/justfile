@@ -9,6 +9,9 @@ type-check: prepare
 
 test: type-check parsing--test executing--test
 
+test-watch-ui:
+	pnpm exec vitest --ui --open=false
+
 parsing--test: prepare
 	pnpm exec vitest --dir=test/parsing --run
 

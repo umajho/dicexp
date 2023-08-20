@@ -12,10 +12,7 @@ export function makeScope(rawScope: RawScope): Scope {
       param.type === "$lazy" ? "lazy" : param.type
     );
     const impl = rawScope.definitions[fullName];
-    opScope[fullName] = makeFunction(
-      argSpec as ValueSpec[],
-      (args, rtm) => impl(rtm, ...args),
-    );
+    opScope[fullName] = makeFunction(argSpec as ValueSpec[], impl);
   }
 
   return opScope;

@@ -1,17 +1,23 @@
 import { Node } from "@dicexp/nodes";
 
-import { Concrete, LazyValue, RuntimeResult, Value_List } from "./values";
+import { Value, Value_List, ValueBox } from "./values";
 import {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,
 } from "../regular-functions/mod";
+import { RuntimeError } from "./runtime_errors";
 
-export type Scope = { [ident: string]: RegularFunction | LazyValue };
+export type Scope = { [ident: string]: RegularFunction | ValueBox };
+
+export type RawFunction = (
+  rtm: RuntimeProxyForFunction,
+  ...args: (Value | ValueBox)[]
+) => ["ok", Value] | ["lazy", ValueBox] | ["error", RuntimeError];
 
 export type RawScope = {
   isRawScope: true;
   declarations: readonly RegularFunctionDeclaration[];
-  definitions: Record<string, Function>;
+  definitions: Record<string, RawFunction>;
 };
 
 export function makeRawScope<T extends readonly RegularFunctionDeclaration[]>(
@@ -24,12 +30,11 @@ export function makeRawScope<T extends readonly RegularFunctionDeclaration[]>(
 export type RegularFunction = (
   args: Value_List,
   rtm: RuntimeProxyForFunction,
-) => RuntimeResult<LazyValue>;
+) => ValueBox;
 
 export interface RuntimeProxyForFunction {
-  interpret: (scope: Scope, node: Node) => LazyValue;
+  interpret: (scope: Scope, node: Node) => ValueBox;
   random: RandomGenerator;
-  concretize(v: LazyValue, rtm: RuntimeProxyForFunction | null): Concrete;
 }
 
 export interface RandomGenerator {

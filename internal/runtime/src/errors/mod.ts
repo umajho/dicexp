@@ -33,6 +33,28 @@ export function runtimeError_wrongArity(
   );
 }
 
+/**
+ * TODO: 在步骤展现中，检测到错误为此时，省略显示此错误。（因为直接的错误已经在参数中显示了。）
+ */
+export class RuntimeErrorFromArgument implements RuntimeError {
+  type: "error" = "error";
+
+  originalError: RuntimeError;
+
+  get message() {
+    return "参数中存在错误：" + this.originalError.message;
+  }
+
+  constructor(
+    originalError: RuntimeError,
+  ) {
+    while (originalError instanceof RuntimeErrorFromArgument) {
+      originalError = originalError.originalError;
+    }
+    this.originalError = originalError;
+  }
+}
+
 export type TypeMismatchKind = null | "list-inconsistency";
 
 export function runtimeError_typeMismatch(

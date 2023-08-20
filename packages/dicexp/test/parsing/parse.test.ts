@@ -357,10 +357,11 @@ function theyAreOk(
 
 function mustParse(code: string): Node {
   const parseResult = parse(code);
-  if ("error" in parseResult) {
-    throw new Unreachable(`解析错误：${parseResult.error.message}`);
+  if (parseResult[0] === "error") {
+    throw new Unreachable(`解析错误：${parseResult[1].message}`);
   }
-  return parseResult.ok;
+  // result[0] === "ok"
+  return parseResult[1];
 }
 
 function assertOk(
@@ -369,12 +370,13 @@ function assertOk(
   parseFn: (code: string) => ParsingResult = parse,
 ) {
   const result = parseFn(code);
-  const assertMessage = "error" in result
-    ? `error: ${result.error.message}`
-    : "";
-  assert(!("error" in result), assertMessage);
+
+  if (result[0] === "error") {
+    assert(false, `error: ${result[1].message}`);
+  }
+  // result[0] === "ok"
   if (expected) {
-    assert.deepEqual(result.ok, expected);
+    assert.deepEqual(result[1], expected);
   }
 }
 
@@ -393,5 +395,5 @@ function assertBad(
   code: string,
   parseFn: (code: string) => ParsingResult = parse,
 ) {
-  assert("error" in parseFn(code));
+  assert(parseFn(code)[0] === "error");
 }

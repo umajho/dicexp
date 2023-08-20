@@ -8,42 +8,40 @@ import {
   asInteger,
   asList,
   getTypeNameOfValue,
-  LazyValue,
   RuntimeError,
-  RuntimeProxyForFunction,
-  RuntimeResult,
   Value,
+  ValueBox,
   ValueSpec,
   ValueTypeName,
 } from "../values/mod";
 
 export function unwrapValue(
   spec: ValueSpec,
-  value: LazyValue,
-  rtm: RuntimeProxyForFunction,
+  valueBox: ValueBox,
   opts?: CheckTypeOptions,
-): RuntimeResult<{ value: LazyValue | Value }> {
-  if (spec === "lazy") {
-    // 是否多变就交由函数内部判断了
-    return { ok: { value } };
-  }
+): ["ok", Value] | ["lazy", ValueBox] | ["error", RuntimeError] {
+  if (spec === "lazy") return ["lazy", valueBox];
+  return unwrapValueNoLazy(spec, valueBox, opts);
+}
 
-  const concrete = rtm.concretize(value, rtm);
-  if ("error" in concrete.value) return concrete.value;
+function unwrapValueNoLazy(
+  spec: Exclude<ValueSpec, "lazy">,
+  valueBox: ValueBox,
+  opts?: CheckTypeOptions,
+): ["ok", Value] | ["error", RuntimeError] {
+  const valueResult = valueBox.get();
+  if (valueResult[0] === "error") return ["error", valueResult[1]];
 
-  const adapted = tryAdaptType(spec, concrete.value.ok, opts);
-  if ("error" in adapted) {
-    return { error: adapted.error };
-  }
-
-  return { ok: { value: adapted.ok } };
+  // alueResult[0] === "ok"
+  // FIXME?: 适配前的值的步骤丢失了
+  return tryAdaptType(spec, valueResult[1], opts);
 }
 
 function tryAdaptType(
   spec: Exclude<ValueSpec, "lazy">,
   value: Value,
   opts: CheckTypeOptions = {},
-): RuntimeResult<Value> {
+): ["ok", Value] | ["error", RuntimeError] {
   let typeName: ValueTypeName = getTypeNameOfValue(value);
   let shouldConvert = false;
   if (typeName === "integer$sum_extendable") {
@@ -65,7 +63,7 @@ function tryAdaptType(
   }
 
   const error = checkType(spec, typeName, opts);
-  if (error) return { error };
+  if (error) return ["error", error];
 
   if (shouldConvert) {
     if (typeName === "integer") {
@@ -77,7 +75,7 @@ function tryAdaptType(
     }
   }
 
-  return { ok: value };
+  return ["ok", value];
 }
 
 interface CheckTypeOptions {
@@ -106,13 +104,13 @@ function checkType(
 
 /**
  * @param spec 除了列表之外其他的元素应该满足的规格
- * @param list
+ *
+ * TODO: 区分问题在于 “存在参数求值时出错” 还是 “存在求出的值类型与规格不匹配”。
  */
 export function flattenListAll(
   spec: Exclude<ValueSpec, "lazy">,
-  list: LazyValue[],
-  rtm: RuntimeProxyForFunction,
-): RuntimeResult<{ values: Value[] }> {
+  list: ValueBox[],
+): ["ok", Value[]] | "error" {
   if (spec !== "*") {
     if (spec instanceof Set) {
       spec.add("list");
@@ -124,22 +122,22 @@ export function flattenListAll(
   const values: Value[] = [];
 
   for (const [i, elem] of list.entries()) {
-    const result = unwrapValue(spec, elem, rtm);
-    if ("error" in result) return result;
-    // FIXME: 类型推断
-    const { value: _value } = result.ok;
-    const value = _value as Value;
+    const unwrapResult = unwrapValueNoLazy(spec, elem);
+    if (unwrapResult[0] === "error") return "error";
 
-    if (getTypeNameOfValue(value) === "list") {
-      const listResult = flattenListAll(spec, value as LazyValue[], rtm);
-      if ("error" in listResult) return listResult;
-      values.push(...listResult.ok.values);
+    // unwrapResult[0] === "ok"
+    const unwrappedElem = unwrapResult[1];
+
+    if (getTypeNameOfValue(unwrappedElem) === "list") {
+      const subResult = flattenListAll(spec, unwrappedElem as ValueBox[]);
+      if (subResult === "error") return "error";
+      values.push(...subResult[1]);
     } else {
-      values[i] = value;
+      values[i] = unwrappedElem;
     }
   }
 
-  return { ok: { values } };
+  return ["ok", values];
 }
 
 /**
@@ -150,32 +148,30 @@ export function flattenListAll(
  */
 export function unwrapListOneOf(
   specOneOf: Set<ValueTypeName>,
-  list: LazyValue[],
-  rtm: RuntimeProxyForFunction,
-): RuntimeResult<{ values: Value[] }> {
-  if (!list.length) return { ok: { values: [] } };
+  list: ValueBox[],
+): ["ok", Value[]] | "error" {
+  if (!list.length) return ["ok", []];
 
   const values: Value[] = Array(list.length);
   let firstType: ValueTypeName;
 
   for (const [i, elem] of list.entries()) {
-    let valueResult: ReturnType<typeof unwrapValue>;
+    let valueResult: ReturnType<typeof unwrapValueNoLazy>;
     if (i === 0) {
-      valueResult = unwrapValue(specOneOf, elem, rtm);
+      valueResult = unwrapValueNoLazy(specOneOf, elem);
     } else {
-      valueResult = unwrapValue(firstType!, elem, rtm, {
+      valueResult = unwrapValueNoLazy(firstType!, elem, {
         kind: "list-inconsistency",
       });
     }
-    if ("error" in valueResult) return valueResult;
-    // FIXME: 类型推断
-    const { value: _value } = valueResult.ok;
-    const value = _value as Value;
+
+    if (valueResult[0] === "error") return "error";
+
+    values[i] = valueResult[1];
     if (i === 0) {
-      firstType = getTypeNameOfValue(value);
+      firstType = getTypeNameOfValue(values[0]);
     }
-    values[i] = value;
   }
 
-  return { ok: { values } };
+  return ["ok", values];
 }

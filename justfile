@@ -12,12 +12,6 @@ playground *args:
 build-grammar:
 	just lezer build
 
-repl:
-	just -f repl/justfile run
-
-repl-no-build:
-	just -f repl/justfile run-no-build
-
 test:
 	just dicexp test
 	just playground test

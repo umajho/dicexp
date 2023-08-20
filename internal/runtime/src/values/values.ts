@@ -1,33 +1,97 @@
-import { RuntimeError } from "./runtime_errors";
-import { RuntimeRepresentation } from "./representations/mod";
+import { makeRuntimeError, RuntimeError } from "./runtime_errors";
+import {
+  representError,
+  representValue,
+  RuntimeRepresentation,
+} from "./representations/mod";
 
-export type RuntimeResult<OkType> =
-  | { ok: OkType }
-  | { error: RuntimeError };
-
-export interface LazyValue {
+export abstract class ValueBox {
+  abstract get(): ["ok", Value] | ["error", RuntimeError];
   /**
-   * 对于结果本身不变的或者被固定下来的 LazyValue 而言，固定的值会记录在这里。
+   * 是否确定存在错误。
    */
-  memo?: Concrete | false;
-  /**
-   * 用于求其值的函数，如果已经有 memo 则可以不存在。
-   */
-  _yield?: () => Concrete | { lazy: LazyValue };
-
-  /**
-   * 是否被其他其他的 LazyValue 替代。（用于步骤展现。）
-   */
-  replacedBy?: LazyValue;
+  abstract confirmsError(): boolean;
+  abstract getRepresentation(): RuntimeRepresentation;
 }
 
-export type LazyValueWithMemo = LazyValue & {
-  memo: Concrete;
-};
+export class ValueBoxDircet extends ValueBox {
+  constructor(
+    private value: Value,
+    private representation?: RuntimeRepresentation,
+  ) {
+    super();
+  }
 
-export interface Concrete {
-  value: RuntimeResult<Value>;
-  representation: RuntimeRepresentation;
+  get(): ["ok", Value] {
+    return ["ok", this.value];
+  }
+  confirmsError() {
+    return false;
+  }
+  getRepresentation() {
+    return this.representation ?? representValue(this.value);
+  }
+}
+
+export class ValueBoxError extends ValueBox {
+  constructor(
+    private error: RuntimeError,
+    private source?: RuntimeRepresentation,
+  ) {
+    super();
+  }
+
+  get(): ["error", RuntimeError] {
+    return ["error", this.error];
+  }
+  confirmsError() {
+    return true;
+  }
+  getRepresentation() {
+    return this.source
+      ? ["(", ...this.source, "=>", representError(this.error), ")"]
+      : representError(this.error);
+  }
+}
+
+export class ValueBoxLazy extends ValueBox {
+  memo?: [["ok", Value] | ["error", RuntimeError], RuntimeRepresentation];
+
+  constructor(
+    private yielder: () => ValueBox,
+  ) {
+    super();
+  }
+
+  get() {
+    if (!this.memo) {
+      const valueBox = this.yielder();
+      this.memo = [valueBox.get(), valueBox.getRepresentation()];
+    }
+    return this.memo[0];
+  }
+  confirmsError() {
+    if (!this.memo) return false;
+    return !!this.memo[1];
+  }
+  getRepresentation() {
+    if (this.memo) {
+      return this.memo[1];
+    }
+    return ["_"];
+  }
+}
+
+export class ValueBoxUnevaluated extends ValueBox {
+  get(): ["error", RuntimeError] {
+    return ["error", makeRuntimeError("未求值（实现细节泄漏）")];
+  }
+  confirmsError() {
+    return true;
+  }
+  getRepresentation() {
+    return ["_"];
+  }
 }
 
 export type Value =
@@ -38,20 +102,20 @@ export type Value =
   | Value_List$Extendable
   | Value_Integer$SumExtendable;
 
-export type Value_List = LazyValue[];
+export type Value_List = ValueBox[];
 
 export interface Value_Callable {
   type: "callable";
   arity: number;
-  _call: (args: LazyValue[]) => RuntimeResult<LazyValue>;
+  _call: (args: ValueBox[]) => ValueBox;
 
   representation: RuntimeRepresentation;
 }
 
 export function callCallable(
   callable: Value_Callable,
-  args: LazyValue[],
-): RuntimeResult<LazyValue> {
+  args: ValueBox[],
+): ValueBox {
   return callable._call(args);
 }
 
@@ -69,7 +133,7 @@ export function asCallable(
 
 export interface Value_Extendable {
   nominalLength: number;
-  _at: (index: number) => LazyValue;
+  _at: (index: number) => ValueBox;
 }
 
 export interface Value_Integer$SumExtendable extends Value_Extendable {

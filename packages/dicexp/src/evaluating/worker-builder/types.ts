@@ -1,7 +1,6 @@
 import { Scope } from "@dicexp/runtime/values";
 
 import { RuntimeRestrictions } from "../../executing/mod";
-import { ErrorDataFromWorker } from "../error_from_worker";
 import { EvaluationResult } from "../evaluate";
 import { ParseOptions } from "../../parsing/mod";
 
@@ -50,19 +49,8 @@ export type DataToWorker<AvailableScopes extends Record<string, Scope>> =
 export type DataFromWorker =
   | [type: "initialize_result", result: InitializationResult]
   | [type: "heartbeat"]
-  | [
-    type: "evaluate_result",
-    id: string,
-    result: EvaluationResult,
-    errorData: ErrorDataFromWorker | null,
-  ]
-  | [
-    type: "batch_report",
-    id: string,
-    report: BatchReport,
-    stopped: boolean,
-    errorData: ErrorDataFromWorker | null,
-  ]
+  | [type: "evaluate_result", id: string, result: EvaluationResult]
+  | [type: "batch_report", id: string, report: BatchReport]
   | [type: "fatal", reason?: string];
 
 /**
@@ -74,18 +62,18 @@ export interface WorkerInit {
 }
 
 export type InitializationResult =
-  | { ok: true; error?: never }
-  | { ok?: never; error: ErrorDataFromWorker };
+  | "ok"
+  | ["error", Error];
 
-export interface BatchReport { // 为了不浪费已有数据， ok 和 error 可以同时存在
-  ok?: {
-    samples: number;
-    counts: { [n: number]: number };
-  };
-  error?: Error;
-  statistics?: {
-    start: { ms: number };
-    now: { ms: number };
-  };
-  stopped?: boolean;
+export type BatchReport =
+  | ["ok" | "stop", BatchResult, BatchStatistics | null]
+  | ["error", "parse" | "other", Error]
+  | ["error", "batch", Error, BatchResult, BatchStatistics | null];
+export interface BatchResult {
+  samples: number;
+  counts: { [n: number]: number };
+}
+export interface BatchStatistics {
+  start: { ms: number };
+  now: { ms: number };
 }
