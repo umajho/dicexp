@@ -1,8 +1,12 @@
+import { Unreachable } from "@dicexp/errors";
+
 import {
   Component,
+  createEffect,
   createMemo,
   createSignal,
   lazy,
+  on,
   Show,
   Suspense,
 } from "solid-js";
@@ -12,8 +16,8 @@ import { Button, Card, Loading } from "../ui";
 import { ResultErrorAlert } from "./ui";
 import * as store from "../../stores/store";
 
-import { BatchReportForWorker } from "dicexp/internal";
-import { getErrorDisplayInfo } from "../../misc";
+import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
+import { BatchReportForWorker, BatchResult, BatchStatistics } from "dicexp";
 
 const LazyBarChartForBatchResult = lazy(() =>
   import("./bar-chart-for-batch-result")
@@ -27,24 +31,48 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
   props,
 ) => {
-  const statis = (): BatchReportForWorker["statistics"] | null => {
-    return props.report.statistics ?? null;
-  };
+  const [statis, setStatis] = createSignal<BatchStatistics | null>(null),
+    [result, setResult] = createSignal<BatchResult | null>(null),
+    [error, setError] = createSignal<ErrorWithType | null>(null);
+  createEffect(on([() => props.report], () => {
+    let statis_: BatchStatistics | null = null,
+      result_: BatchResult | null = null,
+      error_: ErrorWithType | null = null;
+    if (props.report[0] === "ok" || props.report[0] === "stop") {
+      statis_ = props.report[2], result_ = props.report[1];
+    } else if (props.report[0] === "error") {
+      error_ = props.report[2] as ErrorWithType;
+      error_.type = props.report[1];
+      if (props.report[1] === "batch") {
+        statis_ = props.report[4], result_ = props.report[3];
+      }
+    } else {
+      error_ = new Unreachable() as ErrorWithType;
+      error_.type = "other";
+    }
+    setStatis(statis_);
+    setResult(result_);
+    setError(error_);
+  }));
+
+  const isRunning = () => props.report[0] === "ok";
+
   const timeConsumption = createMemo(() => {
-    const theStatis = statis();
-    if (!theStatis) return null;
-    return theStatis.now.ms - theStatis.start.ms;
+    const statis_ = statis();
+    if (!statis_) return null;
+    return statis_.now.ms - statis_.start.ms;
   });
   const statisText = createMemo(() => {
+    const result_ = result();
     return {
-      samples: props.report.ok?.samples.toLocaleString(),
+      samples: result_?.samples.toLocaleString(),
       ...(timeConsumption()
         ? { duration: numberFormat.format(timeConsumption()! / 1000) }
         : {}),
-      ...(timeConsumption() && props.report.ok
+      ...(timeConsumption() && result_
         ? {
           speed: numberFormat.format(
-            (props.report.ok.samples / timeConsumption()!) * 1000,
+            (result_.samples / timeConsumption()!) * 1000,
           ),
         }
         : {}),
@@ -52,8 +80,9 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
   });
 
   const errorDisplayInfo = () => {
-    if (!props.report.error) return null;
-    return getErrorDisplayInfo(props.report.specialErrorType);
+    const error_ = error();
+    if (!error_) return null;
+    return getErrorDisplayInfo(error_.type);
   };
 
   const [highlighted, setHighlighted] = createSignal<number | null>(null);
@@ -67,24 +96,24 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
           size="sm"
           shape="square"
           hasOutline={true}
-          disabled={!props.report.stopped}
+          disabled={isRunning()}
           onClick={() => store.clearResult()}
         />
       </div>
 
-      <Show when={props.report.error}>
+      <Show when={error()}>
         <ResultErrorAlert
           kind={errorDisplayInfo()!.kind}
-          error={props.report.error!}
+          error={error()!}
           showsStack={errorDisplayInfo()!.showsStack}
         />
       </Show>
 
       {/* 条形图 */}
-      <Show when={(props.report.ok?.samples ?? 0) > 0}>
+      <Show when={(result()?.samples ?? 0) > 0}>
         <div class="flex flex-col md:flex-row justify-around items-center gap-2 max-md:divide-y">
           <LazyBarChartForBatchResultWithSuspense
-            report={() => props.report!.ok!}
+            report={() => result()!}
             mode={() => "at-least"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
@@ -92,7 +121,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
           />
 
           <LazyBarChartForBatchResultWithSuspense
-            report={() => props.report!.ok!}
+            report={() => result()!}
             mode={() => "normal"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
@@ -100,7 +129,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
           />
 
           <LazyBarChartForBatchResultWithSuspense
-            report={() => props.report!.ok!}
+            report={() => result()!}
             mode={() => "at-most"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
@@ -110,7 +139,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
       </Show>
 
       {/* 统计 */}
-      <Show when={props.report.ok || statis()}>
+      <Show when={statis()}>
         <div class="flex flex-col text-xs text-slate-500">
           <Show when={statisText()!.samples}>
             <div>
@@ -121,7 +150,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
           <Show when={statisText()!.duration}>
             <div>
               <span class="font-mono">
-                {props.report.stopped ? "" : "目前"}用时：{statisText()!
+                {props.report[0] === "ok" ? "" : "目前"}用时：{statisText()!
                   .duration}秒
               </span>
             </div>
@@ -141,7 +170,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
 };
 
 const LazyBarChartForBatchResultWithSuspense: Component<{
-  report: () => NonNullable<BatchReportForWorker["ok"]>;
+  report: () => NonNullable<BatchResult>;
   mode: () => "normal" | "at-least" | "at-most";
   highlighted: () => number | null;
   setHighlighted: (value: number | null) => void;

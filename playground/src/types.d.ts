@@ -1,13 +1,13 @@
-import { BatchReport, EvaluationResult } from "dicexp/internal";
+import { BatchReportForWorker, EvaluationResultForWorker } from "dicexp";
 
 export type Result = {
   type: null;
 } | {
   type: "single";
-  result: EvaluationResult;
+  result: EvaluationResultForWorker;
 } | {
   type: "batch";
-  report: BatchReport;
+  report: BatchReportForWorker;
 } | {
   type: "error";
   error: Error;
