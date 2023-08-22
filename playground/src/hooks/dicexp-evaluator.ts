@@ -7,7 +7,7 @@ import {
   EvaluateOptionsForWorker,
   EvaluatingWorkerManager,
   EvaluationRestrictionsForWorker,
-} from "dicexp/internal";
+} from "dicexp";
 import { Result } from "../types";
 import { scopesForRuntime } from "../stores/scopes";
 
@@ -37,7 +37,7 @@ export default function createDicexpEvaluator(
     EvaluatingWorkerManager<typeof scopesForRuntime> | null
   >(null);
   (async () => {
-    const dicexp = await import("dicexp/internal");
+    const dicexp = await import("dicexp");
     setWorkerManager(
       new dicexp.EvaluatingWorkerManager(
         () => new DicexpEvaluatingWorker(),
