@@ -1,4 +1,7 @@
+import { Unreachable } from "@dicexp/errors";
+
 import {
+  makeRuntimeError,
   RawFunction,
   RegularFunction,
   RuntimeError,
@@ -35,8 +38,20 @@ export function makeFunction(
           return new ValueBoxDircet(result[1]);
         } else if (result[0] === "lazy") {
           return result[1];
-        } else { // result[0] === "error"
-          return new ValueBoxError(result[1]);
+        } else if (
+          result[0] === "error" || result[0] === "error_from_argument"
+        ) {
+          let err = result[1];
+          if (typeof err === "string") {
+            err = makeRuntimeError(err);
+          }
+          if (result[0] === "error_from_argument") {
+            err = new RuntimeErrorFromArgument(err);
+          }
+          return new ValueBoxError(err);
+        } else {
+          result[0] satisfies never;
+          throw new Unreachable();
         }
       });
     }

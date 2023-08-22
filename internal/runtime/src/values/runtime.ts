@@ -12,7 +12,11 @@ export type Scope = { [ident: string]: RegularFunction | ValueBox };
 export type RawFunction = (
   rtm: RuntimeProxyForFunction,
   ...args: (Value | ValueBox)[]
-) => ["ok", Value] | ["lazy", ValueBox] | ["error", RuntimeError];
+) =>
+  | ["ok", Value]
+  | ["lazy", ValueBox]
+  | ["error", RuntimeError | string]
+  | ["error_from_argument", RuntimeError | string];
 
 export type RawScope = {
   isRawScope: true;
