@@ -170,7 +170,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
 };
 
 const LazyBarChartForBatchResultWithSuspense: Component<{
-  report: () => NonNullable<BatchResult>;
+  report: () => BatchResult;
   mode: () => "normal" | "at-least" | "at-most";
   highlighted: () => number | null;
   setHighlighted: (value: number | null) => void;

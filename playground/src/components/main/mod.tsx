@@ -4,7 +4,7 @@ import { ControlPane } from "./control-pane";
 import * as store from "../../stores/store";
 import { ResultPaneForSingle } from "./result-pane-for-single";
 
-import { BatchReportForWorker, ExecutionResult } from "dicexp/internal";
+import { BatchReportForWorker, EvaluationResultForWorker } from "dicexp";
 import { ResultPaneForBatch } from "./result-pane-for-batch";
 import { DocumentationPane } from "./documentation-pane";
 
@@ -15,7 +15,8 @@ export const Main: Component = () => {
 
       <Show when={store.result().type === "single"}>
         <ResultPaneForSingle
-          result={(store.result() as { result: ExecutionResult }).result}
+          result={(store.result() as { result: EvaluationResultForWorker })
+            .result}
         />
       </Show>
 

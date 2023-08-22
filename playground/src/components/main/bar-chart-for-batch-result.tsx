@@ -2,12 +2,12 @@ import { Component, createEffect, createMemo, on, onMount } from "solid-js";
 
 import * as d3 from "d3";
 
-import { BatchReport } from "dicexp/internal";
+import { BatchResult } from "dicexp/internal";
 import { Unreachable } from "@dicexp/errors";
 import { Portal } from "solid-js/web";
 
 const BarChartForBatchResult: Component<{
-  report: NonNullable<BatchReport["ok"]>;
+  report: BatchResult;
   mode: "normal" | "at-least" | "at-most";
   highlighted: number | null;
   setHighlighted: (value: number | null) => void;
