@@ -11,7 +11,7 @@ import {
   Switch,
 } from "solid-js";
 
-import { EvaluationRestrictionsForWorker } from "dicexp";
+import { EvaluationRestrictionsForWorker } from "dicexp/internal";
 
 import {
   Button,

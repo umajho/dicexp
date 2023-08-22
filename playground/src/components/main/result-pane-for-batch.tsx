@@ -17,7 +17,11 @@ import { ResultErrorAlert } from "./ui";
 import * as store from "../../stores/store";
 
 import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
-import { BatchReportForWorker, BatchResult, BatchStatistics } from "dicexp";
+import {
+  BatchReportForWorker,
+  BatchResult,
+  BatchStatistics,
+} from "dicexp/internal";
 
 const LazyBarChartForBatchResult = lazy(() =>
   import("./bar-chart-for-batch-result")

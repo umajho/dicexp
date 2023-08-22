@@ -4,7 +4,10 @@ import { ControlPane } from "./control-pane";
 import * as store from "../../stores/store";
 import { ResultPaneForSingle } from "./result-pane-for-single";
 
-import { BatchReportForWorker, EvaluationResultForWorker } from "dicexp";
+import {
+  BatchReportForWorker,
+  EvaluationResultForWorker,
+} from "dicexp/internal";
 import { ResultPaneForBatch } from "./result-pane-for-batch";
 import { DocumentationPane } from "./documentation-pane";
 

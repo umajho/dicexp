@@ -1,4 +1,4 @@
-import { startWorkerServer } from "dicexp";
+import { startWorkerServer } from "dicexp/internal";
 
 import { scopesForRuntime } from "../stores/scopes";
 

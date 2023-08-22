@@ -24,7 +24,7 @@ import {
   JSValue,
   Representation,
   RuntimeError,
-} from "dicexp";
+} from "dicexp/internal";
 import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
 
 export const ResultPaneForSingle: Component<
