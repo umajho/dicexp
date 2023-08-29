@@ -141,10 +141,29 @@ export function flattenListAll(
 }
 
 /**
+ * 将 ValueBox 的数组转为 Value 的数组，并保证元素的类型符合 spec。
+ */
+export function unwrapList(
+  spec: ValueTypeName,
+  list: ValueBox[],
+): ["ok", Value[]] | "error" {
+  if (!list.length) return ["ok", []];
+
+  const values: Value[] = Array(list.length);
+  for (const [i, elem] of list.entries()) {
+    let valueResult = unwrapValueNoLazy(spec, elem);
+    if (valueResult[0] === "error") return "error";
+    values[i] = valueResult[1];
+  }
+
+  return ["ok", values];
+}
+
+/**
+ * 将 ValueBox 的数组转为 Value 的数组，并保证元素的类型是 specOneOf 之一，
+ * 且各元素类型相同。
+ *
  * FIXME: 前后类型不一致时返回的错误不够清晰，应该明确是前后不一致造成的
- * @param specOneOf
- * @param list
- * @returns
  */
 export function unwrapListOneOf(
   specOneOf: Set<ValueTypeName>,

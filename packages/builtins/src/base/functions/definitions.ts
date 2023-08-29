@@ -1,7 +1,11 @@
 import {
   DeclarationListToDefinitionMap,
 } from "@dicexp/runtime/regular-functions";
-import { flattenListAll, unwrapListOneOf } from "@dicexp/runtime/value-utils";
+import {
+  flattenListAll,
+  unwrapList,
+  unwrapListOneOf,
+} from "@dicexp/runtime/value-utils";
 import {
   callCallable,
   getDisplayNameFromTypeName,
@@ -30,14 +34,14 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   },
   // ...
   "sum/1": (_rtm, list) => {
-    const result = flattenListAll("integer", list);
+    const result = unwrapList("integer", list);
     // FIXME: 应该由 `flattenListAll`、`unwrapListOneOf` 这类函数返回错误，再由其调用者
     //        加工返回错误，而不是像这样直接断定错误信息。（不只这一处。）
     if (result === "error") return ["error", "传入的列表存在非「数字」项"];
     return ["ok", sum(result[1] as number[])];
   },
   "product/1": (_rtm, list) => {
-    const result = flattenListAll("integer", list);
+    const result = unwrapList("integer", list);
     if (result === "error") return ["error", "传入的列表存在非「数字」项"];
     return ["ok", product(result[1] as number[])];
   },
