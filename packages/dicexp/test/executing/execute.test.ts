@@ -1,7 +1,5 @@
 import { assert, describe, it } from "vitest";
 
-// import { spawn, Thread, Worker } from "npm:threads";
-
 import {
   assertExecutionOk,
   assertExecutionRuntimeError,
@@ -17,7 +15,6 @@ import {
 import { evaluateForTest } from "./test_helpers";
 import {
   runtimeError_duplicateClosureParameterNames,
-  runtimeError_unknownVariable,
   runtimeError_wrongArity,
 } from "@dicexp/runtime/errors";
 import { JSValue } from "../../src/executing/mod";
@@ -132,29 +129,6 @@ describe("值", () => {
           // assert(stopped);
         });
         it.todo("`d(2^32+1)` 不会死循环");
-      });
-
-      describe.skip("d%/1 与 d%/2", () => { // 弃用 `d%`
-        it("保证生成的数在范围内", () => {
-          for (const isBinary of [false, true]) {
-            const upper = 10;
-            const times = isBinary ? 100 : 1;
-            const code = `${isBinary ? 100 : ""}d%${upper}`;
-
-            for (let j = 0; j < 100; j++) {
-              const result = assertNumber(evaluateForTest(code));
-              assert(
-                result >= 0 && result <= (upper - 1) * times,
-                `\`${code}\` => ${result}`,
-              );
-            }
-          }
-        });
-      });
-      it.skip("保证生成的是随机数", () => { // FIXME: 同名一系列测试都忘了取出结果
-        const upper = 1000000;
-        const code = `d%${upper}`;
-        assertResultsAreRandom(code);
       });
     });
   });
@@ -332,9 +306,7 @@ describe("运算符", () => {
       binaryOperatorOnlyAcceptsNumbers(">=");
     });
 
-    // describe("|>/2", () => {
-    //   // 管道运算符在解析时被消去，因此不存在于此处
-    // });
+    // NOTE: 管道运算符（`|>`）在解析时被消去，因此不存在于此处
 
     describe("~/1 与 ~/2", () => {
       // 已在生成器处测试
@@ -453,11 +425,6 @@ describe("运算符", () => {
 
       unaryOperatorOnlyAcceptsNumbers("d");
     });
-    describe.skip("d%/1", () => { // 弃用 `d%`
-      // 已在生成器处测试
-
-      unaryOperatorOnlyAcceptsNumbers("d%");
-    });
 
     describe("^", () => {
       describe("执行指数运算", () => {
@@ -536,11 +503,6 @@ describe("语义", () => {
         assert((new Set(resultFlatten)).size > 1);
       });
     }
-  });
-});
-
-describe("自带函数", () => {
-  it.todo("TODO", () => { // TODO: 交由 @dicexp/builtins 包自行处理
   });
 });
 
