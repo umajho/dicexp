@@ -45,8 +45,8 @@ type ParameterListToFunction<
   | (ReturnValueType extends { lazy: true } //
     ? ["lazy", ValueBox]
     : ["ok", ReturnValueTypeSpecToType<ReturnValueType>])
-  | ["error", RuntimeError | string]
-  | ["error_from_argument", RuntimeError | string];
+  | ["error", RuntimeError | string];
+// | ["error_from_argument", RuntimeError | string];
 
 /**
  * 把声明中的参数列表转换成一一对应的类型元组。

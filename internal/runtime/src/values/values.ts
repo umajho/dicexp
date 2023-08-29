@@ -1,9 +1,5 @@
 import { makeRuntimeError, RuntimeError } from "./runtime_errors";
-import {
-  representError,
-  representValue,
-  RuntimeRepresentation,
-} from "./representations/mod";
+import { createReprOfValue, Repr, ReprError } from "./repr/mod";
 
 export abstract class ValueBox {
   /**
@@ -14,13 +10,13 @@ export abstract class ValueBox {
    * 是否确定存在错误。
    */
   abstract confirmsError(): boolean;
-  abstract getRepresentation(): RuntimeRepresentation;
+  abstract getRepr(): Repr;
 }
 
 export class ValueBoxDircet extends ValueBox {
   constructor(
     private value: Value,
-    private representation?: RuntimeRepresentation,
+    private representation: Repr = createReprOfValue(value),
   ) {
     super();
   }
@@ -31,17 +27,28 @@ export class ValueBoxDircet extends ValueBox {
   confirmsError() {
     return false;
   }
-  getRepresentation() {
-    return this.representation ?? representValue(this.value);
+  getRepr() {
+    return this.representation;
   }
 }
 
 export class ValueBoxError extends ValueBox {
+  private repr: Repr;
+
   constructor(
     private error: RuntimeError,
-    private source?: RuntimeRepresentation,
+    opts?: {
+      deep?: boolean;
+      source?: Repr;
+    },
   ) {
     super();
+
+    this.repr = new ReprError(
+      opts?.deep ? "deep" : "direct",
+      error,
+      opts?.source,
+    );
   }
 
   get(): ["error", RuntimeError] {
@@ -50,26 +57,25 @@ export class ValueBoxError extends ValueBox {
   confirmsError() {
     return true;
   }
-  getRepresentation() {
-    return this.source
-      ? ["(", ...this.source, "=>", representError(this.error), ")"]
-      : representError(this.error);
+  getRepr() {
+    return this.repr;
   }
 }
 
 export class ValueBoxLazy extends ValueBox {
-  memo?: [["ok", Value] | ["error", RuntimeError], RuntimeRepresentation];
+  memo?: [["ok", Value] | ["error", RuntimeError], Repr];
 
   constructor(
-    private yielder: () => ValueBox,
+    private yielder?: () => ValueBox,
   ) {
     super();
   }
 
   get() {
     if (!this.memo) {
-      const valueBox = this.yielder();
-      this.memo = [valueBox.get(), valueBox.getRepresentation()];
+      const valueBox = this.yielder!();
+      delete this.yielder;
+      this.memo = [valueBox.get(), valueBox.getRepr()];
     }
     return this.memo[0];
   }
@@ -77,7 +83,7 @@ export class ValueBoxLazy extends ValueBox {
     if (!this.memo) return false;
     return !!this.memo[1];
   }
-  getRepresentation() {
+  getRepr() {
     if (this.memo) {
       return this.memo[1];
     }
@@ -92,7 +98,7 @@ export class ValueBoxUnevaluated extends ValueBox {
   confirmsError() {
     return true;
   }
-  getRepresentation() {
+  getRepr() {
     return ["_"];
   }
 }
@@ -112,7 +118,7 @@ export interface Value_Callable {
   arity: number;
   _call: (args: ValueBox[]) => ValueBox;
 
-  representation: RuntimeRepresentation;
+  representation: Repr;
 }
 
 export function callCallable(

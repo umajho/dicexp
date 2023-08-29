@@ -13,8 +13,8 @@ export type RawFunction = (
 ) =>
   | ["ok", Value]
   | ["lazy", ValueBox]
-  | ["error", RuntimeError | string]
-  | ["error_from_argument", RuntimeError | string];
+  | ["error", RuntimeError | string];
+// | ["error_from_argument", RuntimeError | string];
 
 export type RawScope = {
   isRawScope: true;

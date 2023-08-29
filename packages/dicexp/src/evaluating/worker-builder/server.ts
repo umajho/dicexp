@@ -106,6 +106,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
       postMessage(data);
     } catch (e) {
       const errorMessage = (e instanceof Error) ? e.message : `${e}`;
+      console.log(data);
       postMessage(["fatal", "无法发送消息：" + errorMessage]);
     }
   }

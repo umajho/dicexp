@@ -22,7 +22,7 @@ import {
   EvaluationResultForWorker,
   ExecutionAppendix,
   JSValue,
-  Representation,
+  Repr,
   RuntimeError,
 } from "dicexp/internal";
 import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
@@ -166,7 +166,7 @@ const ResultTab: Component<{
 const LazyJsonViewer = lazy(() => import("../json-viewer"));
 
 const RepresentationTab: Component<
-  { representation: () => Representation; class?: string }
+  { representation: () => Repr; class?: string }
 > = (props) => {
   return (
     <Suspense

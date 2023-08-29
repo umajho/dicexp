@@ -2,11 +2,18 @@ import { Unreachable } from "@dicexp/errors";
 import { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
+  createReprOfValue,
   getDisplayNameOfValue,
   makeRuntimeError,
-  representError,
+  Repr,
+  ReprCapture,
+  ReprError,
+  ReprIdentifier,
+  ReprRaw,
+  ReprRegularCall,
+  ReprRepetition,
+  ReprValueCall,
   RuntimeError,
-  RuntimeRepresentation,
   Value,
   Value_Callable,
   Value_List,
@@ -16,14 +23,7 @@ import {
   ValueBoxError,
   ValueBoxLazy,
 } from "@dicexp/runtime/values";
-import {
-  RegularFunction,
-  representCall,
-  representCaptured,
-  representRepetition,
-  representValue,
-  Scope,
-} from "@dicexp/runtime/values";
+import { RegularFunction, Scope } from "@dicexp/runtime/values";
 import {
   runtimeError_duplicateClosureParameterNames,
   runtimeError_limitationExceeded,
@@ -47,12 +47,12 @@ export class LazyValueFactory {
       if (result[0] === "ok") {
         return new ValueBoxDircet(
           result[1],
-          [`(${ident}=`, representValue(result[1]), `)`],
+          new ReprIdentifier(ident, createReprOfValue(result[1])),
         );
       } else { // result[0] === "error"
         return new ValueBoxError(
           result[1],
-          [`(${ident}=`, representError(result[1]), `)`],
+          new ReprError("direct", result[1], new ReprIdentifier(ident)),
         );
       }
     });
@@ -64,9 +64,11 @@ export class LazyValueFactory {
 
   error(
     error: RuntimeError,
-    source?: RuntimeRepresentation,
+    source?: Repr,
   ): ValueBox {
-    return new ValueBoxError(error, source);
+    return source
+      ? new ValueBoxError(error, { source })
+      : new ValueBoxError(error);
   }
 
   list(list: ValueBox[]): ValueBox {
@@ -80,32 +82,34 @@ export class LazyValueFactory {
     style: RegularCallStyle,
     runtime: RuntimeProxy,
   ): ValueBox {
-    const calling = representCall([name], args, "regular", style);
-
     const fnResult = getFunctionFromScope(scope, name, args.length);
-    if (fnResult[0] === "error") return this.error(fnResult[1], calling);
+    if (fnResult[0] === "error") {
+      return this.error(fnResult[1], new ReprRegularCall(style, name));
+    }
     // fnResult[0] === "ok"
     const fn = fnResult[1];
 
     return new ValueBoxLazy(
       () => {
         const errFromReporter = this.runtime.reporter.called?.();
-        if (errFromReporter) return this.error(errFromReporter, calling);
+        if (errFromReporter) {
+          return this.error(errFromReporter, new ReprRegularCall(style, name));
+        }
 
         const result = fn(args, runtime).get();
-        if (result[0] === "error") return this.error(result[1], calling);
+        const argsReprs = args.map((arg) => arg.getRepr());
+        const reprCall = new ReprRegularCall(style, name, argsReprs);
+
+        if (result[0] === "error") return this.error(result[1], reprCall);
         // result[0] === "ok"
         const value = result[1];
 
         if (typeof value === "number") {
           const err = checkInteger(value);
-          if (err) return this.error(err, representValue(value));
+          if (err) return this.error(err, reprCall);
         }
 
-        return new ValueBoxDircet(
-          value,
-          ["(", ...calling, "=>", representValue(value), ")"],
-        );
+        return new ValueBoxDircet(value, reprCall);
       },
     );
   }
@@ -145,10 +149,7 @@ export class LazyValueFactory {
             () => {
               const errFromReporter = this.runtime.reporter.closureEnter!();
               if (errFromReporter) {
-                return this.error(
-                  errFromReporter,
-                  oldInterpreted.getRepresentation(),
-                );
+                return this.error(errFromReporter, oldInterpreted.getRepr());
               }
               oldInterpreted.get();
               this.runtime.reporter.closureExit!();
@@ -160,7 +161,7 @@ export class LazyValueFactory {
         return interpreted;
       },
 
-      representation: [raw],
+      representation: new ReprRaw(raw),
     };
 
     return new ValueBoxDircet(closure);
@@ -172,7 +173,7 @@ export class LazyValueFactory {
     scope: Scope,
     runtime: RuntimeProxy,
   ): ValueBox {
-    const representation = representCaptured(identifier, arity);
+    const representation = new ReprCapture(identifier, arity);
 
     const fnResult = getFunctionFromScope(scope, identifier, arity);
     if (fnResult[0] === "error") {
@@ -206,33 +207,38 @@ export class LazyValueFactory {
   ): ValueBox {
     // TODO: 这样会不会导致可能不必要的求值？要不要也放进 lazy 中？
     const valueResult = valueBox.get();
-    const valueRepresentation = valueBox.getRepresentation();
-    const calling = representCall(valueRepresentation, args, "value", style);
+    const calleeRepr = valueBox.getRepr();
 
-    if (valueResult[0] === "error") return this.error(valueResult[1], calling);
+    if (valueResult[0] === "error") {
+      const callRepr = new ReprValueCall(style, calleeRepr);
+      return this.error(valueResult[1], callRepr);
+    }
     // valueResult[0] === "ok"
     const value = valueResult[1];
 
     const callable = asCallable(value);
     if (!callable) {
-      return this.error(runtimeError_valueIsNotCallable(), calling);
+      const callRepr = new ReprValueCall(style, calleeRepr);
+      return this.error(runtimeError_valueIsNotCallable(), callRepr);
     }
 
     return new ValueBoxLazy(
       () => {
         const errFromReporter = this.runtime.reporter.called?.();
-        if (errFromReporter) return this.error(errFromReporter, calling);
+        if (errFromReporter) {
+          const callRepr = new ReprValueCall(style, calleeRepr);
+          return this.error(errFromReporter, callRepr);
+        }
 
         const result = callable._call(args).get();
+        const argsReprs = args.map((arg) => arg.getRepr());
+        const callRepr = new ReprValueCall(style, calleeRepr, argsReprs);
 
-        if (result[0] === "error") return this.error(result[1], calling);
+        if (result[0] === "error") return this.error(result[1], callRepr);
         // result[0] === "ok"
         const value = result[1];
 
-        return new ValueBoxDircet(
-          value,
-          ["(", ...calling, "=>", representValue(value), ")"],
-        );
+        return new ValueBoxDircet(value, callRepr);
       },
     );
   }
@@ -243,12 +249,13 @@ export class LazyValueFactory {
     bodyRaw: string,
     scope: Scope,
   ): ValueBox {
-    const representation = representRepetition(count, bodyRaw);
     return new ValueBoxLazy(
       () => {
         const countResult = count.get();
+        const repr = new ReprRepetition(count.getRepr(), bodyRaw);
+
         if (countResult[0] === "error") {
-          return this.error(countResult[1], representation);
+          return this.error(countResult[1], repr);
         }
         // countResult[0] === "ok"
         const countValue = countResult[1];
@@ -256,7 +263,7 @@ export class LazyValueFactory {
         if (typeof countValue != "number") {
           const typeName = getDisplayNameOfValue(countValue);
           const errMsg = `反复次数期待「整数」，实际类型为「${typeName}」`;
-          return this.error(makeRuntimeError(errMsg), representation);
+          return this.error(makeRuntimeError(errMsg), repr);
         }
 
         const underlying: Value_List = Array(countValue);

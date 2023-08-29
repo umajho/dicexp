@@ -18,9 +18,8 @@ import { RandomGenerator, RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   asPlain,
-  finalizeRepresentation,
   getTypeNameOfValue,
-  Representation,
+  Repr,
   RuntimeError,
   RuntimeProxyForFunction,
   Scope,
@@ -61,7 +60,7 @@ export interface Statistics {
 export type JSValue = number | boolean | JSValue[];
 
 export interface ExecutionAppendix {
-  representation: Representation;
+  representation: Repr;
   statistics: Statistics;
 }
 
@@ -177,7 +176,7 @@ export class Runtime {
     const interpreted = this._interpretRoot();
     const result = this._finalize(interpreted);
     const appendix = {
-      representation: finalizeRepresentation(interpreted.getRepresentation()),
+      representation: interpreted.getRepr(),
       statistics: {
         timeConsumption: {
           ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
