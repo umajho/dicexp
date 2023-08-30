@@ -3,15 +3,15 @@ import { AssertionError } from "assertion-error";
 
 import { inspect } from "util";
 
-import { parse, ParseOptions } from "../../src/parsing/mod";
-
-import { RuntimeError, Scope, ValueTypeName } from "@dicexp/runtime/values";
 import {
   execute,
   ExecuteOptions,
   ExecutionResult,
   JSValue,
-} from "../../src/executing/mod";
+  parse,
+  ParseOptions,
+} from "dicexp/internal";
+import { RuntimeError, Scope, ValueTypeName } from "@dicexp/runtime/values";
 import {
   runtimeError_callArgumentTypeMismatch,
   RuntimeErrorFromArgument,

@@ -1,0 +1,19 @@
+{
+  "packageManager": "pnpm@8.6.12",
+  "name": "@dicexp/test-utils-for-executing",
+  "version": "0.0.0",
+  "main": "lib.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@dicexp/builtins": "workspace:*",
+    "@dicexp/errors": "workspace:*",
+    "@dicexp/runtime": "workspace:*",
+    "assertion-error": "^2.0.0",
+    "dicexp": "workspace:*",
+    "vitest": "^0.34.2"
+  }
+}

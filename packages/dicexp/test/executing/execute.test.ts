@@ -7,12 +7,12 @@ import {
   assertResultsAreRandom,
   binaryOperatorOnlyAcceptsBoolean,
   binaryOperatorOnlyAcceptsNumbers,
+  evaluateForTest,
   theyAreOk,
   unaryOperatorOnlyAcceptsBoolean,
   unaryOperatorOnlyAcceptsNumbers,
-} from "./test_helpers";
+} from "@dicexp/test-utils-for-executing";
 
-import { evaluateForTest } from "./test_helpers";
 import {
   runtimeError_duplicateClosureParameterNames,
   runtimeError_wrongArity,
