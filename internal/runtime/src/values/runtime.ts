@@ -1,5 +1,3 @@
-import { Node } from "@dicexp/nodes";
-
 import { Value, Value_List, ValueBox } from "./values";
 import {
   DeclarationListToDefinitionMap,
@@ -37,7 +35,6 @@ export type RegularFunction = (
 ) => ValueBox;
 
 export interface RuntimeProxyForFunction {
-  interpret: (scope: Scope, node: Node) => ValueBox;
   random: RandomGenerator;
 }
 

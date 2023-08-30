@@ -353,4 +353,6 @@ export class Runtime {
 
 export interface RuntimeProxy extends RuntimeProxyForFunction {
   reporter: RuntimeReporter;
+
+  interpret: (scope: Scope, node: Node) => ValueBox;
 }
