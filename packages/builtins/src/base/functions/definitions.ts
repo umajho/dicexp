@@ -77,9 +77,10 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   "map/2": (_rtm, list, callable) => {
     const resultList: Value_List = Array(list.length);
     let i = 0;
-    for (; i < list.length; i++) {
+    for (; i < list.length;) {
       resultList[i] = callCallable(callable, [list[i]]);
-      if (resultList[i].confirmsError()) break;
+      i++;
+      if (resultList[i - 1].confirmsError()) break;
     }
     for (; i < list.length; i++) {
       resultList[i] = new ValueBoxUnevaluated();
@@ -114,9 +115,10 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const zippedLength = Math.min(list1.length, list2.length);
     const result = Array(zippedLength);
     let i = 0;
-    for (; i < zippedLength; i++) {
+    for (; i < zippedLength;) {
       const valueBox = callCallable(callable, [list1[i], list2[i]]);
       result[i] = valueBox;
+      i++;
       if (valueBox.confirmsError()) break;
     }
     for (; i < zippedLength; i++) {
