@@ -1,5 +1,5 @@
 import { assert, describe, it } from "vitest";
-import { AssertionError } from "assertion-error";
+import AssertionError from "assertion-error";
 
 import { inspect } from "util";
 

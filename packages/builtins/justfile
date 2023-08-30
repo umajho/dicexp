@@ -4,6 +4,7 @@ type-check:
 	tsc --noEmit
 
 test: type-check
+	pnpm exec vitest --dir=test --run
 
 build: type-check
 	pnpm run build

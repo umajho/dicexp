@@ -12,7 +12,7 @@
     "@dicexp/builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/runtime": "workspace:*",
-    "assertion-error": "^2.0.0",
+    "assertion-error": "*",
     "dicexp": "workspace:*",
     "vitest": "^0.34.2"
   }

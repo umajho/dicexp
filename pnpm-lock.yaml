@@ -64,8 +64,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       assertion-error:
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: '*'
+        version: 1.1.0
       dicexp:
         specifier: workspace:*
         version: link:../../packages/dicexp
@@ -81,6 +81,12 @@ importers:
       '@dicexp/runtime':
         specifier: workspace:*
         version: link:../../internal/runtime
+      '@dicexp/test-utils-for-executing':
+        specifier: workspace:*
+        version: link:../../internal/test-utils-for-executing
+      dicexp:
+        specifier: workspace:*
+        version: link:../dicexp
       typescript:
         specifier: ^5.1.3
         version: 5.1.3
@@ -90,6 +96,9 @@ importers:
       vite-plugin-dts:
         specifier: ^2.3.0
         version: 2.3.0(vite@4.3.9)
+      vitest:
+        specifier: ^0.34.2
+        version: 0.34.2(@vitest/ui@0.34.2)
 
   packages/dicexp:
     dependencies:
@@ -1553,11 +1562,6 @@ packages:
 
   /assertion-error@1.1.0:
     resolution: {integrity: sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw==}
-
-  /assertion-error@2.0.0:
-    resolution: {integrity: sha512-Q0en67fcMTcBp1xn4DTYasTSKD4KAo86UhA6lr+c6neaz2gelKi5ILIqLcYl9JGWkGGbooYLs2iGQv7v1e83AA==}
-    engines: {node: '>=12'}
-    dev: false
 
   /autoprefixer@10.4.14(postcss@8.4.24):
     resolution: {integrity: sha512-FQzyfOsTlwVzjHxKEqRIAdJx9niO6VCBCoEwax/VLSoQF29ggECcPuBqUMZ+u8jCZOPSy8b8/8KnuFbp0SaFZQ==}
