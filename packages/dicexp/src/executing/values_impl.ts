@@ -123,7 +123,8 @@ export class LazyValueFactory {
       arity,
       _call: (args) => {
         if (args.length !== arity) {
-          return new ValueBoxError(runtimeError_wrongArity(arity, args.length));
+          const err = runtimeError_wrongArity(arity, args.length, "closure");
+          return new ValueBoxError(err);
         }
 
         const deeperScope: Scope = Object.setPrototypeOf({}, scope);
@@ -185,7 +186,8 @@ export class LazyValueFactory {
       arity,
       _call: (args) => {
         if (args.length !== arity) {
-          return new ValueBoxError(runtimeError_wrongArity(arity, args.length));
+          const err = runtimeError_wrongArity(arity, args.length, "captured");
+          return new ValueBoxError(err);
         }
 
         return fn(args, runtime);

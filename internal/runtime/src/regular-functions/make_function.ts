@@ -67,7 +67,10 @@ function unwrapArguments(
   args: ValueBox[],
 ): ["ok", (Value | ValueBox)[]] | ["error", RuntimeError] {
   if (spec.length !== args.length) {
-    return ["error", runtimeError_wrongArity(spec.length, args.length)];
+    // NOTE: 实际上触发不了这里，因为对于通常函数而言，参数数目决定目标函数名，
+    //       而参数数目不正确会因为找不到函数名对应的函数而先触发对应的错误。
+    const err = runtimeError_wrongArity(spec.length, args.length, "regular");
+    return ["error", err];
   }
 
   const result: (Value | ValueBox)[] = Array(args.length);

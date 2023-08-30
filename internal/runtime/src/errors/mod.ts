@@ -27,9 +27,15 @@ export function runtimeError_restrictionExceeded(
 export function runtimeError_wrongArity(
   expectedArity: number,
   actualArity: number,
+  kind: "regular" | "closure" | "captured",
 ): RuntimeError {
+  const displayKind = kind === "regular"
+    ? "通常函数"
+    : (kind === "closure" ? "闭包" : "被捕获的通常函数");
+
   return makeRuntimeError(
-    `调用期待 ${expectedArity} 个参数，实际有 ${actualArity} 个参数`,
+    `尝试调用的${displayKind}期待 ${expectedArity} 个参数，` +
+      `实际有 ${actualArity} 个参数`,
   );
 }
 

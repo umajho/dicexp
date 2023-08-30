@@ -187,7 +187,7 @@ describe("值", () => {
           it(`case ${i + 1}: ${code}`, () => {
             assertExecutionRuntimeError(
               code, // FIXME: 闭包名
-              runtimeError_wrongArity(expected, actual),
+              runtimeError_wrongArity(expected, actual, "closure"),
             );
           });
         }
