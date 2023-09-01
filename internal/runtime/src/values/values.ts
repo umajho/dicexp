@@ -6,6 +6,9 @@ import {
 } from "./representations/mod";
 
 export abstract class ValueBox {
+  /**
+   * 获取其中的值。对于惰性的 ValueBox 而言，在此时才求值。
+   */
   abstract get(): ["ok", Value] | ["error", RuntimeError];
   /**
    * 是否确定存在错误。
