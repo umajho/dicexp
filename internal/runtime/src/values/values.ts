@@ -1,5 +1,5 @@
 import { makeRuntimeError, RuntimeError } from "./runtime_errors";
-import { createReprOfValue, Repr, ReprError, ReprRaw } from "./repr/mod";
+import { createRepr, ReprInRuntime } from "./repr/mod";
 
 export abstract class ValueBox {
   /**
@@ -10,13 +10,13 @@ export abstract class ValueBox {
    * 是否确定存在错误。
    */
   abstract confirmsError(): boolean;
-  abstract getRepr(): Repr;
+  abstract getRepr(): ReprInRuntime;
 }
 
 export class ValueBoxDircet extends ValueBox {
   constructor(
     private value: Value,
-    private representation: Repr = createReprOfValue(value),
+    private representation: ReprInRuntime = createRepr.value(value),
   ) {
     super();
   }
@@ -33,18 +33,18 @@ export class ValueBoxDircet extends ValueBox {
 }
 
 export class ValueBoxError extends ValueBox {
-  private repr: Repr;
+  private repr: ReprInRuntime;
 
   constructor(
     private error: RuntimeError,
     opts?: {
       deep?: boolean;
-      source?: Repr;
+      source?: ReprInRuntime;
     },
   ) {
     super();
 
-    this.repr = new ReprError(
+    this.repr = createRepr.error(
       opts?.deep ? "deep" : "direct",
       error,
       opts?.source,
@@ -63,7 +63,7 @@ export class ValueBoxError extends ValueBox {
 }
 
 export class ValueBoxLazy extends ValueBox {
-  memo?: [["ok", Value] | ["error", RuntimeError], Repr];
+  memo?: [["ok", Value] | ["error", RuntimeError], ReprInRuntime];
 
   constructor(
     private yielder?: () => ValueBox,
@@ -87,7 +87,7 @@ export class ValueBoxLazy extends ValueBox {
     if (this.memo) {
       return this.memo[1];
     }
-    return new ReprRaw("_");
+    return createRepr.unevaluated();
   }
 }
 
@@ -99,7 +99,7 @@ export class ValueBoxUnevaluated extends ValueBox {
     return true;
   }
   getRepr() {
-    return new ReprRaw("_");
+    return createRepr.unevaluated();
   }
 }
 
@@ -118,7 +118,7 @@ export interface Value_Callable {
   arity: number;
   _call: (args: ValueBox[]) => ValueBox;
 
-  representation: Repr;
+  representation: ReprInRuntime;
 }
 
 export function callCallable(

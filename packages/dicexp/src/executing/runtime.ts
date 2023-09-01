@@ -18,6 +18,7 @@ import { RandomGenerator, RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   asPlain,
+  finalizeRepr,
   getTypeNameOfValue,
   Repr,
   RuntimeError,
@@ -177,11 +178,8 @@ export class Runtime {
     const interpreted = this._interpretRoot();
     const result = getFinalValue(interpreted);
 
-    const repr = interpreted.getRepr();
-    repr.finalize();
-
     const appendix = {
-      representation: repr,
+      representation: finalizeRepr(interpreted.getRepr()),
       statistics: {
         timeConsumption: {
           ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
