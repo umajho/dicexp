@@ -175,7 +175,7 @@ export class Runtime {
     this._statistics.start = { ms: Date.now() /*performance.now()*/ };
 
     const interpreted = this._interpretRoot();
-    const result = this._finalize(interpreted);
+    const result = getFinalValue(interpreted);
 
     const repr = interpreted.getRepr();
     repr.finalize();
@@ -191,44 +191,6 @@ export class Runtime {
       },
     };
     return [...result, appendix];
-  }
-
-  private _finalize(
-    valueBox: ValueBox,
-  ): ["ok", JSValue] | ["error", RuntimeError] {
-    const result = valueBox.get();
-    if (result[0] === "error") return result;
-    // result[0] === "ok"
-    let value = asPlain(result[1]);
-
-    switch (typeof value) {
-      case "number":
-      case "boolean":
-        return ["ok", value];
-      default: {
-        if (Array.isArray(value)) return this._finalizeList(value);
-        const err = runtimeError_badFinalResult(getTypeNameOfValue(value));
-        return ["error", err];
-      }
-    }
-  }
-
-  private _finalizeList(
-    list: Value_List,
-  ): ["ok", JSValue] | ["error", RuntimeError] {
-    const resultList: JSValue = Array(list.length);
-    for (const [i, elem] of list.entries()) {
-      let result: ["ok", JSValue] | ["error", RuntimeError];
-      if (Array.isArray(elem)) {
-        result = this._finalizeList(elem);
-      } else {
-        result = this._finalize(elem);
-      }
-      if (result[0] === "error") return result;
-      // result[0] === "ok"
-      resultList[i] = result[1];
-    }
-    return ["ok", resultList];
   }
 
   private _interpretRoot(): ValueBox {
@@ -359,4 +321,42 @@ export interface RuntimeProxy extends RuntimeProxyForFunction {
   reporter: RuntimeReporter;
 
   interpret: (scope: Scope, node: Node) => ValueBox;
+}
+
+function getFinalValue(
+  valueBox: ValueBox,
+): ["ok", JSValue] | ["error", RuntimeError] {
+  const result = valueBox.get();
+  if (result[0] === "error") return result;
+  // result[0] === "ok"
+  let value = asPlain(result[1]);
+
+  switch (typeof value) {
+    case "number":
+    case "boolean":
+      return ["ok", value];
+    default: {
+      if (Array.isArray(value)) return getFinalValueOfList(value);
+      const err = runtimeError_badFinalResult(getTypeNameOfValue(value));
+      return ["error", err];
+    }
+  }
+}
+
+function getFinalValueOfList(
+  list: Value_List,
+): ["ok", JSValue] | ["error", RuntimeError] {
+  const resultList: JSValue = Array(list.length);
+  for (const [i, elem] of list.entries()) {
+    let result: ["ok", JSValue] | ["error", RuntimeError];
+    if (Array.isArray(elem)) {
+      result = getFinalValueOfList(elem);
+    } else {
+      result = getFinalValue(elem);
+    }
+    if (result[0] === "error") return result;
+    // result[0] === "ok"
+    resultList[i] = result[1];
+  }
+  return ["ok", resultList];
 }
