@@ -90,9 +90,14 @@ export class LazyValueFactory {
           return this.error(errFromReporter, sourceRepr);
         }
 
-        const result = fn(args, runtime).get();
-        const argsReprs = args.map((arg) => arg.getRepr());
-        const reprCall = createRepr.call_regular(style, name, argsReprs);
+        const resultBox = fn(args, runtime);
+        const result = resultBox.get();
+        const reprCall = createRepr.call_regular(
+          style,
+          name,
+          args.map((arg) => arg.getRepr()),
+          resultBox.getRepr(),
+        );
 
         if (result[0] === "error") return this.error(result[1], reprCall);
         // result[0] === "ok"
@@ -224,9 +229,14 @@ export class LazyValueFactory {
           return this.error(errFromReporter, callRepr);
         }
 
-        const result = callable._call(args).get();
-        const argsReprs = args.map((arg) => arg.getRepr());
-        const callRepr = createRepr.call_value(style, calleeRepr, argsReprs);
+        const resultBox = callable._call(args);
+        const result = resultBox.get();
+        const callRepr = createRepr.call_value(
+          style,
+          calleeRepr,
+          args.map((arg) => arg.getRepr()),
+          resultBox.getRepr(),
+        );
 
         if (result[0] === "error") return this.error(result[1], callRepr);
         // result[0] === "ok"
@@ -246,9 +256,9 @@ export class LazyValueFactory {
     return new ValueBoxLazy(
       () => {
         const countResult = count.get();
-        const repr = createRepr.repetition(count.getRepr(), bodyRaw);
 
         if (countResult[0] === "error") {
+          const repr = createRepr.repetition(count.getRepr(), bodyRaw);
           return this.error(countResult[1], repr);
         }
         // countResult[0] === "ok"
@@ -257,6 +267,7 @@ export class LazyValueFactory {
         if (typeof countValue != "number") {
           const typeName = getDisplayNameOfValue(countValue);
           const errMsg = `反复次数期待「整数」，实际类型为「${typeName}」`;
+          const repr = createRepr.repetition(count.getRepr(), bodyRaw);
           return this.error(makeRuntimeError(errMsg), repr);
         }
 
@@ -281,7 +292,12 @@ export class LazyValueFactory {
           },
         };
 
-        return new ValueBoxDircet(list);
+        const repr = createRepr.repetition(
+          count.getRepr(),
+          bodyRaw,
+          createRepr.value(list),
+        );
+        return new ValueBoxDircet(list, repr);
       },
     );
   }

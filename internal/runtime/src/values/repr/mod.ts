@@ -17,20 +17,28 @@ type ReprBase<IsInRuntime extends boolean> =
     style: "function" | "operator" | "piped";
     callee: string;
     args?: ReprBase<IsInRuntime>[];
+    result?: ReprBase<IsInRuntime>;
   }
   | {
     type: "call_value";
     style: "function" | "piped";
     callee: ReprBase<IsInRuntime>;
     args?: ReprBase<IsInRuntime>[];
+    result?: ReprBase<IsInRuntime>;
   }
   | {
     type: "calls_ord_bin_op";
     head: ReprBase<IsInRuntime>;
     rest: [string, ReprBase<IsInRuntime>[]];
+    result?: ReprBase<IsInRuntime>;
   }
   | { type: "capture"; name: string; arity: number }
-  | { type: "repetition"; count: ReprBase<IsInRuntime>; bodyRaw: string }
+  | {
+    type: "repetition";
+    count: ReprBase<IsInRuntime>;
+    bodyRaw: string;
+    result?: ReprBase<IsInRuntime>;
+  }
   | {
     type: "error";
     sub_type: "direct" | "deep";
@@ -119,7 +127,8 @@ export const createRepr = {
   },
 
   /**
-   * @param args 若为不存在，代表还没处理到参数就遇到了错误。
+   * @param args 若不存在，代表还没处理到参数就遇到了错误。
+   * @param result 若不存在，代表还没得到结果就遇到了错误。
    *
    * 如（示例中大括号代表可折叠部分）：
    * - 字面单目运算符：`+3`、`-3`。
@@ -139,17 +148,20 @@ export const createRepr = {
     style: "function" | "operator" | "piped",
     callee: string,
     args?: ReprInRuntime[],
+    result?: ReprInRuntime,
   ): ReprInRuntime & { type: "call_regular" } {
     return {
       type: "call_regular",
       style,
       callee,
       ...(args ? { args } : {}),
+      ...(result ? { result } : {}),
     };
   },
 
   /**
-   * @param args 若为不存在，代表还没处理到参数就遇到了错误。
+   * @param args 若不存在，代表还没处理到参数就遇到了错误。
+   * @param result 若不存在，代表还没得到结果就遇到了错误。
    *
    * 如（示例中大括号代表可折叠部分）：
    * - 闭包调用：`{\($x -> -$x).(42) = }-42`。
@@ -160,16 +172,20 @@ export const createRepr = {
     style: "function" | "piped",
     callee: ReprInRuntime,
     args?: ReprInRuntime[],
+    result?: ReprInRuntime,
   ): ReprInRuntime & { type: "call_value" } {
     return {
       type: "call_value",
       style,
       callee,
       ...(args ? { args } : {}),
+      ...(result ? { result } : {}),
     };
   },
 
   /**
+   * @param result 若不存在，代表还没得到结果就遇到了错误。
+   *
    * 同优先级的运算符连在一起，无需括号。
    * 如：`1+2+3-4 -> 2` 而非 `((1+2 -> 3) + 3 -> 6) - 4 -> 2`。
    *
@@ -180,6 +196,7 @@ export const createRepr = {
   calls_ord_bin_op(
     _head: ReprInRuntime,
     _rest: [callee: string, rightArg: ReprInRuntime],
+    _result?: ReprInRuntime,
   ): ReprInRuntime & { type: "calls_ord_bin_op" } {
     throw new Unimplemented();
   },
@@ -193,11 +210,20 @@ export const createRepr = {
     return { type: "capture", name, arity };
   },
 
+  /**
+   * @param result 若不存在，代表还没得到结果就遇到了错误。
+   */
   repetition(
     count: ReprInRuntime,
     bodyRaw: string,
+    result?: ReprInRuntime,
   ): ReprInRuntime & { type: "repetition" } {
-    return { type: "repetition", count, bodyRaw };
+    return {
+      type: "repetition",
+      count,
+      bodyRaw,
+      ...(result ? { result } : {}),
+    };
   },
 
   error(
@@ -239,6 +265,10 @@ export function finalizeRepr(rtmRepr: ReprInRuntime): Repr {
         // @ts-ignore
         rtmRepr.args = rtmRepr.args.map((arg) => finalizeRepr(arg));
       }
+      if (rtmRepr.result) {
+        // @ts-ignore
+        rtmRepr.result = finalizeRepr(rtmRepr.result);
+      }
       break;
     case "call_value":
       // @ts-ignore
@@ -247,12 +277,20 @@ export function finalizeRepr(rtmRepr: ReprInRuntime): Repr {
         // @ts-ignore
         rtmRepr.args = rtmRepr.args.map((arg) => finalizeRepr(arg));
       }
+      if (rtmRepr.result) {
+        // @ts-ignore
+        rtmRepr.result = finalizeRepr(rtmRepr.result);
+      }
       break;
     case "calls_ord_bin_op":
       throw new Unimplemented();
     case "repetition":
       // @ts-ignore
       rtmRepr.count = finalizeRepr(rtmRepr.count);
+      if (rtmRepr.result) {
+        // @ts-ignore
+        rtmRepr.result = finalizeRepr(rtmRepr.result);
+      }
       break;
     case "error":
       if (rtmRepr.source) {
