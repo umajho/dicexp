@@ -1,5 +1,5 @@
 import { makeRuntimeError, RuntimeError } from "./runtime_errors";
-import { createReprOfValue, Repr, ReprError } from "./repr/mod";
+import { createReprOfValue, Repr, ReprError, ReprRaw } from "./repr/mod";
 
 export abstract class ValueBox {
   /**
@@ -87,7 +87,7 @@ export class ValueBoxLazy extends ValueBox {
     if (this.memo) {
       return this.memo[1];
     }
-    return ["_"];
+    return new ReprRaw("_");
   }
 }
 
@@ -99,7 +99,7 @@ export class ValueBoxUnevaluated extends ValueBox {
     return true;
   }
   getRepr() {
-    return ["_"];
+    return new ReprRaw("_");
   }
 }
 

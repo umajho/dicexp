@@ -1,10 +1,12 @@
 import { RuntimeError } from "../runtime_errors";
 import { Value, Value_List } from "../values";
+import { Unreachable } from "@dicexp/errors";
 
 /**
  * Repr 指 Representation
  */
-export class Repr {
+export abstract class Repr {
+  finalize() {}
 }
 
 export function createReprOfValue(value: Value): Repr {
@@ -41,11 +43,17 @@ export class ReprValuePrimitive extends Repr {
  * 位于运算符（包括 `|>`、`.`）的一侧时无需括号包围，如：`[1]++[1]`（TODO：尚未实现）。
  */
 export class ReprValueList extends Repr {
-  items: Repr[];
+  items: ["lazy", (() => Repr)[]] | ["final", Repr[]];
 
   constructor(list: Value_List) {
     super();
-    this.items = list.map((v) => v.getRepr());
+    this.items = ["lazy", list.map((v) => () => v.getRepr())];
+  }
+
+  finalize(): void {
+    if (this.items[0] !== "lazy") throw new Unreachable();
+    const finalItems = this.items[1].map((item) => item());
+    this.items = ["final", finalItems];
   }
 }
 
@@ -88,6 +96,10 @@ export class ReprIdentifier extends Repr {
   ) {
     super();
   }
+
+  finalize(): void {
+    this.value?.finalize();
+  }
 }
 
 /**
@@ -116,6 +128,10 @@ export class ReprRegularCall extends Repr {
   ) {
     super();
   }
+
+  finalize(): void {
+    this.args?.map((arg) => arg.finalize());
+  }
 }
 
 /**
@@ -135,6 +151,11 @@ export class ReprValueCall extends Repr {
   ) {
     super();
   }
+
+  finalize(): void {
+    this.callee.finalize();
+    this.args?.map((arg) => arg.finalize());
+  }
 }
 
 /**
@@ -149,6 +170,10 @@ export class ReprGroupedOperatorCalls extends Repr {
     readonly rest: [string, Repr][],
   ) {
     super();
+  }
+
+  finalize(): void {
+    this.head.finalize();
   }
 }
 
@@ -173,6 +198,10 @@ export class ReprRepetition extends Repr {
   ) {
     super();
   }
+
+  finalize(): void {
+    this.count.finalize();
+  }
 }
 
 export class ReprError extends Repr {
@@ -189,6 +218,10 @@ export class ReprError extends Repr {
     readonly source?: Repr,
   ) {
     super();
+  }
+
+  finalize(): void {
+    this.source?.finalize();
   }
 }
 

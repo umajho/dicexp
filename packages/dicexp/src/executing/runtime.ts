@@ -173,10 +173,15 @@ export class Runtime {
 
   execute(): ExecutionResult {
     this._statistics.start = { ms: Date.now() /*performance.now()*/ };
+
     const interpreted = this._interpretRoot();
     const result = this._finalize(interpreted);
+
+    const repr = interpreted.getRepr();
+    repr.finalize();
+
     const appendix = {
-      representation: interpreted.getRepr(),
+      representation: repr,
       statistics: {
         timeConsumption: {
           ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
