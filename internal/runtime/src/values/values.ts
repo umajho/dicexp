@@ -24,10 +24,10 @@ export class ValueBoxDircet extends ValueBox {
   get(): ["ok", Value] {
     return ["ok", this.value];
   }
-  confirmsError() {
+  confirmsError(): boolean {
     return false;
   }
-  getRepr() {
+  getRepr(): ReprInRuntime {
     return this.representation;
   }
 }
@@ -54,10 +54,10 @@ export class ValueBoxError extends ValueBox {
   get(): ["error", RuntimeError] {
     return ["error", this.error];
   }
-  confirmsError() {
+  confirmsError(): boolean {
     return true;
   }
-  getRepr() {
+  getRepr(): ReprInRuntime {
     return this.repr;
   }
 }
@@ -71,7 +71,7 @@ export class ValueBoxLazy extends ValueBox {
     super();
   }
 
-  get() {
+  get(): ["ok", Value] | ["error", RuntimeError] {
     if (!this.memo) {
       const valueBox = this.yielder!();
       delete this.yielder;
@@ -79,11 +79,11 @@ export class ValueBoxLazy extends ValueBox {
     }
     return this.memo[0];
   }
-  confirmsError() {
+  confirmsError(): boolean {
     if (!this.memo) return false;
     return !!this.memo[1];
   }
-  getRepr() {
+  getRepr(): ReprInRuntime {
     if (this.memo) {
       return this.memo[1];
     }
@@ -95,10 +95,10 @@ export class ValueBoxUnevaluated extends ValueBox {
   get(): ["error", RuntimeError] {
     return ["error", makeRuntimeError("未求值（实现细节泄漏）")];
   }
-  confirmsError() {
+  confirmsError(): boolean {
     return true;
   }
-  getRepr() {
+  getRepr(): ReprInRuntime {
     return createRepr.unevaluated();
   }
 }
