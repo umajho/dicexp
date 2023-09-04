@@ -279,7 +279,10 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
         ? rtmRepr.args.map((arg) => finalizeRepr(arg()))
         : null;
 
-      return tryCreateReprForCallsOfOperatorsWithSamePrecdence(rtmRepr, args) ??
+      return tryCreateReprForCallGroupOfOperatorsWithSamePrecedence(
+        rtmRepr,
+        args,
+      ) ??
         {
           type: "call_regular",
           style: rtmRepr.style,
@@ -315,7 +318,7 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
   return rtmRepr as Repr;
 }
 
-function tryCreateReprForCallsOfOperatorsWithSamePrecdence(
+function tryCreateReprForCallGroupOfOperatorsWithSamePrecedence(
   repr: ReprInRuntime & { type: "call_regular@rtm" },
   args: Repr[] | null,
 ): (Repr & { type: "calls_ord_bin_op" }) | null {
