@@ -7,25 +7,32 @@ type ReprBase<IsInRuntime extends boolean> =
   | { type: "raw"; raw: string }
   | { type: "unevaluated" }
   | { type: "value_primitive"; value: number | boolean }
-  | (IsInRuntime extends true
-    ? { type: "value_list_lazy"; items: (() => ReprBase<true>)[] }
-    : { type: "value_list"; items: ReprBase<false>[] })
+  | {
+    type: IsInRuntime extends true ? "value_list@rtm" : "value_list";
+    items: IsInRuntime extends true //
+      ? (() => ReprBase<true>)[]
+      : ReprBase<false>[];
+  }
   | { type: "value_sum"; sum: number }
   | { type: "identifier"; name: string; value?: ReprBase<IsInRuntime> }
   | {
-    type: "call_regular";
+    type: IsInRuntime extends true ? "call_regular@rtm" : "call_regular";
     style: "function" | "operator" | "piped";
     callee: string;
-    args?: ReprBase<IsInRuntime>[];
+    args?: IsInRuntime extends true //
+      ? (() => ReprBase<true>)[]
+      : ReprBase<false>[];
     result?: ReprBase<IsInRuntime>;
   }
-  | {
-    type: "call_value";
+  | ({
+    type: IsInRuntime extends true ? "call_value@rtm" : "call_value";
     style: "function" | "piped";
     callee: ReprBase<IsInRuntime>;
-    args?: ReprBase<IsInRuntime>[];
+    args?: IsInRuntime extends true //
+      ? (() => ReprBase<true>)[]
+      : ReprBase<false>[];
     result?: ReprBase<IsInRuntime>;
-  }
+  } & (IsInRuntime extends true ? {} : {}))
   | {
     type: "calls_ord_bin_op";
     head: ReprBase<IsInRuntime>;
@@ -96,9 +103,9 @@ export const createRepr = {
    */
   value_list(
     items: ValueBox[],
-  ): ReprInRuntime & { type: "value_list_lazy" } {
+  ): ReprInRuntime & { type: "value_list@rtm" } {
     return {
-      type: "value_list_lazy",
+      type: "value_list@rtm",
       items: items.map((item) => () => item.getRepr()),
     };
   },
@@ -147,11 +154,11 @@ export const createRepr = {
   call_regular(
     style: "function" | "operator" | "piped",
     callee: string,
-    args?: ReprInRuntime[],
+    args?: (() => ReprInRuntime)[],
     result?: ReprInRuntime,
-  ): ReprInRuntime & { type: "call_regular" } {
+  ): ReprInRuntime & { type: "call_regular@rtm" } {
     return {
-      type: "call_regular",
+      type: "call_regular@rtm",
       style,
       callee,
       ...(args ? { args } : {}),
@@ -171,11 +178,11 @@ export const createRepr = {
   call_value(
     style: "function" | "piped",
     callee: ReprInRuntime,
-    args?: ReprInRuntime[],
+    args?: (() => ReprInRuntime)[],
     result?: ReprInRuntime,
-  ): ReprInRuntime & { type: "call_value" } {
+  ): ReprInRuntime & { type: "call_value@rtm" } {
     return {
-      type: "call_value",
+      type: "call_value@rtm",
       style,
       callee,
       ...(args ? { args } : {}),
@@ -240,14 +247,14 @@ export const createRepr = {
   },
 };
 
-export function finalizeRepr(rtmRepr: ReprInRuntime): Repr {
+export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
   switch (rtmRepr.type) {
     case "raw":
     case "value_primitive":
     case "value_sum":
     case "capture":
       return rtmRepr;
-    case "value_list_lazy":
+    case "value_list@rtm":
       return {
         type: "value_list",
         items: rtmRepr.items.map((item) => finalizeRepr(item())),
@@ -260,28 +267,26 @@ export function finalizeRepr(rtmRepr: ReprInRuntime): Repr {
         rtmRepr.value = finalizeRepr(rtmRepr.value);
       }
       break;
-    case "call_regular":
-      if (rtmRepr.args) {
-        // @ts-ignore
-        rtmRepr.args = rtmRepr.args.map((arg) => finalizeRepr(arg));
-      }
-      if (rtmRepr.result) {
-        // @ts-ignore
-        rtmRepr.result = finalizeRepr(rtmRepr.result);
-      }
-      break;
-    case "call_value":
-      // @ts-ignore
-      rtmRepr.callee = finalizeRepr(rtmRepr.callee);
-      if (rtmRepr.args) {
-        // @ts-ignore
-        rtmRepr.args = rtmRepr.args.map((arg) => finalizeRepr(arg));
-      }
-      if (rtmRepr.result) {
-        // @ts-ignore
-        rtmRepr.result = finalizeRepr(rtmRepr.result);
-      }
-      break;
+    case "call_regular@rtm":
+      return {
+        type: "call_regular",
+        style: rtmRepr.style,
+        callee: rtmRepr.callee,
+        ...(rtmRepr.args
+          ? { args: rtmRepr.args.map((arg) => finalizeRepr(arg())) }
+          : {}),
+        ...(rtmRepr.result ? { result: finalizeRepr(rtmRepr.result) } : {}),
+      };
+    case "call_value@rtm":
+      return {
+        type: "call_value",
+        style: rtmRepr.style,
+        callee: finalizeRepr(rtmRepr.callee),
+        ...(rtmRepr.args
+          ? { args: rtmRepr.args.map((arg) => finalizeRepr(arg())) }
+          : {}),
+        ...(rtmRepr.result ? { result: finalizeRepr(rtmRepr.result) } : {}),
+      };
     case "calls_ord_bin_op":
       throw new Unimplemented();
     case "repetition":

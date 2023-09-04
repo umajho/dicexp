@@ -95,7 +95,7 @@ export class LazyValueFactory {
         const reprCall = createRepr.call_regular(
           style,
           name,
-          args.map((arg) => arg.getRepr()),
+          args.map((arg) => () => arg.getRepr()),
           resultBox.getRepr(),
         );
 
@@ -234,7 +234,7 @@ export class LazyValueFactory {
         const callRepr = createRepr.call_value(
           style,
           calleeRepr,
-          args.map((arg) => arg.getRepr()),
+          args.map((arg) => () => arg.getRepr()),
           resultBox.getRepr(),
         );
 
