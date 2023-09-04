@@ -1,4 +1,4 @@
-import { Unimplemented } from "@dicexp/errors";
+import { precedenceTable } from "@dicexp/lezer";
 
 import { Value, ValueBox } from "../values";
 import { RuntimeError } from "../runtime_errors";
@@ -33,12 +33,14 @@ type ReprBase<IsInRuntime extends boolean> =
       : ReprBase<false>[];
     result?: ReprBase<IsInRuntime>;
   } & (IsInRuntime extends true ? {} : {}))
-  | {
-    type: "calls_ord_bin_op";
-    head: ReprBase<IsInRuntime>;
-    rest: [string, ReprBase<IsInRuntime>[]];
-    result?: ReprBase<IsInRuntime>;
-  }
+  | (
+    IsInRuntime extends true ? never : {
+      type: "calls_ord_bin_op";
+      head: ReprBase<false>;
+      tail: [string, ReprBase<false>][];
+      result?: ReprBase<false>;
+    }
+  )
   | { type: "capture"; name: string; arity: number }
   | {
     type: "repetition";
@@ -201,11 +203,16 @@ export const createRepr = {
    * TODO: 用上。
    */
   calls_ord_bin_op(
-    _head: ReprInRuntime,
-    _rest: [callee: string, rightArg: ReprInRuntime],
-    _result?: ReprInRuntime,
-  ): ReprInRuntime & { type: "calls_ord_bin_op" } {
-    throw new Unimplemented();
+    head: Repr,
+    tail: [callee: string, rightArg: Repr][],
+    result?: Repr,
+  ): Repr & { type: "calls_ord_bin_op" } {
+    return {
+      type: "calls_ord_bin_op",
+      head,
+      tail,
+      ...(result ? { result } : {}),
+    };
   },
 
   /**
@@ -268,15 +275,18 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
       }
       break;
     case "call_regular@rtm":
-      return {
-        type: "call_regular",
-        style: rtmRepr.style,
-        callee: rtmRepr.callee,
-        ...(rtmRepr.args
-          ? { args: rtmRepr.args.map((arg) => finalizeRepr(arg())) }
-          : {}),
-        ...(rtmRepr.result ? { result: finalizeRepr(rtmRepr.result) } : {}),
-      };
+      const args = rtmRepr.args
+        ? rtmRepr.args.map((arg) => finalizeRepr(arg()))
+        : null;
+
+      return tryCreateReprForCallsOfOperatorsWithSamePrecdence(rtmRepr, args) ??
+        {
+          type: "call_regular",
+          style: rtmRepr.style,
+          callee: rtmRepr.callee,
+          ...(args ? { args } : {}),
+          ...(rtmRepr.result ? { result: finalizeRepr(rtmRepr.result) } : {}),
+        };
     case "call_value@rtm":
       return {
         type: "call_value",
@@ -287,8 +297,6 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
           : {}),
         ...(rtmRepr.result ? { result: finalizeRepr(rtmRepr.result) } : {}),
       };
-    case "calls_ord_bin_op":
-      throw new Unimplemented();
     case "repetition":
       // @ts-ignore
       rtmRepr.count = finalizeRepr(rtmRepr.count);
@@ -305,4 +313,39 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
       break;
   }
   return rtmRepr as Repr;
+}
+
+function tryCreateReprForCallsOfOperatorsWithSamePrecdence(
+  repr: ReprInRuntime & { type: "call_regular@rtm" },
+  args: Repr[] | null,
+): (Repr & { type: "calls_ord_bin_op" }) | null {
+  if (repr.style !== "operator" || args?.length !== 2) return null;
+
+  const lArg = args[0]; // left argument
+  const curPrec: number | undefined = precedenceTable[`${repr.callee}/2`];
+
+  if (lArg.type === "call_regular" && lArg.args?.length === 2) {
+    const lPrec: number | undefined = precedenceTable[`${lArg.callee}/2`];
+    if (lPrec === curPrec) {
+      return createRepr.calls_ord_bin_op(
+        lArg.args[0],
+        [[lArg.callee, lArg.args[1]], [repr.callee, args[1]]],
+        repr.result && finalizeRepr(repr.result),
+      );
+    }
+  } else if (lArg.type === "calls_ord_bin_op") {
+    const lCallee = lArg.tail[0][0];
+    const lPrec: number | undefined = precedenceTable[`${lCallee}/2`];
+    if (lPrec === curPrec) {
+      lArg.tail.push([repr.callee, args[1]]);
+      if (repr.result) {
+        lArg.result = finalizeRepr(repr.result);
+      } else {
+        delete lArg.result;
+      }
+      return lArg;
+    }
+  }
+
+  return null;
 }

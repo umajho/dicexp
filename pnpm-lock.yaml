@@ -48,6 +48,9 @@ importers:
       '@dicexp/js-utils':
         specifier: workspace:*
         version: link:../js-utils
+      '@dicexp/lezer':
+        specifier: workspace:*
+        version: link:../lezer
       '@dicexp/nodes':
         specifier: workspace:*
         version: link:../nodes
