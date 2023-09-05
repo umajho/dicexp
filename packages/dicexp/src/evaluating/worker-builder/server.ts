@@ -89,7 +89,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
         result[0] === "error" &&
         (result[1] === "parse" || result[1] === "other")
       ) {
-        data[2] = ["error", "parse", makeSendableError(result[2])];
+        data[2] = ["error", result[1], makeSendableError(result[2])];
       }
     } else if (data[0] === "batch_report") {
       let report = data[2];
