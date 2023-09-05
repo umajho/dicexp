@@ -33,19 +33,16 @@ export const ResultPaneForSingle: Component<
   props,
 ) => {
   // TODO: 如果未来 JSValue 包含 null，则将这里的 null 移出
-  const [isOk, setIsOk] = createSignal(false),
-    [resultValue, setResultValue] = createSignal<JSValue | null>(null),
+  const [resultValue, setResultValue] = createSignal<JSValue | null>(null),
     [appendix, setAppendix] = createSignal<ExecutionAppendix | null>(null),
     [error, setError] = createSignal<ErrorWithType | null>(null),
     [runtimeError, setRuntimeError] = createSignal<RuntimeError | null>(null);
   createEffect(on([() => props.result], () => {
-    let isOk_ = false,
-      resultValue_: JSValue | null = null,
+    let resultValue_: JSValue | null = null,
       appendix_: ExecutionAppendix | null = null,
       error_: ErrorWithType | null = null,
       runtimeError_: RuntimeError | null = null;
     if (props.result[0] === "ok") {
-      isOk_ = true;
       resultValue_ = props.result[1];
       appendix_ = props.result[2];
     } else if (props.result[0] === "error") {
@@ -60,7 +57,6 @@ export const ResultPaneForSingle: Component<
       error_ = new Unreachable() as ErrorWithType;
       error_.type = "other";
     }
-    setIsOk(isOk_);
     setResultValue(resultValue_);
     setAppendix(appendix_);
     setError(error_);
@@ -82,12 +78,14 @@ export const ResultPaneForSingle: Component<
           >
             结果
           </Tab>
-          <Tab
-            isActive={currentTab() === "representation"}
-            onClick={() => setCurrentTab("representation")}
-          >
-            步骤展现（WIP）
-          </Tab>
+          <Show when={appendix()}>
+            <Tab
+              isActive={currentTab() === "representation"}
+              onClick={() => setCurrentTab("representation")}
+            >
+              步骤展现（WIP）
+            </Tab>
+          </Show>
         </Tabs>
 
         {/* 关闭 */}
