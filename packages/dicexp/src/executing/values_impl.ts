@@ -45,7 +45,7 @@ export class LazyValueFactory {
       } else { // result[0] === "error"
         return new ValueBoxError(
           result[1],
-          createRepr.error("direct", result[1], createRepr.identifier(ident)),
+          { deep: false, source: createRepr.identifier(ident) },
         );
       }
     });

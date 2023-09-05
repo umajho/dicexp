@@ -4,59 +4,64 @@ import { Value, ValueBox } from "../values";
 import { RuntimeError } from "../runtime_errors";
 
 type ReprBase<IsInRuntime extends boolean> =
-  | { type: "raw"; raw: string }
-  | { type: "unevaluated" }
-  | { type: "value_primitive"; value: number | boolean }
-  | {
-    type: IsInRuntime extends true ? "value_list@rtm" : "value_list";
-    items: IsInRuntime extends true //
-      ? (() => ReprBase<true>)[]
-      : ReprBase<false>[];
-  }
-  | { type: "value_sum"; sum: number }
-  | { type: "identifier"; name: string; value?: ReprBase<IsInRuntime> }
-  | {
-    type: IsInRuntime extends true ? "call_regular@rtm" : "call_regular";
-    style: "function" | "operator" | "piped";
-    callee: string;
-    args?: IsInRuntime extends true //
-      ? (() => ReprBase<true>)[]
-      : ReprBase<false>[];
-    result?: ReprBase<IsInRuntime>;
-  }
-  | ({
-    type: IsInRuntime extends true ? "call_value@rtm" : "call_value";
-    style: "function" | "piped";
-    callee: ReprBase<IsInRuntime>;
-    args?: IsInRuntime extends true //
-      ? (() => ReprBase<true>)[]
-      : ReprBase<false>[];
-    result?: ReprBase<IsInRuntime>;
-  } & (IsInRuntime extends true ? {} : {}))
-  | (
-    IsInRuntime extends true ? never : {
-      type: "calls_ord_bin_op";
-      head: ReprBase<false>;
-      tail: [string, ReprBase<false>][];
-      result?: ReprBase<false>;
-    }
-  )
-  | { type: "capture"; name: string; arity: number }
-  | {
-    type: "repetition";
-    count: ReprBase<IsInRuntime>;
-    bodyRaw: string;
-    result?: ReprBase<IsInRuntime>;
-  }
-  | {
-    type: "error";
-    sub_type: "direct" | "deep";
-    error: RuntimeError;
-    source?: ReprBase<IsInRuntime>;
-  };
+  | [type: /** raw */ "r", raw: string]
+  | [type: /** unevaluated */ "_"]
+  | [type: /** value_primitive */ "vp", value: number | boolean]
+  | (IsInRuntime extends true /** type 中有后缀 `@` 代表是运行时版本，下同 */
+    ? [type: "vl@", items: (() => ReprBase<true>)[]]
+    : [type: /** value_list */ "vl", items: ReprBase<false>[]])
+  | [type: /** value_sum */ "vs", sum: number]
+  | [
+    type: "i", /** identifier */
+    name: string,
+    value: ReprBase<IsInRuntime> | undefined,
+  ]
+  | [
+    type: IsInRuntime extends true ? "cr@" : "cr", /** call_regular */
+    style: "f" | "o" | "p", /** function | operator | piped */
+    callee: string,
+    args:
+      | (IsInRuntime extends true //
+        ? (() => ReprBase<true>)[]
+        : ReprBase<false>[])
+      | undefined,
+    result: ReprBase<IsInRuntime> | undefined,
+  ]
+  | [
+    type: IsInRuntime extends true ? "cv@" : "cv", /** call_value */
+    style: "f" | "p", /** function | piped */
+    callee: ReprBase<IsInRuntime>,
+    args:
+      | (IsInRuntime extends true //
+        ? (() => ReprBase<true>)[]
+        : ReprBase<false>[])
+      | undefined,
+    result: ReprBase<IsInRuntime> | undefined,
+  ]
+  | (IsInRuntime extends true ? never : [
+    type: "c$", /** calls_of_operators_with_same_precedence */
+    head: ReprBase<false>,
+    tail: [string, ReprBase<false>][],
+    result: ReprBase<false> | undefined,
+  ])
+  | [type: /** capture */ "&", name: string, arity: number]
+  | [
+    type: /** repetition */ "#",
+    count: ReprBase<IsInRuntime>,
+    body: string,
+    result: ReprBase<IsInRuntime> | undefined,
+  ]
+  | [
+    type: "e", /** error */
+    sub_type: "0" | "n", /** "0": direct, "n": deep */
+    error: RuntimeError,
+    source?: ReprBase<IsInRuntime>,
+  ];
 
 export type Repr = ReprBase<false>;
 export type ReprInRuntime = ReprBase<true>;
+
+const unevaluated: ["_"] = ["_"];
 
 export const createRepr = {
   /**
@@ -64,12 +69,12 @@ export const createRepr = {
    *
    * 位于运算符（包括 `|>`、`.`）的一侧时无需括号包围，如：`\(_ -> 42).()`。
    */
-  raw(raw: string): ReprInRuntime & { type: "raw" } {
-    return { type: "raw", raw };
+  raw(raw: string): ReprInRuntime & { 0: "r" } {
+    return ["r", raw];
   },
 
-  unevaluated(): ReprInRuntime & { type: "unevaluated" } {
-    return { type: "unevaluated" };
+  unevaluated(): ReprInRuntime & { 0: "_" } {
+    return unevaluated;
   },
 
   value(value: Value): ReprInRuntime {
@@ -94,8 +99,8 @@ export const createRepr = {
    */
   value_primitive(
     value: number | boolean,
-  ): ReprInRuntime & { type: "value_primitive" } {
-    return { type: "value_primitive", value };
+  ): ReprInRuntime & { 0: "vp" } {
+    return ["vp", value];
   },
 
   /**
@@ -105,11 +110,8 @@ export const createRepr = {
    */
   value_list(
     items: ValueBox[],
-  ): ReprInRuntime & { type: "value_list@rtm" } {
-    return {
-      type: "value_list@rtm",
-      items: items.map((item) => () => item.getRepr()),
-    };
+  ): ReprInRuntime & { 0: "vl@" } {
+    return ["vl@", items.map((item) => () => item.getRepr())];
   },
 
   /**
@@ -117,8 +119,8 @@ export const createRepr = {
    *
    * TODO: 包含各个加数。（如：`1+2+3=6`。）
    */
-  value_sum(sum: number): ReprInRuntime & { type: "value_sum" } {
-    return { type: "value_sum", sum };
+  value_sum(sum: number): ReprInRuntime & { 0: "vs" } {
+    return ["vs", sum];
   },
 
   /**
@@ -131,8 +133,8 @@ export const createRepr = {
   identifier(
     name: string,
     value?: ReprInRuntime,
-  ): ReprInRuntime & { type: "identifier" } {
-    return { type: "identifier", name, ...(value ? { value } : {}) };
+  ): ReprInRuntime & { 0: "i" } {
+    return ["i", name, value];
   },
 
   /**
@@ -158,14 +160,8 @@ export const createRepr = {
     callee: string,
     args?: (() => ReprInRuntime)[],
     result?: ReprInRuntime,
-  ): ReprInRuntime & { type: "call_regular@rtm" } {
-    return {
-      type: "call_regular@rtm",
-      style,
-      callee,
-      ...(args ? { args } : {}),
-      ...(result ? { result } : {}),
-    };
+  ): ReprInRuntime & { 0: "cr@" } {
+    return ["cr@", style[0] as "f" | "o" | "p", callee, args, result];
   },
 
   /**
@@ -182,14 +178,8 @@ export const createRepr = {
     callee: ReprInRuntime,
     args?: (() => ReprInRuntime)[],
     result?: ReprInRuntime,
-  ): ReprInRuntime & { type: "call_value@rtm" } {
-    return {
-      type: "call_value@rtm",
-      style,
-      callee,
-      ...(args ? { args } : {}),
-      ...(result ? { result } : {}),
-    };
+  ): ReprInRuntime & { 0: "cv@" } {
+    return ["cv@", style[0] as "f" | "p", callee, args, result];
   },
 
   /**
@@ -206,13 +196,8 @@ export const createRepr = {
     head: Repr,
     tail: [callee: string, rightArg: Repr][],
     result?: Repr,
-  ): Repr & { type: "calls_ord_bin_op" } {
-    return {
-      type: "calls_ord_bin_op",
-      head,
-      tail,
-      ...(result ? { result } : {}),
-    };
+  ): Repr & { 0: "c$" } {
+    return ["c$", head, tail, result];
   },
 
   /**
@@ -220,8 +205,8 @@ export const createRepr = {
    *
    * 位于运算符（包括 `|>`、`.`）的一侧时需要括号包围，如：`(&+/2).(1, 2)`。
    */
-  capture(name: string, arity: number): ReprInRuntime & { type: "capture" } {
-    return { type: "capture", name, arity };
+  capture(name: string, arity: number): ReprInRuntime & { 0: "&" } {
+    return ["&", name, arity];
   },
 
   /**
@@ -231,123 +216,106 @@ export const createRepr = {
     count: ReprInRuntime,
     bodyRaw: string,
     result?: ReprInRuntime,
-  ): ReprInRuntime & { type: "repetition" } {
-    return {
-      type: "repetition",
-      count,
-      bodyRaw,
-      ...(result ? { result } : {}),
-    };
+  ): ReprInRuntime & { 0: "#" } {
+    return ["#", count, bodyRaw, result];
   },
 
   error(
     sub_type: "direct" | "deep",
     error: RuntimeError,
     source?: ReprInRuntime,
-  ): ReprInRuntime & { type: "error" } {
-    return {
-      type: "error",
-      sub_type,
-      error,
-      ...(source ? { source } : {}),
-    };
+  ): ReprInRuntime & { 0: "e" } {
+    return ["e", sub_type === "direct" ? "0" : "n", error, source];
   },
 };
 
 export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
-  switch (rtmRepr.type) {
-    case "raw":
-    case "value_primitive":
-    case "value_sum":
-    case "capture":
+  switch (/* type */ rtmRepr[0]) {
+    case "r":
+    case "_":
+    case "vp":
+    case "vs":
+    case "c$":
+    case "&":
       return rtmRepr;
-    case "value_list@rtm":
-      return {
-        type: "value_list",
-        items: rtmRepr.items.map((item) => finalizeRepr(item())),
-      };
-  }
-  switch (rtmRepr.type) {
-    case "identifier":
-      if (rtmRepr.value) {
-        // @ts-ignore
-        rtmRepr.value = finalizeRepr(rtmRepr.value);
-      }
-      break;
-    case "call_regular@rtm":
-      const args = rtmRepr.args
-        ? rtmRepr.args.map((arg) => finalizeRepr(arg()))
-        : null;
+    case "vl@":
+      const items = rtmRepr[1].map((item) => finalizeRepr(item()));
+      return ["vl", items];
+    case "i":
+      if (!(/* value */ rtmRepr[2])) return rtmRepr as Repr;
+      return ["i", rtmRepr[1], finalizeRepr(rtmRepr[2])];
+    case "cr@":
+      const args = rtmRepr[3]?.map((arg) => finalizeRepr(arg()));
 
       return tryCreateReprForCallGroupOfOperatorsWithSamePrecedence(
         rtmRepr,
         args,
-      ) ??
-        {
-          type: "call_regular",
-          style: rtmRepr.style,
-          callee: rtmRepr.callee,
-          ...(args ? { args } : {}),
-          ...(rtmRepr.result ? { result: finalizeRepr(rtmRepr.result) } : {}),
-        };
-    case "call_value@rtm":
-      return {
-        type: "call_value",
-        style: rtmRepr.style,
-        callee: finalizeRepr(rtmRepr.callee),
-        ...(rtmRepr.args
-          ? { args: rtmRepr.args.map((arg) => finalizeRepr(arg())) }
-          : {}),
-        ...(rtmRepr.result ? { result: finalizeRepr(rtmRepr.result) } : {}),
-      };
-    case "repetition":
-      // @ts-ignore
-      rtmRepr.count = finalizeRepr(rtmRepr.count);
-      if (rtmRepr.result) {
-        // @ts-ignore
-        rtmRepr.result = finalizeRepr(rtmRepr.result);
-      }
-      break;
-    case "error":
-      if (rtmRepr.source) {
-        // @ts-ignore
-        rtmRepr.source = finalizeRepr(rtmRepr.source);
-      }
-      break;
+      ) ?? [
+        "cr",
+        rtmRepr[1], // style
+        rtmRepr[2], // callee
+        args,
+        rtmRepr[4] && finalizeRepr(rtmRepr[4]), // result
+      ];
+    case "cv@":
+      return [
+        "cv",
+        rtmRepr[1], // style
+        finalizeRepr(rtmRepr[2]), // callee
+        rtmRepr[3] && rtmRepr[3].map((arg) => finalizeRepr(arg())), // args
+        rtmRepr[4] && finalizeRepr(rtmRepr[4]), // result
+      ];
+    case "#":
+      return [
+        "#",
+        finalizeRepr(rtmRepr[1]), // count
+        rtmRepr[2], // body
+        rtmRepr[3] && finalizeRepr(rtmRepr[3]), //result
+      ];
+    case "e":
+      return [
+        "e",
+        rtmRepr[1], // sub_type
+        rtmRepr[2], // error
+        rtmRepr[3] && finalizeRepr(rtmRepr[3]), // source
+      ];
   }
-  return rtmRepr as Repr;
+  return rtmRepr;
 }
 
 function tryCreateReprForCallGroupOfOperatorsWithSamePrecedence(
-  repr: ReprInRuntime & { type: "call_regular@rtm" },
-  args: Repr[] | null,
-): (Repr & { type: "calls_ord_bin_op" }) | null {
-  if (repr.style !== "operator" || args?.length !== 2) return null;
+  repr: ReprInRuntime & { 0: "cr@" },
+  args: Repr[] | undefined,
+): (Repr & { 0: "c$" }) | null {
+  if (/* style */ repr[1] !== "o" || args?.length !== 2) return null;
 
   const lArg = args[0]; // left argument
-  const curPrec: number | undefined = precedenceTable[`${repr.callee}/2`];
+  const curCallee = repr[2];
+  const curPrec: number | undefined = precedenceTable[`${curCallee}/2`];
 
-  if (lArg.type === "call_regular" && lArg.args?.length === 2) {
-    const lPrec: number | undefined = precedenceTable[`${lArg.callee}/2`];
-    if (lPrec === curPrec) {
-      return createRepr.calls_ord_bin_op(
-        lArg.args[0],
-        [[lArg.callee, lArg.args[1]], [repr.callee, args[1]]],
-        repr.result && finalizeRepr(repr.result),
-      );
-    }
-  } else if (lArg.type === "calls_ord_bin_op") {
-    const lCallee = lArg.tail[0][0];
+  if (lArg[0] === "cr") {
+    const lArgArgs = lArg[3];
+    if (lArgArgs?.length !== 2) return null;
+
+    const lCallee = lArg[2];
     const lPrec: number | undefined = precedenceTable[`${lCallee}/2`];
-    if (lPrec === curPrec) {
-      lArg.tail.push([repr.callee, args[1]]);
-      if (repr.result) {
-        lArg.result = finalizeRepr(repr.result);
-      } else {
-        delete lArg.result;
-      }
-      return lArg;
-    }
+    if (lPrec !== curPrec) return null;
+
+    return createRepr.calls_ord_bin_op(
+      lArgArgs[0],
+      [[lCallee, lArgArgs[1]], [curCallee, args[1]]],
+      (/* result */ repr[4]) && finalizeRepr(repr[4]),
+    );
+  } else if (lArg[0] === "c$") {
+    const lTail = lArg[2];
+    const lCallee = lTail[0][0];
+    const lPrec: number | undefined = precedenceTable[`${lCallee}/2`];
+    if (lPrec !== curPrec) return null;
+
+    lTail.push([curCallee, args[1]]);
+    lArg[3] = (/* result */ repr[4]) && finalizeRepr(repr[4]);
+
+    return lArg;
   }
 
   return null;
