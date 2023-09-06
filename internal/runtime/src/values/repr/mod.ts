@@ -55,7 +55,7 @@ type ReprBase<IsInRuntime extends boolean> =
     type: "e", /** error */
     sub_type: "0" | "n", /** "0": direct, "n": deep */
     error: RuntimeError,
-    source?: ReprBase<IsInRuntime>,
+    source: ReprBase<IsInRuntime> | undefined,
   ];
 
 export type Repr = ReprBase<false>;
