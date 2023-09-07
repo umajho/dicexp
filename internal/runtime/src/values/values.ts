@@ -37,18 +37,13 @@ export class ValueBoxError extends ValueBox {
 
   constructor(
     private error: RuntimeError,
-    opts?: {
-      deep?: boolean;
-      source?: ReprInRuntime;
-    },
+    opts?: { indirect?: boolean; source?: ReprInRuntime },
   ) {
     super();
 
-    this.repr = createRepr.error(
-      opts?.deep ? "deep" : "direct",
-      error,
-      opts?.source,
-    );
+    this.repr = opts?.indirect
+      ? (opts.source ?? createRepr.error_indirect())
+      : createRepr.error(error, opts?.source);
   }
 
   get(): ["error", RuntimeError] {

@@ -53,10 +53,10 @@ type ReprBase<IsInRuntime extends boolean> =
   ]
   | [
     type: "e", /** error */
-    sub_type: "0" | "n", /** "0": direct, "n": deep */
-    error: RuntimeError,
+    errorMessage: string,
     source: ReprBase<IsInRuntime> | undefined,
-  ];
+  ]
+  | [type: /** error_indirect */ "E"];
 
 export type Repr = ReprBase<false>;
 export type ReprInRuntime = ReprBase<true>;
@@ -221,11 +221,14 @@ export const createRepr = {
   },
 
   error(
-    sub_type: "direct" | "deep",
     error: RuntimeError,
     source?: ReprInRuntime,
   ): ReprInRuntime & { 0: "e" } {
-    return ["e", sub_type === "direct" ? "0" : "n", error, source];
+    return ["e", error.message, source];
+  },
+
+  error_indirect(): ReprInRuntime & { 0: "E" } {
+    return ["E"];
   },
 };
 
@@ -237,6 +240,7 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
     case "vs":
     case "c$":
     case "&":
+    case "E":
       return rtmRepr;
     case "vl@":
       const items = rtmRepr[1].map((item) => finalizeRepr(item()));
@@ -275,9 +279,8 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
     case "e":
       return [
         "e",
-        rtmRepr[1], // sub_type
-        rtmRepr[2], // error
-        rtmRepr[3] && finalizeRepr(rtmRepr[3]), // source
+        rtmRepr[1], // error
+        rtmRepr[2] && finalizeRepr(rtmRepr[2]), // source
       ];
   }
   return rtmRepr;

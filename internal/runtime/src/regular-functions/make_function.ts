@@ -12,10 +12,7 @@ import {
   ValueBoxLazy,
   ValueSpec,
 } from "../values/mod";
-import {
-  runtimeError_wrongArity,
-  RuntimeErrorFromArgument,
-} from "../errors/mod";
+import { runtimeError_wrongArity } from "../errors/mod";
 import { unwrapValue } from "../value-utils/mod";
 
 /**
@@ -29,8 +26,10 @@ export function makeFunction(
 ): RegularFunction {
   return (args, rtm) => {
     const unwrapResult = unwrapArguments(spec, args);
-    if (unwrapResult[0] === "error") {
-      return new ValueBoxError(unwrapResult[1]);
+    if (unwrapResult[0] === "error" || unwrapResult[0] === "error_indirect") {
+      return new ValueBoxError(unwrapResult[1], {
+        indirect: unwrapResult[0] === "error_indirect",
+      });
     } else { // unwrapResult[0] === "ok"
       return new ValueBoxLazy(() => {
         const result = logic(rtm, ...unwrapResult[1]);
@@ -38,16 +37,11 @@ export function makeFunction(
           return new ValueBoxDircet(result[1]);
         } else if (result[0] === "lazy") {
           return result[1];
-        } else if (
-          result[0] === "error" /*|| result[0] === "error_from_argument"*/
-        ) {
+        } else if (result[0] === "error") {
           let err = result[1];
           if (typeof err === "string") {
             err = makeRuntimeError(err);
           }
-          // if (result[0] === "error_from_argument") {
-          //   err = new RuntimeErrorFromArgument(err);
-          // }
           return new ValueBoxError(err);
         } else {
           result[0] satisfies never;
@@ -65,7 +59,10 @@ export function makeFunction(
 function unwrapArguments(
   spec: ValueSpec[],
   args: ValueBox[],
-): ["ok", (Value | ValueBox)[]] | ["error", RuntimeError] {
+):
+  | ["ok", (Value | ValueBox)[]]
+  | ["error", RuntimeError]
+  | ["error_indirect", RuntimeError] {
   if (spec.length !== args.length) {
     // NOTE: 实际上触发不了这里，因为对于通常函数而言，参数数目决定目标函数名，
     //       而参数数目不正确会因为找不到函数名对应的函数而先触发对应的错误。
@@ -77,8 +74,8 @@ function unwrapArguments(
 
   for (let [i, arg] of args.entries()) {
     const unwrapResult = unwrapValue(spec[i], arg, { nth: i + 1 });
-    if (unwrapResult[0] === "error") {
-      return ["error", new RuntimeErrorFromArgument(unwrapResult[1])];
+    if (unwrapResult[0] === "error" || unwrapResult[0] === "error_indirect") {
+      return unwrapResult;
     } else { // unwrapResult[0] === "ok"
       result[i] = unwrapResult[1];
     }

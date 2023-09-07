@@ -45,7 +45,7 @@ export class LazyValueFactory {
       } else { // result[0] === "error"
         return new ValueBoxError(
           result[1],
-          { deep: false, source: createRepr.identifier(ident) },
+          { source: createRepr.identifier(ident) },
         );
       }
     });
@@ -58,10 +58,9 @@ export class LazyValueFactory {
   error(
     error: RuntimeError,
     source?: ReprInRuntime,
+    indirect?: boolean,
   ): ValueBox {
-    return source
-      ? new ValueBoxError(error, { source })
-      : new ValueBoxError(error);
+    return new ValueBoxError(error, { source, indirect });
   }
 
   list(list: ValueBox[]): ValueBox {
@@ -99,7 +98,7 @@ export class LazyValueFactory {
           resultBox.getRepr(),
         );
 
-        if (result[0] === "error") return this.error(result[1], reprCall);
+        if (result[0] === "error") return this.error(result[1], reprCall, true);
         // result[0] === "ok"
         const value = result[1];
 
@@ -124,6 +123,8 @@ export class LazyValueFactory {
     const closure: Value_Callable = {
       type: "callable",
       arity,
+      // TODO: 当调用 `_call` 时，返回的值一定马上会用到吧，
+      //       那此函数内处理惰性是否没有意义？
       _call: (args) => {
         if (args.length !== arity) {
           const err = runtimeError_wrongArity(arity, args.length, "closure");
@@ -157,7 +158,10 @@ export class LazyValueFactory {
           );
         }
 
-        return interpreted;
+        return createValueBoxOfIndirectErrorIfErrorIsFromArgument(
+          args,
+          interpreted,
+        ) ?? interpreted;
       },
 
       representation: createRepr.raw(raw),
@@ -190,7 +194,11 @@ export class LazyValueFactory {
           return new ValueBoxError(err);
         }
 
-        return fn(args, runtime);
+        const returned = fn(args, runtime);
+        return createValueBoxOfIndirectErrorIfErrorIsFromArgument(
+          args,
+          returned,
+        ) ?? returned;
       },
 
       representation,
@@ -238,7 +246,7 @@ export class LazyValueFactory {
           resultBox.getRepr(),
         );
 
-        if (result[0] === "error") return this.error(result[1], callRepr);
+        if (result[0] === "error") return this.error(result[1], callRepr, true);
         // result[0] === "ok"
         const value = result[1];
 
@@ -331,6 +339,20 @@ function checkInteger(n: number): RuntimeError | null {
       null,
       MIN_SAFE_INTEGER,
     );
+  }
+  return null;
+}
+
+function createValueBoxOfIndirectErrorIfErrorIsFromArgument(
+  args: ValueBox[],
+  callReturn: ValueBox,
+): ValueBox | null {
+  const result = callReturn.get();
+  if (
+    result[0] === "error" &&
+    args.some((arg) => arg.confirmsError())
+  ) {
+    return new ValueBoxError(result[1], { indirect: true });
   }
   return null;
 }
