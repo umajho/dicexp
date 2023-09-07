@@ -76,7 +76,7 @@ export class ValueBoxLazy extends ValueBox {
   }
   confirmsError(): boolean {
     if (!this.memo) return false;
-    return !!this.memo[1];
+    return this.memo[0][0] === "error";
   }
   getRepr(): ReprInRuntime {
     if (this.memo) {
