@@ -12,10 +12,7 @@ import {
   ParseOptions,
 } from "dicexp/internal";
 import { RuntimeError, Scope, ValueTypeName } from "@dicexp/runtime/values";
-import {
-  runtimeError_callArgumentTypeMismatch,
-  RuntimeErrorFromArgument,
-} from "@dicexp/runtime/errors";
+import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
 import * as builtins from "@dicexp/builtins/internal";
 import { asScope } from "@dicexp/runtime/regular-functions";
@@ -103,13 +100,8 @@ export function assertExecutionOk(
 export function assertExecutionRuntimeError(
   code: string,
   expectedError: string | RuntimeError,
-  opts?: ExecuteOptionsForTest & { fromArgument?: boolean },
+  opts?: ExecuteOptionsForTest,
 ) {
-  const fromArgument = !!opts?.fromArgument;
-  if (opts) {
-    delete opts.fromArgument;
-  }
-
   const result = evaluateForTest(code, opts);
   if (result[0] === "ok") {
     const actualResultInspected = inspect(result[1]);
@@ -121,23 +113,12 @@ export function assertExecutionRuntimeError(
   const err = result[1];
 
   if (typeof expectedError === "string") {
-    if (fromArgument) {
-      if (!(err instanceof RuntimeErrorFromArgument)) {
-        throw new AssertionError(
-          `the error returned by \`${code}\` is not RuntimeErrorFromArgument`,
-        );
-      }
-      if (err.originalError.message === expectedError) return;
-    } else if (err.message === expectedError) return;
+    if (err.message === expectedError) return;
     throw new AssertionError(
       `\`${code}\` returned error` +
-        (fromArgument ? " (from argument)" : "") +
         ` "${err.message}", not "${expectedError}"`,
     );
   } else {
-    expectedError = fromArgument
-      ? new RuntimeErrorFromArgument(expectedError)
-      : expectedError;
     assert.deepEqual(err, expectedError);
   }
 }
