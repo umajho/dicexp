@@ -191,7 +191,6 @@ function unaryOperatorOnlyAccepts(
       assertExecutionRuntimeError(
         code,
         runtimeError_callArgumentTypeMismatch(1, expected, rightType),
-        { fromArgument: true },
       );
     });
   }
@@ -211,7 +210,6 @@ function binaryOperatorOnlyAccepts(
       assertExecutionRuntimeError(
         code,
         runtimeError_callArgumentTypeMismatch(pos, expected, wrongType),
-        { fromArgument: true },
       );
     });
   }

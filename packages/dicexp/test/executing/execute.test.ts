@@ -587,7 +587,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
-            { topLevelScope: scope, restrictions, fromArgument: true },
+            { topLevelScope: scope, restrictions },
           );
         });
       });
@@ -612,7 +612,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`1+1+1+1`,
             "越过外加限制「调用次数」（允许 2 次）",
-            { restrictions, fromArgument: true },
+            { restrictions },
           );
         });
       });
