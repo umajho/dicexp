@@ -123,41 +123,53 @@ export function assertExecutionRuntimeError(
   }
 }
 
-export function unaryOperatorOnlyAcceptsBoolean(op: string) {
+export function unaryOperatorOnlyAcceptsBoolean(
+  op: string,
+  opts?: ExecuteOptionsForTest,
+) {
   describe("只能用于布尔", () => {
     unaryOperatorOnlyAccepts(op, "boolean", [
       ["1", "integer"],
       ["[1]", "list"],
-    ]);
+    ], opts);
   });
 }
 
-export function binaryOperatorOnlyAcceptsBoolean(op: string) {
+export function binaryOperatorOnlyAcceptsBoolean(
+  op: string,
+  opts?: ExecuteOptionsForTest,
+) {
   describe("只能用于布尔", () => {
     binaryOperatorOnlyAccepts(op, "boolean", [
       [["1", "true"], "integer", 1],
       [["true", "1"], "integer", 2],
       [["[1]", "true"], "list", 1],
-    ]);
+    ], opts);
   });
 }
 
-export function unaryOperatorOnlyAcceptsNumbers(op: string) {
+export function unaryOperatorOnlyAcceptsNumbers(
+  op: string,
+  opts?: ExecuteOptionsForTest,
+) {
   describe("只能用于数字", () => {
     unaryOperatorOnlyAccepts(op, "integer", [
       ["true", "boolean"],
       ["[1]", "list"],
-    ]);
+    ], opts);
   });
 }
 
-export function binaryOperatorOnlyAcceptsNumbers(op: string) {
+export function binaryOperatorOnlyAcceptsNumbers(
+  op: string,
+  opts?: ExecuteOptionsForTest,
+) {
   describe("只能用于数字", () => {
     binaryOperatorOnlyAccepts(op, "integer", [
       [["1", "true"], "boolean", 2],
       [["true", "1"], "boolean", 1],
       [["[1]", "1"], "list", 1],
-    ]);
+    ], opts);
   });
 }
 
@@ -165,6 +177,7 @@ function unaryOperatorOnlyAccepts(
   op: string,
   expected: ValueTypeName,
   table: [string, ValueTypeName][],
+  opts?: ExecuteOptionsForTest,
 ) {
   for (const [i, [rightValue, rightType]] of table.entries()) {
     const code = `${op}(${rightValue})`;
@@ -172,6 +185,7 @@ function unaryOperatorOnlyAccepts(
       assertExecutionRuntimeError(
         code,
         runtimeError_callArgumentTypeMismatch(1, expected, rightType),
+        opts,
       );
     });
   }
@@ -181,6 +195,7 @@ function binaryOperatorOnlyAccepts(
   op: string,
   expected: ValueTypeName,
   table: [[string, string], ValueTypeName, number][],
+  opts?: ExecuteOptionsForTest,
 ) {
   for (
     const [i, [[leftValue, rightValue], wrongType, pos]] of table
@@ -191,6 +206,7 @@ function binaryOperatorOnlyAccepts(
       assertExecutionRuntimeError(
         code,
         runtimeError_callArgumentTypeMismatch(pos, expected, wrongType),
+        opts,
       );
     });
   }
