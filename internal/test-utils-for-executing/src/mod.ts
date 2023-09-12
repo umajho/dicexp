@@ -11,35 +11,14 @@ import {
   parse,
   ParseOptions,
 } from "dicexp/internal";
-import { RuntimeError, Scope, ValueTypeName } from "@dicexp/runtime/values";
+import { RuntimeError, ValueTypeName } from "@dicexp/runtime/values";
 import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
-import * as builtins from "@dicexp/builtins/internal";
-import { asScope } from "@dicexp/runtime/regular-functions";
 
-const testScopeCollection = ((): Scope => {
-  const pickedFunctions: string[] = [
-    ...["count/2", "sum/1", "sort/1", "append/2", "at/2"],
-    ...["map/2", "filter/2", "head/1", "tail/1", "zip/2", "zipWith/3"],
-  ];
-  const pickedScope: Scope = {};
-  for (const picked of pickedFunctions) {
-    if (!builtins.functionScope[picked]) {
-      throw new Unreachable(
-        `"测试用的函数 \`${picked}\` 不存在于标准作用域中"`,
-      );
-    }
-    pickedScope[picked] = builtins.functionScope[picked];
-  }
-  return asScope([builtins.operatorScope, pickedScope]);
-})();
-
-type ExecuteOptionsForTest = Omit<ExecuteOptions, "topLevelScope"> & {
-  topLevelScope?: Scope;
-};
+type ExecuteOptionsForTest = ExecuteOptions;
 export function evaluateForTest(
   code: string,
-  executeOpts?: ExecuteOptionsForTest,
+  executeOpts: ExecuteOptionsForTest,
   parseOpts?: ParseOptions,
 ): ExecutionResult {
   const parseResult = parse(code, parseOpts);
@@ -49,7 +28,7 @@ export function evaluateForTest(
   // parseResult[0] === "ok"
   return execute(parseResult[1], {
     ...executeOpts,
-    topLevelScope: executeOpts?.topLevelScope ?? testScopeCollection,
+    topLevelScope: executeOpts.topLevelScope,
   });
 }
 
@@ -70,10 +49,13 @@ export function assertNumberArray(result: ExecutionResult): number[] {
   return result[1] as number[];
 }
 
+/**
+ * @param expectedResult 若为 undefined，代表只要结果没有错误就算通过。
+ */
 export function assertExecutionOk(
   code: string,
-  expectedResult?: unknown,
-  opts?: ExecuteOptionsForTest,
+  expectedResult: unknown | undefined,
+  opts: ExecuteOptionsForTest,
 ): JSValue {
   const result = evaluateForTest(code, opts);
   if (result[0] === "ok") {
@@ -100,7 +82,7 @@ export function assertExecutionOk(
 export function assertExecutionRuntimeError(
   code: string,
   expectedError: string | RuntimeError,
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   const result = evaluateForTest(code, opts);
   if (result[0] === "ok") {
@@ -125,7 +107,7 @@ export function assertExecutionRuntimeError(
 
 export function unaryOperatorOnlyAcceptsBoolean(
   op: string,
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   describe("只能用于布尔", () => {
     unaryOperatorOnlyAccepts(op, "boolean", [
@@ -137,7 +119,7 @@ export function unaryOperatorOnlyAcceptsBoolean(
 
 export function binaryOperatorOnlyAcceptsBoolean(
   op: string,
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   describe("只能用于布尔", () => {
     binaryOperatorOnlyAccepts(op, "boolean", [
@@ -150,7 +132,7 @@ export function binaryOperatorOnlyAcceptsBoolean(
 
 export function unaryOperatorOnlyAcceptsNumbers(
   op: string,
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   describe("只能用于数字", () => {
     unaryOperatorOnlyAccepts(op, "integer", [
@@ -162,7 +144,7 @@ export function unaryOperatorOnlyAcceptsNumbers(
 
 export function binaryOperatorOnlyAcceptsNumbers(
   op: string,
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   describe("只能用于数字", () => {
     binaryOperatorOnlyAccepts(op, "integer", [
@@ -177,7 +159,7 @@ function unaryOperatorOnlyAccepts(
   op: string,
   expected: ValueTypeName,
   table: [string, ValueTypeName][],
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   for (const [i, [rightValue, rightType]] of table.entries()) {
     const code = `${op}(${rightValue})`;
@@ -195,7 +177,7 @@ function binaryOperatorOnlyAccepts(
   op: string,
   expected: ValueTypeName,
   table: [[string, string], ValueTypeName, number][],
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   for (
     const [i, [[leftValue, rightValue], wrongType, pos]] of table
@@ -212,15 +194,18 @@ function binaryOperatorOnlyAccepts(
   }
 }
 
-export function assertResultsAreRandom(code: string) {
+export function assertResultsAreRandom(
+  code: string,
+  opts: ExecuteOptionsForTest,
+) {
   const results = Array(10).fill(null)
-    .map((_) => assertNumber(evaluateForTest(code)));
+    .map((_) => assertNumber(evaluateForTest(code, opts)));
   assert(new Set(results).size > 1);
 }
 
 export function theyAreOk<T extends JSValue = JSValue>(
   table: ([string, T] | string)[],
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   for (const [i, row] of table.entries()) {
     let code: string, expected: unknown | undefined;
