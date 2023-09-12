@@ -40,7 +40,7 @@
     "@dicexp/builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/lezer": "workspace:*",
-    "@dicexp/nodes": "workspace:^0.0.0",
+    "@dicexp/nodes": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "@dicexp/test-utils-for-executing": "workspace:*",
     "@lezer/common": "^1.0.3",
