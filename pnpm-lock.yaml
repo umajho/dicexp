@@ -125,7 +125,7 @@ importers:
         specifier: workspace:*
         version: link:../../internal/lezer
       '@dicexp/nodes':
-        specifier: workspace:^0.0.0
+        specifier: workspace:*
         version: link:../../internal/nodes
       '@dicexp/runtime':
         specifier: workspace:*
@@ -151,6 +151,16 @@ importers:
       vitest:
         specifier: ^0.34.2
         version: 0.34.2(@vitest/ui@0.34.2)
+
+  packages/solid-components:
+    dependencies:
+      solid-js:
+        specifier: ^1.7.6
+        version: 1.7.6
+    devDependencies:
+      dicexp:
+        specifier: workspace:*
+        version: link:../dicexp
 
   playground:
     dependencies:
@@ -187,6 +197,9 @@ importers:
       '@dicexp/runtime':
         specifier: workspace:*
         version: link:../internal/runtime
+      '@dicexp/solid-components':
+        specifier: workspace:*
+        version: link:../packages/solid-components
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.0.3)
