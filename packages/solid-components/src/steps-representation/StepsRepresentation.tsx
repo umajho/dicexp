@@ -81,7 +81,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
       );
     }
     case "_":
-      return () => <>_</>;
+      return () => "_";
     case "vp": {
       const value = repr[1];
       return () => <>{JSON.stringify(value)}</>;
