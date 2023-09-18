@@ -3,55 +3,28 @@ import { Component, Index, Show, useContext } from "solid-js";
 // 这里特意强调 imort type，防止真的引入了 dicexp 包中的实质内容
 import type { Repr } from "dicexp/internal";
 
-import { ColorPalette2D, CSSColor, TextColors } from "./types";
 import { RepresentationContext } from "./context";
-
-const defaultBackgroundColorPalette2D = (
-  // [
-  //   ["#1e3a8a", "#14532d"], // blue-900, green-900
-  //   ["#581c87", "#7c2d12"], // purple-900, orange-900
-  // ]
-  // [
-  //   ["#172554", "#052e16"], // blue-950, green-950
-  //   ["#3b0764", "#431407"], // purple-950, orange-950
-  // ]
-  [
-    ["#312e81", "#0c4a6e"], // indigo-900 < blue > sky-900
-    ["#064e3b", "#365314"], // emerald-900 < green > lime-900
-    ["#701a75", "#4c1d95"], // fuchsia-900 < purple > violet-900
-    ["#78350f", "#7f1d1d"], // amber-900 < orange > red-900
-  ]
-).map((p) => p.map((c) => `${c}EE`));
-
-//
-const defaultBackgroundColorForError = "#f87171"; // red-400
-const defaultTextColors: TextColors = {
-  normal: "white",
-  forError: "#450a0a", // red-950
-};
+import { ColorScheme } from "./color-scheme";
+import { defaultColorScheme } from "./color-scheme-default";
 
 export const StepsRepresentation: Component<{
   repr: Repr;
-  backgroundColorPalette2D?: ColorPalette2D;
-  backgroundColorForError?: CSSColor;
-  textColors?: TextColors;
+  colorScheme?: ColorScheme;
 }> = (props) => {
-  const backgroundColorPalette2D = props.backgroundColorPalette2D ??
-    defaultBackgroundColorPalette2D;
-  const backgroundColorForError = props.backgroundColorForError ??
-    defaultBackgroundColorForError;
-  const textColors = props.textColors ?? defaultTextColors;
+  const colorScheme = props.colorScheme ?? defaultColorScheme;
 
   return (
-    <RepresentationContext.Provider
-      value={{ backgroundColorPalette2D, textColors, backgroundColorForError }}
-    >
-      <Step
-        repr={props.repr}
-        depth={0}
-        rank={0}
-      />
-    </RepresentationContext.Provider>
+    <span>
+      <RepresentationContext.Provider
+        value={{ colorScheme }}
+      >
+        <Step
+          repr={props.repr}
+          depth={0}
+          rank={0}
+        />
+      </RepresentationContext.Provider>
+    </span>
   );
 };
 
@@ -64,20 +37,21 @@ const Step: Component<
   const ContentComp = createContentComponentForRepr(props.repr, props.depth);
 
   const bgColor = (() => {
-    if (isError) return context.backgroundColorForError;
+    if (isError) return context.colorScheme.error.background;
     if (props.depth === 0) return undefined;
-    const bgColorPalette2D = context.backgroundColorPalette2D;
-    const bgColorPalette =
-      bgColorPalette2D[(props.depth - 1) % bgColorPalette2D.length];
-    return bgColorPalette[props.rank % bgColorPalette.length];
+    const csForLevels = context.colorScheme.levels;
+    const csForRanks = csForLevels[(props.depth - 1) % csForLevels.length];
+    return csForRanks[props.rank % csForRanks.length].background;
   })();
-  const textColor = context.textColors[isError ? "forError" : "normal"];
+  const textColor = isError
+    ? context.colorScheme.error.text
+    : context.colorScheme.default.text;
 
   return (
     <span
       style={{
-        "background-color": bgColor,
-        "color": textColor,
+        "background-color": bgColor && `rgba(${bgColor.join(",")},90%)`,
+        "color": `rgb(${textColor.join(",")})`,
         // TODO: 配置好 tailwind 扫描这里后，改用 tailwind
         "padding-left": "3px",
         "padding-right": "3px",

@@ -1,8 +1,6 @@
 import { createContext } from "solid-js";
-import { ColorPalette2D, CSSColor, TextColors } from "./types";
+import { ColorScheme } from "./color-scheme";
 
 export const RepresentationContext = createContext<{
-  backgroundColorPalette2D: ColorPalette2D;
-  backgroundColorForError: CSSColor;
-  textColors: TextColors;
+  colorScheme: ColorScheme;
 }>();
