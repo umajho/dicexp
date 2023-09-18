@@ -153,6 +153,21 @@ function createContentComponentForRepr(
           );
         case "o":
           if (args.length === 1) {
+            if (callee === "+" || callee === "-" && args[0][0] === "vp") {
+              // TODO: 感觉不应该在这里写死，而是交由函数的执行逻辑决定是否像这样简化。
+              const [_, value] = args[0];
+              if (typeof value === "number") {
+                return () => (
+                  <>
+                    <Colored {...colorScheme.opeator}>{callee}</Colored>
+                    {/* <Step repr={args[0]} depth={depth + 1} rank={0} /> */}
+                    <Colored {...colorScheme.value_number}>
+                      {JSON.stringify(value)}
+                    </Colored>
+                  </>
+                );
+              }
+            }
             return (props) => (
               <>
                 {"("}
