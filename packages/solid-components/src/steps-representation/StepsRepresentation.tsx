@@ -1,10 +1,10 @@
-import { Component, Index, Show, useContext } from "solid-js";
+import { Component, Index, JSX, Show, useContext } from "solid-js";
 
 // 这里特意强调 imort type，防止真的引入了 dicexp 包中的实质内容
 import type { Repr } from "dicexp/internal";
 
 import { RepresentationContext } from "./context";
-import { ColorScheme } from "./color-scheme";
+import { ColorScheme, RGBColor } from "./color-scheme";
 import { defaultColorScheme } from "./color-scheme-default";
 
 export const StepsRepresentation: Component<{
@@ -34,7 +34,11 @@ const Step: Component<
   const isError = props.repr[0] === "E" || props.repr[0] === "e";
   const context = useContext(RepresentationContext)!;
 
-  const ContentComp = createContentComponentForRepr(props.repr, props.depth);
+  const ContentComp = createContentComponentForRepr(
+    props.repr,
+    props.depth,
+    context.colorScheme,
+  );
 
   const bgColor = (() => {
     if (isError) return context.colorScheme.error.background;
@@ -68,7 +72,11 @@ const Step: Component<
   );
 };
 
-function createContentComponentForRepr(repr: Repr, depth: number): Component<{
+function createContentComponentForRepr(
+  repr: Repr,
+  depth: number,
+  colorScheme: ColorScheme,
+): Component<{
   isExpanded: () => boolean;
 }> {
   switch (repr[0]) {
@@ -84,7 +92,9 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
       return () => "_";
     case "vp": {
       const value = repr[1];
-      return () => <>{JSON.stringify(value)}</>;
+      let textColor: RGBColor | undefined = colorScheme[`value_${typeof value}`]
+        ?.text;
+      return () => <Colored text={textColor}>{JSON.stringify(value)}</Colored>;
     }
     case "vl": {
       const items = repr[1];
@@ -106,7 +116,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
       return () => (
         <>
           {value && "("}
-          {name}
+          <Colored {...colorScheme.identifier}>{name}</Colored>
           {value && " "}
           <Show when={value}>
             {(value) => (
@@ -130,7 +140,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
         case "f":
           return (props) => (
             <>
-              {callee}
+              <Colored {...colorScheme.regular_function}>{callee}</Colored>
               <ListLike
                 parens={["(", ")"]}
                 compactAroundParens={true}
@@ -146,7 +156,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
             return (props) => (
               <>
                 {"("}
-                {callee}
+                <Colored {...colorScheme.opeator}>{callee}</Colored>
                 <Show when={props.isExpanded()} fallback="…">
                   <Step repr={args[0]} depth={depth + 1} rank={0} />
                 </Show>
@@ -161,7 +171,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
                 <Show when={props.isExpanded()} fallback="…">
                   <Step repr={args[0]} depth={depth + 1} rank={0} />
                 </Show>
-                {` ${callee} `}
+                <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
                 <Show when={props.isExpanded()} fallback="…">
                   <Step repr={args[1]} depth={depth + 1} rank={1} />
                 </Show>
@@ -186,8 +196,8 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
               <Show when={props.isExpanded()} fallback="…">
                 <Step repr={args[0]} depth={depth + 1} rank={0} />
               </Show>
-              {" |> "}
-              {callee}
+              <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
+              <Colored {...colorScheme.regular_function}>{callee}</Colored>
               <ListLike
                 parens={["(", ")"]}
                 compactAroundParens={true}
@@ -242,7 +252,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
               <Show when={props.isExpanded()} fallback="…">
                 <Step repr={args[0]} depth={depth + 1} rank={0} />
               </Show>
-              {" |> "}
+              <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
               {"("}
               <CalleeSR />
               {")"}
@@ -276,7 +286,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
                 const [op, repr] = item();
                 return (
                   <>
-                    {` ${op} `}
+                    <Colored {...colorScheme.opeator}>{` ${op} `}</Colored>
                     <Step repr={repr} depth={depth + 1} rank={i + 1} />
                   </>
                 );
@@ -290,7 +300,18 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
     }
     case "&": {
       const [_, name, arity] = repr;
-      return () => `(&${name}/${arity})`;
+      return () => (
+        <>
+          {"("}
+          <Colored {...colorScheme.operator_special}>
+            {"&"}
+            <Colored {...colorScheme.regular_function}>{name}</Colored>
+            {"/"}
+            {arity}
+          </Colored>
+          {")"}
+        </>
+      );
     }
     case "#": {
       const [_, count, body, result_] = repr;
@@ -304,7 +325,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component<{
           <Show when={props.isExpanded()} fallback="…">
             <Step repr={count} depth={depth + 1} rank={0} />
           </Show>
-          {" # "}
+          <Colored {...colorScheme.operator_special}>{" # "}</Colored>
           <Show when={props.isExpanded()} fallback="…">
             <Step repr={bodyAsRawRepr} depth={depth + 1} rank={1} />
           </Show>
@@ -419,3 +440,13 @@ function resultAsUndefinedIfIsIndirectError(result: Repr | undefined) {
   if (!result || result[0] === "E") return undefined;
   return result;
 }
+
+const Colored: Component<{ text?: RGBColor; children: JSX.Element }> = (
+  props,
+) => {
+  return (
+    <span style={{ color: props.text && `rgb(${props.text.join(",")})` }}>
+      {props.children}
+    </span>
+  );
+};

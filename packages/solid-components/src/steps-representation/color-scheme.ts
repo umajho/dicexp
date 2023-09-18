@@ -13,6 +13,25 @@ export interface ColorScheme {
     background: RGBColor;
     text: RGBColor;
   };
+
+  value_number: {
+    text: RGBColor;
+  };
+  value_boolean: {
+    text: RGBColor;
+  };
+  identifier: {
+    text: RGBColor;
+  };
+  regular_function: {
+    text: RGBColor;
+  };
+  opeator: {
+    text: RGBColor;
+  };
+  operator_special: {
+    text: RGBColor;
+  };
 }
 
 /**
