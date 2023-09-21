@@ -1,2 +1,2 @@
 export { StepsRepresentation } from "./StepsRepresentation";
-export type { ColorPalette, ColorPalette2D } from "./types";
+export type { ColorScheme } from "./color-scheme";
