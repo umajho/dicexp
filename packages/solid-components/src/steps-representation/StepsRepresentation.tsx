@@ -294,7 +294,7 @@ function createContentComponentForRepr(
       return (props) => (
         <>
           {"("}
-          <Show when={props.isExpanded} fallback="…">
+          <Show when={props.isExpanded()} fallback="…">
             <Step repr={head} depth={depth + 1} rank={0} />
             <Index each={tail}>
               {(item, i) => {
