@@ -93,5 +93,8 @@ export const defaultColorScheme: ColorScheme = {
     operator_special: {
       text: [0xc6, 0x78, 0xdd], // violet (t.keyword)
     },
+    more: {
+      text: [0x7d, 0x87, 0x99], // stone (t.meta)
+    },
   },
 };

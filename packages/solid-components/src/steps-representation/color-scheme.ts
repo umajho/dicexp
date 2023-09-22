@@ -32,6 +32,9 @@ export interface ColorScheme {
   operator_special: {
     text: RGBColor;
   };
+  more: {
+    text: RGBColor;
+  };
 }
 
 /**

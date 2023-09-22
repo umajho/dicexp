@@ -1,4 +1,11 @@
-import { Component, Index, JSX, Show, useContext } from "solid-js";
+import {
+  Component,
+  createSignal,
+  Index,
+  JSX,
+  Show,
+  useContext,
+} from "solid-js";
 
 // 这里特意强调 imort type，防止真的引入了 dicexp 包中的实质内容
 import type { Repr } from "dicexp/internal";
@@ -34,11 +41,14 @@ const Step: Component<
   const isError = props.repr[0] === "E" || props.repr[0] === "e";
   const context = useContext(RepresentationContext)!;
 
-  const ContentComp = createContentComponentForRepr(
-    props.repr,
-    props.depth,
-    context.colorScheme,
-  );
+  const { Component: ContentComp, isCollapsible } =
+    createContentComponentForRepr(
+      props.repr,
+      props.depth,
+      context.colorScheme,
+    );
+
+  const [isExpanded, setIsExpanded] = createSignal(!isCollapsible);
 
   const bgColor = (() => {
     if (isError) return context.colorScheme.error.background;
@@ -51,6 +61,12 @@ const Step: Component<
     ? context.colorScheme.error.text
     : context.colorScheme.default.text;
 
+  function toggleExpansion(ev: Event) {
+    ev.stopPropagation();
+    if (!isCollapsible) return;
+    setIsExpanded(!isExpanded());
+  }
+
   return (
     <span
       style={{
@@ -62,11 +78,15 @@ const Step: Component<
         "margin-left": "1px",
         "margin-right": "1px",
         ...(isError ? { "font-weight": "700" } : {}),
+        "cursor": isCollapsible
+          ? (isExpanded() ? "zoom-out" : "zoom-in")
+          : "auto",
       }}
       class={`font-mono rounded`}
+      onClick={toggleExpansion}
     >
       <ContentComp
-        isExpanded={() => true}
+        isExpanded={isExpanded}
       />
     </span>
   );
@@ -76,59 +96,78 @@ function createContentComponentForRepr(
   repr: Repr,
   depth: number,
   colorScheme: ColorScheme,
-): Component<{
-  isExpanded: () => boolean;
-}> {
+): {
+  Component: Component<{
+    isExpanded: () => boolean;
+  }>;
+  isCollapsible: boolean;
+} {
   switch (repr[0]) {
     case "r": {
       const raw = repr[1];
-      return (props) => (
-        <Show when={props.isExpanded()} fallback="…">
-          {raw}
-        </Show>
-      );
+      return {
+        Component: () => raw,
+        isCollapsible: false,
+      };
     }
     case "_":
-      return () => "_";
+      return {
+        Component: () => "_",
+        isCollapsible: false,
+      };
     case "vp": {
       const value = repr[1];
       let textColor: RGBColor | undefined = colorScheme[`value_${typeof value}`]
         ?.text;
-      return () => <Colored text={textColor}>{JSON.stringify(value)}</Colored>;
+      return {
+        Component: () => (
+          <Colored text={textColor}>{JSON.stringify(value)}</Colored>
+        ),
+        isCollapsible: false,
+      };
     }
     case "vl": {
       const items = repr[1];
-      return (props) => (
-        <ListLike
-          parens={["[", "]"]}
-          isExpanded={props.isExpanded}
-          items={items}
-          depth={depth}
-        />
-      );
+      return {
+        Component: (props) => (
+          <ListLike
+            parens={["[", "]"]}
+            isExpanded={props.isExpanded}
+            items={items}
+            depth={depth}
+          />
+        ),
+        isCollapsible: items.length > 0,
+      };
     }
     case "vs": {
       const sum = repr[1];
-      return () => <>{sum}</>;
+      return {
+        Component: () => <>{sum}</>,
+        isCollapsible: false,
+      };
     }
     case "i": {
       const [_, name, value] = repr;
-      return () => (
-        <>
-          {value && "("}
-          <Colored {...colorScheme.identifier}>{name}</Colored>
-          {value && " "}
-          <Show when={value}>
-            {(value) => (
-              <>
-                {" = "}
-                <Step repr={value()} depth={depth + 1} rank={0} />
-              </>
-            )}
-          </Show>
-          {value && ")"}
-        </>
-      );
+      return {
+        Component: () => (
+          <>
+            {value && "("}
+            <Colored {...colorScheme.identifier}>{name}</Colored>
+            {value && " "}
+            <Show when={value}>
+              {(value) => (
+                <>
+                  {" = "}
+                  <Step repr={value()} depth={depth + 1} rank={0} />
+                </>
+              )}
+            </Show>
+            {value && ")"}
+          </>
+        ),
+        isCollapsible: false,
+      };
     }
     case "cr": {
       const [_, style, callee, args_, result_] = repr;
@@ -138,62 +177,74 @@ function createContentComponentForRepr(
         (() => <Step repr={result} depth={depth + 1} rank={args.length} />);
       switch (style) {
         case "f":
-          return (props) => (
-            <>
-              <Colored {...colorScheme.regular_function}>{callee}</Colored>
-              <ListLike
-                parens={["(", ")"]}
-                compactAroundParens={true}
-                isExpanded={props.isExpanded}
-                items={args}
-                depth={depth}
-              />
-              <ToResultIfExists Result={ResultSR} />
-            </>
-          );
+          return {
+            Component: (props) => (
+              <>
+                <Colored {...colorScheme.regular_function}>{callee}</Colored>
+                <ListLike
+                  parens={["(", ")"]}
+                  compactAroundParens={true}
+                  isExpanded={props.isExpanded}
+                  items={args}
+                  depth={depth}
+                />
+                <ToResultIfExists Result={ResultSR} />
+              </>
+            ),
+            isCollapsible: args.length > 0,
+          };
         case "o":
           if (args.length === 1) {
             if (callee === "+" || callee === "-" && args[0][0] === "vp") {
               // TODO: 感觉不应该在这里写死，而是交由函数的执行逻辑决定是否像这样简化。
               const [_, value] = args[0];
               if (typeof value === "number") {
-                return () => (
-                  <>
-                    <Colored {...colorScheme.opeator}>{callee}</Colored>
-                    {/* <Step repr={args[0]} depth={depth + 1} rank={0} /> */}
-                    <Colored {...colorScheme.value_number}>
-                      {JSON.stringify(value)}
-                    </Colored>
-                  </>
-                );
+                return {
+                  Component: () => (
+                    <>
+                      <Colored {...colorScheme.opeator}>{callee}</Colored>
+                      {/* <Step repr={args[0]} depth={depth + 1} rank={0} /> */}
+                      <Colored {...colorScheme.value_number}>
+                        {JSON.stringify(value)}
+                      </Colored>
+                    </>
+                  ),
+                  isCollapsible: false,
+                };
               }
             }
-            return (props) => (
-              <>
-                {"("}
-                <Colored {...colorScheme.opeator}>{callee}</Colored>
-                <Show when={props.isExpanded()} fallback="…">
-                  <Step repr={args[0]} depth={depth + 1} rank={0} />
-                </Show>
-                <ToResultIfExists Result={ResultSR} />
-                {")"}
-              </>
-            );
+            return {
+              Component: (props) => (
+                <>
+                  {"("}
+                  <Colored {...colorScheme.opeator}>{callee}</Colored>
+                  <Show when={props.isExpanded()} fallback={<More />}>
+                    <Step repr={args[0]} depth={depth + 1} rank={0} />
+                  </Show>
+                  <ToResultIfExists Result={ResultSR} />
+                  {")"}
+                </>
+              ),
+              isCollapsible: true,
+            };
           } else if (args.length === 2) {
-            return (props) => (
-              <>
-                {"("}
-                <Show when={props.isExpanded()} fallback="…">
-                  <Step repr={args[0]} depth={depth + 1} rank={0} />
-                </Show>
-                <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
-                <Show when={props.isExpanded()} fallback="…">
-                  <Step repr={args[1]} depth={depth + 1} rank={1} />
-                </Show>
-                <ToResultIfExists Result={ResultSR} />
-                {")"}
-              </>
-            );
+            return {
+              Component: (props) => (
+                <>
+                  {"("}
+                  <Show when={props.isExpanded()} fallback={<More />}>
+                    <Step repr={args[0]} depth={depth + 1} rank={0} />
+                  </Show>
+                  <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
+                  <Show when={props.isExpanded()} fallback={<More />}>
+                    <Step repr={args[1]} depth={depth + 1} rank={1} />
+                  </Show>
+                  <ToResultIfExists Result={ResultSR} />
+                  {")"}
+                </>
+              ),
+              isCollapsible: true,
+            };
           } else {
             throw new Error(
               `运算符风格的通常函数调用期待 1 或 2 个参数, 实际获得 ${args.length} 个`,
@@ -204,27 +255,32 @@ function createContentComponentForRepr(
             throw new Error(
               `管道风格的通常函数调用期待至少 1 个参数, 实际获得 ${args.length} 个`,
             );
+          } else {
+            const headArg = args[0], tailArgs = args.slice(1);
+            return {
+              Component: (props) => (
+                <>
+                  {"("}
+                  <Show when={props.isExpanded()} fallback={<More />}>
+                    <Step repr={headArg} depth={depth + 1} rank={0} />
+                  </Show>
+                  <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
+                  <Colored {...colorScheme.regular_function}>{callee}</Colored>
+                  <ListLike
+                    parens={["(", ")"]}
+                    compactAroundParens={true}
+                    isExpanded={props.isExpanded}
+                    items={tailArgs}
+                    depth={depth}
+                    rankOffset={1}
+                  />
+                  <ToResultIfExists Result={ResultSR} />
+                  {")"}
+                </>
+              ),
+              isCollapsible: tailArgs.length > 0,
+            };
           }
-          return (props) => (
-            <>
-              {"("}
-              <Show when={props.isExpanded()} fallback="…">
-                <Step repr={args[0]} depth={depth + 1} rank={0} />
-              </Show>
-              <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
-              <Colored {...colorScheme.regular_function}>{callee}</Colored>
-              <ListLike
-                parens={["(", ")"]}
-                compactAroundParens={true}
-                isExpanded={props.isExpanded}
-                items={args.slice(1)}
-                depth={depth}
-                rankOffset={1}
-              />
-              <ToResultIfExists Result={ResultSR} />
-              {")"}
-            </>
-          );
       }
     }
     case "cv": {
@@ -238,52 +294,60 @@ function createContentComponentForRepr(
         (() => <Step repr={result} depth={depth + 1} rank={args.length + 1} />);
       switch (style) {
         case "f":
-          return (props) => (
-            <>
-              {"("}
-              <CalleeSR />
-              {")"}
-              {"."}
-              <ListLike
-                parens={["(", ")"]}
-                compactAroundParens={true}
-                isExpanded={props.isExpanded}
-                items={args}
-                depth={depth}
-                rankOffset={1}
-              />
-              <ToResultIfExists Result={ResultSR} />
-            </>
-          );
+          return {
+            Component: (props) => (
+              <>
+                {"("}
+                <CalleeSR />
+                {")"}
+                {"."}
+                <ListLike
+                  parens={["(", ")"]}
+                  compactAroundParens={true}
+                  isExpanded={props.isExpanded}
+                  items={args}
+                  depth={depth}
+                  rankOffset={1}
+                />
+                <ToResultIfExists Result={ResultSR} />
+              </>
+            ),
+            isCollapsible: args.length > 0,
+          };
         case "p":
           if (args.length < 1) {
             throw new Error(
               `管道风格的值作为函数的调用期待至少 1 个参数, 实际获得 ${args.length} 个`,
             );
+          } else {
+            const headArg = args[0], tailArgs = args.slice(1);
+            return {
+              Component: (props) => (
+                <>
+                  {"("}
+                  <Show when={props.isExpanded()} fallback={<More />}>
+                    <Step repr={headArg} depth={depth + 1} rank={0} />
+                  </Show>
+                  <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
+                  {"("}
+                  <CalleeSR />
+                  {")"}
+                  {"."}
+                  <ListLike
+                    parens={["(", ")"]}
+                    compactAroundParens={true}
+                    isExpanded={props.isExpanded}
+                    items={tailArgs}
+                    depth={depth}
+                    rankOffset={1 + 1} // 在管道左侧的参数 + callee
+                  />
+                  <ToResultIfExists Result={ResultSR} />
+                  {")"}
+                </>
+              ),
+              isCollapsible: tailArgs.length > 0,
+            };
           }
-          return (props) => (
-            <>
-              {"("}
-              <Show when={props.isExpanded()} fallback="…">
-                <Step repr={args[0]} depth={depth + 1} rank={0} />
-              </Show>
-              <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
-              {"("}
-              <CalleeSR />
-              {")"}
-              {"."}
-              <ListLike
-                parens={["(", ")"]}
-                compactAroundParens={true}
-                isExpanded={props.isExpanded}
-                items={args.slice(1)}
-                depth={depth}
-                rankOffset={1 + 1} // 在管道左侧的参数 + callee
-              />
-              <ToResultIfExists Result={ResultSR} />
-              {")"}
-            </>
-          );
       }
     }
     case "c$": {
@@ -291,42 +355,48 @@ function createContentComponentForRepr(
       const result = resultAsUndefinedIfIsIndirectError(result_);
       const ResultSR = result &&
         (() => <Step repr={result} depth={depth + 1} rank={tail.length + 1} />);
-      return (props) => (
-        <>
-          {"("}
-          <Show when={props.isExpanded()} fallback="…">
-            <Step repr={head} depth={depth + 1} rank={0} />
-            <Index each={tail}>
-              {(item, i) => {
-                const [op, repr] = item();
-                return (
-                  <>
-                    <Colored {...colorScheme.opeator}>{` ${op} `}</Colored>
-                    <Step repr={repr} depth={depth + 1} rank={i + 1} />
-                  </>
-                );
-              }}
-            </Index>
-          </Show>
-          <ToResultIfExists Result={ResultSR}></ToResultIfExists>
-          {")"}
-        </>
-      );
+      return {
+        Component: (props) => (
+          <>
+            {"("}
+            <Show when={props.isExpanded()} fallback={<More />}>
+              <Step repr={head} depth={depth + 1} rank={0} />
+              <Index each={tail}>
+                {(item, i) => {
+                  const [op, repr] = item();
+                  return (
+                    <>
+                      <Colored {...colorScheme.opeator}>{` ${op} `}</Colored>
+                      <Step repr={repr} depth={depth + 1} rank={i + 1} />
+                    </>
+                  );
+                }}
+              </Index>
+            </Show>
+            <ToResultIfExists Result={ResultSR}></ToResultIfExists>
+            {")"}
+          </>
+        ),
+        isCollapsible: true,
+      };
     }
     case "&": {
       const [_, name, arity] = repr;
-      return () => (
-        <>
-          {"("}
-          <Colored {...colorScheme.operator_special}>
-            {"&"}
-            <Colored {...colorScheme.regular_function}>{name}</Colored>
-            {"/"}
-            {arity}
-          </Colored>
-          {")"}
-        </>
-      );
+      return {
+        Component: () => (
+          <>
+            {"("}
+            <Colored {...colorScheme.operator_special}>
+              {"&"}
+              <Colored {...colorScheme.regular_function}>{name}</Colored>
+              {"/"}
+              {arity}
+            </Colored>
+            {")"}
+          </>
+        ),
+        isCollapsible: false,
+      };
     }
     case "#": {
       const [_, count, body, result_] = repr;
@@ -334,37 +404,48 @@ function createContentComponentForRepr(
       const ResultSR = result &&
         (() => <Step repr={result} depth={depth + 1} rank={2} />);
       const bodyAsRawRepr: Repr = ["r", body];
-      return (props) => (
-        <>
-          {"("}
-          <Show when={props.isExpanded()} fallback="…">
-            <Step repr={count} depth={depth + 1} rank={0} />
-          </Show>
-          <Colored {...colorScheme.operator_special}>{" # "}</Colored>
-          <Show when={props.isExpanded()} fallback="…">
-            <Step repr={bodyAsRawRepr} depth={depth + 1} rank={1} />
-          </Show>
-          <ToResultIfExists Result={ResultSR}></ToResultIfExists>
-          {")"}
-        </>
-      );
+      return {
+        Component: (props) => (
+          <>
+            {"("}
+            <Show when={props.isExpanded()} fallback={<More />}>
+              <Step repr={count} depth={depth + 1} rank={0} />
+            </Show>
+            <Colored {...colorScheme.operator_special}>{" # "}</Colored>
+            <Show when={props.isExpanded()} fallback={<More />}>
+              <Step repr={bodyAsRawRepr} depth={depth + 1} rank={1} />
+            </Show>
+            <ToResultIfExists Result={ResultSR}></ToResultIfExists>
+            {")"}
+          </>
+        ),
+        isCollapsible: true,
+      };
     }
     case "e": {
       const [_, msg, source] = repr;
       const SourceSR = source &&
         (() => <Step repr={source} depth={depth + 1} rank={0} />);
-      return () => (
-        <>
-          {"("}
-          <FromSourceIfExists Source={SourceSR} />
-          {`错误：「${msg}」！`}
-          {")"}
-        </>
-      );
+      return {
+        Component: () => (
+          <>
+            {"("}
+            <FromSourceIfExists Source={SourceSR} />
+            {`错误：「${msg}」！`}
+            {")"}
+          </>
+        ),
+        isCollapsible: false,
+      };
     }
 
     case "E":
-      return () => <>（实现细节泄漏：此处是间接错误，不应展现在步骤中！）</>;
+      return {
+        Component: () => (
+          <>（实现细节泄漏：此处是间接错误，不应展现在步骤中！）</>
+        ),
+        isCollapsible: false,
+      };
   }
 }
 
@@ -379,11 +460,20 @@ const ListLike: Component<{
 }> = (props) => {
   const [lP, rP] = props.parens;
   const compactAroundParens = props.compactAroundParens ?? false;
+  const context = useContext(RepresentationContext)!;
 
   return (
     <Show
       when={props.isExpanded() && props.items.length}
-      fallback={props.items.length ? `${lP} … ${rP}` : `${lP}${rP}`}
+      fallback={props.items.length
+        ? (
+          <>
+            {`${lP}`}
+            <Colored {...context.colorScheme.more}>{` … `}</Colored>
+            {`${rP}`}
+          </>
+        )
+        : `${lP}${rP}`}
     >
       {`${lP}`}
       {compactAroundParens || " "}
@@ -455,6 +545,12 @@ function resultAsUndefinedIfIsIndirectError(result: Repr | undefined) {
   if (!result || result[0] === "E") return undefined;
   return result;
 }
+
+const More: Component = () => {
+  const context = useContext(RepresentationContext)!;
+
+  return <Colored {...context.colorScheme.more}>…</Colored>;
+};
 
 const Colored: Component<{ text?: RGBColor; children: JSX.Element }> = (
   props,
