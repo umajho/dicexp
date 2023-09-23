@@ -53,7 +53,9 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component {
     }
     case "vl": {
       const items = repr[1];
-      return () => <ListLike parens={["[", "]"]} items={items} depth={depth} />;
+      return () => (
+        <ListLike parens={["[", "]"]} padding=" " items={items} depth={depth} />
+      );
     }
     case "vs": {
       const sum = repr[1];
@@ -91,12 +93,7 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component {
           return () => (
             <>
               <Colored {...colorScheme.regular_function}>{callee}</Colored>
-              <ListLike
-                parens={["(", ")"]}
-                compactAroundParens={true}
-                items={args}
-                depth={depth}
-              />
+              <ListLike parens={["(", ")"]} items={args} depth={depth} />
               <ToResultIfExists Result={ResultSR} />
             </>
           );
@@ -158,7 +155,6 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component {
                 <Colored {...colorScheme.regular_function}>{callee}</Colored>
                 <ListLike
                   parens={["(", ")"]}
-                  compactAroundParens={true}
                   items={tailArgs}
                   depth={depth}
                   rankOffset={1}
@@ -192,7 +188,6 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component {
               {"."}
               <ListLike
                 parens={["(", ")"]}
-                compactAroundParens={true}
                 items={args}
                 depth={depth}
                 rankOffset={1}
@@ -218,7 +213,6 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component {
                 {"."}
                 <ListLike
                   parens={["(", ")"]}
-                  compactAroundParens={true}
                   items={tailArgs}
                   depth={depth}
                   rankOffset={1 + 1} // 在管道左侧的参数 + callee
@@ -311,14 +305,13 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component {
 
 const ListLike: Component<{
   parens: [string, string];
-  compactAroundParens?: boolean;
+  padding?: string;
 
   items: Repr[];
   depth: number;
   rankOffset?: number;
 }> = (props) => {
   const [lP, rP] = props.parens;
-  const compactAroundParens = props.compactAroundParens ?? false;
   const context = useContext(RepresentationContext)!;
 
   return (
@@ -335,13 +328,13 @@ const ListLike: Component<{
         : `${lP}${rP}`}
     >
       {`${lP}`}
-      {compactAroundParens || " "}
+      {props.padding}
       <ListItems
         items={props.items}
         outerDepth={props.depth}
         rankOffset={props.rankOffset}
       />
-      {compactAroundParens || " "}
+      {props.padding}
       {`${rP}`}
     </Show>
   );
