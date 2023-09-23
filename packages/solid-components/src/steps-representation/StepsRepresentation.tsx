@@ -22,14 +22,8 @@ export const StepsRepresentation: Component<{
 
   return (
     <span>
-      <RepresentationContext.Provider
-        value={{ colorScheme }}
-      >
-        <Step
-          repr={props.repr}
-          depth={0}
-          rank={0}
-        />
+      <RepresentationContext.Provider value={{ colorScheme }}>
+        <Step repr={props.repr} depth={0} rank={0} />
       </RepresentationContext.Provider>
     </span>
   );
