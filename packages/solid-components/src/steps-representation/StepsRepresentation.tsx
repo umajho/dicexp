@@ -30,72 +30,53 @@ export const StepsRepresentation: Component<{
 };
 
 const Step: Component<{ repr: Repr; depth: number }> = (props) => {
-  const { Component: ContentComp } = //
-    createContentComponentForRepr(props.repr, props.depth);
+  const ContentComp = createContentComponentForRepr(props.repr, props.depth);
 
   return <ContentComp />;
 };
 
-function createContentComponentForRepr(repr: Repr, depth: number): {
-  Component: Component;
-} {
+function createContentComponentForRepr(repr: Repr, depth: number): Component {
   const { colorScheme } = useContext(RepresentationContext)!;
 
   switch (repr[0]) {
     case "r": {
       const raw = repr[1];
-      return {
-        Component: () => raw,
-      };
+      return () => raw;
     }
     case "_":
-      return {
-        Component: () => "_",
-      };
+      return () => "_";
     case "vp": {
       const value = repr[1];
       let textColor: RGBColor | undefined = colorScheme[`value_${typeof value}`]
         ?.text;
-      return {
-        Component: () => (
-          <Colored text={textColor}>{JSON.stringify(value)}</Colored>
-        ),
-      };
+      return () => <Colored text={textColor}>{JSON.stringify(value)}</Colored>;
     }
     case "vl": {
       const items = repr[1];
-      return {
-        Component: () => (
-          <ListLike parens={["[", "]"]} items={items} depth={depth} />
-        ),
-      };
+      return () => <ListLike parens={["[", "]"]} items={items} depth={depth} />;
     }
     case "vs": {
       const sum = repr[1];
-      return {
-        Component: () => <>{sum}</>,
-      };
+      return () => <>{sum}</>;
     }
     case "i": {
       const [_, name, value] = repr;
-      return {
-        Component: () => (
-          <>
-            {value && "("}
-            <Colored {...colorScheme.identifier}>{name}</Colored>
-            {value && " "}
-            <Show when={value}>
-              {(value) => (
-                <>
-                  {" = "}
-                  <DeeperStep repr={value()} outerDepth={depth} rank={0} />
-                </>
-              )}
-            </Show>
-            {value && ")"}
-          </>
-        ),
-      };
+      return () => (
+        <>
+          {value && "("}
+          <Colored {...colorScheme.identifier}>{name}</Colored>
+          {value && " "}
+          <Show when={value}>
+            {(value) => (
+              <>
+                {" = "}
+                <DeeperStep repr={value()} outerDepth={depth} rank={0} />
+              </>
+            )}
+          </Show>
+          {value && ")"}
+        </>
+      );
     }
     case "cr": {
       const [_, style, callee, args_, result_] = repr;
@@ -107,64 +88,56 @@ function createContentComponentForRepr(repr: Repr, depth: number): {
         ));
       switch (style) {
         case "f":
-          return {
-            Component: () => (
-              <>
-                <Colored {...colorScheme.regular_function}>{callee}</Colored>
-                <ListLike
-                  parens={["(", ")"]}
-                  compactAroundParens={true}
-                  items={args}
-                  depth={depth}
-                />
-                <ToResultIfExists Result={ResultSR} />
-              </>
-            ),
-          };
+          return () => (
+            <>
+              <Colored {...colorScheme.regular_function}>{callee}</Colored>
+              <ListLike
+                parens={["(", ")"]}
+                compactAroundParens={true}
+                items={args}
+                depth={depth}
+              />
+              <ToResultIfExists Result={ResultSR} />
+            </>
+          );
         case "o":
           if (args.length === 1) {
             if (callee === "+" || callee === "-" && args[0][0] === "vp") {
               // TODO: 感觉不应该在这里写死，而是交由函数的执行逻辑决定是否像这样简化。
               const [_, value] = args[0];
               if (typeof value === "number") {
-                return {
-                  Component: () => (
-                    <>
-                      <Colored {...colorScheme.opeator}>{callee}</Colored>
-                      {/* <Step repr={args[0]} depth={depth + 1} rank={0} /> */}
-                      <Colored {...colorScheme.value_number}>
-                        {JSON.stringify(value)}
-                      </Colored>
-                    </>
-                  ),
-                };
+                return () => (
+                  <>
+                    <Colored {...colorScheme.opeator}>{callee}</Colored>
+                    {/* <Step repr={args[0]} depth={depth + 1} rank={0} /> */}
+                    <Colored {...colorScheme.value_number}>
+                      {JSON.stringify(value)}
+                    </Colored>
+                  </>
+                );
               }
             }
 
-            return {
-              Component: () => (
-                <>
-                  {"("}
-                  <Colored {...colorScheme.opeator}>{callee}</Colored>
-                  <DeeperStep repr={args[0]} outerDepth={depth} rank={0} />
-                  <ToResultIfExists Result={ResultSR} />
-                  {")"}
-                </>
-              ),
-            };
+            return () => (
+              <>
+                {"("}
+                <Colored {...colorScheme.opeator}>{callee}</Colored>
+                <DeeperStep repr={args[0]} outerDepth={depth} rank={0} />
+                <ToResultIfExists Result={ResultSR} />
+                {")"}
+              </>
+            );
           } else if (args.length === 2) {
-            return {
-              Component: () => (
-                <>
-                  {"("}
-                  <DeeperStep repr={args[0]} outerDepth={depth} rank={0} />
-                  <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
-                  <DeeperStep repr={args[1]} outerDepth={depth} rank={1} />
-                  <ToResultIfExists Result={ResultSR} />
-                  {")"}
-                </>
-              ),
-            };
+            return () => (
+              <>
+                {"("}
+                <DeeperStep repr={args[0]} outerDepth={depth} rank={0} />
+                <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
+                <DeeperStep repr={args[1]} outerDepth={depth} rank={1} />
+                <ToResultIfExists Result={ResultSR} />
+                {")"}
+              </>
+            );
           } else {
             throw new Error(
               `运算符风格的通常函数调用期待 1 或 2 个参数, 实际获得 ${args.length} 个`,
@@ -177,25 +150,23 @@ function createContentComponentForRepr(repr: Repr, depth: number): {
             );
           } else {
             const headArg = args[0], tailArgs = args.slice(1);
-            return {
-              Component: () => (
-                <>
-                  {"("}
-                  <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
-                  <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
-                  <Colored {...colorScheme.regular_function}>{callee}</Colored>
-                  <ListLike
-                    parens={["(", ")"]}
-                    compactAroundParens={true}
-                    items={tailArgs}
-                    depth={depth}
-                    rankOffset={1}
-                  />
-                  <ToResultIfExists Result={ResultSR} />
-                  {")"}
-                </>
-              ),
-            };
+            return () => (
+              <>
+                {"("}
+                <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
+                <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
+                <Colored {...colorScheme.regular_function}>{callee}</Colored>
+                <ListLike
+                  parens={["(", ")"]}
+                  compactAroundParens={true}
+                  items={tailArgs}
+                  depth={depth}
+                  rankOffset={1}
+                />
+                <ToResultIfExists Result={ResultSR} />
+                {")"}
+              </>
+            );
           }
       }
     }
@@ -216,24 +187,22 @@ function createContentComponentForRepr(repr: Repr, depth: number): {
         ));
       switch (style) {
         case "f":
-          return {
-            Component: () => (
-              <>
-                {"("}
-                <CalleeSR />
-                {")"}
-                {"."}
-                <ListLike
-                  parens={["(", ")"]}
-                  compactAroundParens={true}
-                  items={args}
-                  depth={depth}
-                  rankOffset={1}
-                />
-                <ToResultIfExists Result={ResultSR} />
-              </>
-            ),
-          };
+          return () => (
+            <>
+              {"("}
+              <CalleeSR />
+              {")"}
+              {"."}
+              <ListLike
+                parens={["(", ")"]}
+                compactAroundParens={true}
+                items={args}
+                depth={depth}
+                rankOffset={1}
+              />
+              <ToResultIfExists Result={ResultSR} />
+            </>
+          );
         case "p":
           if (args.length < 1) {
             throw new Error(
@@ -241,28 +210,26 @@ function createContentComponentForRepr(repr: Repr, depth: number): {
             );
           } else {
             const headArg = args[0], tailArgs = args.slice(1);
-            return {
-              Component: () => (
-                <>
-                  {"("}
-                  <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
-                  <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
-                  {"("}
-                  <CalleeSR />
-                  {")"}
-                  {"."}
-                  <ListLike
-                    parens={["(", ")"]}
-                    compactAroundParens={true}
-                    items={tailArgs}
-                    depth={depth}
-                    rankOffset={1 + 1} // 在管道左侧的参数 + callee
-                  />
-                  <ToResultIfExists Result={ResultSR} />
-                  {")"}
-                </>
-              ),
-            };
+            return () => (
+              <>
+                {"("}
+                <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
+                <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
+                {"("}
+                <CalleeSR />
+                {")"}
+                {"."}
+                <ListLike
+                  parens={["(", ")"]}
+                  compactAroundParens={true}
+                  items={tailArgs}
+                  depth={depth}
+                  rankOffset={1 + 1} // 在管道左侧的参数 + callee
+                />
+                <ToResultIfExists Result={ResultSR} />
+                {")"}
+              </>
+            );
           }
       }
     }
@@ -273,87 +240,75 @@ function createContentComponentForRepr(repr: Repr, depth: number): {
         (() => (
           <DeeperStep repr={result} outerDepth={depth} rank={tail.length + 1} />
         ));
-      return {
-        Component: () => (
-          <>
-            {"("}
-            <Show when={true /** TODO!: 重新支持折叠 */} fallback={<More />}>
-              <DeeperStep repr={head} outerDepth={depth} rank={0} />
-              <Index each={tail}>
-                {(item, i) => {
-                  const [op, repr] = item();
-                  return (
-                    <>
-                      <Colored {...colorScheme.opeator}>{` ${op} `}</Colored>
-                      <DeeperStep repr={repr} outerDepth={depth} rank={i + 1} />
-                    </>
-                  );
-                }}
-              </Index>
-            </Show>
-            <ToResultIfExists Result={ResultSR}></ToResultIfExists>
-            {")"}
-          </>
-        ),
-      };
+      return () => (
+        <>
+          {"("}
+          <Show when={true /** TODO!: 重新支持折叠 */} fallback={<More />}>
+            <DeeperStep repr={head} outerDepth={depth} rank={0} />
+            <Index each={tail}>
+              {(item, i) => {
+                const [op, repr] = item();
+                return (
+                  <>
+                    <Colored {...colorScheme.opeator}>{` ${op} `}</Colored>
+                    <DeeperStep repr={repr} outerDepth={depth} rank={i + 1} />
+                  </>
+                );
+              }}
+            </Index>
+          </Show>
+          <ToResultIfExists Result={ResultSR}></ToResultIfExists>
+          {")"}
+        </>
+      );
     }
     case "&": {
       const [_, name, arity] = repr;
-      return {
-        Component: () => (
-          <>
-            {"("}
-            <Colored {...colorScheme.operator_special}>
-              {"&"}
-              <Colored {...colorScheme.regular_function}>{name}</Colored>
-              {"/"}
-              {arity}
-            </Colored>
-            {")"}
-          </>
-        ),
-      };
+      return () => (
+        <>
+          {"("}
+          <Colored {...colorScheme.operator_special}>
+            {"&"}
+            <Colored {...colorScheme.regular_function}>{name}</Colored>
+            {"/"}
+            {arity}
+          </Colored>
+          {")"}
+        </>
+      );
     }
     case "#": {
       const [_, count, body, result_] = repr;
       const result = resultAsUndefinedIfIsIndirectError(result_);
       const ResultSR = result &&
         (() => <DeeperStep repr={result} outerDepth={depth} rank={2} />);
-      return {
-        Component: () => (
-          <>
-            {"("}
-            <DeeperStep repr={count} outerDepth={depth} rank={0} />
-            <Colored {...colorScheme.operator_special}>{" # "}</Colored>
-            <DeeperStep repr={["r", body]} outerDepth={depth} rank={1} />
-            <ToResultIfExists Result={ResultSR}></ToResultIfExists>
-            {")"}
-          </>
-        ),
-      };
+      return () => (
+        <>
+          {"("}
+          <DeeperStep repr={count} outerDepth={depth} rank={0} />
+          <Colored {...colorScheme.operator_special}>{" # "}</Colored>
+          <DeeperStep repr={["r", body]} outerDepth={depth} rank={1} />
+          <ToResultIfExists Result={ResultSR}></ToResultIfExists>
+          {")"}
+        </>
+      );
     }
     case "e": {
       const [_, msg, source] = repr;
       const SourceSR = source &&
         (() => <DeeperStep repr={source} outerDepth={depth} rank={0} />);
-      return {
-        Component: () => (
-          <>
-            {"("}
-            <FromSourceIfExists Source={SourceSR} />
-            {`错误：「${msg}」！`}
-            {")"}
-          </>
-        ),
-      };
+      return () => (
+        <>
+          {"("}
+          <FromSourceIfExists Source={SourceSR} />
+          {`错误：「${msg}」！`}
+          {")"}
+        </>
+      );
     }
 
     case "E":
-      return {
-        Component: () => (
-          <>（实现细节泄漏：此处是间接错误，不应展现在步骤中！）</>
-        ),
-      };
+      return () => <>（实现细节泄漏：此处是间接错误，不应展现在步骤中！）</>;
   }
 }
 
