@@ -174,12 +174,9 @@ function createContentComponentForRepr(repr: Repr, depth: number): Component {
       const [_, style, callee, args_, result_] = repr;
       const args = args_ ?? [];
       const result = resultAsUndefinedIfIsIndirectError(result_);
+      const rankForCallee = style === "f" ? 0 : 1;
       const CalleeSR = () => (
-        <DeeperStep
-          repr={callee}
-          outerDepth={depth}
-          rank={style === "f" ? 0 : 1}
-        />
+        <DeeperStep repr={callee} outerDepth={depth} rank={rankForCallee} />
       );
       const ResultSR = result &&
         (() => (
