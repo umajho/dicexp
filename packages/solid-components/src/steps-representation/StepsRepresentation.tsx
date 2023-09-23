@@ -23,91 +23,34 @@ export const StepsRepresentation: Component<{
   return (
     <span>
       <RepresentationContext.Provider value={{ colorScheme }}>
-        <Step repr={props.repr} depth={0} rank={0} />
+        <Step repr={props.repr} depth={0} />
       </RepresentationContext.Provider>
     </span>
   );
 };
 
-const Step: Component<
-  { repr: Repr; depth: number; rank: number }
-> = (props) => {
-  const isError = props.repr[0] === "E" || props.repr[0] === "e";
-  const context = useContext(RepresentationContext)!;
+const Step: Component<{ repr: Repr; depth: number }> = (props) => {
+  const { Component: ContentComp } = //
+    createContentComponentForRepr(props.repr, props.depth);
 
-  const { Component: ContentComp, isCollapsible } =
-    createContentComponentForRepr(
-      props.repr,
-      props.depth,
-      context.colorScheme,
-    );
-
-  const [isExpanded, setIsExpanded] = createSignal(!isCollapsible);
-
-  const bgColor = (() => {
-    if (isError) return context.colorScheme.error.background;
-    if (props.depth === 0) return undefined;
-    const csForLevels = context.colorScheme.levels;
-    const csForRanks = csForLevels[(props.depth - 1) % csForLevels.length];
-    return csForRanks[props.rank % csForRanks.length].background;
-  })();
-  const textColor = isError
-    ? context.colorScheme.error.text
-    : context.colorScheme.default.text;
-
-  function toggleExpansion(ev: Event) {
-    ev.stopPropagation();
-    if (!isCollapsible) return;
-    setIsExpanded(!isExpanded());
-  }
-
-  return (
-    <span
-      style={{
-        "background-color": bgColor && `rgba(${bgColor.join(",")},90%)`,
-        "color": `rgb(${textColor.join(",")})`,
-        // TODO: 配置好 tailwind 扫描这里后，改用 tailwind
-        "padding-left": "3px",
-        "padding-right": "3px",
-        "margin-left": "1px",
-        "margin-right": "1px",
-        ...(isError ? { "font-weight": "700" } : {}),
-        "cursor": isCollapsible
-          ? (isExpanded() ? "zoom-out" : "zoom-in")
-          : "auto",
-      }}
-      class={`font-mono rounded`}
-      onClick={toggleExpansion}
-    >
-      <ContentComp
-        isExpanded={isExpanded}
-      />
-    </span>
-  );
+  return <ContentComp />;
 };
 
-function createContentComponentForRepr(
-  repr: Repr,
-  depth: number,
-  colorScheme: ColorScheme,
-): {
-  Component: Component<{
-    isExpanded: () => boolean;
-  }>;
-  isCollapsible: boolean;
+function createContentComponentForRepr(repr: Repr, depth: number): {
+  Component: Component;
 } {
+  const { colorScheme } = useContext(RepresentationContext)!;
+
   switch (repr[0]) {
     case "r": {
       const raw = repr[1];
       return {
         Component: () => raw,
-        isCollapsible: false,
       };
     }
     case "_":
       return {
         Component: () => "_",
-        isCollapsible: false,
       };
     case "vp": {
       const value = repr[1];
@@ -117,28 +60,20 @@ function createContentComponentForRepr(
         Component: () => (
           <Colored text={textColor}>{JSON.stringify(value)}</Colored>
         ),
-        isCollapsible: false,
       };
     }
     case "vl": {
       const items = repr[1];
       return {
-        Component: (props) => (
-          <ListLike
-            parens={["[", "]"]}
-            isExpanded={props.isExpanded}
-            items={items}
-            depth={depth}
-          />
+        Component: () => (
+          <ListLike parens={["[", "]"]} items={items} depth={depth} />
         ),
-        isCollapsible: items.length > 0,
       };
     }
     case "vs": {
       const sum = repr[1];
       return {
         Component: () => <>{sum}</>,
-        isCollapsible: false,
       };
     }
     case "i": {
@@ -153,14 +88,13 @@ function createContentComponentForRepr(
               {(value) => (
                 <>
                   {" = "}
-                  <Step repr={value()} depth={depth + 1} rank={0} />
+                  <DeeperStep repr={value()} outerDepth={depth} rank={0} />
                 </>
               )}
             </Show>
             {value && ")"}
           </>
         ),
-        isCollapsible: false,
       };
     }
     case "cr": {
@@ -168,24 +102,24 @@ function createContentComponentForRepr(
       const args = args_ ?? [];
       const result = resultAsUndefinedIfIsIndirectError(result_);
       const ResultSR = result &&
-        (() => <Step repr={result} depth={depth + 1} rank={args.length} />);
+        (() => (
+          <DeeperStep repr={result} outerDepth={depth} rank={args.length} />
+        ));
       switch (style) {
         case "f":
           return {
-            Component: (props) => (
+            Component: () => (
               <>
                 <Colored {...colorScheme.regular_function}>{callee}</Colored>
                 <ListLike
                   parens={["(", ")"]}
                   compactAroundParens={true}
-                  isExpanded={props.isExpanded}
                   items={args}
                   depth={depth}
                 />
                 <ToResultIfExists Result={ResultSR} />
               </>
             ),
-            isCollapsible: args.length > 0,
           };
         case "o":
           if (args.length === 1) {
@@ -203,42 +137,33 @@ function createContentComponentForRepr(
                       </Colored>
                     </>
                   ),
-                  isCollapsible: false,
                 };
               }
             }
 
-            const { Component: Operand, isCollapsible } = //
-              createDeeperStep(args[0], { currentDepth: depth, rank: 0 });
             return {
-              Component: (props) => (
+              Component: () => (
                 <>
                   {"("}
                   <Colored {...colorScheme.opeator}>{callee}</Colored>
-                  <Operand isExpanded={props.isExpanded} />
+                  <DeeperStep repr={args[0]} outerDepth={depth} rank={0} />
                   <ToResultIfExists Result={ResultSR} />
                   {")"}
                 </>
               ),
-              isCollapsible,
             };
           } else if (args.length === 2) {
-            const { Component: OperandL, isCollapsible: isCollapsibleL } =
-                createDeeperStep(args[0], { currentDepth: depth, rank: 0 }),
-              { Component: OperandR, isCollapsible: isCollapsibleR } =
-                createDeeperStep(args[1], { currentDepth: depth, rank: 1 });
             return {
-              Component: (props) => (
+              Component: () => (
                 <>
                   {"("}
-                  <OperandL isExpanded={props.isExpanded} />
+                  <DeeperStep repr={args[0]} outerDepth={depth} rank={0} />
                   <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
-                  <OperandR isExpanded={props.isExpanded} />
+                  <DeeperStep repr={args[1]} outerDepth={depth} rank={1} />
                   <ToResultIfExists Result={ResultSR} />
                   {")"}
                 </>
               ),
-              isCollapsible: isCollapsibleL || isCollapsibleR,
             };
           } else {
             throw new Error(
@@ -252,19 +177,16 @@ function createContentComponentForRepr(
             );
           } else {
             const headArg = args[0], tailArgs = args.slice(1);
-            const { Component: HeadArg, isCollapsible: isCollapsibleHeadArg } =
-              createDeeperStep(headArg, { currentDepth: depth, rank: 0 });
             return {
-              Component: (props) => (
+              Component: () => (
                 <>
                   {"("}
-                  <HeadArg isExpanded={props.isExpanded} />
+                  <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
                   <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
                   <Colored {...colorScheme.regular_function}>{callee}</Colored>
                   <ListLike
                     parens={["(", ")"]}
                     compactAroundParens={true}
-                    isExpanded={props.isExpanded}
                     items={tailArgs}
                     depth={depth}
                     rankOffset={1}
@@ -273,7 +195,6 @@ function createContentComponentForRepr(
                   {")"}
                 </>
               ),
-              isCollapsible: isCollapsibleHeadArg || (tailArgs.length > 0),
             };
           }
       }
@@ -283,14 +204,20 @@ function createContentComponentForRepr(
       const args = args_ ?? [];
       const result = resultAsUndefinedIfIsIndirectError(result_);
       const CalleeSR = () => (
-        <Step repr={callee} depth={depth + 1} rank={style === "f" ? 0 : 1} />
+        <DeeperStep
+          repr={callee}
+          outerDepth={depth}
+          rank={style === "f" ? 0 : 1}
+        />
       );
       const ResultSR = result &&
-        (() => <Step repr={result} depth={depth + 1} rank={args.length + 1} />);
+        (() => (
+          <DeeperStep repr={result} outerDepth={depth} rank={args.length + 1} />
+        ));
       switch (style) {
         case "f":
           return {
-            Component: (props) => (
+            Component: () => (
               <>
                 {"("}
                 <CalleeSR />
@@ -299,7 +226,6 @@ function createContentComponentForRepr(
                 <ListLike
                   parens={["(", ")"]}
                   compactAroundParens={true}
-                  isExpanded={props.isExpanded}
                   items={args}
                   depth={depth}
                   rankOffset={1}
@@ -307,7 +233,6 @@ function createContentComponentForRepr(
                 <ToResultIfExists Result={ResultSR} />
               </>
             ),
-            isCollapsible: args.length > 0,
           };
         case "p":
           if (args.length < 1) {
@@ -316,13 +241,11 @@ function createContentComponentForRepr(
             );
           } else {
             const headArg = args[0], tailArgs = args.slice(1);
-            const { Component: HeadArg, isCollapsible: isCollapsibleHeadArg } =
-              createDeeperStep(headArg, { currentDepth: depth, rank: 0 });
             return {
-              Component: (props) => (
+              Component: () => (
                 <>
                   {"("}
-                  <HeadArg isExpanded={props.isExpanded} />
+                  <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
                   <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
                   {"("}
                   <CalleeSR />
@@ -331,7 +254,6 @@ function createContentComponentForRepr(
                   <ListLike
                     parens={["(", ")"]}
                     compactAroundParens={true}
-                    isExpanded={props.isExpanded}
                     items={tailArgs}
                     depth={depth}
                     rankOffset={1 + 1} // 在管道左侧的参数 + callee
@@ -340,7 +262,6 @@ function createContentComponentForRepr(
                   {")"}
                 </>
               ),
-              isCollapsible: isCollapsibleHeadArg || (tailArgs.length > 0),
             };
           }
       }
@@ -349,20 +270,22 @@ function createContentComponentForRepr(
       const [_, head, tail, result_] = repr;
       const result = resultAsUndefinedIfIsIndirectError(result_);
       const ResultSR = result &&
-        (() => <Step repr={result} depth={depth + 1} rank={tail.length + 1} />);
+        (() => (
+          <DeeperStep repr={result} outerDepth={depth} rank={tail.length + 1} />
+        ));
       return {
-        Component: (props) => (
+        Component: () => (
           <>
             {"("}
-            <Show when={props.isExpanded()} fallback={<More />}>
-              <Step repr={head} depth={depth + 1} rank={0} />
+            <Show when={true /** TODO!: 重新支持折叠 */} fallback={<More />}>
+              <DeeperStep repr={head} outerDepth={depth} rank={0} />
               <Index each={tail}>
                 {(item, i) => {
                   const [op, repr] = item();
                   return (
                     <>
                       <Colored {...colorScheme.opeator}>{` ${op} `}</Colored>
-                      <Step repr={repr} depth={depth + 1} rank={i + 1} />
+                      <DeeperStep repr={repr} outerDepth={depth} rank={i + 1} />
                     </>
                   );
                 }}
@@ -372,7 +295,6 @@ function createContentComponentForRepr(
             {")"}
           </>
         ),
-        isCollapsible: true,
       };
     }
     case "&": {
@@ -390,34 +312,30 @@ function createContentComponentForRepr(
             {")"}
           </>
         ),
-        isCollapsible: false,
       };
     }
     case "#": {
       const [_, count, body, result_] = repr;
       const result = resultAsUndefinedIfIsIndirectError(result_);
       const ResultSR = result &&
-        (() => <Step repr={result} depth={depth + 1} rank={2} />);
-      const { Component: Count, isCollapsible: isCollapsible } =
-        createDeeperStep(count, { currentDepth: depth, rank: 0 });
+        (() => <DeeperStep repr={result} outerDepth={depth} rank={2} />);
       return {
-        Component: (props) => (
+        Component: () => (
           <>
             {"("}
-            <Count isExpanded={props.isExpanded} />
+            <DeeperStep repr={count} outerDepth={depth} rank={0} />
             <Colored {...colorScheme.operator_special}>{" # "}</Colored>
-            <Step repr={["r", body]} depth={depth + 1} rank={1} />
+            <DeeperStep repr={["r", body]} outerDepth={depth} rank={1} />
             <ToResultIfExists Result={ResultSR}></ToResultIfExists>
             {")"}
           </>
         ),
-        isCollapsible,
       };
     }
     case "e": {
       const [_, msg, source] = repr;
       const SourceSR = source &&
-        (() => <Step repr={source} depth={depth + 1} rank={0} />);
+        (() => <DeeperStep repr={source} outerDepth={depth} rank={0} />);
       return {
         Component: () => (
           <>
@@ -427,7 +345,6 @@ function createContentComponentForRepr(
             {")"}
           </>
         ),
-        isCollapsible: false,
       };
     }
 
@@ -436,7 +353,6 @@ function createContentComponentForRepr(
         Component: () => (
           <>（实现细节泄漏：此处是间接错误，不应展现在步骤中！）</>
         ),
-        isCollapsible: false,
       };
   }
 }
@@ -444,7 +360,6 @@ function createContentComponentForRepr(
 const ListLike: Component<{
   parens: [string, string];
   compactAroundParens?: boolean;
-  isExpanded: () => boolean;
 
   items: Repr[];
   depth: number;
@@ -456,7 +371,7 @@ const ListLike: Component<{
 
   return (
     <Show
-      when={props.isExpanded() && props.items.length}
+      when={true /** TODO!: 重新支持v */ && props.items.length}
       fallback={props.items.length
         ? (
           <>
@@ -471,7 +386,7 @@ const ListLike: Component<{
       {compactAroundParens || " "}
       <ListItems
         items={props.items}
-        depth={props.depth}
+        outerDepth={props.depth}
         rankOffset={props.rankOffset}
       />
       {compactAroundParens || " "}
@@ -482,7 +397,7 @@ const ListLike: Component<{
 
 const ListItems: Component<{
   items: Repr[];
-  depth: number;
+  outerDepth: number;
   rankOffset?: number;
 }> = (props) => {
   const rankOffset = props.rankOffset ?? 0;
@@ -492,7 +407,13 @@ const ListItems: Component<{
       {(repr, i) => {
         return (
           <>
-            <Step repr={repr()} depth={props.depth + 1} rank={rankOffset + i} />
+            <Slot
+              depth={props.outerDepth + 1}
+              rank={rankOffset + i}
+              isCollapsible={false}
+            >
+              <Step repr={repr()} depth={props.outerDepth + 1} />
+            </Slot>
             <Show when={i < props.items.length - 1}>{", "}</Show>
           </>
         );
@@ -538,34 +459,77 @@ function resultAsUndefinedIfIsIndirectError(result: Repr | undefined) {
   return result;
 }
 
-function createDeeperStep(
-  repr: Repr,
-  opts: { currentDepth: number; rank: number },
-): {
-  Component: Component<{
-    isExpanded: () => boolean;
-  }>;
-  isCollapsible: boolean;
-} {
-  const t = repr[0]; // type
-  if (t === "vp" || t === "_" || t === "r") {
-    return {
-      Component: () => (
-        <Step repr={repr} depth={opts.currentDepth + 1} rank={opts.rank} />
-      ),
-      isCollapsible: false,
-    };
+const DeeperStep: Component<
+  { repr: Repr; outerDepth: number; rank: number }
+> = (props) => {
+  const t = props.repr[0]; // type
+  const isCollapsible = t !== "vp" && t !== "_" && t !== "r";
+  const isError = t === "E" || t === "e";
+
+  return (
+    <Slot
+      depth={props.outerDepth + 1}
+      rank={props.rank}
+      isCollapsible={isCollapsible}
+      isError={isError}
+    >
+      <Step repr={props.repr} depth={props.outerDepth + 1} />
+    </Slot>
+  );
+};
+
+const Slot: Component<
+  {
+    children: JSX.Element;
+    depth: number;
+    rank: number;
+    isCollapsible: boolean;
+    isError?: boolean;
+  }
+> = (props) => {
+  const context = useContext(RepresentationContext)!;
+
+  const [isExpanded, setIsExpanded] = createSignal(!props.isCollapsible);
+
+  const bgColor = (() => {
+    if (props.isError) return context.colorScheme.error.background;
+    if (props.depth === 0) return undefined;
+    const csForLevels = context.colorScheme.levels;
+    const csForRanks = csForLevels[(props.depth - 1) % csForLevels.length];
+    return csForRanks[props.rank % csForRanks.length].background;
+  })();
+  const textColor = props.isError
+    ? context.colorScheme.error.text
+    : context.colorScheme.default.text;
+
+  function toggleExpansion(ev: Event) {
+    ev.stopPropagation();
+    if (!props.isCollapsible) return;
+    setIsExpanded(!isExpanded());
   }
 
-  return {
-    Component: (props) => (
-      <Show when={props.isExpanded()} fallback={<More />}>
-        <Step repr={repr} depth={opts.currentDepth + 1} rank={opts.rank} />
-      </Show>
-    ),
-    isCollapsible: true,
-  };
-}
+  return (
+    <span
+      style={{
+        "background-color": bgColor && `rgba(${bgColor.join(",")},90%)`,
+        "color": `rgb(${textColor.join(",")})`,
+        // TODO: 配置好 tailwind 扫描这里后，改用 tailwind
+        "padding-left": "3px",
+        "padding-right": "3px",
+        "margin-left": "1px",
+        "margin-right": "1px",
+        ...(props.isError ? { "font-weight": "700" } : {}),
+        "cursor": props.isCollapsible
+          ? (isExpanded() ? "zoom-out" : "zoom-in")
+          : "auto",
+      }}
+      class={`font-mono rounded`}
+      onClick={toggleExpansion}
+    >
+      <Show when={isExpanded()} fallback={<More />}>{props.children}</Show>
+    </span>
+  );
+};
 
 const More: Component = () => {
   const context = useContext(RepresentationContext)!;
