@@ -1,6 +1,8 @@
 import { createContext } from "solid-js";
 import { ColorScheme } from "./color-scheme";
 
-export const RepresentationContext = createContext<{
+export interface RepresentationContextData {
   colorScheme: ColorScheme;
-}>();
+}
+
+export const RepresentationContext = createContext<RepresentationContextData>();
