@@ -142,7 +142,7 @@ const createContentComponent: {
     // @ts-ignore ts(2488)
     const [_, style, callee, args_, result_] = repr;
     const args = args_ ?? [];
-    const result = resultAsUndefinedIfIsIndirectError(result_);
+    const [result, _isIndirectError] = separateIndirectErrorFromResult(result_);
     const Result = result &&
       (() => <DeeperStep repr={result} rank={args.length} />);
 
@@ -175,7 +175,7 @@ const createContentComponent: {
     // @ts-ignore ts(2488)
     const [_, style, callee, args_, result_] = repr;
     const args = args_ ?? [];
-    const result = resultAsUndefinedIfIsIndirectError(result_);
+    const [result, _isIndirectError] = separateIndirectErrorFromResult(result_);
     const rankForCallee = style === "f" ? 0 : 1;
     const Callee = () => <DeeperStep repr={callee} rank={rankForCallee} />;
     const resultRank = args.length + 1;
@@ -200,7 +200,7 @@ const createContentComponent: {
 
     // @ts-ignore ts(2488)
     const [_, head, tail, result_] = repr;
-    const result = resultAsUndefinedIfIsIndirectError(result_);
+    const [result, _isIndirectError] = separateIndirectErrorFromResult(result_);
     const Result = result &&
       (() => <DeeperStep repr={result} rank={tail.length + 1} />);
     return c.groupOfRegularOperators(head, tail, Result, ctx);
@@ -228,7 +228,7 @@ const createContentComponent: {
   "#": (repr, { colorScheme }) => {
     // @ts-ignore ts(2488)
     const [_, count, body, result_] = repr;
-    const result = resultAsUndefinedIfIsIndirectError(result_);
+    const [result, _isIndirectError] = separateIndirectErrorFromResult(result_);
     const Result = result && (() => <DeeperStep repr={result} rank={2} />);
     return (props) => (
       <Slot {...props} collapsible={true}>
@@ -583,9 +583,12 @@ const FromSourceIfExists: Component<{ Source: Component | undefined }> = (
   </Show>
 );
 
-function resultAsUndefinedIfIsIndirectError(result: Repr | undefined) {
-  if (!result || result[0] === "E") return undefined;
-  return result;
+function separateIndirectErrorFromResult(
+  result: Repr | undefined,
+): [result: Repr | undefined, isIndirectError: boolean] {
+  if (!result) return [undefined, false];
+  if (!result || result[0] === "E") return [undefined, true];
+  return [result, false];
 }
 
 const DeeperStep: Component<
