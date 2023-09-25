@@ -605,12 +605,6 @@ const DeeperStep: Component<
 const Slot: Component<
   {
     children: Component<{ isExpanded: () => boolean }>;
-    rank?: number;
-    /**
-     * - true: 可以折叠；
-     * - false: 不可以折叠；
-     * - "must": 必须折叠。
-     */
     collapsible?: boolean;
     isError?: boolean;
   }
