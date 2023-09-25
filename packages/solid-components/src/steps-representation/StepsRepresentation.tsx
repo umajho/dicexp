@@ -29,14 +29,14 @@ export const StepsRepresentation: Component<
   return (
     <span>
       <RepresentationContext.Provider value={contextData}>
-        <Step repr={props.repr} depth={0} rank={0} />
+        <Step repr={props.repr} depth={0} />
       </RepresentationContext.Provider>
     </span>
   );
 };
 
 const Step: Component<
-  { repr: Repr; depth: number; rank: number }
+  { repr: Repr; depth: number; rank?: number }
 > = (
   props,
 ) => {
@@ -52,7 +52,7 @@ const Step: Component<
 };
 
 type ContentComponent = Component<
-  { depth: number; rank: number }
+  { depth: number; rank?: number }
 >;
 
 function createContentComponentForRepr(
@@ -79,13 +79,13 @@ const createContentComponent: {
   "r": (repr) => {
     const raw = repr[1];
     return (props) => (
-      <Slot {...props} collapsibility={false}>
+      <Slot {...props}>
         {() => raw}
       </Slot>
     );
   },
   "_": () => (props) => (
-    <Slot {...props} collapsibility={false}>
+    <Slot {...props}>
       {() => "_"}
     </Slot>
   ),
@@ -94,7 +94,7 @@ const createContentComponent: {
     let textColor: RGBColor | undefined = colorScheme[`value_${typeof value}`]
       ?.text;
     return (props) => (
-      <Slot {...props} collapsibility={false}>
+      <Slot {...props}>
         {() => <Colored text={textColor}>{JSON.stringify(value)}</Colored>}
       </Slot>
     );
@@ -103,7 +103,7 @@ const createContentComponent: {
     const items = repr[1];
     const collapsible = items.length > listPreviewLimit;
     return (props) => (
-      <Slot {...props} collapsibility={collapsible}>
+      <Slot {...props} collapsible={collapsible}>
         {({ isExpanded }) => (
           <ListLike
             parens={["[", "]"]}
@@ -119,7 +119,7 @@ const createContentComponent: {
   "vs": (repr) => {
     const sum = repr[1];
     return (props) => (
-      <Slot {...props} collapsibility={false}>
+      <Slot {...props}>
         {() => <>{sum}</>}
       </Slot>
     );
@@ -128,7 +128,7 @@ const createContentComponent: {
     // @ts-ignore ts(2488)
     const [_, name, value] = repr;
     return (props) => (
-      <Slot {...props} collapsibility={false}>
+      <Slot {...props}>
         {() => (
           <>
             {value && "("}
@@ -138,7 +138,7 @@ const createContentComponent: {
               {(value) => (
                 <>
                   {" = "}
-                  <DeeperStep repr={value()} outerDepth={depth} rank={0} />
+                  <DeeperStep repr={value()} outerDepth={depth} />
                 </>
               )}
             </Show>
@@ -229,7 +229,7 @@ const createContentComponent: {
     // @ts-ignore ts(2488)
     const [_, name, arity] = repr;
     return (props) => (
-      <Slot {...props} collapsibility={false}>
+      <Slot {...props}>
         {() => (
           <>
             {"("}
@@ -252,12 +252,12 @@ const createContentComponent: {
     const ResultSR = result &&
       (() => <DeeperStep repr={result} outerDepth={depth} rank={2} />);
     return (props) => (
-      <Slot {...props} collapsibility={true}>
+      <Slot {...props} collapsible={true}>
         {({ isExpanded }) => (
           <>
             {"("}
             <Show when={isExpanded()} fallback={<More />}>
-              <DeeperStep repr={count} outerDepth={depth} rank={0} />
+              <DeeperStep repr={count} outerDepth={depth} />
               <Colored {...colorScheme.operator_special}>{" # "}</Colored>
               <DeeperStep repr={["r", body]} outerDepth={depth} rank={1} />
             </Show>
@@ -272,9 +272,9 @@ const createContentComponent: {
     // @ts-ignore ts(2488)
     const [_, msg, source] = repr;
     const SourceSR = source &&
-      (() => <DeeperStep repr={source} outerDepth={depth} rank={0} />);
+      (() => <DeeperStep repr={source} outerDepth={depth} />);
     return (props) => (
-      <Slot {...props} collapsibility={false} isError={true}>
+      <Slot {...props} isError={true}>
         {() => (
           <>
             {"("}
@@ -298,7 +298,7 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <Slot depth={depth} rank={0} collapsibility={true}>
+      <Slot depth={depth} collapsible={true}>
         {({ isExpanded }) => (
           <>
             <Show when={isExpanded()} fallback={<More />}>
@@ -328,7 +328,7 @@ const createContentComponentForReprCall = {
       const [_, value] = operand;
       if (typeof value === "number") {
         return () => (
-          <Slot depth={depth} rank={0} collapsibility={false}>
+          <Slot depth={depth}>
             {() => (
               <>
                 <Colored {...colorScheme.opeator}>{callee}</Colored>
@@ -344,13 +344,13 @@ const createContentComponentForReprCall = {
 
     const collapsible = !isSimpleRepr(operand);
     return () => (
-      <Slot depth={depth} rank={0} collapsibility={collapsible}>
+      <Slot depth={depth} collapsible={collapsible}>
         {({ isExpanded }) => (
           <>
             {"("}
             <Show when={isExpanded()} fallback={<More />}>
               <Colored {...colorScheme.opeator}>{callee}</Colored>
-              <DeeperStep repr={operand} outerDepth={depth} rank={0} />
+              <DeeperStep repr={operand} outerDepth={depth} />
             </Show>
             <ToResultIfExists Result={Result} />
             {")"}
@@ -368,12 +368,12 @@ const createContentComponentForReprCall = {
   ) {
     const collapsible = ![operandLeft, operandRight].every(isSimpleRepr);
     return () => (
-      <Slot depth={depth} rank={0} collapsibility={collapsible}>
+      <Slot depth={depth} collapsible={collapsible}>
         {({ isExpanded }) => (
           <>
             {"("}
             <Show when={isExpanded()} fallback={<More />}>
-              <DeeperStep repr={operandLeft} outerDepth={depth} rank={0} />
+              <DeeperStep repr={operandLeft} outerDepth={depth} />
               <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
               <DeeperStep repr={operandRight} outerDepth={depth} rank={1} />
             </Show>
@@ -393,12 +393,12 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <Slot depth={depth} rank={0} collapsibility={true}>
+      <Slot depth={depth} collapsible={true}>
         {({ isExpanded }) => (
           <>
             {"("}
             <Show when={isExpanded()} fallback={<More />}>
-              <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
+              <DeeperStep repr={headArg} outerDepth={depth} />
               <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
               <Colored {...colorScheme.regular_function}>{callee}</Colored>
               <ListLike
@@ -425,7 +425,7 @@ const createContentComponentForReprCall = {
     _: RepresentationContextData,
   ) {
     return () => (
-      <Slot depth={depth} rank={0} collapsibility={true}>
+      <Slot depth={depth} collapsible={true}>
         {({ isExpanded }) => (
           <>
             {"("}
@@ -458,12 +458,12 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <Slot depth={depth} rank={0} collapsibility={true}>
+      <Slot depth={depth} collapsible={true}>
         {({ isExpanded }) => (
           <>
             {"("}
             <Show when={isExpanded()} fallback={<More />}>
-              <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
+              <DeeperStep repr={headArg} outerDepth={depth} />
               <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
               {"("}
               <Callee />
@@ -493,12 +493,12 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <Slot depth={depth} rank={0} collapsibility={true}>
+      <Slot depth={depth} collapsible={true}>
         {({ isExpanded }) => (
           <>
             {"("}
             <Show when={isExpanded()} fallback={<More />}>
-              <DeeperStep repr={head} outerDepth={depth} rank={0} />
+              <DeeperStep repr={head} outerDepth={depth} />
               <Index each={tail}>
                 {(item, i) => {
                   const [op, repr] = item();
@@ -632,7 +632,7 @@ function resultAsUndefinedIfIsIndirectError(result: Repr | undefined) {
 }
 
 const DeeperStep: Component<
-  { repr: Repr; outerDepth: number; rank: number }
+  { repr: Repr; outerDepth: number; rank?: number }
 > = (props) => {
   return (
     <Step repr={props.repr} depth={props.outerDepth + 1} rank={props.rank} />
@@ -643,28 +643,28 @@ const Slot: Component<
   {
     children: Component<{ isExpanded: () => boolean }>;
     depth: number;
-    rank: number;
+    rank?: number;
     /**
      * - true: 可以折叠；
      * - false: 不可以折叠；
      * - "must": 必须折叠。
      */
-    collapsibility: true | false | "must";
+    collapsible?: boolean;
     isError?: boolean;
   }
 > = (props) => {
   const context = useContext(RepresentationContext)!;
+  const rank = props.rank ?? 0,
+    collapsible = !!props.collapsible;
 
-  const [isExpanded, setIsExpanded] = createSignal(
-    props.collapsibility === false,
-  );
+  const [isExpanded, setIsExpanded] = createSignal(!collapsible);
 
   const bgColor = (() => {
     if (props.isError) return context.colorScheme.error.background;
     if (props.depth === 0) return undefined;
     const csForLevels = context.colorScheme.levels;
     const csForRanks = csForLevels[(props.depth - 1) % csForLevels.length];
-    return csForRanks[props.rank % csForRanks.length].background;
+    return csForRanks[rank % csForRanks.length].background;
   })();
   const textColor = props.isError
     ? context.colorScheme.error.text
@@ -672,7 +672,7 @@ const Slot: Component<
 
   function toggleExpansion(ev: Event) {
     ev.stopPropagation();
-    if (props.collapsibility !== true) return;
+    if (!collapsible) return;
     setIsExpanded(!isExpanded());
   }
 
@@ -687,7 +687,7 @@ const Slot: Component<
         "margin-left": "1px",
         "margin-right": "1px",
         ...(props.isError ? { "font-weight": "700" } : {}),
-        "cursor": props.collapsibility === true
+        "cursor": collapsible
           ? (isExpanded() ? "zoom-out" : "zoom-in")
           : "auto",
       }}
