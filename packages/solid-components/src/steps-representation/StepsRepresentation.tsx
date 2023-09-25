@@ -3,7 +3,9 @@ import {
   createSignal,
   Index,
   JSX,
+  Match,
   Show,
+  Switch,
   useContext,
 } from "solid-js";
 
@@ -11,25 +13,33 @@ import {
 import type { Repr } from "dicexp/internal";
 
 import { RepresentationContext, RepresentationContextData } from "./context";
-import { ColorScheme, RGBColor } from "./color-scheme";
+import { RGBColor } from "./color-scheme";
 import { defaultColorScheme } from "./color-scheme-default";
 
-export const StepsRepresentation: Component<{
-  repr: Repr;
-  colorScheme?: ColorScheme;
-}> = (props) => {
-  const colorScheme = props.colorScheme ?? defaultColorScheme;
+export const StepsRepresentation: Component<
+  & { repr: Repr }
+  & Partial<RepresentationContextData>
+> = (props) => {
+  const contextData: RepresentationContextData = {
+    colorScheme: defaultColorScheme,
+    listPreviewLimit: 3,
+    ...props,
+  };
 
   return (
     <span>
-      <RepresentationContext.Provider value={{ colorScheme }}>
-        <Step repr={props.repr} depth={0} />
+      <RepresentationContext.Provider value={contextData}>
+        <Step repr={props.repr} depth={0} rank={0} />
       </RepresentationContext.Provider>
     </span>
   );
 };
 
-const Step: Component<{ repr: Repr; depth: number }> = (props) => {
+const Step: Component<
+  { repr: Repr; depth: number; rank: number }
+> = (
+  props,
+) => {
   const context = useContext(RepresentationContext)!;
 
   const ContentComp = createContentComponentForRepr(
@@ -38,14 +48,18 @@ const Step: Component<{ repr: Repr; depth: number }> = (props) => {
     context,
   );
 
-  return <ContentComp />;
+  return <ContentComp depth={props.depth} rank={props.rank} />;
 };
+
+type ContentComponent = Component<
+  { depth: number; rank: number }
+>;
 
 function createContentComponentForRepr(
   repr: Repr,
   opts: CreateContentComponentOptions,
   ctx: RepresentationContextData,
-): Component {
+): ContentComponent {
   // @ts-ignore ts(2590)
   //   Expression produces a union type that is too complex to represent.
   return createContentComponent[repr[0]](repr, opts, ctx);
@@ -60,47 +74,78 @@ const createContentComponent: {
     repr: Repr & { 0: key },
     opts: CreateContentComponentOptions,
     ctx: RepresentationContextData,
-  ) => Component;
+  ) => ContentComponent;
 } = {
   "r": (repr) => {
     const raw = repr[1];
-    return () => raw;
+    return (props) => (
+      <Slot {...props} collapsibility={false}>
+        {() => raw}
+      </Slot>
+    );
   },
-  "_": () => () => "_",
+  "_": () => (props) => (
+    <Slot {...props} collapsibility={false}>
+      {() => "_"}
+    </Slot>
+  ),
   "vp": (repr, _, { colorScheme }) => {
     const value = repr[1];
     let textColor: RGBColor | undefined = colorScheme[`value_${typeof value}`]
       ?.text;
-    return () => <Colored text={textColor}>{JSON.stringify(value)}</Colored>;
+    return (props) => (
+      <Slot {...props} collapsibility={false}>
+        {() => <Colored text={textColor}>{JSON.stringify(value)}</Colored>}
+      </Slot>
+    );
   },
-  "vl": (repr, { depth }) => {
+  "vl": (repr, { depth }, { listPreviewLimit }) => {
     const items = repr[1];
-    return () => (
-      <ListLike parens={["[", "]"]} padding=" " items={items} depth={depth} />
+    const collapsible = items.length > listPreviewLimit;
+    return (props) => (
+      <Slot {...props} collapsibility={collapsible}>
+        {({ isExpanded }) => (
+          <ListLike
+            parens={["[", "]"]}
+            padding=" "
+            items={items}
+            outerDepth={depth}
+            expansion={isExpanded() || listPreviewLimit}
+          />
+        )}
+      </Slot>
     );
   },
   "vs": (repr) => {
     const sum = repr[1];
-    return () => <>{sum}</>;
+    return (props) => (
+      <Slot {...props} collapsibility={false}>
+        {() => <>{sum}</>}
+      </Slot>
+    );
   },
   "i": (repr, { depth }, { colorScheme }) => {
     // @ts-ignore ts(2488)
     const [_, name, value] = repr;
-    return () => (
-      <>
-        {value && "("}
-        <Colored {...colorScheme.identifier}>{name}</Colored>
-        {value && " "}
-        <Show when={value}>
-          {(value) => (
-            <>
-              {" = "}
-              <DeeperStep repr={value()} outerDepth={depth} rank={0} />
-            </>
-          )}
-        </Show>
-        {value && ")"}
-      </>
+    return (props) => (
+      <Slot {...props} collapsibility={false}>
+        {() => (
+          <>
+            {value && "("}
+            <Colored {...colorScheme.identifier}>{name}</Colored>
+            {value && " "}
+            <Show when={value}>
+              {(value) => (
+                <>
+                  {" = "}
+                  <DeeperStep repr={value()} outerDepth={depth} rank={0} />
+                </>
+              )}
+            </Show>
+            {value && ")"}
+          </>
+        )}
+      </Slot>
     );
   },
   "cr": (repr, opts, ctx) => {
@@ -168,50 +213,36 @@ const createContentComponent: {
         return c.valueAsPiped(Callee, head, tail, Result, opts, ctx);
     }
   },
-  "c$": (repr, { depth }, { colorScheme }) => {
+  "c$": (repr, { depth }, ctx) => {
+    const c = createContentComponentForReprCall;
+
     // @ts-ignore ts(2488)
     const [_, head, tail, result_] = repr;
     const result = resultAsUndefinedIfIsIndirectError(result_);
-    const ResultSR = result &&
+    const Result = result &&
       (() => (
         <DeeperStep repr={result} outerDepth={depth} rank={tail.length + 1} />
       ));
-    return () => (
-      <>
-        {"("}
-        <Show when={true /** TODO!: 重新支持折叠 */} fallback={<More />}>
-          <DeeperStep repr={head} outerDepth={depth} rank={0} />
-          <Index each={tail}>
-            {(item, i) => {
-              const [op, repr] = item();
-              return (
-                <>
-                  <Colored {...colorScheme.opeator}>{` ${op} `}</Colored>
-                  <DeeperStep repr={repr} outerDepth={depth} rank={i + 1} />
-                </>
-              );
-            }}
-          </Index>
-        </Show>
-        <ToResultIfExists Result={ResultSR}></ToResultIfExists>
-        {")"}
-      </>
-    );
+    return c.groupOfRegularOperators(head, tail, Result, { depth }, ctx);
   },
   "&": (repr, _opts, { colorScheme }) => {
     // @ts-ignore ts(2488)
     const [_, name, arity] = repr;
-    return () => (
-      <>
-        {"("}
-        <Colored {...colorScheme.operator_special}>
-          {"&"}
-          <Colored {...colorScheme.regular_function}>{name}</Colored>
-          {"/"}
-          {arity}
-        </Colored>
-        {")"}
-      </>
+    return (props) => (
+      <Slot {...props} collapsibility={false}>
+        {() => (
+          <>
+            {"("}
+            <Colored {...colorScheme.operator_special}>
+              {"&"}
+              <Colored {...colorScheme.regular_function}>{name}</Colored>
+              {"/"}
+              {arity}
+            </Colored>
+            {")"}
+          </>
+        )}
+      </Slot>
     );
   },
   "#": (repr, { depth }, { colorScheme }) => {
@@ -220,15 +251,21 @@ const createContentComponent: {
     const result = resultAsUndefinedIfIsIndirectError(result_);
     const ResultSR = result &&
       (() => <DeeperStep repr={result} outerDepth={depth} rank={2} />);
-    return () => (
-      <>
-        {"("}
-        <DeeperStep repr={count} outerDepth={depth} rank={0} />
-        <Colored {...colorScheme.operator_special}>{" # "}</Colored>
-        <DeeperStep repr={["r", body]} outerDepth={depth} rank={1} />
-        <ToResultIfExists Result={ResultSR}></ToResultIfExists>
-        {")"}
-      </>
+    return (props) => (
+      <Slot {...props} collapsibility={true}>
+        {({ isExpanded }) => (
+          <>
+            {"("}
+            <Show when={isExpanded()} fallback={<More />}>
+              <DeeperStep repr={count} outerDepth={depth} rank={0} />
+              <Colored {...colorScheme.operator_special}>{" # "}</Colored>
+              <DeeperStep repr={["r", body]} outerDepth={depth} rank={1} />
+            </Show>
+            <ToResultIfExists Result={ResultSR}></ToResultIfExists>
+            {")"}
+          </>
+        )}
+      </Slot>
     );
   },
   "e": (repr, { depth }) => {
@@ -236,13 +273,17 @@ const createContentComponent: {
     const [_, msg, source] = repr;
     const SourceSR = source &&
       (() => <DeeperStep repr={source} outerDepth={depth} rank={0} />);
-    return () => (
-      <>
-        {"("}
-        <FromSourceIfExists Source={SourceSR} />
-        {`错误：「${msg}」！`}
-        {")"}
-      </>
+    return (props) => (
+      <Slot {...props} collapsibility={false} isError={true}>
+        {() => (
+          <>
+            {"("}
+            <FromSourceIfExists Source={SourceSR} />
+            {`错误：「${msg}」！`}
+            {")"}
+          </>
+        )}
+      </Slot>
     );
   },
   "E": () => () => <>（实现细节泄漏：此处是间接错误，不应展现在步骤中！）</>,
@@ -257,11 +298,22 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <>
-        <Colored {...colorScheme.regular_function}>{callee}</Colored>
-        <ListLike parens={["(", ")"]} items={args} depth={depth} />
-        <ToResultIfExists Result={Result} />
-      </>
+      <Slot depth={depth} rank={0} collapsibility={true}>
+        {({ isExpanded }) => (
+          <>
+            <Show when={isExpanded()} fallback={<More />}>
+              <Colored {...colorScheme.regular_function}>{callee}</Colored>
+              <ListLike
+                parens={["(", ")"]}
+                items={args}
+                outerDepth={depth}
+                expansion={true}
+              />
+            </Show>
+            <ToResultIfExists Result={Result} />
+          </>
+        )}
+      </Slot>
     );
   },
   regularAsUnaryOperator(
@@ -276,25 +328,35 @@ const createContentComponentForReprCall = {
       const [_, value] = operand;
       if (typeof value === "number") {
         return () => (
-          <>
-            <Colored {...colorScheme.opeator}>{callee}</Colored>
-            {/* <Step repr={args[0]} depth={depth + 1} rank={0} /> */}
-            <Colored {...colorScheme.value_number}>
-              {JSON.stringify(value)}
-            </Colored>
-          </>
+          <Slot depth={depth} rank={0} collapsibility={false}>
+            {() => (
+              <>
+                <Colored {...colorScheme.opeator}>{callee}</Colored>
+                <Colored {...colorScheme.value_number}>
+                  {JSON.stringify(value)}
+                </Colored>
+              </>
+            )}
+          </Slot>
         );
       }
     }
 
+    const collapsible = !isSimpleRepr(operand);
     return () => (
-      <>
-        {"("}
-        <Colored {...colorScheme.opeator}>{callee}</Colored>
-        <DeeperStep repr={operand} outerDepth={depth} rank={0} />
-        <ToResultIfExists Result={Result} />
-        {")"}
-      </>
+      <Slot depth={depth} rank={0} collapsibility={collapsible}>
+        {({ isExpanded }) => (
+          <>
+            {"("}
+            <Show when={isExpanded()} fallback={<More />}>
+              <Colored {...colorScheme.opeator}>{callee}</Colored>
+              <DeeperStep repr={operand} outerDepth={depth} rank={0} />
+            </Show>
+            <ToResultIfExists Result={Result} />
+            {")"}
+          </>
+        )}
+      </Slot>
     );
   },
   regularAsBinaryOperator(
@@ -304,15 +366,22 @@ const createContentComponentForReprCall = {
     { depth }: CreateContentComponentOptions,
     { colorScheme }: RepresentationContextData,
   ) {
+    const collapsible = ![operandLeft, operandRight].every(isSimpleRepr);
     return () => (
-      <>
-        {"("}
-        <DeeperStep repr={operandLeft} outerDepth={depth} rank={0} />
-        <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
-        <DeeperStep repr={operandRight} outerDepth={depth} rank={1} />
-        <ToResultIfExists Result={Result} />
-        {")"}
-      </>
+      <Slot depth={depth} rank={0} collapsibility={collapsible}>
+        {({ isExpanded }) => (
+          <>
+            {"("}
+            <Show when={isExpanded()} fallback={<More />}>
+              <DeeperStep repr={operandLeft} outerDepth={depth} rank={0} />
+              <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
+              <DeeperStep repr={operandRight} outerDepth={depth} rank={1} />
+            </Show>
+            <ToResultIfExists Result={Result} />
+            {")"}
+          </>
+        )}
+      </Slot>
     );
   },
   regularAsPiped(
@@ -324,20 +393,27 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <>
-        {"("}
-        <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
-        <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
-        <Colored {...colorScheme.regular_function}>{callee}</Colored>
-        <ListLike
-          parens={["(", ")"]}
-          items={tailArgs}
-          depth={depth}
-          rankOffset={1}
-        />
-        <ToResultIfExists Result={Result} />
-        {")"}
-      </>
+      <Slot depth={depth} rank={0} collapsibility={true}>
+        {({ isExpanded }) => (
+          <>
+            {"("}
+            <Show when={isExpanded()} fallback={<More />}>
+              <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
+              <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
+              <Colored {...colorScheme.regular_function}>{callee}</Colored>
+              <ListLike
+                parens={["(", ")"]}
+                items={tailArgs}
+                outerDepth={depth}
+                rankOffset={1}
+                expansion={true}
+              />
+            </Show>
+            <ToResultIfExists Result={Result} />
+            {")"}
+          </>
+        )}
+      </Slot>
     );
   },
 
@@ -349,19 +425,28 @@ const createContentComponentForReprCall = {
     _: RepresentationContextData,
   ) {
     return () => (
-      <>
-        {"("}
-        <Callee />
-        {")"}
-        {"."}
-        <ListLike
-          parens={["(", ")"]}
-          items={args}
-          depth={depth}
-          rankOffset={1}
-        />
-        <ToResultIfExists Result={Result} />
-      </>
+      <Slot depth={depth} rank={0} collapsibility={true}>
+        {({ isExpanded }) => (
+          <>
+            {"("}
+            <Show when={isExpanded()} fallback={<More />}>
+              {"("}
+              <Callee />
+              {")"}
+              {"."}
+              <ListLike
+                parens={["(", ")"]}
+                items={args}
+                outerDepth={depth}
+                rankOffset={1}
+                expansion={true}
+              />
+            </Show>
+            <ToResultIfExists Result={Result} />
+            {")"}
+          </>
+        )}
+      </Slot>
     );
   },
   valueAsPiped(
@@ -373,23 +458,64 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <>
-        {"("}
-        <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
-        <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
-        {"("}
-        <Callee />
-        {")"}
-        {"."}
-        <ListLike
-          parens={["(", ")"]}
-          items={tailArgs}
-          depth={depth}
-          rankOffset={1 + 1} // 在管道左侧的参数 + callee
-        />
-        <ToResultIfExists Result={Result} />
-        {")"}
-      </>
+      <Slot depth={depth} rank={0} collapsibility={true}>
+        {({ isExpanded }) => (
+          <>
+            {"("}
+            <Show when={isExpanded()} fallback={<More />}>
+              <DeeperStep repr={headArg} outerDepth={depth} rank={0} />
+              <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
+              {"("}
+              <Callee />
+              {")"}
+              {"."}
+              <ListLike
+                parens={["(", ")"]}
+                items={tailArgs}
+                outerDepth={depth}
+                rankOffset={1 + 1} // 在管道左侧的参数 + callee
+                expansion={true}
+              />
+            </Show>
+            <ToResultIfExists Result={Result} />
+            {")"}
+          </>
+        )}
+      </Slot>
+    );
+  },
+
+  groupOfRegularOperators(
+    head: Repr,
+    tail: [string, Repr][],
+    Result: Component | undefined,
+    { depth }: CreateContentComponentOptions,
+    { colorScheme }: RepresentationContextData,
+  ) {
+    return () => (
+      <Slot depth={depth} rank={0} collapsibility={true}>
+        {({ isExpanded }) => (
+          <>
+            {"("}
+            <Show when={isExpanded()} fallback={<More />}>
+              <DeeperStep repr={head} outerDepth={depth} rank={0} />
+              <Index each={tail}>
+                {(item, i) => {
+                  const [op, repr] = item();
+                  return (
+                    <>
+                      <Colored {...colorScheme.opeator}>{` ${op} `}</Colored>
+                      <DeeperStep repr={repr} outerDepth={depth} rank={i + 1} />
+                    </>
+                  );
+                }}
+              </Index>
+            </Show>
+            <ToResultIfExists Result={Result}></ToResultIfExists>
+            {")"}
+          </>
+        )}
+      </Slot>
     );
   },
 };
@@ -399,8 +525,14 @@ const ListLike: Component<{
   padding?: string;
 
   items: Repr[];
-  depth: number;
+  outerDepth: number;
   rankOffset?: number;
+
+  /**
+   * true: 完全展开；
+   * number: 折叠，但是预览对应数目之项。
+   */
+  expansion: true | number;
 }> = (props) => {
   const [lP, rP] = props.parens;
   const context = useContext(RepresentationContext)!;
@@ -420,11 +552,7 @@ const ListLike: Component<{
     >
       {`${lP}`}
       {props.padding}
-      <ListItems
-        items={props.items}
-        outerDepth={props.depth}
-        rankOffset={props.rankOffset}
-      />
+      <ListItems {...props} />
       {props.padding}
       {`${rP}`}
     </Show>
@@ -435,6 +563,11 @@ const ListItems: Component<{
   items: Repr[];
   outerDepth: number;
   rankOffset?: number;
+
+  /**
+   * 见 ListLike 组件对应属性。
+   */
+  expansion: true | number;
 }> = (props) => {
   const rankOffset = props.rankOffset ?? 0;
 
@@ -442,16 +575,19 @@ const ListItems: Component<{
     <Index each={props.items}>
       {(repr, i) => {
         return (
-          <>
-            <Slot
-              depth={props.outerDepth + 1}
-              rank={rankOffset + i}
-              isCollapsible={false}
-            >
-              <Step repr={repr()} depth={props.outerDepth + 1} />
-            </Slot>
-            <Show when={i < props.items.length - 1}>{", "}</Show>
-          </>
+          <Switch>
+            <Match when={props.expansion === true || i < props.expansion}>
+              <DeeperStep
+                repr={repr()}
+                outerDepth={props.outerDepth}
+                rank={rankOffset + i}
+              />
+              <Show when={i < props.items.length - 1}>{", "}</Show>
+            </Match>
+            <Match when={props.expansion !== true && i === props.expansion}>
+              <More />
+            </Match>
+          </Switch>
         );
       }}
     </Index>
@@ -498,34 +634,30 @@ function resultAsUndefinedIfIsIndirectError(result: Repr | undefined) {
 const DeeperStep: Component<
   { repr: Repr; outerDepth: number; rank: number }
 > = (props) => {
-  const t = props.repr[0]; // type
-  const isCollapsible = t !== "vp" && t !== "_" && t !== "r";
-  const isError = t === "E" || t === "e";
-
   return (
-    <Slot
-      depth={props.outerDepth + 1}
-      rank={props.rank}
-      isCollapsible={isCollapsible}
-      isError={isError}
-    >
-      <Step repr={props.repr} depth={props.outerDepth + 1} />
-    </Slot>
+    <Step repr={props.repr} depth={props.outerDepth + 1} rank={props.rank} />
   );
 };
 
 const Slot: Component<
   {
-    children: JSX.Element;
+    children: Component<{ isExpanded: () => boolean }>;
     depth: number;
     rank: number;
-    isCollapsible: boolean;
+    /**
+     * - true: 可以折叠；
+     * - false: 不可以折叠；
+     * - "must": 必须折叠。
+     */
+    collapsibility: true | false | "must";
     isError?: boolean;
   }
 > = (props) => {
   const context = useContext(RepresentationContext)!;
 
-  const [isExpanded, setIsExpanded] = createSignal(!props.isCollapsible);
+  const [isExpanded, setIsExpanded] = createSignal(
+    props.collapsibility === false,
+  );
 
   const bgColor = (() => {
     if (props.isError) return context.colorScheme.error.background;
@@ -540,7 +672,7 @@ const Slot: Component<
 
   function toggleExpansion(ev: Event) {
     ev.stopPropagation();
-    if (!props.isCollapsible) return;
+    if (props.collapsibility !== true) return;
     setIsExpanded(!isExpanded());
   }
 
@@ -555,14 +687,14 @@ const Slot: Component<
         "margin-left": "1px",
         "margin-right": "1px",
         ...(props.isError ? { "font-weight": "700" } : {}),
-        "cursor": props.isCollapsible
+        "cursor": props.collapsibility === true
           ? (isExpanded() ? "zoom-out" : "zoom-in")
           : "auto",
       }}
       class={`font-mono rounded`}
       onClick={toggleExpansion}
     >
-      <Show when={isExpanded()} fallback={<More />}>{props.children}</Show>
+      {props.children({ isExpanded })}
     </span>
   );
 };
@@ -582,3 +714,7 @@ const Colored: Component<{ text?: RGBColor; children: JSX.Element }> = (
     </span>
   );
 };
+
+function isSimpleRepr(repr: Repr) {
+  return repr[0] === "_" || repr[0] === "vp";
+}
