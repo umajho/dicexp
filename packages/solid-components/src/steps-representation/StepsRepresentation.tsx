@@ -18,6 +18,7 @@ import { RGBColor } from "./color-scheme";
 import { defaultColorScheme } from "./color-scheme-default";
 
 const DepthContext = createContext<number>();
+const RankContext = createContext<number>();
 
 export const StepsRepresentation: Component<
   & { repr: Repr }
@@ -40,15 +41,15 @@ export const StepsRepresentation: Component<
   );
 };
 
-const Step: Component<{ repr: Repr; rank?: number }> = (props) => {
+const Step: Component<{ repr: Repr }> = (props) => {
   const context = useContext(RepresentationContext)!;
 
   const ContentComp = createContentComponentForRepr(props.repr, context);
 
-  return <ContentComp rank={props.rank} />;
+  return <ContentComp />;
 };
 
-type ContentComponent = Component<{ rank?: number }>;
+type ContentComponent = Component<{}>;
 
 function createContentComponentForRepr(
   repr: Repr,
@@ -597,7 +598,9 @@ const DeeperStep: Component<
   const depth = useContext(DepthContext)!;
   return (
     <DepthContext.Provider value={depth + 1}>
-      <Step repr={props.repr} rank={props.rank} />
+      <RankContext.Provider value={props.rank ?? 0}>
+        <Step repr={props.repr} />
+      </RankContext.Provider>
     </DepthContext.Provider>
   );
 };
@@ -611,8 +614,8 @@ const Slot: Component<
 > = (props) => {
   const context = useContext(RepresentationContext)!;
   const depth = useContext(DepthContext)!;
-  const rank = props.rank ?? 0,
-    collapsible = !!props.collapsible;
+  const rank = useContext(RankContext) ?? 0;
+  const collapsible = !!props.collapsible;
 
   const [isExpanded, setIsExpanded] = createSignal(!collapsible);
 
