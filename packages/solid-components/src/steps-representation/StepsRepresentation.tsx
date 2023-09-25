@@ -229,7 +229,7 @@ const createContentComponent: {
     // @ts-ignore ts(2488)
     const [_, count, body, result_] = repr;
     const result = resultAsUndefinedIfIsIndirectError(result_);
-    const ResultSR = result && (() => <DeeperStep repr={result} rank={2} />);
+    const Result = result && (() => <DeeperStep repr={result} rank={2} />);
     return (props) => (
       <Slot {...props} collapsible={true}>
         {({ isExpanded }) => (
@@ -240,7 +240,7 @@ const createContentComponent: {
               <Colored {...colorScheme.operator_special}>{" # "}</Colored>
               <DeeperStep repr={["r", body]} rank={1} />
             </Show>
-            <ToResultIfExists Result={ResultSR}></ToResultIfExists>
+            <ToResultIfExists Result={Result}></ToResultIfExists>
             {")"}
           </>
         )}
@@ -250,13 +250,13 @@ const createContentComponent: {
   "e": (repr) => {
     // @ts-ignore ts(2488)
     const [_, msg, source] = repr;
-    const SourceSR = source && (() => <DeeperStep repr={source} />);
+    const Source = source && (() => <DeeperStep repr={source} />);
     return (props) => (
       <Slot {...props} isError={true}>
         {() => (
           <>
             {"("}
-            <FromSourceIfExists Source={SourceSR} />
+            <FromSourceIfExists Source={Source} />
             {`错误：「${msg}」！`}
             {")"}
           </>
