@@ -154,6 +154,9 @@ importers:
 
   packages/solid-components:
     dependencies:
+      solid-element:
+        specifier: ^1.7.1
+        version: 1.7.1(solid-js@1.7.6)
       solid-js:
         specifier: ^1.7.6
         version: 1.7.6
@@ -209,6 +212,9 @@ importers:
       dicexp:
         specifier: workspace:*
         version: link:../packages/dicexp
+      solid-element:
+        specifier: ^1.7.1
+        version: 1.7.1(solid-js@1.7.6)
       solid-icons:
         specifier: ^1.0.8
         version: 1.0.8(solid-js@1.7.6)
@@ -1762,6 +1768,10 @@ packages:
     dev: true
     optional: true
 
+  /component-register@0.8.3:
+    resolution: {integrity: sha512-/0u8ov0WPWi2FL78rgB9aFOcfY8pJT4jP/l9NTOukGNLVQ6hk35sEJE1RkEnNQU3yk48Qr7HlDQjRQKEVfgeWg==}
+    dev: false
+
   /concat-map@0.0.1:
     resolution: {integrity: sha1-2Klr13/Wjfd5OnMDajug1UBdR3s=}
     dev: true
@@ -2810,6 +2820,15 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
+
+  /solid-element@1.7.1(solid-js@1.7.6):
+    resolution: {integrity: sha512-VtG3kg3HRUkq6QN4iyZKX1qmXYCEHMO3yH1DfakifaO+ncxHa56jU8SLtEgD55zR230pXQyPTWaEDDS0hTlmpg==}
+    peerDependencies:
+      solid-js: ^1.7.6
+    dependencies:
+      component-register: 0.8.3
+      solid-js: 1.7.6
+    dev: false
 
   /solid-icons@1.0.8(solid-js@1.7.6):
     resolution: {integrity: sha512-7aQGNjM5ZAGlE25s4APE+2QEQUyltqsTuhfO0OhYZaH2wbY0ZAqL7qRQJPMN98qhoIfroYRNEi/0l7UJN902MA==}

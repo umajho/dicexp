@@ -12,6 +12,7 @@
     "dicexp": "workspace:*"
   },
   "peerDependencies": {
+    "solid-element": "^1.7.1",
     "solid-js": "^1.7.6"
   }
 }

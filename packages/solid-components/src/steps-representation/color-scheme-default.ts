@@ -37,6 +37,7 @@ export const defaultColorScheme: ColorScheme = {
       { background: [0x45, 0x0a, 0x0a] },
     ],
   ],
+  rankPeriod: 2,
 
   default: {
     text: [0xff, 0xff, 0xff], // white

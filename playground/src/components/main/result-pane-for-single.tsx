@@ -14,7 +14,7 @@ import { Button, Card } from "../ui";
 import { ResultErrorAlert } from "./ui";
 import * as store from "../../stores/store";
 
-import { StepsRepresentation } from "@dicexp/solid-components";
+import StepsRepresentation from "../step-representations";
 
 import {
   EvaluationResultForWorker,

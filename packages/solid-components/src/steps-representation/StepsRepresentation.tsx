@@ -14,7 +14,7 @@ import {
 import type { Repr } from "dicexp/internal";
 
 import { RepresentationContext, RepresentationContextData } from "./context";
-import { RGBColor } from "./color-scheme";
+import { ColorScheme, RGBColor } from "./color-scheme";
 import { defaultColorScheme } from "./color-scheme-default";
 
 const DepthContext = createContext<number>();
@@ -32,6 +32,7 @@ export const StepsRepresentation: Component<
 
   return (
     <span>
+      <style>{createRootStyle(contextData.colorScheme)}</style>
       <DepthContext.Provider value={0}>
         <RepresentationContext.Provider value={contextData}>
           <Step repr={props.repr} />
@@ -40,6 +41,47 @@ export const StepsRepresentation: Component<
     </span>
   );
 };
+
+function createRootStyle(colorScheme: ColorScheme) {
+  // `px-[3px] mx-[1px] rounded`。
+  // TODO: 让 `font-family` 的值贴近 tailwind 提供的？
+  const stylesForSlotBase = `.slot {
+padding-left: 3px;
+padding-right: 3px;
+margin-left: 1px;
+margin-right: 1px;
+
+border-radius: 0.25rem;
+
+font-family: monospace;
+
+color: rgb(${colorScheme.default.text.join(",")});
+}
+
+.slot:not(.collapsible) { cursor: auto; }
+.slot.collapsible { cursor: zoom-in; }
+.slot.collapsible.expanded { cursor: zoom-out; }`;
+
+  const stylesForSlotByLocation = //
+    colorScheme.levels.map((csForLevel, level) =>
+      csForLevel.map((csForRank, rank) => {
+        const bgColor = `rgba(${csForRank.background.join(",")},90%)`;
+        return `.slot.level-${level}.rank-${rank} { background-color: ${bgColor}; }`;
+      }).join("\n")
+    ).join("\n");
+
+  const stylesForSlotWithError = (() => {
+    const textColor = `rgb(${colorScheme.error.text.join(",")})`;
+    const bgColor = `rgba(${colorScheme.error.background.join(",")},90%)`;
+    return `.slot.with-error { color: ${textColor} !important; background-color: ${bgColor} !important; }`;
+  })();
+
+  return [
+    stylesForSlotBase,
+    stylesForSlotByLocation,
+    stylesForSlotWithError,
+  ].join("\n");
+}
 
 const Step: Component<{ repr: Repr }> = (props) => {
   const context = useContext(RepresentationContext)!;
@@ -619,17 +661,6 @@ const Slot: Component<
 
   const [isExpanded, setIsExpanded] = createSignal(!collapsible);
 
-  const bgColor = (() => {
-    if (props.isError) return context.colorScheme.error.background;
-    if (depth === 0) return undefined;
-    const csForLevels = context.colorScheme.levels;
-    const csForRanks = csForLevels[(depth - 1) % csForLevels.length];
-    return csForRanks[rank % csForRanks.length].background;
-  })();
-  const textColor = props.isError
-    ? context.colorScheme.error.text
-    : context.colorScheme.default.text;
-
   function toggleExpansion(ev: Event) {
     ev.stopPropagation();
     if (!collapsible) return;
@@ -638,20 +669,14 @@ const Slot: Component<
 
   return (
     <span
-      style={{
-        "background-color": bgColor && `rgba(${bgColor.join(",")},90%)`,
-        "color": `rgb(${textColor.join(",")})`,
-        // TODO: 配置好 tailwind 扫描这里后，改用 tailwind
-        "padding-left": "3px",
-        "padding-right": "3px",
-        "margin-left": "1px",
-        "margin-right": "1px",
-        ...(props.isError ? { "font-weight": "700" } : {}),
-        "cursor": collapsible
-          ? (isExpanded() ? "zoom-out" : "zoom-in")
-          : "auto",
-      }}
-      class={`font-mono rounded`}
+      class={[
+        "slot",
+        collapsible ? "collapsible" : "",
+        isExpanded() ? "expanded" : "",
+        depth ? `level-${(depth - 1) % context.colorScheme.levels.length}` : "",
+        `rank-${rank % context.colorScheme.rankPeriod}`,
+        props.isError ? "with-error" : "",
+      ].join(" ")}
       onClick={toggleExpansion}
     >
       {props.children({ isExpanded })}

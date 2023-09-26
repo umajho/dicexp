@@ -1,5 +1,3 @@
 # README
 
-## Tailwind
-
-TODO: 告知使用者配置 tailwind 扫描这个项目。
+使用本库的库需要有 `solid-js` 和 `solid-element` 作为依赖。
