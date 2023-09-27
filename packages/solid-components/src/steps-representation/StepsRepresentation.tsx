@@ -23,6 +23,7 @@ const PositionContext = createContext<{ depth: number; rank: number }>();
 const HoveredClassMarkerContext = createContext<
   ReturnType<typeof createUniqueClassMarker>
 >();
+const CanAutoExpandContext = createContext<boolean>(true);
 
 export const StepsRepresentation: Component<
   & { repr: Repr }
@@ -31,6 +32,7 @@ export const StepsRepresentation: Component<
   const contextData: RepresentationContextData = {
     colorScheme: defaultColorScheme,
     listPreviewLimit: 3,
+    autoExpansionDepthLimit: 3,
     ...props,
   };
 
@@ -153,7 +155,7 @@ const createContentComponent: {
     const items = repr[1];
     const canCollapse = items.length > listPreviewLimit;
     return (props) => (
-      <Slot {...props} canCollapse={canCollapse}>
+      <Slot {...props} canCollapse={canCollapse} cannotAutoExpand={true}>
         {({ isExpanded }) => (
           <ListLike
             parens={["[", "]"]}
@@ -670,6 +672,7 @@ const Slot: Component<
     children: Component<{ isExpanded: () => boolean }>;
     canCollapse?: boolean;
     isError?: boolean;
+    cannotAutoExpand?: boolean;
   }
 > = (props) => {
   const context = useContext(RepresentationContext)!;
@@ -678,7 +681,13 @@ const Slot: Component<
 
   let el!: HTMLSpanElement;
 
-  const [isExpanded, setIsExpanded] = createSignal(!canCollapse);
+  const canAutoExpand = useContext(CanAutoExpandContext) &&
+    !props.cannotAutoExpand;
+  const [isExpanded, setIsExpanded] = createSignal((() => {
+    if (!canCollapse) return true;
+    if (!canAutoExpand) return false;
+    return pos.depth < context.autoExpansionDepthLimit;
+  })());
 
   function toggleExpansion(ev: Event) {
     ev.stopPropagation();
@@ -712,7 +721,9 @@ const Slot: Component<
       ].join(" ")}
       onClick={toggleExpansion}
     >
-      {props.children({ isExpanded })}
+      <CanAutoExpandContext.Provider value={canAutoExpand}>
+        {props.children({ isExpanded })}
+      </CanAutoExpandContext.Provider>
     </span>
   );
 };

@@ -6,6 +6,8 @@ export interface RepresentationContextData {
 
   // ListLike 在折叠时显示前多少基础类型的项的结果。
   listPreviewLimit: number;
+
+  autoExpansionDepthLimit: number;
 }
 
 export const RepresentationContext = createContext<RepresentationContextData>();
