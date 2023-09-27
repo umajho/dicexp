@@ -22,7 +22,6 @@
     "vite-plugin-solid": "^2.7.0"
   },
   "dependencies": {
-    "@alenaksu/json-viewer": "^2.0.1",
     "@codemirror/autocomplete": "^6.8.0",
     "@codemirror/language": "^6.8.0",
     "@codemirror/lint": "^6.2.2",

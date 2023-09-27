@@ -1,13 +1,6 @@
 import { Unreachable } from "@dicexp/errors";
 
-import {
-  Component,
-  createEffect,
-  createSignal,
-  lazy,
-  on,
-  Show,
-} from "solid-js";
+import { Component, createEffect, createSignal, on, Show } from "solid-js";
 
 import { HiOutlineXMark } from "solid-icons/hi";
 import { Button, Card } from "../ui";
@@ -153,12 +146,9 @@ const ResultTab: Component<{
         {(repr) => (
           <>
             <StepsRepresentation repr={repr()}></StepsRepresentation>
-            <LazyJsonViewer data={repr()} />
           </>
         )}
       </Show>
     </>
   );
 };
-
-const LazyJsonViewer = lazy(() => import("../json-viewer"));
