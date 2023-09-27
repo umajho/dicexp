@@ -5,6 +5,7 @@ import {
   Index,
   JSX,
   Match,
+  onMount,
   Show,
   Switch,
   useContext,
@@ -16,9 +17,13 @@ import type { Repr } from "dicexp/internal";
 import { RepresentationContext, RepresentationContextData } from "./context";
 import { ColorScheme, RGBColor } from "./color-scheme";
 import { defaultColorScheme } from "./color-scheme-default";
+import { createUniqueClassMarker } from "./hooks";
 
 const DepthContext = createContext<number>();
 const RankContext = createContext<number>();
+const HoveredClassMarkerContext = createContext<
+  ReturnType<typeof createUniqueClassMarker>
+>();
 
 export const StepsRepresentation: Component<
   & { repr: Repr }
@@ -30,12 +35,16 @@ export const StepsRepresentation: Component<
     ...props,
   };
 
+  const hoveredClassMarker = createUniqueClassMarker("hovered");
+
   return (
     <span>
       <style>{createRootStyle(contextData.colorScheme)}</style>
       <DepthContext.Provider value={0}>
         <RepresentationContext.Provider value={contextData}>
-          <Step repr={props.repr} />
+          <HoveredClassMarkerContext.Provider value={hoveredClassMarker}>
+            <Step repr={props.repr} />
+          </HoveredClassMarkerContext.Provider>
         </RepresentationContext.Provider>
       </DepthContext.Provider>
     </span>
@@ -60,20 +69,30 @@ color: rgb(${colorScheme.default.text.join(",")});
 
 .slot:not(.collapsible) { cursor: auto; }
 .slot.collapsible { cursor: zoom-in; }
-.slot.collapsible.expanded { cursor: zoom-out; }`;
+.slot.collapsible.expanded { cursor: zoom-out; }
+
+.slot.hovered {
+  outline: 2px solid rgba(255, 255, 255, 50%);
+}`;
 
   const stylesForSlotByLocation = //
     colorScheme.levels.map((csForLevel, level) =>
       csForLevel.map((csForRank, rank) => {
-        const bgColor = `rgba(${csForRank.background.join(",")},90%)`;
-        return `.slot.level-${level}.rank-${rank} { background-color: ${bgColor}; }`;
+        const bgRGB = csForRank.background.join(",");
+        return [
+          `.slot.level-${level}.rank-${rank} { background-color: rgba(${bgRGB},90%); }`,
+          `.slot.hovered.level-${level}.rank-${rank} { background-color: rgb(${bgRGB}); }`,
+        ].join("\n");
       }).join("\n")
     ).join("\n");
 
   const stylesForSlotWithError = (() => {
     const textColor = `rgb(${colorScheme.error.text.join(",")})`;
-    const bgColor = `rgba(${colorScheme.error.background.join(",")},90%)`;
-    return `.slot.with-error { color: ${textColor} !important; background-color: ${bgColor} !important; }`;
+    const bgRGB = colorScheme.error.background.join(",");
+    return [
+      `.slot.with-error { color: ${textColor} !important; background-color: rgba(${bgRGB},90%) !important; }`,
+      `.slot.hovered.with-error { background-color: rgb(${bgRGB}) !important; }`,
+    ].join("");
   })();
 
   return [
@@ -659,6 +678,8 @@ const Slot: Component<
   const rank = useContext(RankContext) ?? 0;
   const collapsible = !!props.collapsible;
 
+  let el!: HTMLSpanElement;
+
   const [isExpanded, setIsExpanded] = createSignal(!collapsible);
 
   function toggleExpansion(ev: Event) {
@@ -667,8 +688,20 @@ const Slot: Component<
     setIsExpanded(!isExpanded());
   }
 
+  const hoveredClassMarker = useContext(HoveredClassMarkerContext)!;
+  onMount(() => { // XXX: 不知何故，内联在 JSX 中的 OnMouseOver 不好用
+    el.addEventListener("mouseover", (ev: Event) => {
+      ev.stopPropagation();
+      hoveredClassMarker(el, "add");
+    });
+    el.addEventListener("mouseleave", () => {
+      hoveredClassMarker(el, "remove");
+    });
+  });
+
   return (
     <span
+      ref={el}
       class={[
         "slot",
         collapsible ? "collapsible" : "",
