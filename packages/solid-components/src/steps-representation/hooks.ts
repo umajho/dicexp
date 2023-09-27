@@ -1,18 +1,24 @@
 /**
- * 让 className 只能是唯一一个元素的 class。
+ * 保证只有一处被设为 true。
  */
-export function createUniqueClassMarker(className: string) {
-  let lastEl: HTMLElement | null = null;
-  return function (el: HTMLElement, action: "add" | "remove") {
-    if (action === "add") {
-      if (lastEl === el) return;
-      lastEl?.classList.remove(className);
-      el.classList.add(className);
-      lastEl = el;
-    } else if (action === "remove") {
-      if (lastEl !== el) return;
-      el.classList.remove(className);
-      lastEl = null;
+export function createUniqueTrueSetter() {
+  let lastSetterFn: ((v: boolean) => void) | null = null;
+  return function (
+    setterFn: (v: boolean) => void,
+    action: "setTrue" | "setFalse",
+  ) {
+    if (action === "setTrue") {
+      if (lastSetterFn === setterFn) {
+        lastSetterFn(true);
+        return;
+      }
+      lastSetterFn?.(false);
+      setterFn(true);
+      lastSetterFn = setterFn;
+    } else if (action === "setFalse") {
+      if (lastSetterFn !== setterFn) return;
+      lastSetterFn(false);
+      lastSetterFn = null;
     }
   };
 }

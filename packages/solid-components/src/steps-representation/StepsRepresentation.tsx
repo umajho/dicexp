@@ -17,11 +17,11 @@ import type { Repr } from "dicexp/internal";
 import { RepresentationContext, RepresentationContextData } from "./context";
 import { ColorScheme, RGBColor } from "./color-scheme";
 import { defaultColorScheme } from "./color-scheme-default";
-import { createUniqueClassMarker } from "./hooks";
+import { createUniqueTrueSetter } from "./hooks";
 
 const PositionContext = createContext<{ depth: number; rank: number }>();
-const HoveredClassMarkerContext = createContext<
-  ReturnType<typeof createUniqueClassMarker>
+const UniqueHoveredSetterContext = createContext<
+  ReturnType<typeof createUniqueTrueSetter>
 >();
 const CanAutoExpandContext = createContext<boolean>(true);
 
@@ -36,16 +36,16 @@ export const StepsRepresentation: Component<
     ...props,
   };
 
-  const hoveredClassMarker = createUniqueClassMarker("hovered");
+  const uniqueHoveredSetter = createUniqueTrueSetter();
 
   return (
     <span>
       <style>{createRootStyle(contextData.colorScheme)}</style>
       <PositionContext.Provider value={{ depth: 0, rank: 0 }}>
         <RepresentationContext.Provider value={contextData}>
-          <HoveredClassMarkerContext.Provider value={hoveredClassMarker}>
+          <UniqueHoveredSetterContext.Provider value={uniqueHoveredSetter}>
             <Step repr={props.repr} />
-          </HoveredClassMarkerContext.Provider>
+          </UniqueHoveredSetterContext.Provider>
         </RepresentationContext.Provider>
       </PositionContext.Provider>
     </span>
@@ -695,14 +695,15 @@ const Slot: Component<
     setIsExpanded(!isExpanded());
   }
 
-  const hoveredClassMarker = useContext(HoveredClassMarkerContext)!;
+  const [isHovered, setIsHovered] = createSignal(false);
+  const uniqueHoveredSetter = useContext(UniqueHoveredSetterContext)!;
   onMount(() => { // XXX: 不知何故，内联在 JSX 中的 OnMouseOver 不好用
     el.addEventListener("mouseover", (ev: Event) => {
       ev.stopPropagation();
-      hoveredClassMarker(el, "add");
+      uniqueHoveredSetter(setIsHovered, "setTrue");
     });
     el.addEventListener("mouseleave", () => {
-      hoveredClassMarker(el, "remove");
+      uniqueHoveredSetter(setIsHovered, "setFalse");
     });
   });
 
@@ -713,6 +714,7 @@ const Slot: Component<
         "slot",
         canCollapse ? "collapsible" : "",
         isExpanded() ? "expanded" : "",
+        isHovered() ? "hovered" : "",
         pos.depth
           ? `level-${(pos.depth - 1) % context.colorScheme.levels.length}`
           : "",
