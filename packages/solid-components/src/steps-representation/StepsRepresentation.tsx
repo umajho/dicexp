@@ -19,8 +19,7 @@ import { ColorScheme, RGBColor } from "./color-scheme";
 import { defaultColorScheme } from "./color-scheme-default";
 import { createUniqueClassMarker } from "./hooks";
 
-const DepthContext = createContext<number>();
-const RankContext = createContext<number>();
+const PositionContext = createContext<{ depth: number; rank: number }>();
 const HoveredClassMarkerContext = createContext<
   ReturnType<typeof createUniqueClassMarker>
 >();
@@ -40,13 +39,13 @@ export const StepsRepresentation: Component<
   return (
     <span>
       <style>{createRootStyle(contextData.colorScheme)}</style>
-      <DepthContext.Provider value={0}>
+      <PositionContext.Provider value={{ depth: 0, rank: 0 }}>
         <RepresentationContext.Provider value={contextData}>
           <HoveredClassMarkerContext.Provider value={hoveredClassMarker}>
             <Step repr={props.repr} />
           </HoveredClassMarkerContext.Provider>
         </RepresentationContext.Provider>
-      </DepthContext.Provider>
+      </PositionContext.Provider>
     </span>
   );
 };
@@ -75,7 +74,7 @@ color: rgb(${colorScheme.default.text.join(",")});
   outline: 2px solid rgba(255, 255, 255, 50%);
 }`;
 
-  const stylesForSlotByLocation = //
+  const stylesForSlotByPosition = //
     colorScheme.levels.map((csForLevel, level) =>
       csForLevel.map((csForRank, rank) => {
         const bgRGB = csForRank.background.join(",");
@@ -97,7 +96,7 @@ color: rgb(${colorScheme.default.text.join(",")});
 
   return [
     stylesForSlotBase,
-    stylesForSlotByLocation,
+    stylesForSlotByPosition,
     stylesForSlotWithError,
   ].join("\n");
 }
@@ -656,13 +655,13 @@ function separateIndirectErrorFromResult(
 const DeeperStep: Component<
   { repr: Repr; rank?: number }
 > = (props) => {
-  const depth = useContext(DepthContext)!;
+  const pos = useContext(PositionContext)!;
   return (
-    <DepthContext.Provider value={depth + 1}>
-      <RankContext.Provider value={props.rank ?? 0}>
-        <Step repr={props.repr} />
-      </RankContext.Provider>
-    </DepthContext.Provider>
+    <PositionContext.Provider
+      value={{ depth: pos.depth + 1, rank: props.rank ?? 0 }}
+    >
+      <Step repr={props.repr} />
+    </PositionContext.Provider>
   );
 };
 
@@ -674,8 +673,7 @@ const Slot: Component<
   }
 > = (props) => {
   const context = useContext(RepresentationContext)!;
-  const depth = useContext(DepthContext)!;
-  const rank = useContext(RankContext) ?? 0;
+  const pos = useContext(PositionContext)!;
   const collapsible = !!props.collapsible;
 
   let el!: HTMLSpanElement;
@@ -706,8 +704,10 @@ const Slot: Component<
         "slot",
         collapsible ? "collapsible" : "",
         isExpanded() ? "expanded" : "",
-        depth ? `level-${(depth - 1) % context.colorScheme.levels.length}` : "",
-        `rank-${rank % context.colorScheme.rankPeriod}`,
+        pos.depth
+          ? `level-${(pos.depth - 1) % context.colorScheme.levels.length}`
+          : "",
+        `rank-${pos.rank % context.colorScheme.rankPeriod}`,
         props.isError ? "with-error" : "",
       ].join(" ")}
       onClick={toggleExpansion}
