@@ -151,9 +151,9 @@ const createContentComponent: {
   },
   "vl": (repr, { listPreviewLimit }) => {
     const items = repr[1];
-    const collapsible = items.length > listPreviewLimit;
+    const canCollapse = items.length > listPreviewLimit;
     return (props) => (
-      <Slot {...props} collapsible={collapsible}>
+      <Slot {...props} canCollapse={canCollapse}>
         {({ isExpanded }) => (
           <ListLike
             parens={["[", "]"]}
@@ -292,7 +292,7 @@ const createContentComponent: {
     const [result, _isIndirectError] = separateIndirectErrorFromResult(result_);
     const Result = result && (() => <DeeperStep repr={result} rank={2} />);
     return (props) => (
-      <Slot {...props} collapsible={true}>
+      <Slot {...props} canCollapse={true}>
         {({ isExpanded }) => (
           <>
             {"("}
@@ -336,7 +336,7 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <Slot collapsible={true}>
+      <Slot canCollapse={true}>
         {({ isExpanded }) => (
           <>
             <Show when={isExpanded()} fallback={<More />}>
@@ -374,9 +374,9 @@ const createContentComponentForReprCall = {
       }
     }
 
-    const collapsible = !isSimpleRepr(operand);
+    const canCollapse = !isSimpleRepr(operand);
     return () => (
-      <Slot collapsible={collapsible}>
+      <Slot canCollapse={canCollapse}>
         {({ isExpanded }) => (
           <>
             {"("}
@@ -397,9 +397,9 @@ const createContentComponentForReprCall = {
     Result: Component | undefined,
     { colorScheme }: RepresentationContextData,
   ) {
-    const collapsible = ![operandLeft, operandRight].every(isSimpleRepr);
+    const canCollapse = ![operandLeft, operandRight].every(isSimpleRepr);
     return () => (
-      <Slot collapsible={collapsible}>
+      <Slot canCollapse={canCollapse}>
         {({ isExpanded }) => (
           <>
             {"("}
@@ -423,7 +423,7 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <Slot collapsible={true}>
+      <Slot canCollapse={true}>
         {({ isExpanded }) => (
           <>
             {"("}
@@ -453,7 +453,7 @@ const createContentComponentForReprCall = {
     _: RepresentationContextData,
   ) {
     return () => (
-      <Slot collapsible={true}>
+      <Slot canCollapse={true}>
         {({ isExpanded }) => (
           <>
             {"("}
@@ -484,7 +484,7 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <Slot collapsible={true}>
+      <Slot canCollapse={true}>
         {({ isExpanded }) => (
           <>
             {"("}
@@ -517,7 +517,7 @@ const createContentComponentForReprCall = {
     { colorScheme }: RepresentationContextData,
   ) {
     return () => (
-      <Slot collapsible={true}>
+      <Slot canCollapse={true}>
         {({ isExpanded }) => (
           <>
             {"("}
@@ -668,21 +668,21 @@ const DeeperStep: Component<
 const Slot: Component<
   {
     children: Component<{ isExpanded: () => boolean }>;
-    collapsible?: boolean;
+    canCollapse?: boolean;
     isError?: boolean;
   }
 > = (props) => {
   const context = useContext(RepresentationContext)!;
   const pos = useContext(PositionContext)!;
-  const collapsible = !!props.collapsible;
+  const canCollapse = !!props.canCollapse;
 
   let el!: HTMLSpanElement;
 
-  const [isExpanded, setIsExpanded] = createSignal(!collapsible);
+  const [isExpanded, setIsExpanded] = createSignal(!canCollapse);
 
   function toggleExpansion(ev: Event) {
     ev.stopPropagation();
-    if (!collapsible) return;
+    if (!canCollapse) return;
     setIsExpanded(!isExpanded());
   }
 
@@ -702,7 +702,7 @@ const Slot: Component<
       ref={el}
       class={[
         "slot",
-        collapsible ? "collapsible" : "",
+        canCollapse ? "collapsible" : "",
         isExpanded() ? "expanded" : "",
         pos.depth
           ? `level-${(pos.depth - 1) % context.colorScheme.levels.length}`
