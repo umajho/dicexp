@@ -1,10 +1,12 @@
 import {
   Component,
   createContext,
+  createEffect,
   createSignal,
   Index,
   JSX,
   Match,
+  on,
   onMount,
   Show,
   Switch,
@@ -24,6 +26,10 @@ const UniqueHoveredSetterContext = createContext<
   ReturnType<typeof createUniqueTrueSetter>
 >();
 const CanAutoExpandContext = createContext<boolean>(true);
+const ListItemsContext = createContext<
+  | { setIsSelfHovered: (boolean) => void; isSiblingHovered: () => boolean }
+  | null
+>(null);
 
 export const StepsRepresentation: Component<
   & { repr: Repr }
@@ -73,8 +79,12 @@ color: rgb(${colorScheme.default.text.join(",")});
 .slot.collapsible.expanded { cursor: zoom-out; }
 
 .slot.hovered {
-  outline: 2px solid rgba(255, 255, 255, 50%);
-}`;
+  outline: 2px solid rgba(255, 255, 255, calc(2/3));
+}
+.slot.sibling-hovered {
+  outline: 1.5px solid rgba(255, 255, 255, calc(1/3));
+}
+`;
 
   const stylesForSlotByPosition = //
     colorScheme.levels.map((csForLevel, level) =>
@@ -160,6 +170,7 @@ const createContentComponent: {
           <ListLike
             parens={["[", "]"]}
             padding=" "
+            isRealList={true}
             items={items}
             expansion={isExpanded() || listPreviewLimit}
           />
@@ -550,6 +561,8 @@ const ListLike: Component<{
   parens: [string, string];
   padding?: string;
 
+  isRealList?: boolean;
+
   items: Repr[];
   rankOffset?: number;
 
@@ -561,6 +574,8 @@ const ListLike: Component<{
 }> = (props) => {
   const [lP, rP] = props.parens;
   const context = useContext(RepresentationContext)!;
+
+  const [isItemHovered, setIsItemHovered] = createSignal(false);
 
   return (
     <Show
@@ -577,7 +592,14 @@ const ListLike: Component<{
     >
       {`${lP}`}
       {props.padding}
-      <ListItems {...props} />
+      <ListItemsContext.Provider
+        value={{
+          setIsSelfHovered: setIsItemHovered,
+          isSiblingHovered: isItemHovered,
+        }}
+      >
+        <ListItems {...props} />
+      </ListItemsContext.Provider>
       {props.padding}
       {`${rP}`}
     </Show>
@@ -585,6 +607,8 @@ const ListLike: Component<{
 };
 
 const ListItems: Component<{
+  isRealList?: boolean;
+
   items: Repr[];
   rankOffset?: number;
 
@@ -601,7 +625,11 @@ const ListItems: Component<{
         return (
           <Switch>
             <Match when={props.expansion === true || i < props.expansion}>
-              <DeeperStep repr={repr()} rank={rankOffset + i} />
+              <DeeperStep
+                repr={repr()}
+                rank={rankOffset + i}
+                isListItem={props.isRealList}
+              />
               <Show when={i < props.items.length - 1}>{", "}</Show>
             </Match>
             <Match when={props.expansion !== true && i === props.expansion}>
@@ -655,14 +683,18 @@ function separateIndirectErrorFromResult(
 }
 
 const DeeperStep: Component<
-  { repr: Repr; rank?: number }
+  { repr: Repr; rank?: number; isListItem?: boolean }
 > = (props) => {
   const pos = useContext(PositionContext)!;
   return (
     <PositionContext.Provider
       value={{ depth: pos.depth + 1, rank: props.rank ?? 0 }}
     >
-      <Step repr={props.repr} />
+      <ListItemsContext.Provider
+        value={props.isListItem ? useContext(ListItemsContext) : null}
+      >
+        <Step repr={props.repr} />
+      </ListItemsContext.Provider>
     </PositionContext.Provider>
   );
 };
@@ -707,6 +739,15 @@ const Slot: Component<
     });
   });
 
+  let isSiblingHovered: (() => boolean) | null = null;
+  const listItemsContext = useContext(ListItemsContext);
+  if (listItemsContext) {
+    isSiblingHovered = listItemsContext.isSiblingHovered;
+    createEffect(on([isHovered], () => {
+      listItemsContext.setIsSelfHovered(isHovered());
+    }));
+  }
+
   return (
     <span
       ref={el}
@@ -714,7 +755,9 @@ const Slot: Component<
         "slot",
         canCollapse ? "collapsible" : "",
         isExpanded() ? "expanded" : "",
-        isHovered() ? "hovered" : "",
+        isHovered()
+          ? "hovered"
+          : (isSiblingHovered?.() ? "sibling-hovered" : ""),
         pos.depth
           ? `level-${(pos.depth - 1) % context.colorScheme.levels.length}`
           : "",
