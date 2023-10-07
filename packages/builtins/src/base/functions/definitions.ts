@@ -106,7 +106,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const zippedLength = Math.min(list1.length, list2.length);
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
-      result[i] = createValueBox.direct([list1[i], list2[i]]);
+      result[i] = createValueBox.list([list1[i], list2[i]]);
     }
     return ["ok", result];
   },

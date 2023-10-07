@@ -8,7 +8,6 @@ import {
   makeRuntimeError,
   ReprInRuntime,
   RuntimeError,
-  Value,
   Value_Callable,
   Value_List,
   Value_List$Extendable,
@@ -36,7 +35,7 @@ export class LazyValueFactory {
     return createValueBox.lazy(() => {
       const result = valueBox.get();
       if (result[0] === "ok") {
-        return createValueBox.direct(
+        return createValueBox.value(
           result[1],
           createRepr.identifier(ident, createRepr.value(result[1])),
         );
@@ -49,7 +48,7 @@ export class LazyValueFactory {
     });
   }
 
-  literal(value: Value): ValueBox {
+  literalPrimitive(value: number | boolean): ValueBox {
     return createValueBox.direct(value);
   }
 
@@ -61,8 +60,8 @@ export class LazyValueFactory {
     return createValueBox.error(error, { source, indirect });
   }
 
-  list(list: ValueBox[]): ValueBox {
-    return createValueBox.direct(list);
+  literalList(list: Value_List): ValueBox {
+    return createValueBox.list(list);
   }
 
   callRegularFunction(
@@ -105,7 +104,7 @@ export class LazyValueFactory {
           if (err) return this.error(err, reprCall);
         }
 
-        return createValueBox.direct(value, reprCall);
+        return createValueBox.value(value, reprCall);
       },
     );
   }
@@ -248,7 +247,7 @@ export class LazyValueFactory {
         // result[0] === "ok"
         const value = result[1];
 
-        return createValueBox.direct(value, callRepr);
+        return createValueBox.value(value, callRepr);
       },
     );
   }

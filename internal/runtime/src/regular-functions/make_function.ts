@@ -32,7 +32,7 @@ export function makeFunction(
       return createValueBox.lazy(() => {
         const result = logic(rtm, ...unwrapResult[1]);
         if (result[0] === "ok") {
-          return createValueBox.direct(result[1]);
+          return createValueBox.value(result[1]);
         } else if (result[0] === "lazy") {
           return result[1];
         } else if (result[0] === "error") {

@@ -1,5 +1,6 @@
 import { makeRuntimeError, RuntimeError } from "./runtime_errors";
 import { createRepr, ReprInRuntime } from "./repr/mod";
+import { Unreachable } from "@dicexp/errors";
 
 export abstract class ValueBox {
   /**
@@ -14,8 +15,26 @@ export abstract class ValueBox {
 }
 
 export const createValueBox = {
-  direct(value: Value, repr: ReprInRuntime = createRepr.value(value)) {
+  direct(
+    value: Value_NonContainer,
+    repr: ReprInRuntime = createRepr.value(value),
+  ) {
     return new ValueBoxDircet(value, repr);
+  },
+
+  list(
+    list: Value_List,
+    repr: ReprInRuntime = createRepr.value(list),
+  ) {
+    return new ValueBoxList(list, repr);
+  },
+
+  value(
+    value: Value,
+    repr: ReprInRuntime = createRepr.value(value),
+  ) {
+    if (Array.isArray(value)) return createValueBox.list(value, repr);
+    return createValueBox.direct(value, repr);
   },
 
   error(
@@ -36,7 +55,7 @@ export const createValueBox = {
 
 class ValueBoxDircet extends ValueBox {
   constructor(
-    private value: Value,
+    private value: Value_NonContainer,
     private representation: ReprInRuntime,
   ) {
     super();
@@ -49,6 +68,37 @@ class ValueBoxDircet extends ValueBox {
     return false;
   }
   getRepr(): ReprInRuntime {
+    return this.representation;
+  }
+}
+
+class ValueBoxList extends ValueBox {
+  private errorInItem?: RuntimeError;
+
+  constructor(
+    private value: Value_List,
+    private representation: ReprInRuntime,
+  ) {
+    super();
+    for (const item of value) {
+      if (item.confirmsError()) {
+        const itemResult = item.get();
+        if (itemResult[0] !== "error") throw new Unreachable();
+        this.errorInItem = itemResult[1];
+        break;
+      } else if (item instanceof ValueBoxLazy) {
+        item.addErrorHook((err) => this.errorInItem = err);
+      }
+    }
+  }
+
+  get(): ["ok", Value] | ["error", RuntimeError] { // TODO
+    return this.errorInItem ? ["error", this.errorInItem] : ["ok", this.value];
+  }
+  confirmsError(): boolean { // TODO
+    return !!this.errorInItem;
+  }
+  getRepr(): ReprInRuntime { // TODO
     return this.representation;
   }
 }
@@ -80,6 +130,7 @@ class ValueBoxError extends ValueBox {
 
 class ValueBoxLazy extends ValueBox {
   memo?: [["ok", Value] | ["error", RuntimeError], ReprInRuntime];
+  errorHooks?: ((err: RuntimeError) => void)[];
 
   constructor(
     private yielder?: () => ValueBox,
@@ -91,7 +142,11 @@ class ValueBoxLazy extends ValueBox {
     if (!this.memo) {
       const valueBox = this.yielder!();
       delete this.yielder;
-      this.memo = [valueBox.get(), valueBox.getRepr()];
+      const result = valueBox.get();
+      this.memo = [result, valueBox.getRepr()];
+      if (result[0] === "error") {
+        this.errorHooks?.forEach((h) => h(result[1]));
+      }
     }
     return this.memo[0];
   }
@@ -104,6 +159,16 @@ class ValueBoxLazy extends ValueBox {
       return this.memo[1];
     }
     return createRepr.unevaluated();
+  }
+
+  addErrorHook(hook: (err: RuntimeError) => void) {
+    if (this.memo?.[0][0] === "error") {
+      hook(this.memo[0][1]);
+    } else if (this.errorHooks) {
+      this.errorHooks.push(hook);
+    } else {
+      this.errorHooks = [hook];
+    }
   }
 }
 
@@ -121,13 +186,18 @@ class ValueBoxUnevaluated extends ValueBox {
 const valueBoxUnevaluated = new ValueBoxUnevaluated();
 
 export type Value =
+  | Value_NonContainer
+  | Value_List;
+/**
+ * 没有更内部内容的值。
+ * 用这样的值创建 ValueBox 时不用检查内部是否存在错误。
+ */
+export type Value_NonContainer =
   | number
   | boolean
-  | Value_List
   | Value_Callable
   | Value_List$Extendable
   | Value_Integer$SumExtendable;
-
 export type Value_List = ValueBox[];
 
 export interface Value_Callable {

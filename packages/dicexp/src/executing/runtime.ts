@@ -204,7 +204,7 @@ export class Runtime {
     switch (node.kind) {
       case "value": {
         if (typeof node.value === "number" || typeof node.value === "boolean") {
-          return this._lazyValueFactory.literal(node.value);
+          return this._lazyValueFactory.literalPrimitive(node.value);
         }
         switch (node.value.valueKind) {
           case "list": {
@@ -249,7 +249,7 @@ export class Runtime {
     list: NodeValue_List,
   ): ValueBox {
     const interpretedList = list.member.map((x) => this._interpret(scope, x));
-    return this._lazyValueFactory.list(interpretedList);
+    return this._lazyValueFactory.literalList(interpretedList);
   }
 
   private _interpretClosure(
