@@ -1,10 +1,10 @@
 import { Unreachable } from "@dicexp/errors";
 import { DeclarationListToDefinitionMap } from "@dicexp/runtime/regular-functions";
 import {
+  createValueBox,
   makeRuntimeError,
   RuntimeError,
   Value_Integer$SumExtendable,
-  ValueBoxDircet,
 } from "@dicexp/runtime/values";
 import { builtinOperatorDeclarations } from "./declarations";
 import { sum } from "../utils";
@@ -93,7 +93,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
           current = rtm.random.integer(1, x);
           underlying[index] = current;
         }
-        return new ValueBoxDircet(current);
+        return createValueBox.direct(current);
       },
       _sum: () => {
         if (sumResult !== null) return sumResult;

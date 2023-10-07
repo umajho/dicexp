@@ -13,10 +13,31 @@ export abstract class ValueBox {
   abstract getRepr(): ReprInRuntime;
 }
 
-export class ValueBoxDircet extends ValueBox {
+export const createValueBox = {
+  direct(value: Value, repr: ReprInRuntime = createRepr.value(value)) {
+    return new ValueBoxDircet(value, repr);
+  },
+
+  error(
+    error: RuntimeError,
+    opts?: { indirect?: boolean; source?: ReprInRuntime },
+  ) {
+    return new ValueBoxError(error, opts);
+  },
+
+  lazy(yielder?: () => ValueBox) {
+    return new ValueBoxLazy(yielder);
+  },
+
+  unevaluated() {
+    return valueBoxUnevaluated;
+  },
+};
+
+class ValueBoxDircet extends ValueBox {
   constructor(
     private value: Value,
-    private representation: ReprInRuntime = createRepr.value(value),
+    private representation: ReprInRuntime,
   ) {
     super();
   }
@@ -32,7 +53,7 @@ export class ValueBoxDircet extends ValueBox {
   }
 }
 
-export class ValueBoxError extends ValueBox {
+class ValueBoxError extends ValueBox {
   private repr: ReprInRuntime;
 
   constructor(
@@ -57,7 +78,7 @@ export class ValueBoxError extends ValueBox {
   }
 }
 
-export class ValueBoxLazy extends ValueBox {
+class ValueBoxLazy extends ValueBox {
   memo?: [["ok", Value] | ["error", RuntimeError], ReprInRuntime];
 
   constructor(
@@ -86,7 +107,7 @@ export class ValueBoxLazy extends ValueBox {
   }
 }
 
-export class ValueBoxUnevaluated extends ValueBox {
+class ValueBoxUnevaluated extends ValueBox {
   get(): ["error", RuntimeError] {
     return ["error", makeRuntimeError("未求值（实现细节泄漏）")];
   }
@@ -97,6 +118,7 @@ export class ValueBoxUnevaluated extends ValueBox {
     return createRepr.unevaluated();
   }
 }
+const valueBoxUnevaluated = new ValueBoxUnevaluated();
 
 export type Value =
   | number

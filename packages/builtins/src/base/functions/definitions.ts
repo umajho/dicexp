@@ -8,14 +8,13 @@ import {
 } from "@dicexp/runtime/value-utils";
 import {
   callCallable,
+  createValueBox,
   getDisplayNameFromTypeName,
   getTypeNameOfValue,
   makeRuntimeError,
   RuntimeError,
   Value_Callable,
   Value_List,
-  ValueBoxDircet,
-  ValueBoxUnevaluated,
   ValueTypeName,
 } from "@dicexp/runtime/values";
 import { builtinFunctionDeclarations } from "./declarations";
@@ -56,7 +55,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     if (result === "error") return ["error", "传入的列表不支持排序"];
     const listJs = result[1] as number[] | boolean[];
     const sortedList = listJs.sort((a, b) => +a - +b);
-    return ["ok", sortedList.map((el) => new ValueBoxDircet(el))];
+    return ["ok", sortedList.map((el) => createValueBox.direct(el))];
   },
   // ...
   "append/2": (_rtm, list, el) => {
@@ -83,7 +82,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
       if (resultList[i - 1].confirmsError()) break;
     }
     for (; i < list.length; i++) {
-      resultList[i] = new ValueBoxUnevaluated();
+      resultList[i] = createValueBox.unevaluated();
     }
     return ["ok", resultList];
   },
@@ -107,7 +106,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const zippedLength = Math.min(list1.length, list2.length);
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
-      result[i] = new ValueBoxDircet([list1[i], list2[i]]);
+      result[i] = createValueBox.direct([list1[i], list2[i]]);
     }
     return ["ok", result];
   },
@@ -122,7 +121,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
       if (valueBox.confirmsError()) break;
     }
     for (; i < zippedLength; i++) {
-      result[i] = new ValueBoxUnevaluated();
+      result[i] = createValueBox.unevaluated();
     }
     return ["ok", result];
   },

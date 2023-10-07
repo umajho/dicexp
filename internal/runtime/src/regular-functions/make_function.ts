@@ -1,15 +1,13 @@
 import { Unreachable } from "@dicexp/errors";
 
 import {
+  createValueBox,
   makeRuntimeError,
   RawFunction,
   RegularFunction,
   RuntimeError,
   Value,
   ValueBox,
-  ValueBoxDircet,
-  ValueBoxError,
-  ValueBoxLazy,
   ValueSpec,
 } from "../values/mod";
 import { runtimeError_wrongArity } from "../errors/mod";
@@ -27,14 +25,14 @@ export function makeFunction(
   return (args, rtm) => {
     const unwrapResult = unwrapArguments(spec, args);
     if (unwrapResult[0] === "error" || unwrapResult[0] === "error_indirect") {
-      return new ValueBoxError(unwrapResult[1], {
+      return createValueBox.error(unwrapResult[1], {
         indirect: unwrapResult[0] === "error_indirect",
       });
     } else { // unwrapResult[0] === "ok"
-      return new ValueBoxLazy(() => {
+      return createValueBox.lazy(() => {
         const result = logic(rtm, ...unwrapResult[1]);
         if (result[0] === "ok") {
-          return new ValueBoxDircet(result[1]);
+          return createValueBox.direct(result[1]);
         } else if (result[0] === "lazy") {
           return result[1];
         } else if (result[0] === "error") {
@@ -42,7 +40,7 @@ export function makeFunction(
           if (typeof err === "string") {
             err = makeRuntimeError(err);
           }
-          return new ValueBoxError(err);
+          return createValueBox.error(err);
         } else {
           result[0] satisfies never;
           throw new Unreachable();
