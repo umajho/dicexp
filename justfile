@@ -14,8 +14,8 @@ build-grammar:
 
 test:
 	just dicexp test
-	just playground test
 	just builtins test
+	just playground test
 
 build:
 	just dicexp build
