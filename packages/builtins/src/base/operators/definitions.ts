@@ -31,7 +31,12 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   "<=/2": (_rtm, a, b) => ["ok", a <= b],
   ">=/2": (_rtm, a, b) => ["ok", a >= b],
 
-  "~/2": (rtm, lower, upper) => ["ok", rtm.random.integer(lower, upper)],
+  "~/2": (rtm, lower, upper) => {
+    const yielder = () => rtm.random.integer(lower, upper);
+    const sumValue = createValue.stream$sum(1, yielder);
+
+    return ["ok", sumValue];
+  },
   "~/1": (rtm, upper) => {
     const errRange = ensureUpperBound("~", null, 1, upper);
     if (errRange) return ["error", errRange];
