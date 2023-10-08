@@ -48,18 +48,18 @@ function tryAdaptType(
 ): ["ok", Value] | ["error", RuntimeError] {
   let typeName: ValueTypeName = getTypeNameOfValue(value);
   let shouldConvert = false;
-  if (typeName === "integer$sum_extendable") {
+  if (typeName === "stream$sum") {
     if (
-      spec !== "integer$sum_extendable" &&
-      !(spec instanceof Set && spec.has("integer$sum_extendable"))
+      spec !== "stream$sum" &&
+      !(spec instanceof Set && spec.has("stream$sum"))
     ) {
       typeName = "integer";
       shouldConvert = true;
     }
-  } else if (typeName === "list$extendable") {
+  } else if (typeName === "stream$list") {
     if (
-      spec !== "list$extendable" &&
-      !(spec instanceof Set && spec.has("list$extendable"))
+      spec !== "stream$list" &&
+      !(spec instanceof Set && spec.has("stream$list"))
     ) {
       typeName = "list";
       shouldConvert = true;

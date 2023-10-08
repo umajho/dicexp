@@ -196,8 +196,7 @@ export type Value_NonContainer =
   | number
   | boolean
   | Value_Callable
-  | Value_List$Extendable
-  | Value_Integer$SumExtendable;
+  | Value_Stream;
 export type Value_List = ValueBox[];
 
 export const createValue = {
@@ -211,6 +210,47 @@ export const createValue = {
       arity,
       _call: onCall,
       representation: repr,
+    };
+  },
+
+  /**
+   * TODO: DRY with `stream$sum`.
+   */
+  stream$list(
+    nominalLength: number,
+    yielder: () => ValueBox,
+  ): Value_Stream$List {
+    const underlying: Value_List = Array(nominalLength);
+    let filled = 0;
+    return {
+      type: "stream$list",
+      nominalLength,
+      _at(index: number) {
+        for (let unfilledI = filled; unfilledI <= index; unfilledI++) {
+          underlying[unfilledI] = yielder();
+        }
+        filled = index + 1;
+        return underlying[index];
+      },
+    };
+  },
+
+  stream$sum(
+    nominalLength: number,
+    yielder: () => number,
+  ): Value_Stream$Sum {
+    const underlying: number[] = Array(nominalLength);
+    let filled = 0;
+    return {
+      type: "stream$sum",
+      nominalLength,
+      _at(index: number) {
+        for (let unfilledI = filled; unfilledI <= index; unfilledI++) {
+          underlying[unfilledI] = yielder();
+        }
+        filled = index + 1;
+        return underlying[index];
+      },
     };
   },
 };
@@ -242,48 +282,85 @@ export function asCallable(
   return null;
 }
 
-export interface Value_Extendable {
+export type Value_Stream = Value_Stream$List | Value_Stream$Sum;
+/**
+ * 可以隐式转换为列表的流。
+ */
+export interface Value_Stream$List {
+  type: "stream$list";
+
+  /**
+   * 名义上的长度，在转换成其他类型时只截取至这里。
+   *
+   * 比如，`5#d3` 的名义长度是 5，`3d6` 的名义长度是 3。
+   */
   nominalLength: number;
+
+  /**
+   * 直接访问指定位置的值。
+   */
   _at: (index: number) => ValueBox;
 }
+/**
+ * 可以隐式转换为整数（通过求和）的流。
+ */
+export interface Value_Stream$Sum {
+  type: "stream$sum";
 
-export interface Value_Integer$SumExtendable extends Value_Extendable {
-  type: "integer$sum_extendable";
+  /**
+   * 名义上的长度，在转换成其他类型时只截取至这里。
+   *
+   * 比如，`5#d3` 的名义长度是 5，`3d6` 的名义长度是 3。
+   */
+  nominalLength: number;
 
-  _sum(): number;
+  /**
+   * 直接访问指定位置的值。
+   */
+  _at: (index: number) => number;
 }
 
 export function asInteger(value: Value): number | null {
-  if (typeof value === "number") {
-    return value;
-  }
+  if (typeof value === "number") return value;
+
   if (
     typeof value === "object" && !Array.isArray(value) &&
-    "_sum" in value
+    value.type === "stream$sum"
   ) {
-    return value._sum();
+    let sum = 0;
+    for (let i = 0; i < value.nominalLength; i++) {
+      sum += value._at(i);
+    }
+    return sum;
   }
-  return null;
-}
 
-export interface Value_List$Extendable extends Value_Extendable {
-  type: "list$extendable";
-  _asList: () => Value_List;
+  return null;
 }
 
 export function asList(value: Value): Value_List | null {
   if (Array.isArray(value)) return value;
-  if (typeof value === "object" && "_asList" in value) {
-    return value._asList();
+
+  if (typeof value === "object" && value.type === "stream$list") {
+    const list = new Array<ValueBox>(value.nominalLength);
+    for (let i = 0; i < value.nominalLength; i++) {
+      list[i] = value._at(i);
+    }
+    return list;
   }
+
   return null;
 }
 
 export function asPlain(
   value: Value,
-): Exclude<Value, Value_Integer$SumExtendable | Value_List$Extendable> {
+): Exclude<Value, Value_Stream> {
   if (typeof value !== "object" || Array.isArray(value)) return value;
-  if ("_sum" in value) return value._sum();
-  if ("_asList" in value) return value._asList();
-  return value;
+
+  const integer = asInteger(value);
+  if (integer !== null) return integer;
+
+  const list = asList(value);
+  if (list !== null) return list;
+
+  return value as Exclude<Value, Value_Stream>;
 }

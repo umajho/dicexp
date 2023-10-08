@@ -2,8 +2,8 @@ import {
   RuntimeError,
   RuntimeProxyForFunction,
   Value_Callable,
-  Value_Integer$SumExtendable,
-  Value_List$Extendable,
+  Value_Stream$List,
+  Value_Stream$Sum,
   ValueBox,
   ValueTypeName,
 } from "../../values/mod";
@@ -90,8 +90,8 @@ type BasicTypeSpecToTypeMap = {
   boolean: boolean;
   list: ValueBox[];
   callable: Value_Callable;
-  list$extendable: Value_List$Extendable;
-  integer$sum_extendable: Value_Integer$SumExtendable;
+  stream$list: Value_Stream$List;
+  stream$sum: Value_Stream$Sum;
 };
 
 /**

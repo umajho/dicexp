@@ -1,6 +1,6 @@
 import { precedenceTable } from "@dicexp/lezer";
 
-import { Value, ValueBox } from "../values";
+import { asPlain, Value, ValueBox } from "../values";
 import { RuntimeError } from "../runtime_errors";
 
 type ReprBase<IsInRuntime extends boolean> =
@@ -78,17 +78,15 @@ export const createRepr = {
   },
 
   value(value: Value): ReprInRuntime {
-    if (typeof value === "number" || typeof value === "boolean") {
-      return createRepr.value_primitive(value);
-    } else if (Array.isArray(value)) {
-      return createRepr.value_list(value);
-    } else if (value.type === "list$extendable") {
-      return createRepr.value_list(value._asList());
-    } else if (value.type === "integer$sum_extendable") {
-      return createRepr.value_sum(value._sum());
+    const plainValue = asPlain(value);
+
+    if (typeof plainValue === "number" || typeof plainValue === "boolean") {
+      return createRepr.value_primitive(plainValue);
+    } else if (Array.isArray(plainValue)) {
+      return createRepr.value_list(plainValue);
     } else {
-      value.type satisfies "callable";
-      return value.representation;
+      plainValue.type satisfies "callable";
+      return plainValue.representation;
     }
   },
 

@@ -11,7 +11,6 @@ import {
   ReprInRuntime,
   RuntimeError,
   Value_List,
-  Value_List$Extendable,
   ValueBox,
 } from "@dicexp/runtime/values";
 import { RegularFunction, Scope } from "@dicexp/runtime/values";
@@ -274,26 +273,10 @@ export class LazyValueFactory {
           return this.error(makeRuntimeError(errMsg), repr);
         }
 
-        const underlying: Value_List = Array(countValue);
-        const list: Value_List$Extendable = {
-          type: "list$extendable",
-          nominalLength: countValue,
-          _at: (index) => {
-            let current = underlying[index];
-            if (!current) {
-              underlying[index] = this.runtime.interpret(scope, body);
-            }
-            return current;
-          },
-          _asList: () => {
-            for (let i = 0; i < countValue; i++) {
-              if (!underlying[i]) {
-                underlying[i] = this.runtime.interpret(scope, body);
-              }
-            }
-            return underlying.slice(0, countValue);
-          },
-        };
+        const list = createValue.stream$list(
+          countValue,
+          () => this.runtime.interpret(scope, body),
+        );
 
         const repr = createRepr.repetition(
           count.getRepr(),

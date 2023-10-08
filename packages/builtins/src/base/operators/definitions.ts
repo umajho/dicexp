@@ -1,13 +1,11 @@
 import { Unreachable } from "@dicexp/errors";
 import { DeclarationListToDefinitionMap } from "@dicexp/runtime/regular-functions";
 import {
-  createValueBox,
+  createValue,
   makeRuntimeError,
   RuntimeError,
-  Value_Integer$SumExtendable,
 } from "@dicexp/runtime/values";
 import { builtinOperatorDeclarations } from "./declarations";
-import { sum } from "../utils";
 
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   typeof builtinOperatorDeclarations
@@ -82,30 +80,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     const errRange = ensureUpperBound("d", 1, 1, x);
     if (errRange) return ["error", errRange];
 
-    const underlying: number[] = Array(n);
-    let sumResult: number | null = null;
-    const sumValue: Value_Integer$SumExtendable = {
-      type: "integer$sum_extendable",
-      nominalLength: n,
-      _at: (index) => {
-        let current = underlying[index];
-        if (current === undefined) {
-          current = rtm.random.integer(1, x);
-          underlying[index] = current;
-        }
-        return createValueBox.direct(current);
-      },
-      _sum: () => {
-        if (sumResult !== null) return sumResult;
-        for (let i = 0; i < n; i++) {
-          if (underlying[i] === undefined) {
-            underlying[i] = rtm.random.integer(1, x);
-          }
-        }
-        sumResult = sum(underlying.slice(0, n));
-        return sumResult;
-      },
-    };
+    const sumValue = createValue.stream$sum(n, () => rtm.random.integer(1, x));
 
     return ["ok", sumValue];
   },
