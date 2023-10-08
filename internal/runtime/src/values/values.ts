@@ -27,7 +27,7 @@ export const createValueBox = {
   },
 
   list(
-    list: Value_List2,
+    list: Value_List,
     repr: ReprInRuntime = createRepr.value(list),
   ) {
     return new ValueBoxList(list, repr);
@@ -82,7 +82,7 @@ class ValueBoxList extends ValueBox implements DisposableErrorHookable {
   private errorInItem?: RuntimeError;
 
   constructor(
-    private value: Value_List2,
+    private value: Value_List,
     private representation: ReprInRuntime,
   ) {
     super();
@@ -189,7 +189,7 @@ const valueBoxUnevaluated = new ValueBoxUnevaluated();
 
 export type Value =
   | Value_NonContainer
-  | Value_List2;
+  | Value_List;
 /**
  * 没有更内部内容的值。
  * 用这样的值创建 ValueBox 时不用检查内部是否存在错误。
@@ -214,7 +214,7 @@ export const createValue = {
     };
   },
 
-  list(underlying: ValueBox[]): Value_List2 {
+  list(underlying: ValueBox[]): Value_List {
     let confirmedError: RuntimeError | null = null;
     let errorHooks: ((err: RuntimeError) => void)[] | undefined;
 
@@ -252,7 +252,7 @@ export const createValue = {
         }
         return Reflect.get(target, prop, receiver);
       },
-    }) as Value_List2;
+    }) as Value_List;
   },
 
   /**
@@ -324,7 +324,7 @@ export function asCallable(
   return null;
 }
 
-export type Value_List2 = ValueBox[] & {
+export type Value_List = ValueBox[] & {
   type: "list";
   addDisposableErrorHook(hook: (err: RuntimeError) => void): void;
 };
@@ -384,7 +384,7 @@ export function asInteger(value: Value): number | null {
   return null;
 }
 
-export function asList(value: Value): Value_List2 | null {
+export function asList(value: Value): Value_List | null {
   if (typeof value === "object" && value.type === "list") return value;
 
   if (typeof value === "object" && value.type === "stream$list") {

@@ -15,7 +15,7 @@ import {
   makeRuntimeError,
   RuntimeError,
   Value_Callable,
-  Value_List2,
+  Value_List,
   ValueBox,
   ValueTypeName,
 } from "@dicexp/runtime/values";
@@ -134,7 +134,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
 function filter(
   list: ValueBox[],
   callable: Value_Callable,
-): ["ok", Value_List2] | ["error", RuntimeError] {
+): ["ok", Value_List] | ["error", RuntimeError] {
   const filtered: ValueBox[] = [];
   for (const el of list) {
     const result = callCallable(callable, [el]).get();

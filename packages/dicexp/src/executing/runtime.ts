@@ -24,7 +24,7 @@ import {
   RuntimeError,
   RuntimeProxyForFunction,
   Scope,
-  Value_List2,
+  Value_List,
   ValueBox,
 } from "@dicexp/runtime/values";
 
@@ -342,7 +342,7 @@ function getFinalValue(
 }
 
 function getFinalValueOfList(
-  list: Value_List2,
+  list: Value_List,
 ): ["ok", JSValue] | ["error", RuntimeError] {
   const resultList: JSValue = Array(list.length);
   for (const [i, elem] of list.entries()) {
