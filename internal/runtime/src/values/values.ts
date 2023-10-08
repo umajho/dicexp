@@ -237,7 +237,9 @@ export const createValue = {
         for (let unfilledI = filled; unfilledI <= index; unfilledI++) {
           underlying[unfilledI] = yielder();
         }
-        filled = index + 1;
+        if (filled <= index) {
+          filled = index + 1;
+        }
         return underlying[index];
       },
     };
