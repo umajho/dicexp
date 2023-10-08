@@ -200,6 +200,21 @@ export type Value_NonContainer =
   | Value_Integer$SumExtendable;
 export type Value_List = ValueBox[];
 
+export const createValue = {
+  callable(
+    arity: number,
+    onCall: (args: ValueBox[]) => ValueBox,
+    repr: ReprInRuntime,
+  ): Value_Callable {
+    return {
+      type: "callable",
+      arity,
+      _call: onCall,
+      representation: repr,
+    };
+  },
+};
+
 export interface Value_Callable {
   type: "callable";
   arity: number;

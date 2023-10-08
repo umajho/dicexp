@@ -3,12 +3,12 @@ import { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
   createRepr,
+  createValue,
   createValueBox,
   getDisplayNameOfValue,
   makeRuntimeError,
   ReprInRuntime,
   RuntimeError,
-  Value_Callable,
   Value_List,
   Value_List$Extendable,
   ValueBox,
@@ -117,12 +117,11 @@ export class LazyValueFactory {
     raw: string,
   ): ValueBox {
     const arity = paramIdentList.length;
-    const closure: Value_Callable = {
-      type: "callable",
+    const closure = createValue.callable(
       arity,
       // TODO: 当调用 `_call` 时，返回的值一定马上会用到吧，
       //       那此函数内处理惰性是否没有意义？
-      _call: (args) => {
+      (args) => {
         if (args.length !== arity) {
           const err = runtimeError_wrongArity(arity, args.length, "closure");
           return createValueBox.error(err);
@@ -160,9 +159,8 @@ export class LazyValueFactory {
           interpreted,
         ) ?? interpreted;
       },
-
-      representation: createRepr.raw(raw),
-    };
+      createRepr.raw(raw),
+    );
 
     return createValueBox.direct(closure);
   }
@@ -182,10 +180,9 @@ export class LazyValueFactory {
     // fnResult[0] === "ok"
     const fn = fnResult[1];
 
-    const captured: Value_Callable = {
-      type: "callable",
+    const captured = createValue.callable(
       arity,
-      _call: (args) => {
+      (args) => {
         if (args.length !== arity) {
           const err = runtimeError_wrongArity(arity, args.length, "captured");
           return createValueBox.error(err);
@@ -197,9 +194,8 @@ export class LazyValueFactory {
           returned,
         ) ?? returned;
       },
-
       representation,
-    };
+    );
 
     return createValueBox.direct(captured);
   }
