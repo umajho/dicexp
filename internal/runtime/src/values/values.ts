@@ -92,13 +92,13 @@ class ValueBoxList extends ValueBox {
     }
   }
 
-  get(): ["ok", Value] | ["error", RuntimeError] { // TODO
+  get(): ["ok", Value] | ["error", RuntimeError] {
     return this.errorInItem ? ["error", this.errorInItem] : ["ok", this.value];
   }
-  confirmsError(): boolean { // TODO
+  confirmsError(): boolean {
     return !!this.errorInItem;
   }
-  getRepr(): ReprInRuntime { // TODO
+  getRepr(): ReprInRuntime {
     return this.representation;
   }
 }
