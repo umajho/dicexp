@@ -2,6 +2,7 @@ import { Unreachable } from "@dicexp/errors";
 import { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
+  asInteger,
   createRepr,
   createValue,
   createValueBox,
@@ -263,10 +264,11 @@ export class LazyValueFactory {
           return this.error(countResult[1], repr);
         }
         // countResult[0] === "ok"
-        const countValue = countResult[1];
+        const countValue_ = countResult[1];
+        const countValue = asInteger(countValue_);
 
-        if (typeof countValue != "number") {
-          const typeName = getDisplayNameOfValue(countValue);
+        if (countValue === null) {
+          const typeName = getDisplayNameOfValue(countValue_);
           const errMsg = `反复次数期待「整数」，实际类型为「${typeName}」`;
           const repr = createRepr.repetition(count.getRepr(), bodyRaw);
           return this.error(makeRuntimeError(errMsg), repr);
