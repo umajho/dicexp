@@ -14,6 +14,10 @@ export abstract class ValueBox {
   abstract getRepr(): ReprInRuntime;
 }
 
+interface DisposableErrorHookable {
+  addDisposableErrorHook(hook: (err: RuntimeError) => void): void;
+}
+
 export const createValueBox = {
   direct(
     value: Value_NonContainer,
@@ -23,7 +27,7 @@ export const createValueBox = {
   },
 
   list(
-    list: Value_List,
+    list: Value_List2,
     repr: ReprInRuntime = createRepr.value(list),
   ) {
     return new ValueBoxList(list, repr);
@@ -33,7 +37,9 @@ export const createValueBox = {
     value: Value,
     repr: ReprInRuntime = createRepr.value(value),
   ) {
-    if (Array.isArray(value)) return createValueBox.list(value, repr);
+    if (typeof value === "object" && value.type === "list") {
+      return createValueBox.list(value, repr);
+    }
     return createValueBox.direct(value, repr);
   },
 
@@ -72,24 +78,15 @@ class ValueBoxDircet extends ValueBox {
   }
 }
 
-class ValueBoxList extends ValueBox {
+class ValueBoxList extends ValueBox implements DisposableErrorHookable {
   private errorInItem?: RuntimeError;
 
   constructor(
-    private value: Value_List,
+    private value: Value_List2,
     private representation: ReprInRuntime,
   ) {
     super();
-    for (const item of value) {
-      if (item.confirmsError()) {
-        const itemResult = item.get();
-        if (itemResult[0] !== "error") throw new Unreachable();
-        this.errorInItem = itemResult[1];
-        break;
-      } else if (item instanceof ValueBoxLazy) {
-        item.addErrorHook((err) => this.errorInItem = err);
-      }
-    }
+    value.addDisposableErrorHook((err) => this.errorInItem = err);
   }
 
   get(): ["ok", Value] | ["error", RuntimeError] {
@@ -100,6 +97,10 @@ class ValueBoxList extends ValueBox {
   }
   getRepr(): ReprInRuntime {
     return this.representation;
+  }
+
+  addDisposableErrorHook(hook: (err: RuntimeError) => void): void {
+    this.value.addDisposableErrorHook(hook);
   }
 }
 
@@ -128,7 +129,7 @@ class ValueBoxError extends ValueBox {
   }
 }
 
-class ValueBoxLazy extends ValueBox {
+class ValueBoxLazy extends ValueBox implements DisposableErrorHookable {
   memo?: [["ok", Value] | ["error", RuntimeError], ReprInRuntime];
   errorHooks?: ((err: RuntimeError) => void)[];
 
@@ -146,6 +147,7 @@ class ValueBoxLazy extends ValueBox {
       this.memo = [result, valueBox.getRepr()];
       if (result[0] === "error") {
         this.errorHooks?.forEach((h) => h(result[1]));
+        delete this.errorHooks;
       }
     }
     return this.memo[0];
@@ -161,7 +163,7 @@ class ValueBoxLazy extends ValueBox {
     return createRepr.unevaluated();
   }
 
-  addErrorHook(hook: (err: RuntimeError) => void) {
+  addDisposableErrorHook(hook: (err: RuntimeError) => void) {
     if (this.memo?.[0][0] === "error") {
       hook(this.memo[0][1]);
     } else if (this.errorHooks) {
@@ -187,7 +189,7 @@ const valueBoxUnevaluated = new ValueBoxUnevaluated();
 
 export type Value =
   | Value_NonContainer
-  | Value_List;
+  | Value_List2;
 /**
  * 没有更内部内容的值。
  * 用这样的值创建 ValueBox 时不用检查内部是否存在错误。
@@ -197,7 +199,6 @@ export type Value_NonContainer =
   | boolean
   | Value_Callable
   | Value_Stream;
-export type Value_List = ValueBox[];
 
 export const createValue = {
   callable(
@@ -213,6 +214,47 @@ export const createValue = {
     };
   },
 
+  list(underlying: ValueBox[]): Value_List2 {
+    let confirmedError: RuntimeError | null = null;
+    let errorHooks: ((err: RuntimeError) => void)[] | undefined;
+
+    function setComfirmedError(err: RuntimeError) {
+      confirmedError = err;
+      errorHooks?.forEach((hook) => hook(err));
+      errorHooks = undefined;
+    }
+
+    for (const item of underlying) {
+      if (confirmedError) break;
+      if (item.confirmsError()) {
+        const itemResult = item.get();
+        if (itemResult[0] !== "error") throw new Unreachable();
+        setComfirmedError(itemResult[1]);
+      } else if ("addDisposableErrorHook" in item) {
+        (item as DisposableErrorHookable)
+          .addDisposableErrorHook((err) => setComfirmedError(err));
+      }
+    }
+
+    return new Proxy(underlying, {
+      get(target, prop, receiver) {
+        if (prop === "type") return "list";
+        if (prop === "addDisposableErrorHook") {
+          return (hook: (err: RuntimeError) => void) => {
+            if (confirmedError) {
+              hook(confirmedError);
+            } else if (errorHooks) {
+              errorHooks.push(hook);
+            } else {
+              errorHooks = [hook];
+            }
+          };
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as Value_List2;
+  },
+
   /**
    * TODO: DRY with `stream$sum`.
    */
@@ -220,7 +262,7 @@ export const createValue = {
     nominalLength: number,
     yielder: () => ValueBox,
   ): Value_Stream$List {
-    const underlying: Value_List = Array(nominalLength);
+    const underlying: ValueBox[] = Array(nominalLength);
     let filled = 0;
     return {
       type: "stream$list",
@@ -282,6 +324,11 @@ export function asCallable(
   return null;
 }
 
+export type Value_List2 = ValueBox[] & {
+  type: "list";
+  addDisposableErrorHook(hook: (err: RuntimeError) => void): void;
+};
+
 export type Value_Stream = Value_Stream$List | Value_Stream$Sum;
 /**
  * 可以隐式转换为列表的流。
@@ -337,15 +384,15 @@ export function asInteger(value: Value): number | null {
   return null;
 }
 
-export function asList(value: Value): Value_List | null {
-  if (Array.isArray(value)) return value;
+export function asList(value: Value): Value_List2 | null {
+  if (typeof value === "object" && value.type === "list") return value;
 
   if (typeof value === "object" && value.type === "stream$list") {
     const list = new Array<ValueBox>(value.nominalLength);
     for (let i = 0; i < value.nominalLength; i++) {
       list[i] = value._at(i);
     }
-    return list;
+    return createValue.list(list);
   }
 
   return null;
@@ -354,7 +401,7 @@ export function asList(value: Value): Value_List | null {
 export function asPlain(
   value: Value,
 ): Exclude<Value, Value_Stream> {
-  if (typeof value !== "object" || Array.isArray(value)) return value;
+  if (typeof value !== "object") return value;
 
   const integer = asInteger(value);
   if (integer !== null) return integer;

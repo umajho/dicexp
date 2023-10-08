@@ -9,7 +9,6 @@ export function getTypeNameOfValue(v: Value) {
     case "boolean":
       return "boolean";
     default:
-      if (Array.isArray(v)) return "list";
       return v.type;
       throw new Unreachable();
   }

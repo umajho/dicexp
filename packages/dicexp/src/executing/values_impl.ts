@@ -10,7 +10,6 @@ import {
   makeRuntimeError,
   ReprInRuntime,
   RuntimeError,
-  Value_List,
   ValueBox,
 } from "@dicexp/runtime/values";
 import { RegularFunction, Scope } from "@dicexp/runtime/values";
@@ -60,8 +59,8 @@ export class LazyValueFactory {
     return createValueBox.error(error, { source, indirect });
   }
 
-  literalList(list: Value_List): ValueBox {
-    return createValueBox.list(list);
+  literalList(list: ValueBox[]): ValueBox {
+    return createValueBox.list(createValue.list(list));
   }
 
   callRegularFunction(

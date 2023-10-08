@@ -82,7 +82,7 @@ export const createRepr = {
 
     if (typeof plainValue === "number" || typeof plainValue === "boolean") {
       return createRepr.value_primitive(plainValue);
-    } else if (Array.isArray(plainValue)) {
+    } else if (plainValue.type === "list") {
       return createRepr.value_list(plainValue);
     } else {
       plainValue.type satisfies "callable";

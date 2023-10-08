@@ -2,6 +2,7 @@ import {
   RuntimeError,
   RuntimeProxyForFunction,
   Value_Callable,
+  Value_List2,
   Value_Stream$List,
   Value_Stream$Sum,
   ValueBox,
@@ -88,7 +89,7 @@ type ReturnValueTypeSpecToType<T> = T extends keyof BasicTypeSpecToTypeMap
 type BasicTypeSpecToTypeMap = {
   integer: number;
   boolean: boolean;
-  list: ValueBox[];
+  list: Value_List2;
   callable: Value_Callable;
   stream$list: Value_Stream$List;
   stream$sum: Value_Stream$Sum;

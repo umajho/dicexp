@@ -8,13 +8,15 @@ import {
 } from "@dicexp/runtime/value-utils";
 import {
   callCallable,
+  createValue,
   createValueBox,
   getDisplayNameFromTypeName,
   getTypeNameOfValue,
   makeRuntimeError,
   RuntimeError,
   Value_Callable,
-  Value_List,
+  Value_List2,
+  ValueBox,
   ValueTypeName,
 } from "@dicexp/runtime/values";
 import { builtinFunctionDeclarations } from "./declarations";
@@ -55,11 +57,12 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     if (result === "error") return ["error", "传入的列表不支持排序"];
     const listJs = result[1] as number[] | boolean[];
     const sortedList = listJs.sort((a, b) => +a - +b);
-    return ["ok", sortedList.map((el) => createValueBox.direct(el))];
+    const sortedBoxList = sortedList.map((el) => createValueBox.direct(el));
+    return ["ok", createValue.list(sortedBoxList)];
   },
   // ...
   "append/2": (_rtm, list, el) => {
-    return ["ok", [...(list), el]];
+    return ["ok", createValue.list([...(list), el])];
   },
   "at/2": (_rtm, list, index) => {
     if (index >= list.length || index < 0) {
@@ -74,7 +77,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
 
   // 函数式：
   "map/2": (_rtm, list, callable) => {
-    const resultList: Value_List = Array(list.length);
+    const resultList: ValueBox[] = Array(list.length);
     let i = 0;
     for (; i < list.length;) {
       resultList[i] = callCallable(callable, [list[i]]);
@@ -84,7 +87,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     for (; i < list.length; i++) {
       resultList[i] = createValueBox.unevaluated();
     }
-    return ["ok", resultList];
+    return ["ok", createValue.list(resultList)];
   },
   // ...
   "filter/2": (_rtm, list, callable) => {
@@ -99,16 +102,16 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   },
   "tail/1": (_rtm, list) => {
     if (list.length === 0) return ["error", "列表为空"];
-    return ["ok", list.slice(1)];
+    return ["ok", createValue.list(list.slice(1))];
   },
   // ...
   "zip/2": (_rtm, list1, list2) => {
     const zippedLength = Math.min(list1.length, list2.length);
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
-      result[i] = createValueBox.list([list1[i], list2[i]]);
+      result[i] = createValueBox.list(createValue.list([list1[i], list2[i]]));
     }
-    return ["ok", result];
+    return ["ok", createValue.list(result)];
   },
   "zipWith/3": (_rtm, list1, list2, callable) => {
     const zippedLength = Math.min(list1.length, list2.length);
@@ -123,16 +126,16 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     for (; i < zippedLength; i++) {
       result[i] = createValueBox.unevaluated();
     }
-    return ["ok", result];
+    return ["ok", createValue.list(result)];
   },
   // 控制流
 };
 
 function filter(
-  list: Value_List,
+  list: ValueBox[],
   callable: Value_Callable,
-): ["ok", Value_List] | ["error", RuntimeError] {
-  const filtered: Value_List = [];
+): ["ok", Value_List2] | ["error", RuntimeError] {
+  const filtered: ValueBox[] = [];
   for (const el of list) {
     const result = callCallable(callable, [el]).get();
     if (result[0] === "error") return result;
@@ -151,7 +154,7 @@ function filter(
     if (!value) continue;
     filtered.push(el);
   }
-  return ["ok", filtered];
+  return ["ok", createValue.list(filtered)];
 }
 
 function runtimeError_givenClosureReturnValueTypeMismatch(

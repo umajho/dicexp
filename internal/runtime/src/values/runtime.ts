@@ -1,4 +1,4 @@
-import { Value, Value_List, ValueBox } from "./values";
+import { Value, ValueBox } from "./values";
 import {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,
@@ -30,7 +30,7 @@ export function makeRawScope<T extends readonly RegularFunctionDeclaration[]>(
 }
 
 export type RegularFunction = (
-  args: Value_List,
+  args: ValueBox[],
   rtm: RuntimeProxyForFunction,
 ) => ValueBox;
 

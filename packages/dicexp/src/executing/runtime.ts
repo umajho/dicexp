@@ -24,7 +24,7 @@ import {
   RuntimeError,
   RuntimeProxyForFunction,
   Scope,
-  Value_List,
+  Value_List2,
   ValueBox,
 } from "@dicexp/runtime/values";
 
@@ -334,7 +334,7 @@ function getFinalValue(
     case "boolean":
       return ["ok", value];
     default: {
-      if (Array.isArray(value)) return getFinalValueOfList(value);
+      if (value.type === "list") return getFinalValueOfList(value);
       const err = runtimeError_badFinalResult(getTypeNameOfValue(value));
       return ["error", err];
     }
@@ -342,16 +342,11 @@ function getFinalValue(
 }
 
 function getFinalValueOfList(
-  list: Value_List,
+  list: Value_List2,
 ): ["ok", JSValue] | ["error", RuntimeError] {
   const resultList: JSValue = Array(list.length);
   for (const [i, elem] of list.entries()) {
-    let result: ["ok", JSValue] | ["error", RuntimeError];
-    if (Array.isArray(elem)) {
-      result = getFinalValueOfList(elem);
-    } else {
-      result = getFinalValue(elem);
-    }
+    let result = getFinalValue(elem);
     if (result[0] === "error") return result;
     // result[0] === "ok"
     resultList[i] = result[1];
