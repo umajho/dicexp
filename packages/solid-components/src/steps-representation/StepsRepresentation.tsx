@@ -20,6 +20,7 @@ import { RepresentationContext, RepresentationContextData } from "./context";
 import { ColorScheme, RGBColor } from "./color-scheme";
 import { defaultColorScheme } from "./color-scheme-default";
 import { createUniqueTrueSetter } from "./hooks";
+import { ShowKeepAlive } from "./util-components";
 
 const PositionContext = createContext<{ depth: number; rank: number }>();
 const UniqueHoveredSetterContext = createContext<
@@ -192,7 +193,7 @@ const createContentComponent: {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show when={isExpanded()} fallback={<More />}>
+            <ShowKeepAlive when={isExpanded()} fallback={<More />}>
               <Index each={addends}>
                 {(addend, i) => (
                   <>
@@ -207,7 +208,7 @@ const createContentComponent: {
                   </>
                 )}
               </Index>
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists
               Result={() => (
                 <Colored {...context.colorScheme.value_number}>{sum}</Colored>
@@ -343,14 +344,14 @@ const createContentComponent: {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show
+            <ShowKeepAlive
               when={isExpanded()}
               fallback={<More containsError={isWithError(count)} />}
             >
               <DeeperStep repr={count} />
               <Colored {...colorScheme.operator_special}>{" # "}</Colored>
               <DeeperStep repr={["r", body]} rank={1} />
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists Result={Result} />
             {")"}
           </>
@@ -389,7 +390,7 @@ const createContentComponentForReprCall = {
       <Slot canCollapse={true}>
         {({ isExpanded }) => (
           <>
-            <Show
+            <ShowKeepAlive
               when={isExpanded()}
               fallback={
                 <More containsError={args.some((arg) => isWithError(arg))} />
@@ -397,7 +398,7 @@ const createContentComponentForReprCall = {
             >
               <Colored {...colorScheme.regular_function}>{callee}</Colored>
               <ListLike parens={["(", ")"]} items={args} expansion={true} />
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists Result={Result} />
           </>
         )}
@@ -436,12 +437,12 @@ const createContentComponentForReprCall = {
           <>
             {"("}
             <Colored {...colorScheme.opeator}>{callee}</Colored>
-            <Show
+            <ShowKeepAlive
               when={isExpanded()}
               fallback={<More containsError={isWithError(operand)} />}
             >
               <DeeperStep repr={operand} />
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists Result={Result} />
             {")"}
           </>
@@ -462,7 +463,7 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show
+            <ShowKeepAlive
               when={isExpanded()}
               fallback={
                 <More containsError={operands.some((op) => isWithError(op))} />
@@ -471,7 +472,7 @@ const createContentComponentForReprCall = {
               <DeeperStep repr={operandLeft} />
               <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
               <DeeperStep repr={operandRight} rank={1} />
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists Result={Result} />
             {")"}
           </>
@@ -491,7 +492,7 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show
+            <ShowKeepAlive
               when={isExpanded()}
               fallback={
                 <More
@@ -509,7 +510,7 @@ const createContentComponentForReprCall = {
                 rankOffset={1}
                 expansion={true}
               />
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists Result={Result} />
             {")"}
           </>
@@ -529,7 +530,7 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show
+            <ShowKeepAlive
               when={isExpanded()}
               fallback={
                 <More containsError={args.some((arg) => isWithError(arg))} />
@@ -545,7 +546,7 @@ const createContentComponentForReprCall = {
                 rankOffset={1}
                 expansion={true}
               />
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists Result={Result} />
             {")"}
           </>
@@ -565,7 +566,7 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show
+            <ShowKeepAlive
               when={isExpanded()}
               fallback={
                 <More
@@ -586,7 +587,7 @@ const createContentComponentForReprCall = {
                 rankOffset={1 + 1} // 在管道左侧的参数 + callee
                 expansion={true}
               />
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists Result={Result} />
             {")"}
           </>
@@ -606,7 +607,7 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show
+            <ShowKeepAlive
               when={isExpanded()}
               fallback={
                 <More
@@ -627,7 +628,7 @@ const createContentComponentForReprCall = {
                   );
                 }}
               </Index>
-            </Show>
+            </ShowKeepAlive>
             <ToResultIfExists Result={Result} />
             {")"}
           </>
