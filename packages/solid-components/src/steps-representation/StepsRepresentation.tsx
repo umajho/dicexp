@@ -867,7 +867,9 @@ function isWithError(repr: Repr): boolean {
   if (repr[0] === "cr" || repr[0] === "cv") {
     return repr[4] ? isError(repr[4]) : false;
   }
-  if (repr[0] === "c$") return repr[3] ? isError(repr[3]) : false;
+  if (repr[0] === "c$" || repr[0] === "#") {
+    return repr[3] ? isError(repr[3]) : false;
+  }
 
   return false;
 }

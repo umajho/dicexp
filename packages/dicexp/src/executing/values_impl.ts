@@ -258,7 +258,11 @@ export class LazyValueFactory {
         const countResult = count.get();
 
         if (countResult[0] === "error") {
-          const repr = createRepr.repetition(count.getRepr(), bodyRaw);
+          const repr = createRepr.repetition(
+            count.getRepr(),
+            bodyRaw,
+            createRepr.error_indirect(),
+          );
           return this.error(countResult[1], repr, true);
         }
         // countResult[0] === "ok"
