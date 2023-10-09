@@ -46,7 +46,8 @@ type ParameterListToFunction<
   | (ReturnValueType extends { lazy: true } //
     ? ["lazy", ValueBox]
     : ["ok", ReturnValueTypeSpecToType<ReturnValueType>])
-  | ["error", RuntimeError | string];
+  | ["error", RuntimeError | string]
+  | ["error_indirect", RuntimeError];
 // | ["error_from_argument", RuntimeError | string];
 
 /**

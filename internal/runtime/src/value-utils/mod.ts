@@ -114,7 +114,7 @@ function checkType(
 export function flattenListAll(
   spec: Exclude<ValueSpec, "lazy">,
   list: ValueBox[],
-): ["ok", Value[]] | "error" {
+): ["ok", Value[]] | "error" | ["error_indirect", RuntimeError] {
   if (spec !== "*") {
     if (spec instanceof Set) {
       spec.add("list");
@@ -127,16 +127,18 @@ export function flattenListAll(
 
   for (const [i, elem] of list.entries()) {
     const unwrapResult = unwrapValueNoLazy(spec, elem);
-    if (unwrapResult[0] === "error" || unwrapResult[0] === "error_indirect") {
-      return "error";
-    }
+    if (unwrapResult[0] === "error") return "error";
+    if (unwrapResult[0] === "error_indirect") return unwrapResult;
 
     // unwrapResult[0] === "ok"
     const unwrappedElem = unwrapResult[1];
 
     if (getTypeNameOfValue(unwrappedElem) === "list") {
       const subResult = flattenListAll(spec, unwrappedElem as ValueBox[]);
-      if (subResult === "error") return "error";
+      if (subResult === "error" || subResult[0] === "error_indirect") {
+        return subResult;
+      }
+
       values.push(...subResult[1]);
     } else {
       values[i] = unwrappedElem;
@@ -152,15 +154,14 @@ export function flattenListAll(
 export function unwrapList(
   spec: ValueTypeName,
   list: ValueBox[],
-): ["ok", Value[]] | "error" {
+): ["ok", Value[]] | "error" | ["error_indirect", RuntimeError] {
   if (!list.length) return ["ok", []];
 
   const values: Value[] = Array(list.length);
   for (const [i, elem] of list.entries()) {
     let valueResult = unwrapValueNoLazy(spec, elem);
-    if (valueResult[0] === "error" || valueResult[0] === "error_indirect") {
-      return "error";
-    }
+    if (valueResult[0] === "error") return "error";
+    if (valueResult[0] === "error_indirect") return valueResult;
     values[i] = valueResult[1];
   }
 
@@ -176,7 +177,7 @@ export function unwrapList(
 export function unwrapListOneOf(
   specOneOf: Set<ValueTypeName>,
   list: ValueBox[],
-): ["ok", Value[]] | "error" {
+): ["ok", Value[]] | "error" | ["error_indirect", RuntimeError] {
   if (!list.length) return ["ok", []];
 
   const values: Value[] = Array(list.length);
@@ -192,9 +193,8 @@ export function unwrapListOneOf(
       });
     }
 
-    if (valueResult[0] === "error" || valueResult[0] === "error_indirect") {
-      return "error";
-    }
+    if (valueResult[0] === "error") return "error";
+    if (valueResult[0] === "error_indirect") return valueResult;
 
     values[i] = valueResult[1];
     if (i === 0) {

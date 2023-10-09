@@ -39,22 +39,26 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     // FIXME: 应该由 `flattenListAll`、`unwrapListOneOf` 这类函数返回错误，再由其调用者
     //        加工返回错误，而不是像这样直接断定错误信息。（不只这一处。）
     if (result === "error") return ["error", "传入的列表存在非「数字」项"];
+    if (result[0] === "error_indirect") return result;
     return ["ok", sum(result[1] as number[])];
   },
   "product/1": (_rtm, list) => {
     const result = unwrapList("integer", list);
     if (result === "error") return ["error", "传入的列表存在非「数字」项"];
+    if (result[0] === "error_indirect") return result;
     return ["ok", product(result[1] as number[])];
   },
   // ...
   "any?/1": (_rtm, list) => {
     const result = flattenListAll("boolean", list);
     if (result === "error") return ["error", "传入的列表存在非「布尔」项"];
+    if (result[0] === "error_indirect") return result;
     return ["ok", result[1].some((x) => x)];
   },
   "sort/1": (_rtm, list) => {
     const result = unwrapListOneOf(new Set(["integer", "boolean"]), list);
     if (result === "error") return ["error", "传入的列表不支持排序"];
+    if (result[0] === "error_indirect") return result;
     const listJs = result[1] as number[] | boolean[];
     const sortedList = listJs.sort((a, b) => +a - +b);
     const sortedBoxList = sortedList.map((el) => createValueBox.direct(el));

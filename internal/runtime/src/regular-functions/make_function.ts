@@ -41,6 +41,8 @@ export function makeFunction(
             err = makeRuntimeError(err);
           }
           return createValueBox.error(err);
+        } else if (result[0] === "error_indirect") {
+          return createValueBox.error(result[1], { indirect: true });
         } else {
           result[0] satisfies never;
           throw new Unreachable();
