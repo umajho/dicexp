@@ -1,6 +1,6 @@
 import { precedenceTable } from "@dicexp/lezer";
 
-import { asPlain, Value, ValueBox } from "../values";
+import { asPlain, Value, Value_List } from "../values";
 import { RuntimeError } from "../runtime_errors";
 
 type ReprBase<IsInRuntime extends boolean> =
@@ -8,8 +8,16 @@ type ReprBase<IsInRuntime extends boolean> =
   | [type: /** unevaluated */ "_"]
   | [type: /** value_primitive */ "vp", value: number | boolean]
   | (IsInRuntime extends true /** type 中有后缀 `@` 代表是运行时版本，下同 */
-    ? [type: "vl@", items: (() => ReprBase<true>)[]]
-    : [type: /** value_list */ "vl", items: ReprBase<false>[]])
+    ? [
+      type: "vl@",
+      items: (() => ReprBase<true>)[],
+      containsError?: () => boolean,
+    ]
+    : [
+      type: /** value_list */ "vl",
+      items: ReprBase<false>[],
+      containsError: boolean,
+    ])
   | [type: /** value_sum */ "vs", sum: number]
   | [
     type: "i", /** identifier */
@@ -107,9 +115,13 @@ export const createRepr = {
    * 位于运算符（包括 `|>`、`.`）的一侧时无需括号包围，如：`[1]++[1]`（TODO：尚未实现）。
    */
   value_list(
-    items: ValueBox[],
+    list: Value_List,
   ): ReprInRuntime & { 0: "vl@" } {
-    return ["vl@", items.map((item) => () => item.getRepr())];
+    return [
+      "vl@",
+      list.map((item) => () => item.getRepr()),
+      list.confirmsThatContainsError.bind(list),
+    ];
   },
 
   /**
@@ -242,7 +254,8 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
       return rtmRepr;
     case "vl@":
       const items = rtmRepr[1].map((item) => finalizeRepr(item()));
-      return ["vl", items];
+      const containsError = rtmRepr[2]?.() ?? false;
+      return ["vl", items, containsError];
     case "i":
       if (!(/* value */ rtmRepr[2])) return rtmRepr as Repr;
       return ["i", rtmRepr[1], finalizeRepr(rtmRepr[2])];

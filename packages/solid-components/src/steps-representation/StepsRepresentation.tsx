@@ -162,7 +162,7 @@ const createContentComponent: {
     );
   },
   "vl": (repr, { listPreviewLimit }) => {
-    const items = repr[1];
+    const items = repr[1], containsError = repr[2];
     const canCollapse = items.length > listPreviewLimit;
     return (props) => (
       <Slot {...props} canCollapse={canCollapse} cannotAutoExpand={true}>
@@ -173,6 +173,7 @@ const createContentComponent: {
             isRealList={true}
             items={items}
             expansion={isExpanded() || listPreviewLimit}
+            containsError={containsError}
           />
         )}
       </Slot>
@@ -309,7 +310,10 @@ const createContentComponent: {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show when={isExpanded()} fallback={<More />}>
+            <Show
+              when={isExpanded()}
+              fallback={<More containsError={isWithError(count)} />}
+            >
               <DeeperStep repr={count} />
               <Colored {...colorScheme.operator_special}>{" # "}</Colored>
               <DeeperStep repr={["r", body]} rank={1} />
@@ -352,7 +356,12 @@ const createContentComponentForReprCall = {
       <Slot canCollapse={true}>
         {({ isExpanded }) => (
           <>
-            <Show when={isExpanded()} fallback={<More />}>
+            <Show
+              when={isExpanded()}
+              fallback={
+                <More containsError={args.some((arg) => isWithError(arg))} />
+              }
+            >
               <Colored {...colorScheme.regular_function}>{callee}</Colored>
               <ListLike parens={["(", ")"]} items={args} expansion={true} />
             </Show>
@@ -393,8 +402,11 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show when={isExpanded()} fallback={<More />}>
-              <Colored {...colorScheme.opeator}>{callee}</Colored>
+            <Colored {...colorScheme.opeator}>{callee}</Colored>
+            <Show
+              when={isExpanded()}
+              fallback={<More containsError={isWithError(operand)} />}
+            >
               <DeeperStep repr={operand} />
             </Show>
             <ToResultIfExists Result={Result} />
@@ -406,17 +418,23 @@ const createContentComponentForReprCall = {
   },
   regularAsBinaryOperator(
     callee: string,
-    [operandLeft, operandRight]: [Repr, Repr],
+    operands: [Repr, Repr],
     Result: Component | undefined,
     { colorScheme }: RepresentationContextData,
   ) {
-    const canCollapse = ![operandLeft, operandRight].every(isSimpleRepr);
+    const canCollapse = !operands.every(isSimpleRepr);
+    const [operandLeft, operandRight] = operands;
     return () => (
       <Slot canCollapse={canCollapse}>
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show when={isExpanded()} fallback={<More />}>
+            <Show
+              when={isExpanded()}
+              fallback={
+                <More containsError={operands.some((op) => isWithError(op))} />
+              }
+            >
               <DeeperStep repr={operandLeft} />
               <Colored {...colorScheme.opeator}>{` ${callee} `}</Colored>
               <DeeperStep repr={operandRight} rank={1} />
@@ -440,7 +458,15 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show when={isExpanded()} fallback={<More />}>
+            <Show
+              when={isExpanded()}
+              fallback={
+                <More
+                  containsError={isWithError(headArg) ||
+                    tailArgs.some((arg) => isWithError(arg))}
+                />
+              }
+            >
               <DeeperStep repr={headArg} />
               <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
               <Colored {...colorScheme.regular_function}>{callee}</Colored>
@@ -470,7 +496,12 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show when={isExpanded()} fallback={<More />}>
+            <Show
+              when={isExpanded()}
+              fallback={
+                <More containsError={args.some((arg) => isWithError(arg))} />
+              }
+            >
               {"("}
               <Callee />
               {")"}
@@ -501,7 +532,15 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show when={isExpanded()} fallback={<More />}>
+            <Show
+              when={isExpanded()}
+              fallback={
+                <More
+                  containsError={isWithError(headArg) ||
+                    tailArgs.some((arg) => isWithError(arg))}
+                />
+              }
+            >
               <DeeperStep repr={headArg} />
               <Colored {...colorScheme.operator_special}>{" |> "}</Colored>
               {"("}
@@ -534,7 +573,15 @@ const createContentComponentForReprCall = {
         {({ isExpanded }) => (
           <>
             {"("}
-            <Show when={isExpanded()} fallback={<More />}>
+            <Show
+              when={isExpanded()}
+              fallback={
+                <More
+                  containsError={isWithError(head) ||
+                    tail.some((item) => isWithError(item[1]))}
+                />
+              }
+            >
               <DeeperStep repr={head} />
               <Index each={tail}>
                 {(item, i) => {
@@ -571,25 +618,22 @@ const ListLike: Component<{
    * number: 折叠，但是预览对应数目之项。
    */
   expansion: true | number;
+  /**
+   * 用以辅助确认折叠时被省略的项中是否存在错误。
+   * （此值为真，且未被省略的项中不存在错误，则错误在被省略的项中。）
+   *
+   * 另，这里预设整个列表中只存在一个错误。
+   * FIXME: 由于 “捕获” 没有贯彻惰性，目前是可以通过多次捕获不存在的通常函数来同时制造多个
+   *        错误的。不过这不算什么严重的问题，修复优先级不大。
+   */
+  containsError?: boolean;
 }> = (props) => {
   const [lP, rP] = props.parens;
-  const context = useContext(RepresentationContext)!;
 
   const [isItemHovered, setIsItemHovered] = createSignal(false);
 
   return (
-    <Show
-      when={true /** TODO!: 重新支持v */ && props.items.length}
-      fallback={props.items.length
-        ? (
-          <>
-            {`${lP}`}
-            <Colored {...context.colorScheme.more}>{` … `}</Colored>
-            {`${rP}`}
-          </>
-        )
-        : `${lP}${rP}`}
-    >
+    <>
       {`${lP}`}
       {props.padding}
       <ListItemsContext.Provider
@@ -602,7 +646,7 @@ const ListLike: Component<{
       </ListItemsContext.Provider>
       {props.padding}
       {`${rP}`}
-    </Show>
+    </>
   );
 };
 
@@ -616,6 +660,7 @@ const ListItems: Component<{
    * 见 ListLike 组件对应属性。
    */
   expansion: true | number;
+  containsError?: boolean;
 }> = (props) => {
   const rankOffset = props.rankOffset ?? 0;
 
@@ -633,7 +678,12 @@ const ListItems: Component<{
               <Show when={i < props.items.length - 1}>{", "}</Show>
             </Match>
             <Match when={props.expansion !== true && i === props.expansion}>
-              <More />
+              <More
+                containsError={props.containsError &&
+                  !props.items
+                    .slice(0, props.expansion as number)
+                    .some((item) => isWithError(item))}
+              />
             </Match>
           </Switch>
         );
@@ -678,7 +728,7 @@ function separateIndirectErrorFromResult(
   result: Repr | undefined,
 ): [result: Repr | undefined, isIndirectError: boolean] {
   if (!result) return [undefined, false];
-  if (!result || result[0] === "E") return [undefined, true];
+  if (result[0] === "E") return [undefined, true];
   return [result, false];
 }
 
@@ -773,17 +823,33 @@ const Slot: Component<
   );
 };
 
-const More: Component = () => {
+const More: Component<{ containsError?: boolean }> = (props) => {
   const context = useContext(RepresentationContext)!;
 
-  return <Colored {...context.colorScheme.more}>…</Colored>;
+  return (
+    <Colored
+      {...(props.containsError
+        ? context.colorScheme.error
+        : context.colorScheme.more)}
+    >
+      …
+    </Colored>
+  );
 };
 
-const Colored: Component<{ text?: RGBColor; children: JSX.Element }> = (
+const Colored: Component<
+  { text?: RGBColor; background?: RGBColor; children: JSX.Element }
+> = (
   props,
 ) => {
   return (
-    <span style={{ color: props.text && `rgb(${props.text.join(",")})` }}>
+    <span
+      style={{
+        color: props.text && `rgb(${props.text.join(",")})`,
+        "background-color": props.background &&
+          `rgb(${props.background.join(",")})`,
+      }}
+    >
       {props.children}
     </span>
   );
@@ -791,4 +857,21 @@ const Colored: Component<{ text?: RGBColor; children: JSX.Element }> = (
 
 function isSimpleRepr(repr: Repr) {
   return repr[0] === "_" || repr[0] === "vp";
+}
+
+function isWithError(repr: Repr): boolean {
+  if (isError(repr)) return true;
+
+  if (repr[0] === "vl") return repr[2];
+  if (repr[0] === "i") return repr[2] ? isWithError(repr[2]) : false;
+  if (repr[0] === "cr" || repr[0] === "cv") {
+    return repr[4] ? isError(repr[4]) : false;
+  }
+  if (repr[0] === "c$") return repr[3] ? isError(repr[3]) : false;
+
+  return false;
+}
+
+function isError(repr: Repr): boolean {
+  return repr[0] === "e" || repr[0] === "E";
 }

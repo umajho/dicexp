@@ -295,11 +295,12 @@ export function asCallable(
 export type Value_List = ValueBox[] & {
   type: "list";
   addDisposableErrorHook(hook: (err: RuntimeError) => void): void;
+  confirmsThatContainsError(): boolean;
 };
 /**
  * XXX: 在外部，其只允许通过 `createValue` 工厂来创建，以保证实现细节不会暴露。
  */
-class InternalValue_List extends Array<ValueBox> {
+class InternalValue_List extends Array<ValueBox> implements Value_List {
   /**
    * 之前尝试用 Proxy 实现 `Value_List`，但是开销太大了，故还是决定换成现在的继承 Array 来
    * 实现。
@@ -309,7 +310,7 @@ class InternalValue_List extends Array<ValueBox> {
    */
   static creating = false;
 
-  type?: "list";
+  type!: "list";
 
   private confirmedError?: RuntimeError | null = null;
   private errorHooks?: ((err: RuntimeError) => void)[];
@@ -352,6 +353,10 @@ class InternalValue_List extends Array<ValueBox> {
     } else {
       this.errorHooks = [hook];
     }
+  }
+
+  confirmsThatContainsError(): boolean {
+    return !!this.confirmedError;
   }
 }
 
