@@ -208,7 +208,12 @@ const createContentComponent: {
                 )}
               </Index>
             </Show>
-            <ToResultIfExists Result={() => `${sum}`}></ToResultIfExists>
+            <ToResultIfExists
+              Result={() => (
+                <Colored {...context.colorScheme.value_number}>{sum}</Colored>
+              )}
+              symbol="="
+            />
             {")"}
           </>
         )}
@@ -720,7 +725,9 @@ const ListItems: Component<{
   );
 };
 
-const ToResultIfExists: Component<{ Result: Component | undefined }> = (
+const ToResultIfExists: Component<
+  { Result: Component | undefined; symbol?: string }
+> = (
   props,
 ) => (
   <Show when={props.Result}>
@@ -728,7 +735,7 @@ const ToResultIfExists: Component<{ Result: Component | undefined }> = (
       const ResultComponent = _ResultComponent();
       return (
         <>
-          {" ⇒ "}
+          {` ${props.symbol ?? "⇒"} `}
           <ResultComponent />
         </>
       );
