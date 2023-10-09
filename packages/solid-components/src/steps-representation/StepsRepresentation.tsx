@@ -351,7 +351,7 @@ const createContentComponent: {
               <Colored {...colorScheme.operator_special}>{" # "}</Colored>
               <DeeperStep repr={["r", body]} rank={1} />
             </Show>
-            <ToResultIfExists Result={Result}></ToResultIfExists>
+            <ToResultIfExists Result={Result} />
             {")"}
           </>
         )}
@@ -628,7 +628,7 @@ const createContentComponentForReprCall = {
                 }}
               </Index>
             </Show>
-            <ToResultIfExists Result={Result}></ToResultIfExists>
+            <ToResultIfExists Result={Result} />
             {")"}
           </>
         )}
