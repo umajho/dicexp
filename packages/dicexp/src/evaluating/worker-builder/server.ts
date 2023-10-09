@@ -89,7 +89,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
         result[0] === "error" &&
         (result[1] === "parse" || result[1] === "other")
       ) {
-        data[2] = ["error", "parse", makeSendableError(result[2])];
+        data[2] = ["error", result[1], makeSendableError(result[2])];
       }
     } else if (data[0] === "batch_report") {
       let report = data[2];
@@ -106,6 +106,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
       postMessage(data);
     } catch (e) {
       const errorMessage = (e instanceof Error) ? e.message : `${e}`;
+      console.log(data);
       postMessage(["fatal", "无法发送消息：" + errorMessage]);
     }
   }

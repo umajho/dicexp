@@ -1,28 +1,19 @@
 import { Unreachable } from "@dicexp/errors";
 
-import {
-  Component,
-  createEffect,
-  createSignal,
-  lazy,
-  Match,
-  on,
-  Show,
-  Suspense,
-  Switch,
-} from "solid-js";
+import { Component, createEffect, createSignal, on, Show } from "solid-js";
 
-import { ShowKeepAlive } from "../utils";
 import { HiOutlineXMark } from "solid-icons/hi";
-import { Button, Card, Skeleton, Tab, Tabs } from "../ui";
+import { Button, Card } from "../ui";
 import { ResultErrorAlert } from "./ui";
 import * as store from "../../stores/store";
+
+import StepsRepresentation from "../step-representations";
 
 import {
   EvaluationResultForWorker,
   ExecutionAppendix,
   JSValue,
-  Representation,
+  Repr,
   RuntimeError,
 } from "dicexp/internal";
 import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
@@ -33,19 +24,16 @@ export const ResultPaneForSingle: Component<
   props,
 ) => {
   // TODO: 如果未来 JSValue 包含 null，则将这里的 null 移出
-  const [isOk, setIsOk] = createSignal(false),
-    [resultValue, setResultValue] = createSignal<JSValue | null>(null),
+  const [resultValue, setResultValue] = createSignal<JSValue | null>(null),
     [appendix, setAppendix] = createSignal<ExecutionAppendix | null>(null),
     [error, setError] = createSignal<ErrorWithType | null>(null),
     [runtimeError, setRuntimeError] = createSignal<RuntimeError | null>(null);
   createEffect(on([() => props.result], () => {
-    let isOk_ = false,
-      resultValue_: JSValue | null = null,
+    let resultValue_: JSValue | null = null,
       appendix_: ExecutionAppendix | null = null,
       error_: ErrorWithType | null = null,
       runtimeError_: RuntimeError | null = null;
     if (props.result[0] === "ok") {
-      isOk_ = true;
       resultValue_ = props.result[1];
       appendix_ = props.result[2];
     } else if (props.result[0] === "error") {
@@ -60,35 +48,31 @@ export const ResultPaneForSingle: Component<
       error_ = new Unreachable() as ErrorWithType;
       error_.type = "other";
     }
-    setIsOk(isOk_);
     setResultValue(resultValue_);
     setAppendix(appendix_);
     setError(error_);
     setRuntimeError(runtimeError_);
   }));
 
-  const [currentTab, setCurrentTab] = createSignal<"result" | "representation">(
+  const [currentTab, setCurrentTab] = createSignal<"result">(
     "result",
   );
 
   return (
     <Card class="min-w-[80vw]" bodyClass="p-6 gap-4">
       <div class="flex">
-        {/* 标签页 */}
-        <Tabs class="flex-1">
+        {
+          /* 标签栏，目前不再需要，用空的 div 占位 */
+          <div class="flex-1" />
+          /* <Tabs class="flex-1">
           <Tab
             isActive={currentTab() === "result"}
             onClick={() => setCurrentTab("result")}
           >
             结果
           </Tab>
-          <Tab
-            isActive={currentTab() === "representation"}
-            onClick={() => setCurrentTab("representation")}
-          >
-            步骤展现（WIP）
-          </Tab>
-        </Tabs>
+        </Tabs> */
+        }
 
         {/* 关闭 */}
         <Button
@@ -104,14 +88,10 @@ export const ResultPaneForSingle: Component<
       <Show when={currentTab() === "result"}>
         <ResultTab
           resultValue={resultValue}
+          repr={() => appendix()?.representation ?? null}
           error={() => error() ?? runtimeError()}
         />
       </Show>
-      <ShowKeepAlive
-        when={() => currentTab() === "representation"}
-      >
-        <RepresentationTab representation={() => appendix()!.representation} />
-      </ShowKeepAlive>
 
       {/* 统计 */}
       <Show when={appendix()?.statistics}>
@@ -135,6 +115,7 @@ export const ResultPaneForSingle: Component<
 
 const ResultTab: Component<{
   resultValue: () => JSValue | null;
+  repr: () => Repr | null;
   error: () => ErrorWithType | RuntimeError | null;
 }> = (props) => {
   const errorDisplayInfo = () => {
@@ -148,35 +129,26 @@ const ResultTab: Component<{
   };
 
   return (
-    <Switch>
-      <Match when={props.error()}>
+    <>
+      <Show when={props.error()}>
         <ResultErrorAlert
           kind={errorDisplayInfo()!.kind}
           error={props.error()!}
           showsStack={errorDisplayInfo()!.showsStack}
         />
-      </Match>
-      <Match when={true}>
-        <code class="break-all">{JSON.stringify(props.resultValue()!)}</code>
-      </Match>
-    </Switch>
-  );
-};
-
-const LazyJsonViewer = lazy(() => import("../json-viewer"));
-
-const RepresentationTab: Component<
-  { representation: () => Representation; class?: string }
-> = (props) => {
-  return (
-    <Suspense
-      fallback={
-        <div class="h-36">
-          <Skeleton />
-        </div>
-      }
-    >
-      <LazyJsonViewer data={props.representation()} />
-    </Suspense>
+      </Show>
+      <Show when={props.resultValue()}>
+        {(resultValue) => (
+          <code class="break-all">{JSON.stringify(resultValue())}</code>
+        )}
+      </Show>
+      <Show when={props.repr()}>
+        {(repr) => (
+          <>
+            <StepsRepresentation repr={repr()}></StepsRepresentation>
+          </>
+        )}
+      </Show>
+    </>
   );
 };

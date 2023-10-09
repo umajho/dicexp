@@ -18,9 +18,9 @@ import { RandomGenerator, RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   asPlain,
-  finalizeRepresentation,
+  finalizeRepr,
   getTypeNameOfValue,
-  Representation,
+  Repr,
   RuntimeError,
   RuntimeProxyForFunction,
   Scope,
@@ -61,7 +61,7 @@ export interface Statistics {
 export type JSValue = number | boolean | JSValue[];
 
 export interface ExecutionAppendix {
-  representation: Representation;
+  representation: Repr;
   statistics: Statistics;
 }
 
@@ -174,10 +174,12 @@ export class Runtime {
 
   execute(): ExecutionResult {
     this._statistics.start = { ms: Date.now() /*performance.now()*/ };
+
     const interpreted = this._interpretRoot();
-    const result = this._finalize(interpreted);
+    const result = getFinalValue(interpreted);
+
     const appendix = {
-      representation: finalizeRepresentation(interpreted.getRepresentation()),
+      representation: finalizeRepr(interpreted.getRepr()),
       statistics: {
         timeConsumption: {
           ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
@@ -187,44 +189,6 @@ export class Runtime {
       },
     };
     return [...result, appendix];
-  }
-
-  private _finalize(
-    valueBox: ValueBox,
-  ): ["ok", JSValue] | ["error", RuntimeError] {
-    const result = valueBox.get();
-    if (result[0] === "error") return result;
-    // result[0] === "ok"
-    let value = asPlain(result[1]);
-
-    switch (typeof value) {
-      case "number":
-      case "boolean":
-        return ["ok", value];
-      default: {
-        if (Array.isArray(value)) return this._finalizeList(value);
-        const err = runtimeError_badFinalResult(getTypeNameOfValue(value));
-        return ["error", err];
-      }
-    }
-  }
-
-  private _finalizeList(
-    list: Value_List,
-  ): ["ok", JSValue] | ["error", RuntimeError] {
-    const resultList: JSValue = Array(list.length);
-    for (const [i, elem] of list.entries()) {
-      let result: ["ok", JSValue] | ["error", RuntimeError];
-      if (Array.isArray(elem)) {
-        result = this._finalizeList(elem);
-      } else {
-        result = this._finalize(elem);
-      }
-      if (result[0] === "error") return result;
-      // result[0] === "ok"
-      resultList[i] = result[1];
-    }
-    return ["ok", resultList];
   }
 
   private _interpretRoot(): ValueBox {
@@ -240,7 +204,7 @@ export class Runtime {
     switch (node.kind) {
       case "value": {
         if (typeof node.value === "number" || typeof node.value === "boolean") {
-          return this._lazyValueFactory.literal(node.value);
+          return this._lazyValueFactory.literalPrimitive(node.value);
         }
         switch (node.value.valueKind) {
           case "list": {
@@ -285,7 +249,7 @@ export class Runtime {
     list: NodeValue_List,
   ): ValueBox {
     const interpretedList = list.member.map((x) => this._interpret(scope, x));
-    return this._lazyValueFactory.list(interpretedList);
+    return this._lazyValueFactory.literalList(interpretedList);
   }
 
   private _interpretClosure(
@@ -355,4 +319,37 @@ export interface RuntimeProxy extends RuntimeProxyForFunction {
   reporter: RuntimeReporter;
 
   interpret: (scope: Scope, node: Node) => ValueBox;
+}
+
+function getFinalValue(
+  valueBox: ValueBox,
+): ["ok", JSValue] | ["error", RuntimeError] {
+  const result = valueBox.get();
+  if (result[0] === "error") return result;
+  // result[0] === "ok"
+  let value = asPlain(result[1]);
+
+  switch (typeof value) {
+    case "number":
+    case "boolean":
+      return ["ok", value];
+    default: {
+      if (value.type === "list") return getFinalValueOfList(value);
+      const err = runtimeError_badFinalResult(getTypeNameOfValue(value));
+      return ["error", err];
+    }
+  }
+}
+
+function getFinalValueOfList(
+  list: Value_List,
+): ["ok", JSValue] | ["error", RuntimeError] {
+  const resultList: JSValue = Array(list.length);
+  for (const [i, elem] of list.entries()) {
+    let result = getFinalValue(elem);
+    if (result[0] === "error") return result;
+    // result[0] === "ok"
+    resultList[i] = result[1];
+  }
+  return ["ok", resultList];
 }

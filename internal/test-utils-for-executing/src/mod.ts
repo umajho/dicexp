@@ -11,38 +11,14 @@ import {
   parse,
   ParseOptions,
 } from "dicexp/internal";
-import { RuntimeError, Scope, ValueTypeName } from "@dicexp/runtime/values";
-import {
-  runtimeError_callArgumentTypeMismatch,
-  RuntimeErrorFromArgument,
-} from "@dicexp/runtime/errors";
+import { RuntimeError, ValueTypeName } from "@dicexp/runtime/values";
+import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
 import { Unreachable } from "@dicexp/errors";
-import * as builtins from "@dicexp/builtins/internal";
-import { asScope } from "@dicexp/runtime/regular-functions";
 
-const testScopeCollection = ((): Scope => {
-  const pickedFunctions: string[] = [
-    ...["count/2", "sum/1", "sort/1", "append/2", "at/2"],
-    ...["map/2", "filter/2", "head/1", "tail/1", "zip/2", "zipWith/3"],
-  ];
-  const pickedScope: Scope = {};
-  for (const picked of pickedFunctions) {
-    if (!builtins.functionScope[picked]) {
-      throw new Unreachable(
-        `"测试用的函数 \`${picked}\` 不存在于标准作用域中"`,
-      );
-    }
-    pickedScope[picked] = builtins.functionScope[picked];
-  }
-  return asScope([builtins.operatorScope, pickedScope]);
-})();
-
-type ExecuteOptionsForTest = Omit<ExecuteOptions, "topLevelScope"> & {
-  topLevelScope?: Scope;
-};
+type ExecuteOptionsForTest = ExecuteOptions;
 export function evaluateForTest(
   code: string,
-  executeOpts?: ExecuteOptionsForTest,
+  executeOpts: ExecuteOptionsForTest,
   parseOpts?: ParseOptions,
 ): ExecutionResult {
   const parseResult = parse(code, parseOpts);
@@ -52,7 +28,7 @@ export function evaluateForTest(
   // parseResult[0] === "ok"
   return execute(parseResult[1], {
     ...executeOpts,
-    topLevelScope: executeOpts?.topLevelScope ?? testScopeCollection,
+    topLevelScope: executeOpts.topLevelScope,
   });
 }
 
@@ -73,10 +49,13 @@ export function assertNumberArray(result: ExecutionResult): number[] {
   return result[1] as number[];
 }
 
+/**
+ * @param expectedResult 若为 undefined，代表只要结果没有错误就算通过。
+ */
 export function assertExecutionOk(
   code: string,
-  expectedResult?: unknown,
-  opts?: ExecuteOptionsForTest,
+  expectedResult: unknown | undefined,
+  opts: ExecuteOptionsForTest,
 ): JSValue {
   const result = evaluateForTest(code, opts);
   if (result[0] === "ok") {
@@ -103,13 +82,8 @@ export function assertExecutionOk(
 export function assertExecutionRuntimeError(
   code: string,
   expectedError: string | RuntimeError,
-  opts?: ExecuteOptionsForTest & { fromArgument?: boolean },
+  opts: ExecuteOptionsForTest,
 ) {
-  const fromArgument = !!opts?.fromArgument;
-  if (opts) {
-    delete opts.fromArgument;
-  }
-
   const result = evaluateForTest(code, opts);
   if (result[0] === "ok") {
     const actualResultInspected = inspect(result[1]);
@@ -121,62 +95,63 @@ export function assertExecutionRuntimeError(
   const err = result[1];
 
   if (typeof expectedError === "string") {
-    if (fromArgument) {
-      if (!(err instanceof RuntimeErrorFromArgument)) {
-        throw new AssertionError(
-          `the error returned by \`${code}\` is not RuntimeErrorFromArgument`,
-        );
-      }
-      if (err.originalError.message === expectedError) return;
-    } else if (err.message === expectedError) return;
+    if (err.message === expectedError) return;
     throw new AssertionError(
       `\`${code}\` returned error` +
-        (fromArgument ? " (from argument)" : "") +
         ` "${err.message}", not "${expectedError}"`,
     );
   } else {
-    expectedError = fromArgument
-      ? new RuntimeErrorFromArgument(expectedError)
-      : expectedError;
     assert.deepEqual(err, expectedError);
   }
 }
 
-export function unaryOperatorOnlyAcceptsBoolean(op: string) {
+export function unaryOperatorOnlyAcceptsBoolean(
+  op: string,
+  opts: ExecuteOptionsForTest,
+) {
   describe("只能用于布尔", () => {
     unaryOperatorOnlyAccepts(op, "boolean", [
       ["1", "integer"],
       ["[1]", "list"],
-    ]);
+    ], opts);
   });
 }
 
-export function binaryOperatorOnlyAcceptsBoolean(op: string) {
+export function binaryOperatorOnlyAcceptsBoolean(
+  op: string,
+  opts: ExecuteOptionsForTest,
+) {
   describe("只能用于布尔", () => {
     binaryOperatorOnlyAccepts(op, "boolean", [
       [["1", "true"], "integer", 1],
       [["true", "1"], "integer", 2],
       [["[1]", "true"], "list", 1],
-    ]);
+    ], opts);
   });
 }
 
-export function unaryOperatorOnlyAcceptsNumbers(op: string) {
+export function unaryOperatorOnlyAcceptsNumbers(
+  op: string,
+  opts: ExecuteOptionsForTest,
+) {
   describe("只能用于数字", () => {
     unaryOperatorOnlyAccepts(op, "integer", [
       ["true", "boolean"],
       ["[1]", "list"],
-    ]);
+    ], opts);
   });
 }
 
-export function binaryOperatorOnlyAcceptsNumbers(op: string) {
+export function binaryOperatorOnlyAcceptsNumbers(
+  op: string,
+  opts: ExecuteOptionsForTest,
+) {
   describe("只能用于数字", () => {
     binaryOperatorOnlyAccepts(op, "integer", [
       [["1", "true"], "boolean", 2],
       [["true", "1"], "boolean", 1],
       [["[1]", "1"], "list", 1],
-    ]);
+    ], opts);
   });
 }
 
@@ -184,6 +159,7 @@ function unaryOperatorOnlyAccepts(
   op: string,
   expected: ValueTypeName,
   table: [string, ValueTypeName][],
+  opts: ExecuteOptionsForTest,
 ) {
   for (const [i, [rightValue, rightType]] of table.entries()) {
     const code = `${op}(${rightValue})`;
@@ -191,7 +167,7 @@ function unaryOperatorOnlyAccepts(
       assertExecutionRuntimeError(
         code,
         runtimeError_callArgumentTypeMismatch(1, expected, rightType),
-        { fromArgument: true },
+        opts,
       );
     });
   }
@@ -201,6 +177,7 @@ function binaryOperatorOnlyAccepts(
   op: string,
   expected: ValueTypeName,
   table: [[string, string], ValueTypeName, number][],
+  opts: ExecuteOptionsForTest,
 ) {
   for (
     const [i, [[leftValue, rightValue], wrongType, pos]] of table
@@ -211,21 +188,24 @@ function binaryOperatorOnlyAccepts(
       assertExecutionRuntimeError(
         code,
         runtimeError_callArgumentTypeMismatch(pos, expected, wrongType),
-        { fromArgument: true },
+        opts,
       );
     });
   }
 }
 
-export function assertResultsAreRandom(code: string) {
+export function assertResultsAreRandom(
+  code: string,
+  opts: ExecuteOptionsForTest,
+) {
   const results = Array(10).fill(null)
-    .map((_) => assertNumber(evaluateForTest(code)));
+    .map((_) => assertNumber(evaluateForTest(code, opts)));
   assert(new Set(results).size > 1);
 }
 
 export function theyAreOk<T extends JSValue = JSValue>(
   table: ([string, T] | string)[],
-  opts?: ExecuteOptionsForTest,
+  opts: ExecuteOptionsForTest,
 ) {
   for (const [i, row] of table.entries()) {
     let code: string, expected: unknown | undefined;

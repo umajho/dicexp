@@ -48,6 +48,9 @@ importers:
       '@dicexp/js-utils':
         specifier: workspace:*
         version: link:../js-utils
+      '@dicexp/lezer':
+        specifier: workspace:*
+        version: link:../lezer
       '@dicexp/nodes':
         specifier: workspace:*
         version: link:../nodes
@@ -122,7 +125,7 @@ importers:
         specifier: workspace:*
         version: link:../../internal/lezer
       '@dicexp/nodes':
-        specifier: workspace:^0.0.0
+        specifier: workspace:*
         version: link:../../internal/nodes
       '@dicexp/runtime':
         specifier: workspace:*
@@ -149,11 +152,21 @@ importers:
         specifier: ^0.34.2
         version: 0.34.2(@vitest/ui@0.34.2)
 
+  packages/solid-components:
+    dependencies:
+      solid-element:
+        specifier: ^1.7.1
+        version: 1.7.1(solid-js@1.7.6)
+      solid-js:
+        specifier: ^1.7.6
+        version: 1.7.6
+    devDependencies:
+      dicexp:
+        specifier: workspace:*
+        version: link:../dicexp
+
   playground:
     dependencies:
-      '@alenaksu/json-viewer':
-        specifier: ^2.0.1
-        version: 2.0.1
       '@codemirror/autocomplete':
         specifier: ^6.8.0
         version: 6.8.0(@codemirror/language@6.8.0)(@codemirror/state@6.2.1)(@codemirror/view@6.13.2)(@lezer/common@1.0.3)
@@ -184,6 +197,9 @@ importers:
       '@dicexp/runtime':
         specifier: workspace:*
         version: link:../internal/runtime
+      '@dicexp/solid-components':
+        specifier: workspace:*
+        version: link:../packages/solid-components
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.0.3)
@@ -193,6 +209,9 @@ importers:
       dicexp:
         specifier: workspace:*
         version: link:../packages/dicexp
+      solid-element:
+        specifier: ^1.7.1
+        version: 1.7.1(solid-js@1.7.6)
       solid-icons:
         specifier: ^1.0.8
         version: 1.0.8(solid-js@1.7.6)
@@ -232,12 +251,6 @@ importers:
         version: 2.7.0(solid-js@1.7.6)(vite@4.3.9)
 
 packages:
-
-  /@alenaksu/json-viewer@2.0.1:
-    resolution: {integrity: sha512-M6rN1bcuSGfar6ND9fFASBkez0UcWOUxMiwm2i9jlPBrpjOHOz0/utMgZhfrsgfyFPZ1H1gzfU8auJkYO1mq/g==}
-    dependencies:
-      lit: 2.7.5
-    dev: false
 
   /@alloc/quick-lru@5.2.0:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -913,16 +926,6 @@ packages:
     dependencies:
       '@lezer/common': 1.0.3
 
-  /@lit-labs/ssr-dom-shim@1.1.1:
-    resolution: {integrity: sha512-kXOeFbfCm4fFf2A3WwVEeQj55tMZa8c8/f9AKHMobQMkzNUfUj+antR3fRPaZJawsa1aZiP/Da3ndpZrwEe4rQ==}
-    dev: false
-
-  /@lit/reactive-element@1.6.2:
-    resolution: {integrity: sha512-rDfl+QnCYjuIGf5xI2sVJWdYIi56CTCwWa+nidKYX6oIuBYwUbT/vX4qbUDlHiZKJ/3FRNQ/tWJui44p6/stSA==}
-    dependencies:
-      '@lit-labs/ssr-dom-shim': 1.1.1
-    dev: false
-
   /@microsoft/api-extractor-model@7.26.4:
     resolution: {integrity: sha512-PDCgCzXDo+SLY5bsfl4bS7hxaeEtnXj7XtuzEE+BtALp7B5mK/NrS2kHWU69pohgsRmEALycQdaQPXoyT2i5MQ==}
     dependencies:
@@ -1458,10 +1461,6 @@ packages:
   /@types/node@20.3.1:
     resolution: {integrity: sha512-EhcH/wvidPy1WeML3TtYFGR83UzjxeWRen9V402T8aUGYsCHOmfoisV3ZSg03gAFIbLq8TnWOJ0f4cALtnSEUg==}
 
-  /@types/trusted-types@2.0.3:
-    resolution: {integrity: sha512-NfQ4gyz38SL8sDNrSixxU2Os1a5xcdFxipAFxYEuLUlvU2uDwS4NUpsImcf1//SlWItCVMMLiylsxbmNMToV/g==}
-    dev: false
-
   /@vitest/expect@0.34.2:
     resolution: {integrity: sha512-EZm2dMNlLyIfDMha17QHSQcg2KjeAZaXd65fpPzXY5bvnfx10Lcaz3N55uEe8PhF+w4pw+hmrlHLLlRn9vkBJg==}
     dependencies:
@@ -1745,6 +1744,10 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /component-register@0.8.3:
+    resolution: {integrity: sha512-/0u8ov0WPWi2FL78rgB9aFOcfY8pJT4jP/l9NTOukGNLVQ6hk35sEJE1RkEnNQU3yk48Qr7HlDQjRQKEVfgeWg==}
+    dev: false
 
   /concat-map@0.0.1:
     resolution: {integrity: sha1-2Klr13/Wjfd5OnMDajug1UBdR3s=}
@@ -2386,28 +2389,6 @@ packages:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
     dev: true
 
-  /lit-element@3.3.2:
-    resolution: {integrity: sha512-xXAeVWKGr4/njq0rGC9dethMnYCq5hpKYrgQZYTzawt9YQhMiXfD+T1RgrdY3NamOxwq2aXlb0vOI6e29CKgVQ==}
-    dependencies:
-      '@lit-labs/ssr-dom-shim': 1.1.1
-      '@lit/reactive-element': 1.6.2
-      lit-html: 2.7.4
-    dev: false
-
-  /lit-html@2.7.4:
-    resolution: {integrity: sha512-/Jw+FBpeEN+z8X6PJva5n7+0MzCVAH2yypN99qHYYkq8bI+j7I39GH+68Z/MZD6rGKDK9RpzBw7CocfmHfq6+g==}
-    dependencies:
-      '@types/trusted-types': 2.0.3
-    dev: false
-
-  /lit@2.7.5:
-    resolution: {integrity: sha512-i/cH7Ye6nBDUASMnfwcictBnsTN91+aBjXoTHF2xARghXScKxpD4F4WYI+VLXg9lqbMinDfvoI7VnZXjyHgdfQ==}
-    dependencies:
-      '@lit/reactive-element': 1.6.2
-      lit-element: 3.3.2
-      lit-html: 2.7.4
-    dev: false
-
   /local-pkg@0.4.3:
     resolution: {integrity: sha512-SFppqq5p42fe2qcZQqqEOiVRXl+WCP1MdT6k7BDEW1j++sp5fIY+/fdRQitvKgB5BrBcmrs5m/L0v2FrU5MY1g==}
     engines: {node: '>=14'}
@@ -2794,6 +2775,15 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
+
+  /solid-element@1.7.1(solid-js@1.7.6):
+    resolution: {integrity: sha512-VtG3kg3HRUkq6QN4iyZKX1qmXYCEHMO3yH1DfakifaO+ncxHa56jU8SLtEgD55zR230pXQyPTWaEDDS0hTlmpg==}
+    peerDependencies:
+      solid-js: ^1.7.6
+    dependencies:
+      component-register: 0.8.3
+      solid-js: 1.7.6
+    dev: false
 
   /solid-icons@1.0.8(solid-js@1.7.6):
     resolution: {integrity: sha512-7aQGNjM5ZAGlE25s4APE+2QEQUyltqsTuhfO0OhYZaH2wbY0ZAqL7qRQJPMN98qhoIfroYRNEi/0l7UJN902MA==}

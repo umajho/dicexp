@@ -2,6 +2,7 @@
 
 @top Top { expression }
 
+// 修改这里时记得更新 precedence-table.ts
 @precedence {
   diceRollUnary,
   diceRoll @left,

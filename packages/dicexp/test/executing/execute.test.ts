@@ -5,12 +5,8 @@ import {
   assertExecutionRuntimeError,
   assertNumber,
   assertResultsAreRandom,
-  binaryOperatorOnlyAcceptsBoolean,
-  binaryOperatorOnlyAcceptsNumbers,
   evaluateForTest,
   theyAreOk,
-  unaryOperatorOnlyAcceptsBoolean,
-  unaryOperatorOnlyAcceptsNumbers,
 } from "@dicexp/test-utils-for-executing";
 
 import {
@@ -24,12 +20,14 @@ import { asScope, makeFunction } from "@dicexp/runtime/regular-functions";
 import * as builtins from "@dicexp/builtins/internal";
 import { Scope } from "@dicexp/runtime/values";
 
+import { testScope as topLevelScope } from "./test-scope";
+
 describe("值", () => {
   describe("整数", () => {
     describe("可以解析整数", () => {
       theyAreOk<number>([
         ["1", 1],
-      ]);
+      ], { topLevelScope });
     });
   });
 
@@ -38,7 +36,7 @@ describe("值", () => {
       theyAreOk<boolean>([
         ["true", true],
         ["false", false],
-      ]);
+      ], { topLevelScope });
     });
   });
 
@@ -48,7 +46,7 @@ describe("值", () => {
         ["[]", []],
         ["[true]", [true]],
         ["[1, 2, 3]", [1, 2, 3]],
-      ]);
+      ], { topLevelScope });
     });
   });
 
@@ -59,7 +57,9 @@ describe("值", () => {
           const lower = 10;
           const code = `${lower}~${lower * 2}`;
           for (let j = 0; j < 100; j++) {
-            const result = assertNumber(evaluateForTest(code));
+            const result = assertNumber(
+              evaluateForTest(code, { topLevelScope }),
+            );
 
             assert(
               result >= lower && result <= lower * 2,
@@ -71,7 +71,7 @@ describe("值", () => {
           // 有可忽略的 1/1000000^10 的概率 false negative，后几个同名测试也是
           const lower = 1000000;
           const code = `${lower}~${lower * 2}`;
-          assertResultsAreRandom(code);
+          assertResultsAreRandom(code, { topLevelScope });
         });
       });
       describe("~/1", () => {
@@ -79,7 +79,9 @@ describe("值", () => {
           const upper = 10;
           const code = `~${upper}`;
           for (let j = 0; j < 100; j++) {
-            const result = assertNumber(evaluateForTest(code));
+            const result = assertNumber(
+              evaluateForTest(code, { topLevelScope }),
+            );
             assert(
               result >= 1 && result <= upper,
               `\`${code}\` => ${result}`,
@@ -89,7 +91,7 @@ describe("值", () => {
         it("保证生成的是随机数", () => {
           const upper = 1000000;
           const code = `~${upper}`;
-          assertResultsAreRandom(code);
+          assertResultsAreRandom(code, { topLevelScope });
         });
       });
 
@@ -101,7 +103,9 @@ describe("值", () => {
             const code = `${isBinary ? 100 : ""}d${upper}`;
 
             for (let j = 0; j < 100; j++) {
-              const result = assertNumber(evaluateForTest(code));
+              const result = assertNumber(
+                evaluateForTest(code, { topLevelScope }),
+              );
               assert(
                 result >= 1 * times && result <= upper * times,
                 `\`${code}\` => ${result}`,
@@ -112,7 +116,7 @@ describe("值", () => {
         it("保证生成的是随机数", () => {
           const upper = 1000000;
           const code = `d${upper}`;
-          assertResultsAreRandom(code);
+          assertResultsAreRandom(code, { topLevelScope });
         });
         it.todo("`d2` 不会死循环", /*async*/ () => {
           // const d2 = await spawn(new Worker("./test_workers/d2.ts"));
@@ -141,7 +145,7 @@ describe("值", () => {
           ["zip([1, 2], [3, 4])", [[1, 3], [2, 4]]],
           ["[1, 2, 3] |> head", 1],
           ["[1, 2, 3] |> tail()", [2, 3]],
-        ]);
+        ], { topLevelScope });
       });
 
       describe.todo("错误处理", () => {
@@ -153,7 +157,7 @@ describe("值", () => {
         theyAreOk([
           ["map([1, 2], &-/1)", [-1, -2]],
           ["zipWith([1, 2], [3, 4], &*/2)", [3, 8]],
-        ]);
+        ], { topLevelScope });
       });
     });
 
@@ -176,7 +180,7 @@ describe("值", () => {
           //     .raw`\($f, $n, $l -> append(filter([$l], \(_ -> $n == 100)), $f.($f, $n+1, append($l, $n))) |> head) |> \($f -> $f.($f, 0, []))`,
           //   Array(100).fill(null).map((_, i) => i), // 0..<100
           // ],
-        ]);
+        ], { topLevelScope });
       });
       describe("在参数数量不匹配时报错", () => {
         const table: [string, number, number][] = [
@@ -188,6 +192,7 @@ describe("值", () => {
             assertExecutionRuntimeError(
               code, // FIXME: 闭包名
               runtimeError_wrongArity(expected, actual, "closure"),
+              { topLevelScope },
             );
           });
         }
@@ -196,17 +201,23 @@ describe("值", () => {
         assertExecutionRuntimeError(
           String.raw`\($foo, $bar, $foo -> 0).(1, 2, 3)`,
           runtimeError_duplicateClosureParameterNames("$foo"),
+          { topLevelScope },
         );
       });
       it("内外同名参数不算重复", () => {
         assertExecutionOk(
           String.raw`\($x -> $x |> \($x -> $x).()).(1)`,
           1,
+          { topLevelScope },
         );
       });
       describe("无视名为 `_` 的参数", () => {
         it("重复出现多次也没问题", () => {
-          assertExecutionOk(String.raw`\(_, $x, _ -> $x).(1, 2, 3)`, 2);
+          assertExecutionOk(
+            String.raw`\(_, $x, _ -> $x).(1, 2, 3)`,
+            2,
+            { topLevelScope },
+          );
         });
         // NOTE: 现在 `_` 作为变量是解析错误
       });
@@ -215,239 +226,23 @@ describe("值", () => {
 });
 
 describe("运算符", () => {
-  describe("功能", () => { // 优先级从低到高排
-    describe("or/2", () => {
-      describe("进行或运算", () => {
-        theyAreOk<boolean>([
-          ["false or false", false],
-          ["false or true", true],
-          ["true or false", true],
-          ["true or true", true],
-        ]);
-      });
-      binaryOperatorOnlyAcceptsBoolean("or");
-    });
+  // 作为函数定义的运算符，于 `@dicexp/builtin` 库中测试。
+  // 管道运算符（`|>`）是特殊的构造，在运行时中并非运算符，因此不属于这里。
 
-    describe("and/2", () => {
-      describe("进行与运算", () => {
-        theyAreOk<boolean>([
-          ["false and false", false],
-          ["false and true", false],
-          ["true and false", false],
-          ["true and true", true],
-        ]);
-      });
-      binaryOperatorOnlyAcceptsBoolean("and");
-    });
-
-    describe("==/2 与 !=/2", () => {
-      const table = [
-        ["1", "1", true],
-        ["-1", "-1", true],
-        ["1", "-1", false],
-        ["false", "false", true],
-      ];
-      describe("相同类型之间比较是否相等", () => {
-        for (const [l, r, eqExpected] of table) {
-          const eqCode = `${l} == ${r}`;
-          it(`${eqCode} => ${eqExpected}`, () => {
-            assertExecutionOk(eqCode, eqExpected);
-          });
-          const neCode = `${l} != ${r}`;
-          it(`${neCode} => ${!eqExpected}`, () => {
-            assertExecutionOk(neCode, !eqExpected);
-          });
-        }
-      });
-      describe("不同类型之间不能相互比较", () => {
-        const table = [
-          ["1", "true"],
-          ["0", "false"],
-        ];
-        for (const [l, r] of table) {
-          for (const op of ["==", "!="]) {
-            const code = `${l} ${op} ${r}`;
-            it(`${l} ${op} ${r} => error`, () => {
-              assertExecutionRuntimeError(
-                code,
-                `操作 “${op}” 非法：两侧操作数的类型不相同`,
-              );
-            });
-          }
-        }
+  describe("#/2", () => {
+    describe("将右侧内容在 eval 前反复左侧次", () => {
+      it("反复字面量", () => {
+        assertExecutionOk("3#10", Array(3).fill(10), { topLevelScope });
       });
     });
-
-    describe("</2、>/2、<=/2 与 >=/2", () => {
-      it("比较两数大小", () => {
-        const table = [
-          ["1", "<", "2"],
-          ["2", ">", "1"],
-          ["1", "==", "1"],
-          ["-1", ">", "-2"],
-        ];
-        for (const [l, relation, r] of table) {
-          assertExecutionOk(`${l} < ${r}`, relation == "<");
-          assertExecutionOk(`${l} > ${r}`, relation == ">");
-          assertExecutionOk(
-            `${l} <= ${r}`,
-            relation == "<" || relation == "==",
-          );
-          assertExecutionOk(
-            `${l} >= ${r}`,
-            relation == ">" || relation == "==",
-          );
-        }
-      });
-
-      binaryOperatorOnlyAcceptsNumbers("<");
-      binaryOperatorOnlyAcceptsNumbers(">");
-      binaryOperatorOnlyAcceptsNumbers("<=");
-      binaryOperatorOnlyAcceptsNumbers(">=");
+    describe("反复数组取值正常", () => {
+      theyAreOk([["10#([1]|>at(0))", Array(10).fill(1)]], { topLevelScope });
+    });
+    describe("结果作为参数传入函数正常", () => {
+      theyAreOk([["10#true |> count(&not/1)", 0]], { topLevelScope });
     });
 
-    // NOTE: 管道运算符（`|>`）在解析时被消去，因此不存在于此处
-
-    describe("~/1 与 ~/2", () => {
-      // 已在生成器处测试
-
-      unaryOperatorOnlyAcceptsNumbers("~");
-      binaryOperatorOnlyAcceptsNumbers("~");
-    });
-
-    describe("+/2", () => {
-      describe("将两数相加", () => {
-        theyAreOk([
-          ["1+1", 2],
-          ["1+-1", 0],
-          ["-1+-1", -2],
-        ]);
-      });
-      binaryOperatorOnlyAcceptsNumbers("+");
-    });
-    describe("-/2", () => {
-      describe("将两数相减", () => {
-        theyAreOk([
-          ["1-1", 0],
-          ["1--1", 2],
-          ["-1--1", 0],
-        ]);
-      });
-      binaryOperatorOnlyAcceptsNumbers("-");
-    });
-    describe("+/1", () => {
-      describe("让数字保持原状", () => {
-        theyAreOk([
-          ["+1", 1],
-          ["+-1", -1],
-          ["-+1", -1],
-        ]);
-      });
-      unaryOperatorOnlyAcceptsNumbers("+");
-    });
-    describe("-/1", () => {
-      describe("取数字的相反数", () => {
-        theyAreOk([
-          ["-1", -1],
-          ["--1", 1],
-        ]);
-      });
-      unaryOperatorOnlyAcceptsNumbers("-");
-    });
-
-    describe("*/2", () => {
-      describe("将两数相乘", () => {
-        theyAreOk([
-          ["10*2", 20],
-          ["10*-2", -20],
-          ["-1*-1", 1],
-        ]);
-      });
-      binaryOperatorOnlyAcceptsNumbers("*");
-    });
-    describe("///2", () => {
-      describe("将两数相整除", () => {
-        theyAreOk([
-          ["1//2", 0],
-          ["2//2", 1],
-          ["3//2", 1],
-          ["-3//2", -1],
-          ["3//-2", -1],
-          ["-3//-2", 1],
-        ]);
-      });
-      binaryOperatorOnlyAcceptsNumbers("//");
-    });
-    describe("%/2", () => {
-      describe("将两非负整数取模", () => {
-        theyAreOk([
-          ["1%2", 1],
-          ["2%2", 0],
-          ["3%2", 1],
-        ]);
-      });
-      it("任何操作数都不能是负数", () => {
-        assertExecutionRuntimeError(
-          "(-3) % 2",
-          "操作 “(-3) % 2” 非法：被除数不能为负数",
-        );
-        assertExecutionRuntimeError(
-          "3 % -2",
-          "操作 “3 % -2” 非法：除数必须为正数",
-        );
-        assertExecutionRuntimeError(
-          "(-3)%-2",
-          "操作 “(-3) % -2” 非法：被除数不能为负数",
-        );
-        assertExecutionOk("-3%2", -1); // 取模的优先级更高
-      });
-      binaryOperatorOnlyAcceptsNumbers("%");
-    });
-
-    describe("#/2", () => {
-      describe("将右侧内容在 eval 前反复左侧次", () => {
-        it("反复字面量", () => {
-          assertExecutionOk("3#10", Array(3).fill(10));
-        });
-      });
-      describe("反复数组取值正常", () => {
-        theyAreOk([["10#([1]|>at(0))", Array(10).fill(1)]]);
-      });
-      describe("结果作为参数传入函数正常", () => {
-        theyAreOk([["10#true |> count(&not/1)", 0]]);
-      });
-
-      // 测试 “重复求值结果不同” 放在了 “语义” 那里
-    });
-
-    describe("d/1", () => {
-      // 已在生成器处测试
-
-      unaryOperatorOnlyAcceptsNumbers("d");
-    });
-
-    describe("^", () => {
-      describe("执行指数运算", () => {
-        theyAreOk([
-          ["2^8", 256],
-        ]);
-      });
-
-      it("只接受非负数次幂", () => {
-        assertExecutionRuntimeError(
-          "3 ^ -2",
-          "操作 “3 ^ -2” 非法：指数不能为负数",
-        );
-      });
-    });
-
-    describe("将布尔求非", () => {
-      theyAreOk([
-        ["not true", false],
-        ["not false", true],
-      ]);
-    });
-    unaryOperatorOnlyAcceptsBoolean("not");
+    // 测试 “重复求值结果不同” 放在了 “语义” 那里
   });
 });
 
@@ -471,7 +266,7 @@ describe("语义", () => {
 
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}: ${code}`, () => {
-        const result = assertExecutionOk(code);
+        const result = assertExecutionOk(code, undefined, { topLevelScope });
         const resultFlatten = flatten(result as any, Infinity) as number[];
         assert(resultFlatten.every((el) => Number.isFinite(el)));
         assert.deepEqual((new Set(resultFlatten)).size, 1);
@@ -497,7 +292,7 @@ describe("语义", () => {
 
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}: ${code}`, () => {
-        const result = assertExecutionOk(code);
+        const result = assertExecutionOk(code, undefined, { topLevelScope });
         const resultFlatten = flatten(result as any, Infinity);
         assert(resultFlatten.every((el) => Number.isFinite(el)));
         assert((new Set(resultFlatten)).size > 1);
@@ -516,7 +311,7 @@ describe("从管道的测试那里移过来的", () => {
     [String.raw`10 |> \($x, $y -> $x*2).(20)`, 20],
     ["10 |> &-/1.()", -10],
     ["10 |> &-/2.(20)", -10],
-  ] as [string, JSValue][]);
+  ] as [string, JSValue][], { topLevelScope });
 });
 
 describe("限制", () => {
@@ -525,7 +320,7 @@ describe("限制", () => {
       it("不能允许大于 `Number.MAX_SAFE_INTEGER` 的整数", () => {
         const safe = Number.MAX_SAFE_INTEGER;
 
-        assertExecutionOk(`${safe}`, safe);
+        assertExecutionOk(`${safe}`, safe, { topLevelScope });
         // 解析错误
         // assertExecutionRuntimeError(
         //   `${safe + 1}`,
@@ -534,12 +329,13 @@ describe("限制", () => {
         assertExecutionRuntimeError(
           `${safe} + 1`,
           "越过内在限制「最大安全整数」（允许 9007199254740991）",
+          { topLevelScope },
         );
       });
       it("不能允许小于 `Number.MIN_SAFE_INTEGER` 的整数", () => {
         const safe = Number.MIN_SAFE_INTEGER;
 
-        assertExecutionOk(`${safe}`, safe);
+        assertExecutionOk(`${safe}`, safe, { topLevelScope });
         // 解析错误
         // assertExecutionRuntimeError(
         //   `${safe - 1}`,
@@ -548,6 +344,7 @@ describe("限制", () => {
         assertExecutionRuntimeError(
           `${safe} - 1`,
           "越过内在限制「最小安全整数」（允许 -9007199254740991）",
+          { topLevelScope },
         );
       });
     });
@@ -557,7 +354,7 @@ describe("限制", () => {
     describe("软性超时", () => { // FIXME: 应该用 fake time
       const restrictions: Restrictions = { softTimeout: { ms: 10 } };
       it("未超时则无影响", () => {
-        assertExecutionOk(`${1}`, undefined, { restrictions });
+        assertExecutionOk(`${1}`, undefined, { restrictions, topLevelScope });
       });
 
       describe("超时则返回运行时错误", () => {
@@ -587,7 +384,7 @@ describe("限制", () => {
           assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
-            { topLevelScope: scope, restrictions, fromArgument: true },
+            { topLevelScope: scope, restrictions },
           );
         });
       });
@@ -596,23 +393,26 @@ describe("限制", () => {
     describe("调用次数", () => {
       describe("闭包", () => {
         const restrictions: Restrictions = { maxCalls: 2 };
-        theyAreOk([String.raw`\(->\(->1).()).()`], { restrictions });
+        theyAreOk(
+          [String.raw`\(->\(->1).()).()`],
+          { restrictions, topLevelScope },
+        );
         it("超过次数则返回运行时错误", () => {
           assertExecutionRuntimeError(
             String.raw`\(->\(->\(->1).()).()).()`,
             "越过外加限制「调用次数」（允许 2 次）",
-            { restrictions },
+            { restrictions, topLevelScope },
           );
         });
       });
       describe("通常函数", () => {
         const restrictions: Restrictions = { maxCalls: 2 };
-        theyAreOk([String.raw`1+1+1`], { restrictions });
+        theyAreOk([String.raw`1+1+1`], { restrictions, topLevelScope });
         it("超过次数则返回运行时错误", () => {
           assertExecutionRuntimeError(
             String.raw`1+1+1+1`,
             "越过外加限制「调用次数」（允许 2 次）",
-            { restrictions, fromArgument: true },
+            { restrictions, topLevelScope },
           );
         });
       });

@@ -2,8 +2,9 @@ import {
   RuntimeError,
   RuntimeProxyForFunction,
   Value_Callable,
-  Value_Integer$SumExtendable,
-  Value_List$Extendable,
+  Value_List,
+  Value_Stream$List,
+  Value_Stream$Sum,
   ValueBox,
   ValueTypeName,
 } from "../../values/mod";
@@ -46,7 +47,8 @@ type ParameterListToFunction<
     ? ["lazy", ValueBox]
     : ["ok", ReturnValueTypeSpecToType<ReturnValueType>])
   | ["error", RuntimeError | string]
-  | ["error_from_argument", RuntimeError | string];
+  | ["error_indirect", RuntimeError];
+// | ["error_from_argument", RuntimeError | string];
 
 /**
  * 把声明中的参数列表转换成一一对应的类型元组。
@@ -88,10 +90,10 @@ type ReturnValueTypeSpecToType<T> = T extends keyof BasicTypeSpecToTypeMap
 type BasicTypeSpecToTypeMap = {
   integer: number;
   boolean: boolean;
-  list: ValueBox[];
+  list: Value_List;
   callable: Value_Callable;
-  list$extendable: Value_List$Extendable;
-  integer$sum_extendable: Value_Integer$SumExtendable;
+  stream$list: Value_Stream$List;
+  stream$sum: Value_Stream$Sum;
 };
 
 /**

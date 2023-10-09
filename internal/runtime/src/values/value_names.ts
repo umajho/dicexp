@@ -9,7 +9,6 @@ export function getTypeNameOfValue(v: Value) {
     case "boolean":
       return "boolean";
     default:
-      if (Array.isArray(v)) return "list";
       return v.type;
       throw new Unreachable();
   }
@@ -31,10 +30,10 @@ export function getDisplayNameFromTypeName(name: ValueTypeName): string {
     //   return "被捕获的通常函数";
     case "callable":
       return "可调用的";
-    case "integer$sum_extendable":
-      return "整数【求和，可扩展】";
-    case "list$extendable":
-      return "列表【可扩展】";
+    case "stream$sum":
+      return "流【隐式转换为求和整数】";
+    case "stream$list":
+      return "流【隐式转换为列表】";
     default:
       return `未知（内部实现泄漏，${name}）`;
   }

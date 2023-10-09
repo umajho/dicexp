@@ -1,4 +1,4 @@
-import { Value, Value_List, ValueBox } from "./values";
+import { Value, ValueBox } from "./values";
 import {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,
@@ -14,7 +14,8 @@ export type RawFunction = (
   | ["ok", Value]
   | ["lazy", ValueBox]
   | ["error", RuntimeError | string]
-  | ["error_from_argument", RuntimeError | string];
+  | ["error_indirect", RuntimeError];
+// | ["error_from_argument", RuntimeError | string];
 
 export type RawScope = {
   isRawScope: true;
@@ -30,7 +31,7 @@ export function makeRawScope<T extends readonly RegularFunctionDeclaration[]>(
 }
 
 export type RegularFunction = (
-  args: Value_List,
+  args: ValueBox[],
   rtm: RuntimeProxyForFunction,
 ) => ValueBox;
 

@@ -19,7 +19,11 @@ export function unwrapValue(
   spec: ValueSpec,
   valueBox: ValueBox,
   opts?: CheckTypeOptions,
-): ["ok", Value] | ["lazy", ValueBox] | ["error", RuntimeError] {
+):
+  | ["ok", Value]
+  | ["lazy", ValueBox]
+  | ["error", RuntimeError]
+  | ["error_indirect", RuntimeError] {
   if (spec === "lazy") return ["lazy", valueBox];
   return unwrapValueNoLazy(spec, valueBox, opts);
 }
@@ -28,9 +32,9 @@ function unwrapValueNoLazy(
   spec: Exclude<ValueSpec, "lazy">,
   valueBox: ValueBox,
   opts?: CheckTypeOptions,
-): ["ok", Value] | ["error", RuntimeError] {
+): ["ok", Value] | ["error", RuntimeError] | ["error_indirect", RuntimeError] {
   const valueResult = valueBox.get();
-  if (valueResult[0] === "error") return ["error", valueResult[1]];
+  if (valueResult[0] === "error") return ["error_indirect", valueResult[1]];
 
   // alueResult[0] === "ok"
   // FIXME?: 适配前的值的步骤丢失了
@@ -44,18 +48,18 @@ function tryAdaptType(
 ): ["ok", Value] | ["error", RuntimeError] {
   let typeName: ValueTypeName = getTypeNameOfValue(value);
   let shouldConvert = false;
-  if (typeName === "integer$sum_extendable") {
+  if (typeName === "stream$sum") {
     if (
-      spec !== "integer$sum_extendable" &&
-      !(spec instanceof Set && spec.has("integer$sum_extendable"))
+      spec !== "stream$sum" &&
+      !(spec instanceof Set && spec.has("stream$sum"))
     ) {
       typeName = "integer";
       shouldConvert = true;
     }
-  } else if (typeName === "list$extendable") {
+  } else if (typeName === "stream$list") {
     if (
-      spec !== "list$extendable" &&
-      !(spec instanceof Set && spec.has("list$extendable"))
+      spec !== "stream$list" &&
+      !(spec instanceof Set && spec.has("stream$list"))
     ) {
       typeName = "list";
       shouldConvert = true;
@@ -110,7 +114,7 @@ function checkType(
 export function flattenListAll(
   spec: Exclude<ValueSpec, "lazy">,
   list: ValueBox[],
-): ["ok", Value[]] | "error" {
+): ["ok", Value[]] | "error" | ["error_indirect", RuntimeError] {
   if (spec !== "*") {
     if (spec instanceof Set) {
       spec.add("list");
@@ -124,13 +128,17 @@ export function flattenListAll(
   for (const [i, elem] of list.entries()) {
     const unwrapResult = unwrapValueNoLazy(spec, elem);
     if (unwrapResult[0] === "error") return "error";
+    if (unwrapResult[0] === "error_indirect") return unwrapResult;
 
     // unwrapResult[0] === "ok"
     const unwrappedElem = unwrapResult[1];
 
     if (getTypeNameOfValue(unwrappedElem) === "list") {
       const subResult = flattenListAll(spec, unwrappedElem as ValueBox[]);
-      if (subResult === "error") return "error";
+      if (subResult === "error" || subResult[0] === "error_indirect") {
+        return subResult;
+      }
+
       values.push(...subResult[1]);
     } else {
       values[i] = unwrappedElem;
@@ -146,13 +154,14 @@ export function flattenListAll(
 export function unwrapList(
   spec: ValueTypeName,
   list: ValueBox[],
-): ["ok", Value[]] | "error" {
+): ["ok", Value[]] | "error" | ["error_indirect", RuntimeError] {
   if (!list.length) return ["ok", []];
 
   const values: Value[] = Array(list.length);
   for (const [i, elem] of list.entries()) {
     let valueResult = unwrapValueNoLazy(spec, elem);
     if (valueResult[0] === "error") return "error";
+    if (valueResult[0] === "error_indirect") return valueResult;
     values[i] = valueResult[1];
   }
 
@@ -168,7 +177,7 @@ export function unwrapList(
 export function unwrapListOneOf(
   specOneOf: Set<ValueTypeName>,
   list: ValueBox[],
-): ["ok", Value[]] | "error" {
+): ["ok", Value[]] | "error" | ["error_indirect", RuntimeError] {
   if (!list.length) return ["ok", []];
 
   const values: Value[] = Array(list.length);
@@ -185,6 +194,7 @@ export function unwrapListOneOf(
     }
 
     if (valueResult[0] === "error") return "error";
+    if (valueResult[0] === "error_indirect") return valueResult;
 
     values[i] = valueResult[1];
     if (i === 0) {

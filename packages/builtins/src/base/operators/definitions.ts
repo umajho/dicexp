@@ -1,13 +1,11 @@
 import { Unreachable } from "@dicexp/errors";
 import { DeclarationListToDefinitionMap } from "@dicexp/runtime/regular-functions";
 import {
+  createValue,
   makeRuntimeError,
   RuntimeError,
-  Value_Integer$SumExtendable,
-  ValueBoxDircet,
 } from "@dicexp/runtime/values";
 import { builtinOperatorDeclarations } from "./declarations";
-import { sum } from "../utils";
 
 export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   typeof builtinOperatorDeclarations
@@ -33,7 +31,12 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   "<=/2": (_rtm, a, b) => ["ok", a <= b],
   ">=/2": (_rtm, a, b) => ["ok", a >= b],
 
-  "~/2": (rtm, lower, upper) => ["ok", rtm.random.integer(lower, upper)],
+  "~/2": (rtm, lower, upper) => {
+    const yielder = () => rtm.random.integer(lower, upper);
+    const sumValue = createValue.stream$sum(1, yielder);
+
+    return ["ok", sumValue];
+  },
   "~/1": (rtm, upper) => {
     const errRange = ensureUpperBound("~", null, 1, upper);
     if (errRange) return ["error", errRange];
@@ -82,30 +85,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     const errRange = ensureUpperBound("d", 1, 1, x);
     if (errRange) return ["error", errRange];
 
-    const underlying: number[] = Array(n);
-    let sumResult: number | null = null;
-    const sumValue: Value_Integer$SumExtendable = {
-      type: "integer$sum_extendable",
-      nominalLength: n,
-      _at: (index) => {
-        let current = underlying[index];
-        if (current === undefined) {
-          current = rtm.random.integer(1, x);
-          underlying[index] = current;
-        }
-        return new ValueBoxDircet(current);
-      },
-      _sum: () => {
-        if (sumResult !== null) return sumResult;
-        for (let i = 0; i < n; i++) {
-          if (underlying[i] === undefined) {
-            underlying[i] = rtm.random.integer(1, x);
-          }
-        }
-        sumResult = sum(underlying.slice(0, n));
-        return sumResult;
-      },
-    };
+    const sumValue = createValue.stream$sum(n, () => rtm.random.integer(1, x));
 
     return ["ok", sumValue];
   },
