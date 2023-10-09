@@ -256,10 +256,15 @@ export const createValue = {
       nominalLength,
       _at(index: number) {
         for (let unfilledI = filled; unfilledI <= index; unfilledI++) {
-          underlying[unfilledI] = yielder();
+          if (!underlying[unfilledI]) {
+            underlying[unfilledI] = yielder();
+          }
         }
         filled = index + 1;
         return underlying[index];
+      },
+      _getAddends() {
+        return underlying.slice(0, filled);
       },
     };
   },
@@ -396,6 +401,8 @@ export interface Value_Stream$Sum {
    * 直接访问指定位置的值。
    */
   _at: (index: number) => number;
+
+  _getAddends: () => number[];
 }
 
 export function asInteger(value: Value): number | null {

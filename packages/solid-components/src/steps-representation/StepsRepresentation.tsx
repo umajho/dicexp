@@ -180,10 +180,38 @@ const createContentComponent: {
     );
   },
   "vs": (repr) => {
-    const sum = repr[1];
+    const context = useContext(RepresentationContext)!;
+    const sum = repr[1], addends = repr[2];
+
+    if (addends.length === 1) {
+      return createContentComponent.vp(["vp", addends[0]], context);
+    }
+
     return (props) => (
-      <Slot {...props}>
-        {() => <>{sum}</>}
+      <Slot {...props} canCollapse={true}>
+        {({ isExpanded }) => (
+          <>
+            {"("}
+            <Show when={isExpanded()} fallback={<More />}>
+              <Index each={addends}>
+                {(addend, i) => (
+                  <>
+                    <Colored {...context.colorScheme.value_number}>
+                      {addend()}
+                    </Colored>
+                    <Show when={i < addends.length - 1}>
+                      <Colored {...context.colorScheme.opeator}>
+                        {" + "}
+                      </Colored>
+                    </Show>
+                  </>
+                )}
+              </Index>
+            </Show>
+            <ToResultIfExists Result={() => `${sum}`}></ToResultIfExists>
+            {")"}
+          </>
+        )}
       </Slot>
     );
   },

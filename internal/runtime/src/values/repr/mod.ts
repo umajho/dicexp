@@ -1,6 +1,6 @@
 import { precedenceTable } from "@dicexp/lezer";
 
-import { asPlain, Value, Value_List } from "../values";
+import { asInteger, asList, Value, Value_List } from "../values";
 import { RuntimeError } from "../runtime_errors";
 
 type ReprBase<IsInRuntime extends boolean> =
@@ -18,7 +18,7 @@ type ReprBase<IsInRuntime extends boolean> =
       items: ReprBase<false>[],
       containsError: boolean,
     ])
-  | [type: /** value_sum */ "vs", sum: number]
+  | [type: /** value_sum */ "vs", sum: number, addends: number[]]
   | [
     type: "i", /** identifier */
     name: string,
@@ -86,15 +86,15 @@ export const createRepr = {
   },
 
   value(value: Value): ReprInRuntime {
-    const plainValue = asPlain(value);
-
-    if (typeof plainValue === "number" || typeof plainValue === "boolean") {
-      return createRepr.value_primitive(plainValue);
-    } else if (plainValue.type === "list") {
-      return createRepr.value_list(plainValue);
+    if (typeof value === "number" || typeof value === "boolean") {
+      return createRepr.value_primitive(value);
+    } else if (value.type === "list" || value.type === "stream$list") {
+      return createRepr.value_list(asList(value)!);
+    } else if (value.type === "stream$sum") {
+      return createRepr.value_sum(asInteger(value)!, value._getAddends());
     } else {
-      plainValue.type satisfies "callable";
-      return plainValue.representation;
+      value.type satisfies "callable";
+      return value.representation;
     }
   },
 
@@ -129,8 +129,8 @@ export const createRepr = {
    *
    * TODO: 包含各个加数。（如：`1+2+3=6`。）
    */
-  value_sum(sum: number): ReprInRuntime & { 0: "vs" } {
-    return ["vs", sum];
+  value_sum(sum: number, addends: number[]): ReprInRuntime & { 0: "vs" } {
+    return ["vs", sum, addends];
   },
 
   /**
