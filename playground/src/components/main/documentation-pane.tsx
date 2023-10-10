@@ -171,7 +171,7 @@ const RegularFunctionsTab: Component = () => {
 
   return (
     <div class="flex flex-col gap-4">
-      <div class="inline-flex items-center gap-2">
+      <div class="inline-flex items-center gap-2 flex-wrap">
         <Join>
           <For each={selectableScopes}>
             {(scope, i) => (
