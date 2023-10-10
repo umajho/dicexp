@@ -173,10 +173,16 @@ export const FunctionCard: Component<{
         <dd>
           <dl>
             <For each={props.decl.parameters}>
-              {(p) => (
+              {(p, i) => (
                 <>
                   <dt>
-                    <code>{p.label}:{" "}</code>
+                    <code>
+                      {`${i()}`}
+                      <span class="text-xs">
+                        {`(${p.label})`}
+                      </span>
+                      {": "}
+                    </code>
                     <code>
                       <TypeNameBadgeList
                         typeNames={getPossibleTypeDisplayNameList(p.type)}
