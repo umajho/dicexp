@@ -13,7 +13,7 @@ import {
 import { createMasonryBreakpoints, Mason } from "solid-mason";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
-import { Badge, Button, Card, Join, Tab, Tabs } from "../ui";
+import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui";
 import { ShowKeepAlive } from "../utils";
 
 import { getFunctionFullName, ScopeInfo, scopes } from "../../stores/scopes";
@@ -113,12 +113,53 @@ const RegularFunctionsTab: Component = () => {
     }
   }
 
-  const filteredDeclarations = createMemo((): RegularFunctionDeclaration[] =>
-    selectedScope().declarations.filter((decl) => {
-      const doc = selectedScope().documentations[getFunctionFullName(decl)];
-      return doc.groups.some((group) => enabledGroups[group]);
-    })
-  );
+  const [nameFilterText, setNameFilterText] = createSignal("");
+  const nameFilter = createMemo((): { lowerName: string; arity?: number } => {
+    const lowerName = nameFilterText().toLowerCase();
+    const i = lowerName.lastIndexOf("/");
+    if (i < 0) return { lowerName };
+    const arityText = lowerName.slice(i + 1);
+    if (arityText.length === 0) return { lowerName: lowerName.slice(0, i) };
+    if (!/^\d+$/.test(arityText)) return { lowerName };
+    return { lowerName: lowerName.slice(0, i), arity: parseInt(arityText) };
+  });
+  const filteredDeclarations = createMemo((): RegularFunctionDeclaration[] => {
+    let filtered = selectedScope().declarations
+      .filter((decl) => {
+        const doc = selectedScope().documentations[getFunctionFullName(decl)];
+        return doc.groups.some((group) => enabledGroups[group]);
+      });
+
+    const nameFilter_ = nameFilter();
+    if (nameFilter_.arity !== undefined) {
+      filtered = filtered.filter((decl) =>
+        decl.parameters.length === nameFilter_.arity
+      );
+    }
+    if (nameFilter_.lowerName) {
+      filtered = filtered.reduce((acc, decl) => {
+        const scores = [decl.name, ...(decl.aliases ?? [])].map((name) => {
+          const i = name.toLowerCase().indexOf(nameFilter_.lowerName);
+          if (i < 0) return -1;
+          if (i === 0) return 2;
+          if (name[i].toLowerCase() !== name[i]) return 1;
+          return 0;
+        });
+        const maxScore = Math.max(...scores);
+        if (maxScore < 0) return acc;
+        return [...acc, { score: maxScore, decl }];
+      }, [])
+        .sort((a, b) =>
+          a.score !== b.score
+            ? b.score - a.score
+            : a.decl.name.localeCompare(b.decl.name)
+        )
+        .map(({ decl }) => decl);
+    }
+
+    return filtered;
+  });
+  createEffect(() => console.log(filteredDeclarations()));
 
   createEffect(on(currentTab, () => {
     const hiddenGroups = allGroups
@@ -166,6 +207,18 @@ const RegularFunctionsTab: Component = () => {
         >
           {areAllAvailableGroupsSelected() ? "全不选" : "全选"}
         </Button>
+      </div>
+
+      <div class="inline-flex items-center gap-4">
+        <Input
+          class="border border-gray-500"
+          placeholder="按名称/别名筛选"
+          size="sm"
+          setText={setNameFilterText}
+        />
+        <span>
+          {filteredDeclarations().length}/{fullScope.declarations.length}
+        </span>
       </div>
 
       <div>

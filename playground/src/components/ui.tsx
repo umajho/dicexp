@@ -224,6 +224,25 @@ export const LabelButton: Component<{
   );
 };
 
+export const Input: Component<{
+  class?: string;
+  placeholder?: string;
+  size?: "sm";
+  setText: (text: string) => void;
+}> = (props) => {
+  const sizeClass = (): "" | "input-sm" =>
+    props.size ? `input-${props.size}` : "";
+
+  return (
+    <input
+      type="input"
+      class={`input ${sizeClass()} w-full max-w-xs ${props.class ?? ""}`}
+      placeholder={props.placeholder}
+      onInput={(ev) => props.setText(ev.target.value)}
+    />
+  );
+};
+
 export const OptionalNumberInput: Component<
   {
     number: number;
