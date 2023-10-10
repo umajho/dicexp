@@ -39,7 +39,8 @@ BinaryExpression {
   
   expression !call BinaryOperator<"."> ArgumentList |
 
-  expression !exp BinaryOperator<"^"> expression |
+  // XXX: `^` 会在后续（`dicexp` 库）的解析中被替换为 `**`。
+  expression !exp BinaryOperator<"**" | "^"> expression |
   expression !times BinaryOperator<"*" | "//" | "%"> expression |
   expression !plus BinaryOperator<"+" | "-"> expression |
   expression !rangeRoll BinaryOperator<"~"> expression |
@@ -67,7 +68,7 @@ UnaryExpression {
   !negate (UnaryOperator<"+" | "-">) expression |
   !rangeRollUnary UnaryOperator<"~"> expression |
   FakeWorkaroundUnaryOperator<
-    "^" |
+    "**" | "^"
     "*" | "//" | "%" |
     ("<"|">") "="? |
     "==" | "!="
@@ -115,8 +116,8 @@ Closure {
     "&" Identifier { idBuiltin } "/" LiteralInteger |
     "&" Identifier {
       keywordD | /*keywordDRemainder |*/
-      "^" |
-      "*" | "//" | "%" |
+      "*" | "^" |
+      "**" | "//" | "%" |
       "+" | "-" |
       "~" |
       // "#" | "|>" | // 比较特殊，会改变代码结构，因此不允许被捕获

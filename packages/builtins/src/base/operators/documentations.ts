@@ -160,14 +160,14 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     },
     description: "两数相除后取余。",
   },
-  "^/2": {
+  "**/2": {
     isOperator: true,
     groups: ["算术"],
     parameters: {
       "a": "底数",
       "n": "指数，不小于 0",
     },
-    description: "幂运算。",
+    description: "幂运算。在解析层面，^/2 等价于 **/2。",
   },
 
   "d/2": {

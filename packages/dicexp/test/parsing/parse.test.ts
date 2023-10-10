@@ -135,10 +135,12 @@ describe("掷骰的操作数", () => {
 
 describe("优先级", () => {
   const table: string[] = [
-    "(3d4)^(5d6)",
-    "(d4)^(5d6)",
-    "(not true) ^ true",
-    "3*(4^5)//(6^7)%8",
+    ...["**", "^"].flatMap((expOp) => [
+      `(3d4)${expOp}(5d6)`,
+      `(d4)${expOp}(5d6)`,
+      `(not true) ${expOp} true`,
+      `3*(4${expOp}5)//(6${expOp}7)%8`,
+    ]),
     "(((3*4)//5)%6)",
     "(((6%5)//4)*3)",
     "-(3*2)",
@@ -312,8 +314,8 @@ describe("管道运算符", () => {
     ["[2, 3, 1] |> append(4)", "append([2, 3, 1], 4)"],
     // 闭包简写
     [
-      String.raw`[2, 3, 1] |> map \($x -> $x^2)`,
-      String.raw`map([2, 3, 1], \($x -> $x^2))`,
+      String.raw`[2, 3, 1] |> map \($x -> $x**2)`,
+      String.raw`map([2, 3, 1], \($x -> $x**2))`,
     ],
     // 值调用
     [String.raw`10 |> \($x -> $x*2).()`, String.raw`\($x -> $x*2).(10)`],

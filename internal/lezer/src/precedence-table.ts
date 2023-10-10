@@ -15,7 +15,8 @@ export const precedenceTable: Record<string, number> = {
   "not/1": -2,
 
   // exp
-  "^/2": -3,
+  // XXX: `^/2` 在解析时被替换（详见 dicexp.grammar 中的相关注释），因此不存在。
+  "**/2": -3,
 
   // times
   "*/2": -4,

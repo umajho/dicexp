@@ -144,7 +144,7 @@ export const builtinOperatorDeclarations = ([
     returnValue: { type: "integer" },
   },
   {
-    name: "^",
+    name: "**",
     parameters: [
       { label: "a", type: "integer" },
       { label: "n", type: "integer" },

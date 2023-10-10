@@ -46,7 +46,7 @@ export class Transformer {
 
     switch (node.type.name) {
       case "BinaryExpression": {
-        const op = this.getRaw(children[1]);
+        let op = this.getRaw(children[1]);
         const left = this._transform(children[0]);
         if (op === ".") {
           const argList = this.getArgumentListItems(children[2]);
@@ -64,6 +64,8 @@ export class Transformer {
           return this.transformPipeExpression(left, right);
         } else if (["d" /*, "d%"*/].indexOf(op) >= 0) {
           right = Transformer.handleAfterDiceRoll(right);
+        } else if (op === "^") {
+          op = "**";
         }
         return regularCall("operator", op, [left, right]);
       }
@@ -101,8 +103,11 @@ export class Transformer {
         return closure(identifiers, body, raw);
       }
       case "Capture": {
-        const identifier = this.getRaw(children[0]);
+        let identifier = this.getRaw(children[0]);
         const arity = parseInteger(this.getRaw(children[1])).value as number;
+        if (identifier === "^" && arity === 2) {
+          identifier = "**";
+        }
         return captured(identifier, arity);
       }
       case "Variable": {

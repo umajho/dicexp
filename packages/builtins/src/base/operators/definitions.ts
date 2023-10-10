@@ -72,9 +72,9 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     }
     return ["ok", (a | 0) % b];
   },
-  "^/2": (_rtm, a, n) => {
+  "**/2": (_rtm, a, n) => {
     if (n < 0) {
-      const opRendered = renderOperation("^", `${a}`, `${n}`);
+      const opRendered = renderOperation("**", `${a}`, `${n}`);
       const reason = "指数不能为负数";
       return ["error", runtimeError_illegalOperation(opRendered, reason)];
     }

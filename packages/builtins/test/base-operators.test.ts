@@ -304,29 +304,33 @@ describe("base/operators", () => {
       binaryOperatorOnlyAcceptsNumbers("%", { topLevelScope });
     });
   });
-  describe("^/2", () => {
-    const topLevelScope = scopeWith(operatorScope, ["^/2", "-/1"]);
-    describe("正确使用时", () => {
-      theyAreOk([
-        [String.raw`2^3`, 8],
-        [String.raw`(-2)^3`, -8],
-      ], { topLevelScope });
-    });
-    describe("moved from package `dicexp`", () => {
-      describe("执行指数运算", () => {
-        theyAreOk([
-          ["2^8", 256],
-        ], { topLevelScope });
-      });
+  describe("**/2", () => {
+    const topLevelScope = scopeWith(operatorScope, ["**/2", "-/1"]);
+    for (const expOp of ["**", "^"]) {
+      describe(`作为 \`${expOp}\``, () => {
+        describe("正确使用时", () => {
+          theyAreOk([
+            [String.raw`2${expOp}3`, 8],
+            [String.raw`(-2)${expOp}3`, -8],
+          ], { topLevelScope });
+        });
+        describe("moved from package `dicexp`", () => {
+          describe("执行指数运算", () => {
+            theyAreOk([
+              [`2${expOp}8`, 256],
+            ], { topLevelScope });
+          });
 
-      it("只接受非负数次幂", () => {
-        assertExecutionRuntimeError(
-          "3 ^ -2",
-          "操作 “3 ^ -2” 非法：指数不能为负数",
-          { topLevelScope },
-        );
+          it("只接受非负数次幂", () => {
+            assertExecutionRuntimeError(
+              `3 ${expOp} -2`,
+              "操作 “3 ** -2” 非法：指数不能为负数",
+              { topLevelScope },
+            );
+          });
+        });
       });
-    });
+    }
   });
   describe("d/2, d/1", () => {
     // 情况同 `~/2` 与 `~1`
