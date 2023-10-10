@@ -145,6 +145,7 @@ export const builtinOperatorDeclarations = ([
   },
   {
     name: "**",
+    aliases: ["^"],
     parameters: [
       { label: "a", type: "integer" },
       { label: "n", type: "integer" },

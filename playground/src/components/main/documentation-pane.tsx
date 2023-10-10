@@ -3,6 +3,7 @@ import {
   createMemo,
   createSignal,
   For,
+  Index,
   Match,
   Show,
   Switch,
@@ -151,6 +152,23 @@ export const FunctionCard: Component<{
       class="bg-base-200"
     >
       <dl>
+        <Show when={props.decl.aliases}>
+          {(aliases) => (
+            <>
+              <dt>别名</dt>
+              <dd>
+                <Index each={aliases()}>
+                  {(alias, i) => (
+                    <>
+                      <code>{alias()}/{props.decl.parameters.length}</code>
+                      <Show when={i < aliases().length - 1}>、</Show>
+                    </>
+                  )}
+                </Index>
+              </dd>
+            </>
+          )}
+        </Show>
         <dt>参数</dt>
         <dd>
           <dl>

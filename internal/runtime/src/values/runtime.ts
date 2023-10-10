@@ -5,7 +5,9 @@ import {
 } from "../regular-functions/mod";
 import { RuntimeError } from "./runtime_errors";
 
-export type Scope = { [ident: string]: RegularFunction | ValueBox };
+export type Scope = {
+  [ident: string]: RegularFunction | RegularFunctionAlias | ValueBox;
+};
 
 export type RawFunction = (
   rtm: RuntimeProxyForFunction,
@@ -37,6 +39,10 @@ export type RegularFunction = (
 
 export interface RuntimeProxyForFunction {
   random: RandomGenerator;
+}
+
+export class RegularFunctionAlias {
+  constructor(public to: string) {}
 }
 
 export interface RandomGenerator {

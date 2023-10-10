@@ -1,4 +1,9 @@
-import { RawScope, Scope, ValueSpec } from "../values/mod";
+import {
+  RawScope,
+  RegularFunctionAlias,
+  Scope,
+  ValueSpec,
+} from "../values/mod";
 import { RegularFunctionDeclaration } from "./types/mod";
 import { makeFunction } from "./make_function";
 
@@ -13,6 +18,12 @@ export function makeScope(rawScope: RawScope): Scope {
     );
     const impl = rawScope.definitions[fullName];
     opScope[fullName] = makeFunction(argSpec as ValueSpec[], impl);
+    if (decl.aliases) {
+      for (const alias of decl.aliases) {
+        const fullAlias = `${alias}/${decl.parameters.length}`;
+        opScope[fullAlias] = new RegularFunctionAlias(fullName);
+      }
+    }
   }
 
   return opScope;

@@ -64,8 +64,6 @@ export class Transformer {
           return this.transformPipeExpression(left, right);
         } else if (["d" /*, "d%"*/].indexOf(op) >= 0) {
           right = Transformer.handleAfterDiceRoll(right);
-        } else if (op === "^") {
-          op = "**";
         }
         return regularCall("operator", op, [left, right]);
       }
@@ -105,9 +103,6 @@ export class Transformer {
       case "Capture": {
         let identifier = this.getRaw(children[0]);
         const arity = parseInteger(this.getRaw(children[1])).value as number;
-        if (identifier === "^" && arity === 2) {
-          identifier = "**";
-        }
         return captured(identifier, arity);
       }
       case "Variable": {

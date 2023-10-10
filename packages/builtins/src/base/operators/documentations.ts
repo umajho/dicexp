@@ -167,7 +167,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "a": "底数",
       "n": "指数，不小于 0",
     },
-    description: "幂运算。在解析层面，^/2 等价于 **/2。",
+    description: "幂运算。",
   },
 
   "d/2": {

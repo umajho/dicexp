@@ -9,6 +9,10 @@ export interface RegularFunctionDeclaration {
    */
   name: string;
   /**
+   * 别称，可以代替名称使用。
+   */
+  aliases?: readonly string[];
+  /**
    * 参数列表的声明。
    */
   parameters: readonly DeclarationParameter[];

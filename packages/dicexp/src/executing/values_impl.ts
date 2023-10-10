@@ -8,6 +8,7 @@ import {
   createValueBox,
   getDisplayNameOfValue,
   makeRuntimeError,
+  RegularFunctionAlias,
   ReprInRuntime,
   RuntimeError,
   ValueBox,
@@ -76,6 +77,9 @@ export class LazyValueFactory {
     }
     // fnResult[0] === "ok"
     const fn = fnResult[1];
+    if (fnResult[0] === "alias") {
+      name = fnResult[2].split("/")[0];
+    }
 
     return createValueBox.lazy(
       () => {
@@ -296,12 +300,25 @@ function getFunctionFromScope(
   scope: Scope,
   identifier: string,
   arity: number,
-): ["ok", RegularFunction] | ["error", RuntimeError] {
+):
+  | ["ok", RegularFunction]
+  | [type: "alias", fn: RegularFunction, realName: string]
+  | ["error", RuntimeError] {
   const fnName = `${identifier}/${arity}`;
-  const fn = scope[fnName];
-  if (!fn) return ["error", runtimeError_unknownRegularFunction(fnName)];
-  if (typeof fn !== "function") throw new Unreachable();
-  return ["ok", fn];
+  let fn = scope[fnName];
+  let realName: string | undefined;
+  while (true) {
+    if (!fn) return ["error", runtimeError_unknownRegularFunction(fnName)];
+    if (typeof fn === "function") {
+      return realName ? ["alias", fn, realName] : ["ok", fn];
+    }
+    if (fn instanceof RegularFunctionAlias) {
+      realName = fn.to;
+      fn = scope[fn.to];
+      continue;
+    }
+    throw new Unreachable();
+  }
 }
 
 const MAX_SAFE_INTEGER = 2 ** 53 - 1;

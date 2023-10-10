@@ -20,6 +20,7 @@ import {
   asPlain,
   finalizeRepr,
   getTypeNameOfValue,
+  RegularFunctionAlias,
   Repr,
   RuntimeError,
   RuntimeProxyForFunction,
@@ -233,7 +234,12 @@ export class Runtime {
     // FIXME: 为什么 `_` 有可能在 scope 里（虽然是 `undefined`）？
     if (ident in scope && scope[ident] !== undefined) {
       const thingInScope = scope[ident];
-      if (typeof thingInScope === "function") throw new Unreachable();
+      if (
+        typeof thingInScope === "function" ||
+        thingInScope instanceof RegularFunctionAlias
+      ) {
+        throw new Unreachable();
+      }
       return this._lazyValueFactory.identifier(thingInScope, ident);
     } else {
       // FIXME: 这种情况应该 eager，因为有没有变量这里就能决定了
