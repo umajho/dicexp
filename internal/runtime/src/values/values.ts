@@ -235,7 +235,9 @@ export const createValue = {
       nominalLength,
       _at(index: number) {
         for (let unfilledI = filled; unfilledI <= index; unfilledI++) {
-          underlying[unfilledI] = yielder();
+          if (!underlying[unfilledI]) {
+            underlying[unfilledI] = yielder();
+          }
         }
         if (filled <= index) {
           filled = index + 1;
@@ -260,7 +262,9 @@ export const createValue = {
             underlying[unfilledI] = yielder();
           }
         }
-        filled = index + 1;
+        if (filled <= index) {
+          filled = index + 1;
+        }
         return underlying[index];
       },
       _getAddends() {
