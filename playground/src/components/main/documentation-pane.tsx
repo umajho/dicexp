@@ -1,17 +1,19 @@
 import {
   Component,
+  createEffect,
   createMemo,
   createSignal,
   For,
   Index,
   Match,
+  on,
   Show,
   Switch,
 } from "solid-js";
 import { createMasonryBreakpoints, Mason } from "solid-mason";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
-import { Badge, Card, Tab, Tabs } from "../ui";
+import { Badge, Button, Card, Join, Tab, Tabs } from "../ui";
 import { ShowKeepAlive } from "../utils";
 
 import { getFunctionFullName, ScopeInfo, scopes } from "../../stores/scopes";
@@ -21,6 +23,7 @@ import {
   RegularFunctionDeclaration,
 } from "@dicexp/runtime/regular-functions";
 import { getDisplayNameFromTypeName } from "@dicexp/runtime/values";
+import { createStore } from "solid-js/store";
 
 const gettingStartUrl =
   "https://github.com/umajho/dicexp/blob/main/docs/Dicexp.md";
@@ -73,42 +76,90 @@ const breakpoints = createMasonryBreakpoints(() => [
 const RegularFunctionsTab: Component = () => {
   const [currentTab, setCurrentTab] = createSignal<number>(0);
 
+  const fullScope: ScopeInfo = {
+    displayName: "全部",
+    ...scopes.reduce(
+      (acc, s) => ({
+        declarations: [...acc.declarations, ...s.declarations],
+        documentations: { ...acc.documentations, ...s.documentations },
+      }),
+      { declarations: [], documentations: {} },
+    ),
+  };
+
+  const selectableScopes = [fullScope, ...scopes];
+  const selectedScope = () => selectableScopes[currentTab()];
+  const groupSetInSelectedScope = createMemo(() =>
+    Object
+      .values(selectedScope().documentations)
+      .flatMap((doc) => doc.groups)
+      .reduce((acc, group) => acc.add(group), new Set<string>())
+  );
+  const groupsInSelectedScope = createMemo(
+    () => [...groupSetInSelectedScope().values()],
+  );
+  // 初始化时的作用域是 “全部” 作用域，于其中的分组就是全部可能的分组
+  const allGroups = groupsInSelectedScope();
+
+  const [enabledGroups, setEnabledGroups] = createStore(
+    Object.fromEntries(allGroups.map((g) => [g, true])),
+  );
+
+  const filteredDeclarations = createMemo((): RegularFunctionDeclaration[] =>
+    selectedScope().declarations.filter((decl) => {
+      const doc = selectedScope().documentations[getFunctionFullName(decl)];
+      return doc.groups.some((group) => enabledGroups[group]);
+    })
+  );
+
+  createEffect(on(currentTab, () => {
+    const hiddenGroups = allGroups
+      .filter((g) => !groupSetInSelectedScope().has(g));
+    for (const g of hiddenGroups) {
+      setEnabledGroups(g, true);
+    }
+  }));
+
   return (
     <div class="flex flex-col gap-4">
-      <Tabs>
-        <For each={scopes}>
-          {(scope, i) => (
-            <Tab
-              isActive={currentTab() === i()}
-              onClick={() => setCurrentTab(i())}
-              size="sm"
+      <div class="inline-flex items-center gap-2">
+        <Join>
+          <For each={selectableScopes}>
+            {(scope, i) => (
+              <Button
+                isJoinItem={true}
+                type={currentTab() === i() ? "primary" : undefined}
+                onClick={() => setCurrentTab(i())}
+                size="sm"
+              >
+                {scope.icon && scope.icon({})}
+                {scope.displayName}
+              </Button>
+            )}
+          </For>
+        </Join>
+        <div class="px-2">|</div>
+        <For each={groupsInSelectedScope()}>
+          {(group) => (
+            <Badge
+              type={enabledGroups[group] ? "success" : "ghost"}
+              size="lg"
+              onClick={() => setEnabledGroups(group, !enabledGroups[group])}
             >
-              {scope.displayName}
-            </Tab>
+              {group}
+            </Badge>
           )}
         </For>
-      </Tabs>
+      </div>
 
       <div>
-        <For each={scopes}>
-          {(scope, i) => (
-            // NOTE: 由于使用 <ShowKeepAlive /> 会导致 <Mason /> 误将隐藏的容器的宽度
-            //       视为 0，再考虑到目前没有让标签页内容维持状态的需求，因此决定使用一般的
-            //       <Show />。
-            <Show when={currentTab() === i()}>
-              <Mason
-                items={scope.declarations as RegularFunctionDeclaration[]}
-                columns={breakpoints()}
-              >
-                {(decl) => (
-                  <div class="sm:px-2 py-2">
-                    <FunctionCard decl={decl} scope={scope} />
-                  </div>
-                )}
-              </Mason>
-            </Show>
+        <Mason items={filteredDeclarations()} columns={breakpoints()}>
+          {(decl) => (
+            <div class="sm:px-2 py-2">
+              <FunctionCard decl={decl} scope={selectedScope()} />
+            </div>
           )}
-        </For>
+        </Mason>
       </div>
     </div>
   );

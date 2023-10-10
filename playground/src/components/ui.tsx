@@ -1,4 +1,11 @@
-import { Component, createSignal, JSX, onMount, Show } from "solid-js";
+import {
+  children,
+  Component,
+  createSignal,
+  JSX,
+  onMount,
+  Show,
+} from "solid-js";
 
 export const Card: Component<
   {
@@ -23,18 +30,36 @@ export const Card: Component<
 };
 
 export const Badge: Component<
-  { children: JSX.Element; type?: "neutral"; outline?: boolean; size?: "lg" }
+  {
+    children: JSX.Element;
+    type?: "neutral" | "success" | "ghost";
+    outline?: boolean;
+    size?: "lg";
+    onClick?: () => void;
+  }
 > = (
   props,
 ) => {
-  const typeClass = (): "" | `badge-neutral` =>
-    props.type ? `badge-${props.type}` : "";
+  const typeClass = ():
+    | ""
+    | "badge-neutral"
+    | "badge-success"
+    | "badge-ghost" => props.type ? `badge-${props.type}` : "";
   const outlineClass = () => props.outline ? "badge-outline" : "";
   const sizeType = (): "" | `badge-lg` =>
     props.size ? `badge-${props.size}` : "";
 
   return (
-    <div class={`badge ${typeClass()} ${outlineClass()} ${sizeType()}`}>
+    <div
+      class={[
+        `badge`,
+        typeClass(),
+        outlineClass(),
+        sizeType(),
+        props.onClick ? "cursor-pointer select-none" : undefined,
+      ].join(" ")}
+      onClick={props.onClick}
+    >
       {props.children}
     </div>
   );
@@ -71,6 +96,10 @@ export const Tab: Component<
     </div>
   );
 };
+
+export const Join: Component<{ children: JSX.Element }> = (props) => (
+  <div class="join">{props.children}</div>
+);
 
 export const Dropdown: Component<
   {
@@ -127,6 +156,7 @@ export const DropdownItem: Component<{ children: JSX.Element }> = (props) => {
 export const Button: Component<
   {
     type?: "primary" | "secondary" | "error";
+    isJoinItem?: boolean;
     children?: JSX.Element;
     icon?: JSX.Element;
     size?: "sm" | "xs";
@@ -145,6 +175,7 @@ export const Button: Component<
         | "btn-secondary"
         | "btn-info"
         | "btn-error",
+      props.isJoinItem ? "join-item" : "",
       (props.size ? `btn-${props.size}` : "") satisfies
         | ""
         | "btn-sm"

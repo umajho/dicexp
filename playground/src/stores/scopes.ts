@@ -1,3 +1,6 @@
+import { IconTypes } from "solid-icons";
+import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
+
 import {
   asScope,
   DeclarationListToDocumentationMap,
@@ -8,6 +11,7 @@ import { Scope } from "@dicexp/runtime/values";
 
 export interface ScopeInfo {
   displayName: string;
+  icon?: IconTypes;
   declarations: readonly RegularFunctionDeclaration[];
   documentations: DeclarationListToDocumentationMap<any>;
 }
@@ -15,11 +19,13 @@ export interface ScopeInfo {
 export const scopes: ScopeInfo[] = [
   {
     displayName: "运算符",
+    icon: VsSymbolOperator,
     declarations: builtins.operatorDeclarations,
     documentations: builtins.operatorDocumentations,
   },
   {
     displayName: "函数",
+    icon: VsSymbolMethod,
     declarations: builtins.functiondDeclarations,
     documentations: builtins.functionDocumentations,
   },
