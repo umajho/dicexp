@@ -305,8 +305,11 @@ describe("base/operators", () => {
     });
   });
   describe("**/2", () => {
-    const topLevelScope = scopeWith(operatorScope, ["**/2", "-/1"]);
     for (const expOp of ["**", "^"]) {
+      const topLevelScope = scopeWith(
+        operatorScope,
+        expOp === "**" ? ["**/2", "-/1"] : ["**/2", "^/2" as any, "-/1"],
+      );
       describe(`作为 \`${expOp}\``, () => {
         describe("正确使用时", () => {
           theyAreOk([
