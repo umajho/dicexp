@@ -155,7 +155,7 @@ export const DropdownItem: Component<{ children: JSX.Element }> = (props) => {
 
 export const Button: Component<
   {
-    type?: "primary" | "secondary" | "error";
+    type?: "neutral" | "primary" | "secondary" | "error";
     isJoinItem?: boolean;
     children?: JSX.Element;
     icon?: JSX.Element;
@@ -171,6 +171,7 @@ export const Button: Component<
     [
       (props.type ? `btn-${props.type}` : "") satisfies
         | ""
+        | "btn-neutral"
         | "btn-primary"
         | "btn-secondary"
         | "btn-info"

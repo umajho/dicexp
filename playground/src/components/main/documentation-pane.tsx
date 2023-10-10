@@ -95,15 +95,23 @@ const RegularFunctionsTab: Component = () => {
       .flatMap((doc) => doc.groups)
       .reduce((acc, group) => acc.add(group), new Set<string>())
   );
-  const groupsInSelectedScope = createMemo(
+  const availableGroups = createMemo(
     () => [...groupSetInSelectedScope().values()],
   );
-  // 初始化时的作用域是 “全部” 作用域，于其中的分组就是全部可能的分组
-  const allGroups = groupsInSelectedScope();
+  // 初始化时的作用域是 “全部” 作用域，于其中的分组也便是全部的分组
+  const allGroups = availableGroups();
 
   const [enabledGroups, setEnabledGroups] = createStore(
     Object.fromEntries(allGroups.map((g) => [g, true])),
   );
+  const areAllAvailableGroupsSelected = createMemo(
+    () => availableGroups().every((g) => enabledGroups[g]),
+  );
+  function setAllAvailableGroupStatus(asSelected: boolean) {
+    for (const g of availableGroups()) {
+      setEnabledGroups(g, asSelected);
+    }
+  }
 
   const filteredDeclarations = createMemo((): RegularFunctionDeclaration[] =>
     selectedScope().declarations.filter((decl) => {
@@ -139,7 +147,7 @@ const RegularFunctionsTab: Component = () => {
           </For>
         </Join>
         <div class="px-2">|</div>
-        <For each={groupsInSelectedScope()}>
+        <For each={availableGroups()}>
           {(group) => (
             <Badge
               type={enabledGroups[group] ? "success" : "ghost"}
@@ -150,6 +158,14 @@ const RegularFunctionsTab: Component = () => {
             </Badge>
           )}
         </For>
+        <Button
+          type="neutral"
+          size="sm"
+          onClick={() =>
+            setAllAvailableGroupStatus(!areAllAvailableGroupsSelected())}
+        >
+          {areAllAvailableGroupsSelected() ? "全不选" : "全选"}
+        </Button>
       </div>
 
       <div>
