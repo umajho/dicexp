@@ -152,7 +152,7 @@ importers:
         specifier: ^0.34.2
         version: 0.34.2(@vitest/ui@0.34.2)
 
-  packages/solid-components:
+  packages/solid-components-old:
     dependencies:
       solid-element:
         specifier: ^1.7.1
@@ -199,7 +199,7 @@ importers:
         version: link:../internal/runtime
       '@dicexp/solid-components':
         specifier: workspace:*
-        version: link:../packages/solid-components
+        version: link:../packages/solid-components-old
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.0.3)
