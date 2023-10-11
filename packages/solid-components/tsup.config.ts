@@ -31,6 +31,11 @@ export default defineConfig((config) => {
   if (!watching && !CI) {
     const package_fields = preset.generatePackageExports(parsed_options);
 
+    package_fields.exports = {
+      ".": package_fields.exports,
+      "./internal": "./internal.ts", // 让 workspace 内的其他项目能直接引入
+    };
+
     console.log(
       `package.json: \n\n${JSON.stringify(package_fields, null, 2)}\n\n`,
     );
