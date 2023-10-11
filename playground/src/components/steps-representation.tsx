@@ -3,18 +3,18 @@ import { Component } from "solid-js";
 import { registerCustomElementForStepRepresentations } from "@dicexp/solid-components";
 import type { Repr } from "dicexp/internal";
 
-registerCustomElementForStepRepresentations("step-representations");
+registerCustomElementForStepRepresentations("steps-representation");
 
 declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
-      "step-representations": { repr: Repr };
+      "steps-representation": { repr: Repr };
     }
   }
 }
 
 const StepsRepresentation: Component<{ repr: Repr }> = (props) => {
-  return <step-representations {...props}></step-representations>;
+  return <steps-representation {...props}></steps-representation>;
 };
 
 export default StepsRepresentation;
