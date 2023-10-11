@@ -28,7 +28,7 @@ const UniqueHoveredSetterContext = createContext<
 >();
 const CanAutoExpandContext = createContext<boolean>(true);
 const ListItemsContext = createContext<
-  | { setIsSelfHovered: (boolean) => void; isSiblingHovered: () => boolean }
+  | { setIsSelfHovered: (v: boolean) => void; isSiblingHovered: () => boolean }
   | null
 >(null);
 
@@ -154,8 +154,8 @@ const createContentComponent: {
   ),
   "vp": (repr, { colorScheme }) => {
     const value = repr[1];
-    let textColor: RGBColor | undefined = colorScheme[`value_${typeof value}`]
-      ?.text;
+    const t = typeof value as "number" | "boolean";
+    let textColor: RGBColor | undefined = colorScheme[`value_${t}`]?.text;
     return (props) => (
       <Slot {...props}>
         {() => <Colored text={textColor}>{JSON.stringify(value)}</Colored>}
@@ -185,7 +185,7 @@ const createContentComponent: {
     const sum = repr[1], addends = repr[2];
 
     if (addends.length === 1) {
-      return createContentComponent.vp(["vp", addends[0]], context);
+      return createContentComponent.vp(["vp", addends[0]!], context);
     }
 
     return (props) => (
@@ -260,7 +260,7 @@ const createContentComponent: {
         return c.regularAsFunction(callee, args, Result, ctx);
       case "o":
         if (args.length === 1) {
-          return c.regularAsUnaryOperator(callee, args[0], Result, ctx);
+          return c.regularAsUnaryOperator(callee, args[0]!, Result, ctx);
         } else if (args.length === 2) {
           const operands = args as [Repr, Repr];
           return c.regularAsBinaryOperator(callee, operands, Result, ctx);
@@ -274,7 +274,7 @@ const createContentComponent: {
             `管道风格的通常函数调用期待至少 1 个参数, 实际获得 ${args.length} 个`,
           );
         }
-        const head = args[0], tail = args.slice(1);
+        const head = args[0]!, tail = args.slice(1);
         return c.regularAsPiped(callee, head, tail, Result, ctx);
     }
   },
@@ -300,7 +300,7 @@ const createContentComponent: {
             `管道风格的值作为函数的调用期待至少 1 个参数, 实际获得 ${args.length} 个`,
           );
         }
-        const head = args[0], tail = args.slice(1);
+        const head = args[0]!, tail = args.slice(1);
         return c.valueAsPiped(Callee, head, tail, Result, ctx);
     }
   },
