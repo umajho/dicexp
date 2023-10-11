@@ -1,5 +1,5 @@
 {
-  "name": "@dicexp/solid-components-new",
+  "name": "@dicexp/solid-components",
   "version": "0.2.0",
   "license": "MIT",
   "author": "Umaĵo",
@@ -15,6 +15,7 @@
   "types": "./dist/index.d.ts",
   "browser": {},
   "exports": {
+    "./internal": "./internal.ts",
     "solid": {
       "development": "./dist/dev.jsx",
       "import": "./dist/index.jsx"
