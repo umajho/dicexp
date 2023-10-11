@@ -1,0 +1,16 @@
+set fallback
+
+lint:
+	pnpm run lint
+
+test: lint
+	pnpm run test
+
+dev:
+	pnpm run dev
+
+build:
+	pnpm run build
+
+publish-no-build:
+	npm publish --access public

@@ -44,12 +44,14 @@
     "update-deps": "pnpm up -Li"
   },
   "peerDependencies": {
+    "solid-element": "^1.7.1",
     "solid-js": "^1.7.6"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.1.0",
     "@typescript-eslint/parser": "^6.1.0",
     "concurrently": "^8.2.0",
+    "dicexp": "workspace:*",
     "esbuild": "^0.18.15",
     "esbuild-plugin-solid": "^0.5.0",
     "eslint": "^8.45.0",

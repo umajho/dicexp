@@ -1,27 +1,26 @@
 import type { Component } from "solid-js";
-import logo from "./logo.svg";
+
+import type { Repr } from "dicexp/internal";
+
 import styles from "./App.module.css";
-import { Hello } from "../src";
+
+import { registerCustomElementForStepRepresentations } from "../src";
+
+registerCustomElementForStepRepresentations("steps-representation");
+
+declare module "solid-js" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "steps-representation": { repr: Repr };
+    }
+  }
+}
 
 const App: Component = () => {
   return (
     <div class={styles.App}>
       <header class={styles.header}>
-        <img src={logo} class={styles.logo} alt="logo" />
-        <h1>
-          <Hello></Hello>
-        </h1>
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          class={styles.link}
-          href="https://github.com/solidjs/solid"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn Solid
-        </a>
+        <steps-representation repr={["vp", 42]} />
       </header>
     </div>
   );
