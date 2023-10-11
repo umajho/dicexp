@@ -1,6 +1,6 @@
 import { Component } from "solid-js";
 
-import { registerCustomElementForStepRepresentations } from "@dicexp/solid-components";
+import { registerCustomElementForStepRepresentations } from "@dicexp/solid-components/internal";
 import type { Repr } from "dicexp/internal";
 
 registerCustomElementForStepRepresentations("steps-representation");
