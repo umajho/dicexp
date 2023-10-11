@@ -75,7 +75,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
         `访问列表越界：列表大小为 ${list.length}，提供的索引为 ${index}`,
       ];
     }
-    return ["lazy", list[index]];
+    return ["lazy", list[index]!];
   },
   // ...
 
@@ -84,9 +84,9 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const resultList: ValueBox[] = Array(list.length);
     let i = 0;
     for (; i < list.length;) {
-      resultList[i] = callCallable(callable, [list[i]]);
+      resultList[i] = callCallable(callable, [list[i]!]);
       i++;
-      if (resultList[i - 1].confirmsError()) break;
+      if (resultList[i - 1]!.confirmsError()) break;
     }
     for (; i < list.length; i++) {
       resultList[i] = createValueBox.unevaluated();
@@ -102,7 +102,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   // ...
   "head/1": (_rtm, list) => {
     if (list.length === 0) return ["error", "列表为空"];
-    return ["lazy", list[0]];
+    return ["lazy", list[0]!];
   },
   "tail/1": (_rtm, list) => {
     if (list.length === 0) return ["error", "列表为空"];
@@ -113,7 +113,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const zippedLength = Math.min(list1.length, list2.length);
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
-      result[i] = createValueBox.list(createValue.list([list1[i], list2[i]]));
+      result[i] = createValueBox.list(createValue.list([list1[i]!, list2[i]!]));
     }
     return ["ok", createValue.list(result)];
   },
@@ -122,7 +122,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const result = Array(zippedLength);
     let i = 0;
     for (; i < zippedLength;) {
-      const valueBox = callCallable(callable, [list1[i], list2[i]]);
+      const valueBox = callCallable(callable, [list1[i]!, list2[i]!]);
       result[i] = valueBox;
       i++;
       if (valueBox.confirmsError()) break;

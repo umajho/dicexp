@@ -73,7 +73,7 @@ function unwrapArguments(
   const result: (Value | ValueBox)[] = Array(args.length);
 
   for (let [i, arg] of args.entries()) {
-    const unwrapResult = unwrapValue(spec[i], arg, { nth: i + 1 });
+    const unwrapResult = unwrapValue(spec[i]!, arg, { nth: i + 1 });
     if (unwrapResult[0] === "error" || unwrapResult[0] === "error_indirect") {
       return unwrapResult;
     } else { // unwrapResult[0] === "ok"

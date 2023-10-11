@@ -78,7 +78,8 @@ export class LazyValueFactory {
     // fnResult[0] === "ok"
     const fn = fnResult[1];
     if (fnResult[0] === "alias") {
-      name = fnResult[2].split("/")[0];
+      const fullRealName = fnResult[2];
+      name = fullRealName.slice(0, fullRealName.lastIndexOf("/"));
     }
 
     return createValueBox.lazy(
@@ -138,7 +139,7 @@ export class LazyValueFactory {
               runtimeError_duplicateClosureParameterNames(ident),
             );
           }
-          deeperScope[ident] = args[i];
+          deeperScope[ident] = args[i]!;
         }
 
         let interpreted = runtime.interpret(deeperScope, body);
@@ -302,7 +303,7 @@ function getFunctionFromScope(
   arity: number,
 ):
   | ["ok", RegularFunction]
-  | [type: "alias", fn: RegularFunction, realName: string]
+  | [type: "alias", fn: RegularFunction, fullRealName: string]
   | ["error", RuntimeError] {
   const fnName = `${identifier}/${arity}`;
   let fn = scope[fnName];

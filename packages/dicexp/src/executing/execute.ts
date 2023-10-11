@@ -1,4 +1,5 @@
 // import { MersenneTwister } from "npm:random-seedable@1";
+// @ts-ignore
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Node } from "@dicexp/nodes";

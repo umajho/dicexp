@@ -14,9 +14,9 @@ export const ResultErrorAlert: Component<{
         <div class="text-xs">
           <code class="whitespace-pre">
             {props.error.message}
-            <Show when={props.showsStack && props.error["stack"]}>
+            <Show when={props.showsStack && (props.error as any)["stack"]}>
               <hr />
-              {props.error["stack"]}
+              {(props.error as any)["stack"]}
             </Show>
           </code>
         </div>

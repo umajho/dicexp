@@ -303,12 +303,12 @@ function tryCreateReprForCallGroupOfOperatorsWithSamePrecedence(
 ): (Repr & { 0: "c$" }) | null {
   if (/* style */ repr[1] !== "o" || args?.length !== 2) return null;
 
-  const lArg = args[0]; // left argument
+  const lArg = args[0]!; // left argument
   const curCallee = repr[2];
   const curPrec: number | undefined = precedenceTable[`${curCallee}/2`];
 
   if (lArg[0] === "cr") {
-    const lArgArgs = lArg[3];
+    const lArgArgs = lArg[3]!;
     if (lArgArgs?.length !== 2) return null;
 
     const lCallee = lArg[2];
@@ -316,17 +316,17 @@ function tryCreateReprForCallGroupOfOperatorsWithSamePrecedence(
     if (lPrec !== curPrec) return null;
 
     return createRepr.calls_ord_bin_op(
-      lArgArgs[0],
-      [[lCallee, lArgArgs[1]], [curCallee, args[1]]],
+      lArgArgs[0]!,
+      [[lCallee, lArgArgs[1]!], [curCallee, args[1]!]],
       (/* result */ repr[4]) && finalizeRepr(repr[4]),
     );
   } else if (lArg[0] === "c$") {
     const lTail = lArg[2];
-    const lCallee = lTail[0][0];
+    const lCallee = lTail[0]![0];
     const lPrec: number | undefined = precedenceTable[`${lCallee}/2`];
     if (lPrec !== curPrec) return null;
 
-    lTail.push([curCallee, args[1]]);
+    lTail.push([curCallee, args[1]!]);
     lArg[3] = (/* result */ repr[4]) && finalizeRepr(repr[4]);
 
     return lArg;

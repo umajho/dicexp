@@ -1,8 +1,5 @@
 {
-  "compilerOptions": {
-    "target": "ES2015",
-    "moduleResolution": "node"
-  },
+  "extends": "../../tsconfig.base.json",
   "exclude": [
     "./scripts"
   ]

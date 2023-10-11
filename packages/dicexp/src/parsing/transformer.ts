@@ -46,15 +46,15 @@ export class Transformer {
 
     switch (node.type.name) {
       case "BinaryExpression": {
-        let op = this.getRaw(children[1]);
-        const left = this._transform(children[0]);
+        let op = this.getRaw(children[1]!);
+        const left = this._transform(children[0]!);
         if (op === ".") {
-          const argList = this.getArgumentListItems(children[2]);
+          const argList = this.getArgumentListItems(children[2]!);
           return valueCall("function", left, argList);
         }
-        let right = this._transform(children[2]);
+        let right = this._transform(children[2]!);
         if (op === "#") {
-          let bodyRaw = this.source.slice(children[2].from, children[2].to);
+          let bodyRaw = this.source.slice(children[2]!.from, children[2]!.to);
           bodyRaw = bodyRaw.trim();
           if (bodyRaw.startsWith("(") && bodyRaw.endsWith(")")) {
             bodyRaw = bodyRaw.slice(1, bodyRaw.length - 1);
@@ -68,19 +68,19 @@ export class Transformer {
         return regularCall("operator", op, [left, right]);
       }
       case "UnaryExpression": {
-        const op = this.getRaw(children[0]);
-        let right = this._transform(children[1]);
+        const op = this.getRaw(children[0]!);
+        let right = this._transform(children[1]!);
         if (["d" /*, "d%"*/].indexOf(op) >= 0) {
           right = Transformer.handleAfterDiceRoll(right);
         }
         return regularCall("operator", op, [right]);
       }
       case "Grouping": {
-        return this._transform(children[1]);
+        return this._transform(children[1]!);
       }
       case "RegularCall": {
-        const name = this.getRaw(children[0]);
-        const argPart = children[1];
+        const name = this.getRaw(children[0]!);
+        const argPart = children[1]!;
         let argList: Node[];
         if (argPart.name === "ArgumentList") {
           argList = this.getArgumentListItems(argPart);
@@ -90,19 +90,19 @@ export class Transformer {
         return regularCall("function", name, argList);
       }
       case "List": {
-        const items = this.getItems(Transformer.getChildren(children[1]));
+        const items = this.getItems(Transformer.getChildren(children[1]!));
         return list(items);
       }
       case "Closure": {
-        const paramList = Transformer.getChildren(children[1]);
+        const paramList = Transformer.getChildren(children[1]!);
         const identifiers = paramList.map((p) => this.getRaw(p));
-        const body = this._transform(children[2]);
+        const body = this._transform(children[2]!);
         const raw = this.source.slice(node.from, node.to);
         return closure(identifiers, body, raw);
       }
       case "Capture": {
-        let identifier = this.getRaw(children[0]);
-        const arity = parseInteger(this.getRaw(children[1])).value as number;
+        let identifier = this.getRaw(children[0]!);
+        const arity = parseInteger(this.getRaw(children[1]!)).value as number;
         return captured(identifier, arity);
       }
       case "Variable": {
@@ -131,7 +131,7 @@ export class Transformer {
 
   private getArgumentListItems(argList: SyntaxNode): Node[] {
     const argListNode = Transformer.getChildren(argList);
-    return this.getItems(Transformer.getChildren(argListNode[1]));
+    return this.getItems(Transformer.getChildren(argListNode[1]!));
   }
 
   private getItems(children: SyntaxNode[]): Node[] {
@@ -155,7 +155,7 @@ export class Transformer {
       typeof right !== "string" && right.kind === "regular_call" &&
       right.args.length === 1
     ) {
-      const arg = right.args[0];
+      const arg = right.args[0]!;
       if (right.name === "+") {
         return arg;
       } else if (

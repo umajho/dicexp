@@ -233,7 +233,7 @@ export class Runtime {
   private _interpretIdentifier(scope: Scope, ident: string): ValueBox {
     // FIXME: 为什么 `_` 有可能在 scope 里（虽然是 `undefined`）？
     if (ident in scope && scope[ident] !== undefined) {
-      const thingInScope = scope[ident];
+      const thingInScope = scope[ident]!;
       if (
         typeof thingInScope === "function" ||
         thingInScope instanceof RegularFunctionAlias

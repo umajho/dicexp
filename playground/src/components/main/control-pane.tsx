@@ -3,7 +3,6 @@ import {
   createEffect,
   createSignal,
   For,
-  JSX,
   lazy,
   Match,
   Show,
@@ -64,7 +63,7 @@ export const ControlPane: Component = () => {
 
   function roll() {
     if (!isSeedFrozen()) {
-      setSeed(crypto.getRandomValues(new Uint32Array(1))[0]);
+      setSeed(crypto.getRandomValues(new Uint32Array(1))[0]!);
     }
     evaluator.roll();
   }

@@ -56,8 +56,8 @@ const BarChartForBatchResult: Component<{
 
       for (; condition(); advancement()) {
         if (lastI !== null) {
-          let numA = data[i].resultNumber,
-            numB = data[lastI].resultNumber;
+          let numA = data[i]!.resultNumber,
+            numB = data[lastI]!.resultNumber;
           if (numA > numB) {
             [numA, numB] = [numB, numA];
           }
@@ -72,10 +72,10 @@ const BarChartForBatchResult: Component<{
         }
 
         const _acc = acc;
-        acc += data[i].count;
-        data[i].count += _acc;
+        acc += data[i]!.count;
+        data[i]!.count += _acc;
 
-        last = data[i];
+        last = data[i]!;
         lastI = i;
       }
 
@@ -202,7 +202,7 @@ const BarChartForBatchResult: Component<{
               tooltip.style("display", "block");
               props.setHighlighted(d.resultNumber);
             })
-            .on("mousemove", (ev, d) => {
+            .on("mousemove", (ev, _d) => {
               tooltip
                 .style("left", `${ev.pageX + 16}px`)
                 .style("top", `${ev.pageY}px`);

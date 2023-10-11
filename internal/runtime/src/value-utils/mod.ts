@@ -198,7 +198,7 @@ export function unwrapListOneOf(
 
     values[i] = valueResult[1];
     if (i === 0) {
-      firstType = getTypeNameOfValue(values[0]);
+      firstType = getTypeNameOfValue(values[0]!);
     }
   }
 

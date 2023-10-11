@@ -6,6 +6,7 @@ import {
   idIgnore,
   idUserDefined,
   keywordD,
+  // @ts-ignore
 } from "./dicexp.grammar.term";
 
 // 参见：https://unicode.org/reports/tr31/

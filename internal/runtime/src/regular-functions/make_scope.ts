@@ -6,6 +6,7 @@ import {
 } from "../values/mod";
 import { RegularFunctionDeclaration } from "./types/mod";
 import { makeFunction } from "./make_function";
+import { Unreachable } from "@dicexp/errors";
 
 export function makeScope(rawScope: RawScope): Scope {
   const opScope: Scope = {};
@@ -17,6 +18,11 @@ export function makeScope(rawScope: RawScope): Scope {
       param.type === "$lazy" ? "lazy" : param.type
     );
     const impl = rawScope.definitions[fullName];
+    if (!impl) {
+      // TypeScript 会根据声明检查定义与文档的类型，所以一般而言不会出这种问题，
+      // 不过还是以防万一检查一下。
+      throw new Unreachable(`未找到声明的通常函数 \`${fullName}\` 对应的定义`);
+    }
     opScope[fullName] = makeFunction(argSpec as ValueSpec[], impl);
     if (decl.aliases) {
       for (const alias of decl.aliases) {

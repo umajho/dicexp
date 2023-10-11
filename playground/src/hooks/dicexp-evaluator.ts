@@ -1,4 +1,4 @@
-import { createSignal, untrack } from "solid-js";
+import { createSignal } from "solid-js";
 
 import DicexpEvaluatingWorker from "../workers/dicexp-evaluator?worker";
 
@@ -90,7 +90,7 @@ export default function createDicexpEvaluator(
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult({ type: "error", error: e });
+          setResult({ type: "error", error: e as Error });
         }
         break;
       }
@@ -112,7 +112,7 @@ export default function createDicexpEvaluator(
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult({ type: "error", error: e });
+          setResult({ type: "error", error: e as Error });
         }
         break;
       }

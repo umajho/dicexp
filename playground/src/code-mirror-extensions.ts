@@ -31,7 +31,7 @@ export function onKey(key: "Enter", callback: (view: EditorView) => void) {
  */
 export const fixCloseBracketRemoving = EditorView.updateListener.of(
   (update) => {
-    update.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+    update.changes.iterChanges((fromA, toA, fromB, toB, _inserted) => {
       // 若非仅是删除一个字符，退出处理
       if (toB - fromB !== 0 || toA - fromA !== 1) return;
 

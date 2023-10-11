@@ -1,11 +1,4 @@
-import {
-  children,
-  Component,
-  createSignal,
-  JSX,
-  onMount,
-  Show,
-} from "solid-js";
+import { Component, createSignal, JSX, onMount, Show } from "solid-js";
 
 export const Card: Component<
   {
@@ -283,7 +276,7 @@ export const OptionalNumberInput: Component<
   );
 };
 
-export const Skeleton: Component = (props) => (
+export const Skeleton: Component = () => (
   <div class="w-full h-full bg-slate-700 animate-pulse" />
 );
 

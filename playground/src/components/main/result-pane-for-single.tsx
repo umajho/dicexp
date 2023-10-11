@@ -54,7 +54,7 @@ export const ResultPaneForSingle: Component<
     setRuntimeError(runtimeError_);
   }));
 
-  const [currentTab, setCurrentTab] = createSignal<"result">(
+  const [currentTab, _setCurrentTab] = createSignal<"result">(
     "result",
   );
 

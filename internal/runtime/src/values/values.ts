@@ -242,7 +242,7 @@ export const createValue = {
         if (filled <= index) {
           filled = index + 1;
         }
-        return underlying[index];
+        return underlying[index]!;
       },
     };
   },
@@ -265,7 +265,7 @@ export const createValue = {
         if (filled <= index) {
           filled = index + 1;
         }
-        return underlying[index];
+        return underlying[index]!;
       },
       _getAddends() {
         return underlying.slice(0, filled);

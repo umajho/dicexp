@@ -83,12 +83,15 @@ const RegularFunctionsTab: Component = () => {
         declarations: [...acc.declarations, ...s.declarations],
         documentations: { ...acc.documentations, ...s.documentations },
       }),
-      { declarations: [], documentations: {} },
+      {
+        declarations: [] as RegularFunctionDeclaration[],
+        documentations: {},
+      },
     ),
   };
 
   const selectableScopes = [fullScope, ...scopes];
-  const selectedScope = () => selectableScopes[currentTab()];
+  const selectedScope = () => selectableScopes[currentTab()]!;
   const groupSetInSelectedScope = createMemo(() =>
     Object
       .values(selectedScope().documentations)
@@ -126,8 +129,9 @@ const RegularFunctionsTab: Component = () => {
   const filteredDeclarations = createMemo((): RegularFunctionDeclaration[] => {
     let filtered = selectedScope().declarations
       .filter((decl) => {
+        // @ts-ignore
         const doc = selectedScope().documentations[getFunctionFullName(decl)];
-        return doc.groups.some((group) => enabledGroups[group]);
+        return doc.groups.some((group: any) => enabledGroups[group]);
       });
 
     const nameFilter_ = nameFilter();
@@ -142,13 +146,13 @@ const RegularFunctionsTab: Component = () => {
           const i = name.toLowerCase().indexOf(nameFilter_.lowerName);
           if (i < 0) return -1;
           if (i === 0) return 2;
-          if (name[i].toLowerCase() !== name[i]) return 1;
+          if (name[i]!.toLowerCase() !== name[i]) return 1;
           return 0;
         });
         const maxScore = Math.max(...scores);
         if (maxScore < 0) return acc;
         return [...acc, { score: maxScore, decl }];
-      }, [])
+      }, [] as { score: number; decl: RegularFunctionDeclaration }[])
         .sort((a, b) =>
           a.score !== b.score
             ? b.score - a.score
@@ -240,6 +244,7 @@ export const FunctionCard: Component<{
   const fullName = () => getFunctionFullName(props.decl);
 
   // FIXME: type
+  // @ts-ignore
   const doc = createMemo(() => props.scope.documentations[fullName()]);
   const groups = (): string[] => doc().groups;
 

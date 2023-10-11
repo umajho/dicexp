@@ -1,4 +1,4 @@
-import { Component, createEffect, on, onMount } from "solid-js";
+import { Component, createEffect, onMount } from "solid-js";
 
 import { EditorView, minimalSetup } from "codemirror";
 import { Prec } from "@codemirror/state";
