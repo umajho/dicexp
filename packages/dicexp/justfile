@@ -30,4 +30,4 @@ build: prepare type-check
 	pnpm run build
 
 publish-no-build:
-	npm publish --access public
+	pnpm publish --access public
