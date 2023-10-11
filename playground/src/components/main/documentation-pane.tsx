@@ -159,7 +159,6 @@ const RegularFunctionsTab: Component = () => {
 
     return filtered;
   });
-  createEffect(() => console.log(filteredDeclarations()));
 
   createEffect(on(currentTab, () => {
     const hiddenGroups = allGroups
