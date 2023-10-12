@@ -68,9 +68,10 @@ export const DocumentationPane: Component = () => {
 };
 
 const breakpoints = createMasonryBreakpoints(() => [
-  { query: "(min-width: 1536px)", columns: 3 }, // 2xl
-  { query: "(min-width: 768px) and (max-width: 1536px)", columns: 2 }, // md
-  { query: "(max-width: 768px)", columns: 1 }, // <md
+  { query: "(min-width: 1536px)", columns: 4 },
+  { query: "(min-width: 1152px) and (max-width: 1536px)", columns: 3 },
+  { query: "(min-width: 768px) and (max-width: 1152px)", columns: 2 },
+  { query: "(max-width: 768px)", columns: 1 },
 ]);
 
 const RegularFunctionsTab: Component = () => {
