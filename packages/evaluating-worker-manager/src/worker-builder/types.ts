@@ -48,6 +48,7 @@ export type DataToWorker<AvailableScopes extends Record<string, Scope>> =
   | [type: "batch_stop", id: string];
 
 export type DataFromWorker =
+  | [type: "loaded"]
   | [type: "initialize_result", result: InitializationResult]
   | [type: "heartbeat"]
   | [type: "evaluate_result", id: string, result: EvaluationResult]

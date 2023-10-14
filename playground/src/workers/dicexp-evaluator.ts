@@ -1,7 +1,6 @@
-import { asRuntimeError, evaluate, execute, parse } from "dicexp";
 import { startWorkerServer } from "@dicexp/evaluating-worker-manager/internal";
 
-import { scopesForRuntime } from "../stores/scopes";
+import dicexp from "@dicexp/essences-for-worker/internal/dicexp";
+import standardScopes from "@dicexp/essences-for-worker/internal/standard-scopes";
 
-const dicexp = { parse, execute, evaluate, asRuntimeError };
-startWorkerServer(dicexp, scopesForRuntime);
+startWorkerServer(dicexp, standardScopes);

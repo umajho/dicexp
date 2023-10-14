@@ -1,0 +1,10 @@
+set fallback
+
+lint:
+	tsc --noEmit
+
+build: lint
+	pnpm run build
+
+publish-no-build:
+	pnpm publish --access public

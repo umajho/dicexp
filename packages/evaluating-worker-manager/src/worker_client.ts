@@ -80,6 +80,13 @@ export class EvaluatingWorkerClient<
   }
 
   private async initWorker(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      this.worker.onmessage = (ev) => {
+        if (ev.data[0] === "loaded") {
+          resolve();
+        }
+      };
+    });
     this.worker.onmessage = this.onMessage.bind(this);
     return new Promise((resolve, reject) => {
       this.initState = ["initializing", resolve, reject];
@@ -162,6 +169,9 @@ export class EvaluatingWorkerClient<
   private onMessage(ev: MessageEvent<DataFromWorker>) {
     const data = ev.data;
     switch (data[0]) {
+      // "loaded" 是在正式建立联系前，用于确保 worker 已完成载入而发送的，
+      // 因此不会出现在这里。
+
       case "initialize_result":
         this.handleInitializeResult(data[1]);
         return;
