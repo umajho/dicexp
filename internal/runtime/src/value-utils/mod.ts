@@ -7,7 +7,7 @@ import {
 import {
   asInteger,
   asList,
-  getTypeNameOfValue,
+  getValueTypeName,
   RuntimeError,
   Value,
   ValueBox,
@@ -46,7 +46,7 @@ function tryAdaptType(
   value: Value,
   opts: CheckTypeOptions = {},
 ): ["ok", Value] | ["error", RuntimeError] {
-  let typeName: ValueTypeName = getTypeNameOfValue(value);
+  let typeName: ValueTypeName = getValueTypeName(value);
   let shouldConvert = false;
   if (typeName === "stream$sum") {
     if (
@@ -133,7 +133,7 @@ export function flattenListAll(
     // unwrapResult[0] === "ok"
     const unwrappedElem = unwrapResult[1];
 
-    if (getTypeNameOfValue(unwrappedElem) === "list") {
+    if (getValueTypeName(unwrappedElem) === "list") {
       const subResult = flattenListAll(spec, unwrappedElem as ValueBox[]);
       if (subResult === "error" || subResult[0] === "error_indirect") {
         return subResult;
@@ -198,7 +198,7 @@ export function unwrapListOneOf(
 
     values[i] = valueResult[1];
     if (i === 0) {
-      firstType = getTypeNameOfValue(values[0]!);
+      firstType = getValueTypeName(values[0]!);
     }
   }
 

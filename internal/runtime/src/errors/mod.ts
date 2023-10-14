@@ -1,6 +1,6 @@
 import { Unreachable } from "@dicexp/errors";
 import {
-  getDisplayNameFromTypeName,
+  getTypeDisplayName,
   makeRuntimeError,
   RuntimeError,
   ValueTypeName,
@@ -48,9 +48,9 @@ export function runtimeError_typeMismatch(
 ): RuntimeError {
   const expectedType = expectedTypeArray(expectedType_);
 
-  const expected = expectedType.map((x) =>
-    `「${getDisplayNameFromTypeName(x)}」`
-  ).join("");
+  const expected = expectedType.map((x) => `「${getTypeDisplayName(x)}」`).join(
+    "",
+  );
   const kindText = (() => {
     if (!kind) return "";
     if (kind === "list-inconsistency") {
@@ -60,7 +60,7 @@ export function runtimeError_typeMismatch(
   })();
   return makeRuntimeError(
     `期待类型${expected}` +
-      `与实际类型「${getDisplayNameFromTypeName(actualType)}」不符` +
+      `与实际类型「${getTypeDisplayName(actualType)}」不符` +
       kindText,
   );
 }
@@ -72,13 +72,13 @@ export function runtimeError_callArgumentTypeMismatch(
 ): RuntimeError {
   const expectedType = expectedTypeArray(expectedType_);
 
-  const expected = expectedType.map((x) =>
-    `「${getDisplayNameFromTypeName(x)}」`
-  ).join("");
+  const expected = expectedType.map((x) => `「${getTypeDisplayName(x)}」`).join(
+    "",
+  );
   return makeRuntimeError(
     `调用的第 ${position} 个参数类型不匹配：` +
       `期待类型${expected}` +
-      `与实际类型「${getDisplayNameFromTypeName(actualType)}」不符`,
+      `与实际类型「${getTypeDisplayName(actualType)}」不符`,
   );
 }
 
@@ -112,7 +112,7 @@ export function runtimeError_badFinalResult(
   typeName: ValueTypeName,
 ): RuntimeError {
   return makeRuntimeError(
-    `「${getDisplayNameFromTypeName(typeName)}」不能作为最终结果`,
+    `「${getTypeDisplayName(typeName)}」不能作为最终结果`,
   );
 }
 

@@ -19,7 +19,7 @@ import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   asPlain,
   finalizeRepr,
-  getTypeNameOfValue,
+  getValueTypeName,
   RegularFunctionAlias,
   Repr,
   RuntimeError,
@@ -340,7 +340,7 @@ function getFinalValue(
       return ["ok", value];
     default: {
       if (value.type === "list") return getFinalValueOfList(value);
-      const err = runtimeError_badFinalResult(getTypeNameOfValue(value));
+      const err = runtimeError_badFinalResult(getValueTypeName(value));
       return ["error", err];
     }
   }

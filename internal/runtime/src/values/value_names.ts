@@ -2,7 +2,7 @@ import { Unreachable } from "@dicexp/errors";
 
 import { Value } from "./values";
 
-export function getTypeNameOfValue(v: Value) {
+export function getValueTypeName(v: Value) {
   switch (typeof v) {
     case "number":
       return "integer";
@@ -14,9 +14,9 @@ export function getTypeNameOfValue(v: Value) {
   }
 }
 
-export type ValueTypeName = ReturnType<typeof getTypeNameOfValue>;
+export type ValueTypeName = ReturnType<typeof getValueTypeName>;
 
-export function getDisplayNameFromTypeName(name: ValueTypeName): string {
+export function getTypeDisplayName(name: ValueTypeName): string {
   switch (name) {
     case "integer":
       return "整数";
@@ -40,5 +40,5 @@ export function getDisplayNameFromTypeName(name: ValueTypeName): string {
 }
 
 export function getDisplayNameOfValue(value: Value): string {
-  return getDisplayNameFromTypeName(getTypeNameOfValue(value));
+  return getTypeDisplayName(getValueTypeName(value));
 }

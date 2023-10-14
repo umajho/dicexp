@@ -10,7 +10,7 @@ import {
   RegularFunctionDeclaration,
 } from "../regular-functions/mod";
 import { makeRuntimeError, RuntimeError } from "./runtime_errors";
-import { getDisplayNameFromTypeName, getTypeNameOfValue } from "./value_names";
+import { getTypeDisplayName, getValueTypeName } from "./value_names";
 import { flattenListAll, unwrapList, unwrapListOneOf } from "../../value-utils";
 
 export type Scope = {
@@ -54,8 +54,8 @@ export interface RuntimeProxyForFunction {
 
   callCallable: typeof callCallable;
 
-  getValueTypeName: typeof getTypeNameOfValue;
-  getTypeDisplayName: typeof getDisplayNameFromTypeName;
+  getValueTypeName: typeof getValueTypeName;
+  getTypeDisplayName: typeof getTypeDisplayName;
 
   utils: {
     flattenListAll: typeof flattenListAll;

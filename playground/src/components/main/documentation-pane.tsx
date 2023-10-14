@@ -22,7 +22,7 @@ import {
   DeclarationParameterTypeSpec,
   RegularFunctionDeclaration,
 } from "@dicexp/runtime/regular-functions";
-import { getDisplayNameFromTypeName } from "@dicexp/runtime/values";
+import { getTypeDisplayName } from "@dicexp/runtime/values";
 import { createStore } from "solid-js/store";
 
 const gettingStartUrl =
@@ -370,7 +370,7 @@ function getPossibleTypeDisplayNameList(
   if (t === "*") return ["任意"];
   if (t === "$lazy") return ["惰性（不检查）"];
   if (t instanceof Set) {
-    return [...t].map(getDisplayNameFromTypeName);
+    return [...t].map(getTypeDisplayName);
   }
-  return [getDisplayNameFromTypeName(t)];
+  return [getTypeDisplayName(t)];
 }
