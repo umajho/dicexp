@@ -1,4 +1,4 @@
-import type { EvaluationResult } from "dicexp";
+import type { EvaluationResult } from "dicexp/internal";
 import type { Scope } from "@dicexp/runtime/values";
 import { Unreachable } from "@dicexp/errors";
 

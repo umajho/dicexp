@@ -1,4 +1,4 @@
-import type { RuntimeError } from "dicexp";
+import type { RuntimeError } from "dicexp/internal";
 import type { Node } from "@dicexp/nodes";
 import type { Scope } from "@dicexp/runtime/values";
 

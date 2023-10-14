@@ -2,7 +2,7 @@ import type {
   EvaluationResult,
   ParseOptions,
   RuntimeRestrictions,
-} from "dicexp";
+} from "dicexp/internal";
 import type { Scope } from "@dicexp/runtime/values";
 
 export interface MessagePoster {

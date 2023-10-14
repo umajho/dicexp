@@ -1,4 +1,4 @@
-import type { ExecuteOptions } from "dicexp";
+import type { ExecuteOptions } from "dicexp/internal";
 import type { Scope } from "@dicexp/runtime/values";
 import type { Node } from "@dicexp/nodes";
 import { Unreachable } from "@dicexp/errors";
