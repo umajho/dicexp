@@ -23,7 +23,7 @@ import {
 } from "@dicexp/runtime/errors";
 import { RuntimeProxy } from "./runtime";
 
-export class LazyValueFactory {
+export class ConcreteValueBoxFactory {
   constructor(
     private runtime: RuntimeProxy,
   ) {}

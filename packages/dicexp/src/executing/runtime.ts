@@ -12,7 +12,7 @@ import {
   runtimeError_restrictionExceeded,
   runtimeError_unknownVariable,
 } from "@dicexp/runtime/errors";
-import { LazyValueFactory } from "./values_impl";
+import { ConcreteValueBoxFactory } from "./values_impl";
 import { Restrictions } from "./restrictions";
 import { RandomGenerator, RandomSource } from "./random";
 import { Unimplemented, Unreachable } from "@dicexp/errors";
@@ -28,6 +28,7 @@ import {
   Value_List,
   ValueBox,
 } from "@dicexp/runtime/values";
+import { createRuntimeProxy } from "./runtime-proxy";
 
 export interface RuntimeOptions {
   /**
@@ -86,7 +87,7 @@ export class Runtime {
   private _statistics: StatisticsUnfinished;
   reporter: RuntimeReporter;
 
-  private _lazyValueFactory: LazyValueFactory;
+  private _createConcreteValueBox: ConcreteValueBoxFactory;
 
   private _proxy: RuntimeProxy;
 
@@ -120,15 +121,13 @@ export class Runtime {
         : {}),
     };
 
-    this._proxy = {
-      interpret: (scope, node) => this._interpret(scope, node),
+    this._proxy = createRuntimeProxy({
       random: this._rng,
-      // @ts-ignore
-      lazyValueFactory: null, // 之后才有，所以之后再赋值
+      interpret: (scope, node) => this._interpret(scope, node),
       reporter: this.reporter,
-    };
+    });
 
-    this._lazyValueFactory = new LazyValueFactory(this._proxy);
+    this._createConcreteValueBox = new ConcreteValueBoxFactory(this._proxy);
   }
 
   private _reportCalled(): RuntimeError | null {
@@ -205,7 +204,7 @@ export class Runtime {
     switch (node.kind) {
       case "value": {
         if (typeof node.value === "number" || typeof node.value === "boolean") {
-          return this._lazyValueFactory.literalPrimitive(node.value);
+          return this._createConcreteValueBox.literalPrimitive(node.value);
         }
         switch (node.value.valueKind) {
           case "list": {
@@ -240,13 +239,13 @@ export class Runtime {
       ) {
         throw new Unreachable();
       }
-      return this._lazyValueFactory.identifier(thingInScope, ident);
+      return this._createConcreteValueBox.identifier(thingInScope, ident);
     } else {
       // FIXME: 这种情况应该 eager，因为有没有变量这里就能决定了
       // 也许可以在执行前检查下每个 scope 里的标识符、通常函数名是否存在于 scope 之中？
       const err = runtimeError_unknownVariable(ident);
-      const errValue = this._lazyValueFactory.error(err);
-      return this._lazyValueFactory.identifier(errValue, ident);
+      const errValue = this._createConcreteValueBox.error(err);
+      return this._createConcreteValueBox.identifier(errValue, ident);
     }
   }
 
@@ -255,14 +254,14 @@ export class Runtime {
     list: NodeValue_List,
   ): ValueBox {
     const interpretedList = list.member.map((x) => this._interpret(scope, x));
-    return this._lazyValueFactory.literalList(interpretedList);
+    return this._createConcreteValueBox.literalList(interpretedList);
   }
 
   private _interpretClosure(
     scope: Scope,
     closure: NodeValue_Closure,
   ): ValueBox {
-    return this._lazyValueFactory.closure(
+    return this._createConcreteValueBox.closure(
       closure.parameterIdentifiers,
       closure.body,
       scope,
@@ -275,7 +274,7 @@ export class Runtime {
     scope: Scope,
     captured: NodeValue_Captured,
   ): ValueBox {
-    return this._lazyValueFactory.captured(
+    return this._createConcreteValueBox.captured(
       captured.identifier,
       captured.forceArity,
       scope,
@@ -288,7 +287,7 @@ export class Runtime {
     regularCall: Node_RegularCall,
   ): ValueBox {
     const args = regularCall.args.map((arg) => this._interpret(scope, arg));
-    return this._lazyValueFactory.callRegularFunction(
+    return this._createConcreteValueBox.callRegularFunction(
       scope,
       regularCall.name,
       args,
@@ -303,7 +302,11 @@ export class Runtime {
   ): ValueBox {
     const callee = this._interpret(scope, valueCall.variable);
     const args = valueCall.args.map((arg) => this._interpret(scope, arg));
-    return this._lazyValueFactory.callValue(callee, args, valueCall.style);
+    return this._createConcreteValueBox.callValue(
+      callee,
+      args,
+      valueCall.style,
+    );
   }
 
   private _interpretRepetition(
@@ -312,12 +315,8 @@ export class Runtime {
   ): ValueBox {
     -0;
     const count = this._interpret(scope, repetition.count);
-    return this._lazyValueFactory.repetition(
-      count,
-      repetition.body,
-      repetition.bodyRaw,
-      scope,
-    );
+    const { body, bodyRaw } = repetition;
+    return this._createConcreteValueBox.repetition(count, body, bodyRaw, scope);
   }
 }
 

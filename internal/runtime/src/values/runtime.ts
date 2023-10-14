@@ -1,9 +1,17 @@
-import { Value, ValueBox } from "./values";
+import {
+  callCallable,
+  createValue,
+  createValueBox,
+  Value,
+  ValueBox,
+} from "./values";
 import {
   DeclarationListToDefinitionMap,
   RegularFunctionDeclaration,
 } from "../regular-functions/mod";
-import { RuntimeError } from "./runtime_errors";
+import { makeRuntimeError, RuntimeError } from "./runtime_errors";
+import { getDisplayNameFromTypeName, getTypeNameOfValue } from "./value_names";
+import { flattenListAll, unwrapList, unwrapListOneOf } from "../../value-utils";
 
 export type Scope = {
   [ident: string]: RegularFunction | RegularFunctionAlias | ValueBox;
@@ -39,6 +47,21 @@ export type RegularFunction = (
 
 export interface RuntimeProxyForFunction {
   random: RandomGenerator;
+
+  createValue: typeof createValue;
+  createValueBox: typeof createValueBox;
+  makeRuntimeError: typeof makeRuntimeError;
+
+  callCallable: typeof callCallable;
+
+  getValueTypeName: typeof getTypeNameOfValue;
+  getTypeDisplayName: typeof getDisplayNameFromTypeName;
+
+  utils: {
+    flattenListAll: typeof flattenListAll;
+    unwrapList: typeof unwrapList;
+    unwrapListOneOf: typeof unwrapListOneOf;
+  };
 }
 
 export class RegularFunctionAlias {
