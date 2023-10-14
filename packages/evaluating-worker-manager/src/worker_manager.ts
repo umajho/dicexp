@@ -1,6 +1,6 @@
 import type { Scope } from "@dicexp/runtime/values";
 
-import { EvaluateOptionsForWorker } from "./worker-builder/types";
+import { EvaluateOptionsForWorker } from "./worker-inner/types";
 import {
   EvaluatingWorkerClient,
   EvaluatingWorkerClientOptions,

@@ -8,7 +8,7 @@ import {
   DataToWorker,
   EvaluateOptionsForWorker,
   InitializationResult,
-} from "./worker-builder/types";
+} from "./worker-inner/types";
 import { BatchReportForWorker, EvaluationResultForWorker } from "./types";
 
 export interface EvaluatingWorkerClientOptions {

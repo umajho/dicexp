@@ -1,5 +1,5 @@
 import type { EvaluationResult } from "dicexp";
-import { BatchReport } from "./worker-builder/types";
+import { BatchReport } from "./worker-inner/types";
 
 export type EvaluationResultForWorker =
   | EvaluationResult

@@ -1,6 +1,8 @@
 export * from "./worker_manager";
-export * from "./worker-builder/mod";
+export * from "./worker-inner/mod";
 export * from "./types";
+
+export { createWorkerByImportURLs } from "./create-worker";
 
 export type {
   BatchReport,
@@ -8,4 +10,4 @@ export type {
   BatchStatistics,
   EvaluateOptionsForWorker,
   EvaluationRestrictionsForWorker,
-} from "./worker-builder/types";
+} from "./worker-inner/types";
