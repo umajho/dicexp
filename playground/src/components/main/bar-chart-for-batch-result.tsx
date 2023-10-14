@@ -2,7 +2,7 @@ import { Component, createEffect, createMemo, on, onMount } from "solid-js";
 
 import * as d3 from "d3";
 
-import { BatchResult } from "dicexp/internal";
+import { BatchResult } from "@dicexp/evaluating-worker-manager/internal";
 import { Unreachable } from "@dicexp/errors";
 import { Portal } from "solid-js/web";
 

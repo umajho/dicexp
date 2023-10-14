@@ -10,12 +10,12 @@ import * as store from "../../stores/store";
 import StepsRepresentation from "../steps-representation";
 
 import {
-  EvaluationResultForWorker,
   ExecutionAppendix,
   JSValue,
   Repr,
   RuntimeError,
 } from "dicexp/internal";
+import { EvaluationResultForWorker } from "@dicexp/evaluating-worker-manager/internal";
 import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
 
 export const ResultPaneForSingle: Component<

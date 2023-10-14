@@ -21,7 +21,7 @@ import {
   BatchReportForWorker,
   BatchResult,
   BatchStatistics,
-} from "dicexp/internal";
+} from "@dicexp/evaluating-worker-manager/internal";
 
 const LazyBarChartForBatchResult = lazy(() =>
   import("./bar-chart-for-batch-result")

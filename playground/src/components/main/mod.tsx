@@ -7,7 +7,7 @@ import { ResultPaneForSingle } from "./result-pane-for-single";
 import {
   BatchReportForWorker,
   EvaluationResultForWorker,
-} from "dicexp/internal";
+} from "@dicexp/evaluating-worker-manager/internal";
 import { ResultPaneForBatch } from "./result-pane-for-batch";
 import { DocumentationPane } from "./documentation-pane";
 

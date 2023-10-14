@@ -10,7 +10,7 @@ import {
   Switch,
 } from "solid-js";
 
-import { EvaluationRestrictionsForWorker } from "dicexp/internal";
+import { EvaluationRestrictionsForWorker } from "@dicexp/evaluating-worker-manager/internal";
 
 import {
   Button,
