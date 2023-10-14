@@ -1,8 +1,10 @@
+import type { asRuntimeError, evaluate, execute, parse } from "dicexp/internal";
+
 export interface Dicexp {
-  parse: typeof import("dicexp").parse;
-  execute: typeof import("dicexp").execute;
-  evaluate: typeof import("dicexp").evaluate;
-  asRuntimeError: typeof import("dicexp").asRuntimeError;
+  parse: typeof parse;
+  execute: typeof execute;
+  evaluate: typeof evaluate;
+  asRuntimeError: typeof asRuntimeError;
 }
 
 let dicexp!: Dicexp;
