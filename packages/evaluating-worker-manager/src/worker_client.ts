@@ -1,8 +1,8 @@
-import { Scope } from "@dicexp/runtime/values";
-
+import type { EvaluationResult } from "dicexp";
+import type { Scope } from "@dicexp/runtime/values";
 import { Unreachable } from "@dicexp/errors";
+
 import { proxyErrorFromWorker } from "./error_from_worker";
-import { EvaluationResult } from "./evaluate";
 import {
   DataFromWorker,
   DataToWorker,

@@ -1,10 +1,10 @@
+import type { ExecuteOptions } from "dicexp";
+import type { Scope } from "@dicexp/runtime/values";
+import type { Node } from "@dicexp/nodes";
 import { Unreachable } from "@dicexp/errors";
-import { Scope } from "@dicexp/runtime/values";
 
+import { getDicexp } from "./dicexp";
 import { EvaluateOptionsForWorker } from "./types";
-import { execute, ExecuteOptions } from "../../executing/mod";
-import { Node } from "@dicexp/nodes";
-import { evaluate } from "../evaluate";
 
 export class Evaluator<AvailableScopes extends Record<string, Scope>> {
   constructor(
@@ -12,14 +12,14 @@ export class Evaluator<AvailableScopes extends Record<string, Scope>> {
   ) {}
 
   execute(node: Node, opts: ExecuteOptions) {
-    return execute(node, opts);
+    return getDicexp().execute(node, opts);
   }
 
   evaluate(
     code: string,
     opts: EvaluateOptionsForWorker<AvailableScopes>,
   ) {
-    return evaluate(code, {
+    return getDicexp().evaluate(code, {
       execute: this.makeExecuteOptions(opts),
       parse: opts.parse,
     });

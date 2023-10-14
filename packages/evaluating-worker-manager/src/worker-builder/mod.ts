@@ -1,11 +1,13 @@
-import { Scope } from "@dicexp/runtime/values";
+import type { Scope } from "@dicexp/runtime/values";
 
+import { Dicexp, setDicexp } from "./dicexp";
 import { Server } from "./server";
 import { DataToWorker } from "./types";
 
 export function startWorkerServer<
   AvailableScopes extends Record<string, Scope>,
->(availableScopes: AvailableScopes) {
+>(dicexp: Dicexp, availableScopes: AvailableScopes) {
+  setDicexp(dicexp);
   const server = new Server(availableScopes);
 
   if (onmessage) {

@@ -1,4 +1,4 @@
-import { EvaluationResult } from "./evaluate";
+import type { EvaluationResult } from "dicexp";
 import { BatchReport } from "./worker-builder/types";
 
 export type EvaluationResultForWorker =

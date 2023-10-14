@@ -31,6 +31,7 @@
     "@dicexp/builtins": "workspace:*",
     "@dicexp/codemirror-lang-dicexp": "workspace:*",
     "@dicexp/errors": "workspace:*",
+    "@dicexp/evaluating-worker-manager": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "@dicexp/solid-components": "workspace:*",
     "solid-mason": "^0.1.5",

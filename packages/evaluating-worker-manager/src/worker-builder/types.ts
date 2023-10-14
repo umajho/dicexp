@@ -1,8 +1,9 @@
-import { Scope } from "@dicexp/runtime/values";
-
-import { RuntimeRestrictions } from "../../executing/mod";
-import { EvaluationResult } from "../evaluate";
-import { ParseOptions } from "../../parsing/mod";
+import type {
+  EvaluationResult,
+  ParseOptions,
+  RuntimeRestrictions,
+} from "dicexp";
+import type { Scope } from "@dicexp/runtime/values";
 
 export interface MessagePoster {
   tryPostMessage(data: DataFromWorker): void;

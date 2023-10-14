@@ -1,8 +1,8 @@
-import { Node } from "@dicexp/nodes";
-import { Scope } from "@dicexp/runtime/values";
+import type { RuntimeError } from "dicexp";
+import type { Node } from "@dicexp/nodes";
+import type { Scope } from "@dicexp/runtime/values";
 
-import { asRuntimeError, RuntimeError } from "../../executing/mod";
-import { parse } from "../../parsing/mod";
+import { getDicexp } from "./dicexp";
 import {
   BatchReport,
   BatchResult,
@@ -27,7 +27,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
   ) {
     const nowMs = Date.now();
 
-    const parseResult = safe(() => parse(code, opts.parse));
+    const parseResult = safe(() => getDicexp().parse(code, opts.parse));
     if (parseResult[0] === "error") {
       this.server.tryPostMessage(
         ["batch_report", id, ["error", "parse", parseResult[1]]],
@@ -52,7 +52,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
           const err = this.shouldStop;
           report = ["error", "batch", err, this.result, this.statis];
         } else {
-          const runtimeError = asRuntimeError(this.shouldStop);
+          const runtimeError = getDicexp().asRuntimeError(this.shouldStop);
           if (runtimeError) {
             const err = new Error(
               "某次求值时遭遇运行时错误：" + runtimeError.message,

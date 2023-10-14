@@ -1,4 +1,4 @@
-import { Scope } from "@dicexp/runtime/values";
+import type { Scope } from "@dicexp/runtime/values";
 
 import { EvaluateOptionsForWorker } from "./worker-builder/types";
 import {
