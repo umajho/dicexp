@@ -3,7 +3,7 @@ set fallback
 lint:
 	tsc --noEmit
 
-build: lint
+build: 
 	pnpm run build
 
 publish-no-build:

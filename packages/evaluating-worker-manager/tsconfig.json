@@ -6,13 +6,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "noEmit": true,
-    "types": [
-      "vite/client"
-    ]
+    "noEmit": true
   },
   "include": [
     "src",
-    "internal.ts"
+    "internal.ts",
+    "tsup.config.ts",
+    "client.d.ts"
   ]
 }

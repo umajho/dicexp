@@ -54,6 +54,7 @@
     "@lezer/common": "^1.0.3",
     "@types/node": "^20.8.6",
     "@vitest/ui": "^0.34.2",
+    "esbuild": "^0.18.20",
     "terser": "^5.21.0",
     "tsup": "^7.1.0",
     "typescript": "^5.1.3",

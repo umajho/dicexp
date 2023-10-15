@@ -7,13 +7,14 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/dicexp-evaluating-worker-manager.umd.cjs",
-  "module": "./dist/dicexp-evaluating-worker-manager.js",
-  "types": "./dist/src/mod.d.ts",
+  "module": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/dicexp-evaluating-worker-manager.umd.cjs",
-      "import": "./dist/dicexp-evaluating-worker-manager.js"
+      "import": {
+        "types": "./dist/lib.d.ts",
+        "default": "./dist/lib.js"
+      }
     },
     "./internal": "./internal.ts"
   },
@@ -28,15 +29,18 @@
   "license": "MIT",
   "homepage": "https://github.com/umajho/dicexp/tree/main/packages/evaluating-worker-manager#readme",
   "scripts": {
-    "build": "tsc && vite build"
+    "build": "tsup"
   },
   "devDependencies": {
+    "@dicexp/build-utils": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/nodes": "workspace:*",
     "@dicexp/runtime": "workspace:*",
+    "@types/node": "^20.8.6",
     "dicexp": "workspace:*",
-    "typescript": "^5.1.3",
-    "vite": "^4.4.11",
-    "vite-plugin-dts": "^3.5.3"
+    "esbuild": "^0.18.20",
+    "terser": "^5.21.0",
+    "tsup": "^7.1.0",
+    "typescript": "^5.1.3"
   }
 }

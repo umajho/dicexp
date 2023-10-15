@@ -37,6 +37,7 @@
     "@dicexp/test-utils-for-executing": "workspace:*",
     "@types/node": "^20.8.6",
     "dicexp": "workspace:*",
+    "esbuild": "^0.18.20",
     "terser": "^5.21.0",
     "tsup": "^7.1.0",
     "typescript": "^5.1.3",
