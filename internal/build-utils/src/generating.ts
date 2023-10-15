@@ -8,6 +8,8 @@ import { getRelativeOutDir } from "./utils";
 export interface Entry {
   entry: string;
   name?: string;
+  noExternal?: TSUPOptions["noExternal"];
+  external?: TSUPOptions["external"];
 }
 export type MainEntry = Omit<Entry, "name">;
 export type OtherEntry = Entry & Required<Pick<Entry, "name">>;
@@ -60,17 +62,20 @@ export interface GenerateTSUPOptionsOptions extends CommonOptions {
 export function generateTSUPOptions(opts: GenerateTSUPOptionsOptions) {
   const entries: Entry[] = [opts.mainEntry, ...(opts.otherEntries ?? [])];
 
-  return entries.map(({ entry, name }): TSUPOptions => {
+  return entries.map((entry): TSUPOptions => {
+    const { entry: entryPoint, name } = entry;
+
     const outDir = getRelativeOutDir("dist", name);
 
     return {
-      entry: [entry],
+      entry: [entryPoint],
       outDir,
-      ...(name ? { name } : {}),
+      name,
       target: "es2020",
       format: "esm",
       dts: true,
-      ...(opts.external ? { external: opts.external } : {}),
+      noExternal: entry.noExternal,
+      external: entry.external ?? opts.external,
       minify: "terser",
       clean: true,
       esbuildPlugins: [esbuildPluginInlineWorkerViteStyle()],

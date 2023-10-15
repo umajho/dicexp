@@ -12,10 +12,14 @@ import oldPackageJSON from "./package.json";
 
 export default defineConfig(async (_config) => {
   const opts: CommonOptions = {
-    mainEntry: { entry: "lib.ts" },
+    mainEntry: {
+      entry: "lib.ts",
+      external: [/^@?(codemirror|lezer)\//, "esm-seedrandom"],
+    },
     otherEntries: [{
       entry: "essence/for-worker.ts",
       name: "essence/for-worker",
+      noExternal: [/.*/],
     }],
   };
 
@@ -34,6 +38,5 @@ export default defineConfig(async (_config) => {
 
   return generateTSUPOptions({
     ...opts,
-    external: [/^@?(codemirror|lezer)\//, "esm-seedrandom"],
   });
 });
