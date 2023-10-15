@@ -29,6 +29,7 @@
     "build": "tsup"
   },
   "devDependencies": {
+    "@dicexp/build-utils": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "@dicexp/test-utils-for-executing": "workspace:*",

@@ -12,6 +12,19 @@ importers:
         specifier: ^5.1.3
         version: 5.1.3
 
+  internal/build-utils:
+    dependencies:
+      terser:
+        specifier: ^5.21.0
+        version: 5.21.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.8.6
+        version: 20.8.6
+      tsup:
+        specifier: ^7.1.0
+        version: 7.1.0(typescript@5.1.3)
+
   internal/codemirror-lang-dicexp:
     dependencies:
       '@codemirror/language':
@@ -81,6 +94,9 @@ importers:
 
   packages/builtins:
     devDependencies:
+      '@dicexp/build-utils':
+        specifier: workspace:*
+        version: link:../../internal/build-utils
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../../internal/errors
@@ -121,6 +137,9 @@ importers:
         specifier: ^3.0.5
         version: 3.0.5
     devDependencies:
+      '@dicexp/build-utils':
+        specifier: workspace:*
+        version: link:../../internal/build-utils
       '@dicexp/builtins':
         specifier: workspace:*
         version: link:../builtins

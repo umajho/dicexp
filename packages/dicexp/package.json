@@ -42,6 +42,7 @@
     "esm-seedrandom": "^3.0.5"
   },
   "devDependencies": {
+    "@dicexp/build-utils": "workspace:*",
     "@dicexp/builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/lezer": "workspace:*",
