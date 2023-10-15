@@ -1,5 +1,6 @@
 import * as path from "node:path";
 
+import { BuildOptions } from "esbuild";
 import { Options as TSUPOptions } from "tsup";
 
 import esbuildPluginInlineWorkerViteStyle from "./esbuild-plugin-inline-worker-vite-style";
@@ -67,18 +68,23 @@ export function generateTSUPOptions(opts: GenerateTSUPOptionsOptions) {
 
     const outDir = getRelativeOutDir("dist", name);
 
+    const buildOpts = {
+      target: "es2020",
+      format: "esm",
+      minify: true,
+    } as const satisfies BuildOptions;
+
     return {
+      ...buildOpts,
       entry: [entryPoint],
       outDir,
       name,
-      target: "es2020",
-      format: "esm",
       dts: true,
       noExternal: entry.noExternal,
       external: entry.external ?? opts.external,
       minify: "terser",
       clean: true,
-      esbuildPlugins: [esbuildPluginInlineWorkerViteStyle()],
+      esbuildPlugins: [esbuildPluginInlineWorkerViteStyle(buildOpts)],
     };
   });
 }
