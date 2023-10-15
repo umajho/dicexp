@@ -45,6 +45,9 @@ export function generatePackageJSON(
     ]))),
     ...(opts.withInternalEntry ? { "./internal": "./internal.ts" } : {}),
   };
+  delete newPackageJSON.main;
+  newPackageJSON.types = newPackageJSON.exports["."].import.types;
+  newPackageJSON.module = newPackageJSON.exports["."].import.default;
 
   return newPackageJSON;
 }

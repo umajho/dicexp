@@ -7,6 +7,8 @@
   "files": [
     "dist"
   ],
+  "types": "./dist/lib.d.ts",
+  "module": "./dist/lib.js",
   "exports": {
     ".": {
       "import": {
