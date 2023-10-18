@@ -8,7 +8,7 @@ import {
   EvaluatingWorkerManager,
   EvaluationRestrictionsForWorker,
 } from "@dicexp/evaluating-worker-manager/internal";
-import { Result } from "../types";
+import { ResultRecord } from "../types";
 import { scopesForRuntime } from "../stores/scopes";
 
 export type Status = {
@@ -55,7 +55,7 @@ export default function createDicexpEvaluator(
   const [isRolling, setIsRolling] = createSignal<false | "single" | "batch">(
     false,
   );
-  const [result, setResult] = createSignal<Result>({ type: null });
+  const [result, setResult] = createSignal<ResultRecord | null>(null);
 
   const status = (): Status => {
     if (loading()) return { type: "loading" };
@@ -68,8 +68,9 @@ export default function createDicexpEvaluator(
 
   async function roll() {
     if (status().type !== "ready") return;
-    setResult({ type: null });
+    setResult(null);
 
+    const code_ = code();
     setIsRolling(opts.mode()!);
     switch (opts.mode()) {
       case "single": {
@@ -82,15 +83,15 @@ export default function createDicexpEvaluator(
             restrictions: opts.restrictions() ?? undefined,
           };
           const result = await workerManager()!.evaluate(
-            code(),
+            code_,
             evalOpts,
           );
-          setResult({ type: "single", result });
+          setResult(["single", code_, result]);
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult({ type: "error", error: e as Error });
+          setResult(["error", e as Error]);
         }
         break;
       }
@@ -104,15 +105,15 @@ export default function createDicexpEvaluator(
             restrictions: opts.restrictions() ?? undefined,
           };
           await workerManager()!.batch(
-            code(),
+            code_,
             evalOpts,
-            (report) => setResult({ type: "batch", report }),
+            (report) => setResult(["batch", code_, report]),
           );
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult({ type: "error", error: e as Error });
+          setResult(["error", e as Error]);
         }
         break;
       }

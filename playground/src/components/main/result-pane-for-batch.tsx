@@ -13,7 +13,7 @@ import {
 
 import { HiOutlineXMark } from "solid-icons/hi";
 import { Button, Card, Loading } from "../ui";
-import { ResultErrorAlert } from "./ui";
+import { ErrorAlert } from "./ui";
 import * as store from "../../stores/store";
 
 import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
@@ -106,7 +106,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
       </div>
 
       <Show when={error()}>
-        <ResultErrorAlert
+        <ErrorAlert
           kind={errorDisplayInfo()!.kind}
           error={error()!}
           showsStack={errorDisplayInfo()!.showsStack}

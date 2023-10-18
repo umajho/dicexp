@@ -1,22 +1,23 @@
 import { createStore } from "solid-js/store";
-import { Result } from "../types";
+import { ResultRecord } from "../types";
 
 interface StoreData {
   doc: string;
-  result: Result;
+
+  records: ResultRecord[];
 }
 
 const [store, setStore] = createStore<StoreData>({
   doc: localStorage.getItem("autosave") ?? "",
-  result: { type: null },
+  records: [],
 });
 
-export const result = () => store.result;
-export function setResult(result: Result) {
-  setStore("result", result);
+export const records = () => store.records;
+export function pushRecord(record: ResultRecord) {
+  setStore("records", records().length, record);
 }
 export function clearResult() {
-  setStore("result", { type: null });
+  setStore("records", []);
 }
 
 export const doc = () => store.doc;
