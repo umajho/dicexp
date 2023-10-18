@@ -46,8 +46,8 @@
     "update-deps": "pnpm up -Li"
   },
   "peerDependencies": {
-    "solid-element": "^1.7.1",
-    "solid-js": "^1.7.6"
+    "solid-element": "^1.8.0",
+    "solid-js": "^1.8.3"
   },
   "devDependencies": {
     "concurrently": "^8.2.0",
@@ -55,7 +55,7 @@
     "esbuild": "^0.18.15",
     "esbuild-plugin-solid": "^0.5.0",
     "jsdom": "^22.1.0",
-    "solid-js": "^1.7.8",
+    "solid-js": "^1.8.3",
     "tsup": "^7.1.0",
     "tsup-preset-solid": "^2.0.1",
     "typescript": "^5.1.6",
