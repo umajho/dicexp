@@ -5,12 +5,18 @@ import {
   EvaluatingWorkerClient,
   EvaluatingWorkerClientOptions,
 } from "./worker_client";
-import { BatchReportForWorker } from "./types";
+import { BatchReportForWorker, EvaluationResultForWorker } from "./types";
+
+export type NewEvaluatingWorkerManagerOptions = //
+  Partial<EvaluatingWorkerClientOptions>;
+export type EvaluateOptionsForEvaluatingWorker<
+  AvailableScopes extends Record<string, Scope>,
+> = EvaluateOptionsForWorker<AvailableScopes>;
 
 export class EvaluatingWorkerManager<
   AvailableScopes extends Record<string, Scope>,
 > {
-  readonly options: EvaluatingWorkerClientOptions;
+  readonly options: Required<NewEvaluatingWorkerManagerOptions>;
 
   private readinessWatcher: (ready: boolean) => void;
 
@@ -19,7 +25,7 @@ export class EvaluatingWorkerManager<
   constructor(
     workerProvider: () => Worker,
     readinessWatcher: (ready: boolean) => void,
-    optsPartial: Partial<EvaluatingWorkerClientOptions> = {},
+    optsPartial: NewEvaluatingWorkerManagerOptions = {},
   ) {
     optsPartial = { ...optsPartial };
     optsPartial.heartbeatTimeout ??= { ms: 5000 };
@@ -45,8 +51,8 @@ export class EvaluatingWorkerManager<
 
   async evaluate(
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
-  ) {
+    opts: EvaluateOptionsForEvaluatingWorker<AvailableScopes>,
+  ): Promise<EvaluationResultForWorker> {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
@@ -69,13 +75,13 @@ export class EvaluatingWorkerManager<
 
   async batch(
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluateOptionsForEvaluatingWorker<AvailableScopes>,
     reporter: (r: BatchReportForWorker) => void,
-  ) {
+  ): Promise<void> {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
-    return this.client.batch(code, opts, reporter);
+    this.client.batch(code, opts, reporter);
   }
 
   stopBatching() {

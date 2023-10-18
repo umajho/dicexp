@@ -12,7 +12,7 @@ export interface MessagePoster {
 export interface EvaluateOptionsForWorker<
   AvailableScopes extends Record<string, Scope>,
 > {
-  execute: Omit<ExecuteOptionsForWorker<AvailableScopes>, "restrictions">;
+  execute: ExecuteOptionsForWorker<AvailableScopes>;
   parse?: ParseOptions;
 
   restrictions?: EvaluationRestrictionsForWorker;
@@ -27,7 +27,6 @@ export interface ExecuteOptionsForWorker<
   AvailableScopes extends Record<string, Scope>,
 > {
   topLevelScopeName: keyof AvailableScopes;
-  restrictions?: RuntimeRestrictions;
   seed?: number;
 }
 
