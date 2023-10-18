@@ -12,5 +12,5 @@ dev:
 build:
 	pnpm run build
 
-publish-no-build:
+publish:
 	pnpm publish --access public
