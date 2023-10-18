@@ -32,10 +32,11 @@ const ListItemsContext = createContext<
   | null
 >(null);
 
-export const StepsRepresentation: Component<
+export type Properties =
   & { repr: Repr }
-  & Partial<RepresentationContextData>
-> = (props) => {
+  & Partial<RepresentationContextData>;
+
+export const StepsRepresentation: Component<Properties> = (props) => {
   const contextData: RepresentationContextData = {
     colorScheme: defaultColorScheme,
     listPreviewLimit: 3,

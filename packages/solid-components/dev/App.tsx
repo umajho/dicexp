@@ -4,9 +4,9 @@ import type { Repr } from "dicexp/internal";
 
 import styles from "./App.module.css";
 
-import { registerCustomElementForStepRepresentations } from "../src";
+import { registerCustomElementForStepsRepresentation } from "../src";
 
-registerCustomElementForStepRepresentations("steps-representation");
+registerCustomElementForStepsRepresentation("steps-representation");
 
 declare module "solid-js" {
   namespace JSX {
