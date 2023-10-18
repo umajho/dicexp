@@ -13,21 +13,17 @@ import { builtinFunctionDocumentations as functionDocumentations } from "./base/
 // operators
 
 export { operatorDeclarations, operatorDefinitions, operatorDocumentations };
-export const operatorRawScope = makeRawScope(
-  operatorDeclarations,
-  operatorDefinitions,
-);
-export const operatorScope = makeScope(operatorRawScope) as ScopeExplicit<
+export const operatorScope = makeScope(
+  makeRawScope(operatorDeclarations, operatorDefinitions),
+) as ScopeExplicit<
   typeof operatorDefinitions
 >; // 包含运算符的作用域
 
 // functions
 
 export { functiondDeclarations, functionDefinitions, functionDocumentations };
-export const functionRawScope = makeRawScope(
-  functiondDeclarations,
-  functionDefinitions,
-);
-export const functionScope = makeScope(functionRawScope) as ScopeExplicit<
+export const functionScope = makeScope(
+  makeRawScope(functiondDeclarations, functionDefinitions),
+) as ScopeExplicit<
   typeof functionDefinitions
 >; // 包含非运算符函数的作用域
