@@ -40,6 +40,7 @@ export const StepsRepresentation: Component<Properties> = (props) => {
   const contextData: RepresentationContextData = {
     colorScheme: defaultColorScheme,
     listPreviewLimit: 3,
+    sumPreviewLimit: 10,
     autoExpansionDepthLimit: 3,
     ...props,
   };
@@ -184,32 +185,31 @@ const createContentComponent: {
   "vs": (repr) => {
     const context = useContext(RepresentationContext)!;
     const sum = repr[1], addends = repr[2];
+    const canCollapse = addends.length > context.sumPreviewLimit;
 
     if (addends.length === 1) {
       return createContentComponent.vp(["vp", addends[0]!], context);
     }
 
     return (props) => (
-      <Slot {...props} canCollapse={true}>
+      <Slot {...props} canCollapse={canCollapse} cannotAutoExpand={true}>
         {({ isExpanded }) => (
           <>
             {"("}
-            <ShowKeepAlive when={isExpanded()} fallback={<More />}>
-              <Index each={addends}>
-                {(addend, i) => (
-                  <>
-                    <Colored {...context.colorScheme.value_number}>
-                      {addend()}
-                    </Colored>
-                    <Show when={i < addends.length - 1}>
-                      <Colored {...context.colorScheme.opeator}>
-                        {" + "}
-                      </Colored>
-                    </Show>
-                  </>
-                )}
-              </Index>
-            </ShowKeepAlive>
+            <Items
+              items={addends}
+              expansion={isExpanded() || context.sumPreviewLimit}
+              Deeper={({ item }) => (
+                <Colored {...context.colorScheme.value_number}>
+                  {item}
+                </Colored>
+              )}
+              separator={
+                <Colored {...context.colorScheme.opeator}>
+                  {" + "}
+                </Colored>
+              }
+            />
             <ToResultIfExists
               Result={() => (
                 <Colored {...context.colorScheme.value_number}>{sum}</Colored>
@@ -700,32 +700,55 @@ const ListItems: Component<{
   const rankOffset = props.rankOffset ?? 0;
 
   return (
+    <Items
+      items={props.items}
+      expansion={props.expansion}
+      checkError={(items) =>
+        !!props.containsError &&
+        !items
+          .slice(0, props.expansion as number)
+          .some((item) => isWithError(item))}
+      Deeper={({ item, i }) => (
+        <DeeperStep
+          repr={item}
+          rank={rankOffset + i}
+          isListItem={props.isRealList}
+        />
+      )}
+      separator={", "}
+    />
+  );
+};
+
+function Items<T>(props: {
+  items: T[];
+
+  expansion: true | number;
+  checkError?: (items: T[]) => boolean;
+
+  Deeper: Component<{ item: T; i: number }>;
+  separator: JSX.Element;
+}) {
+  const Deeper = props.Deeper;
+
+  return (
     <Index each={props.items}>
-      {(repr, i) => {
+      {(item, i) => {
         return (
           <Switch>
             <Match when={props.expansion === true || i < props.expansion}>
-              <DeeperStep
-                repr={repr()}
-                rank={rankOffset + i}
-                isListItem={props.isRealList}
-              />
-              <Show when={i < props.items.length - 1}>{", "}</Show>
+              <Deeper item={item()} i={i} />
+              <Show when={i < props.items.length - 1}>{props.separator}</Show>
             </Match>
             <Match when={props.expansion !== true && i === props.expansion}>
-              <More
-                containsError={props.containsError &&
-                  !props.items
-                    .slice(0, props.expansion as number)
-                    .some((item) => isWithError(item))}
-              />
+              <More containsError={props.checkError?.(props.items)} />
             </Match>
           </Switch>
         );
       }}
     </Index>
   );
-};
+}
 
 const ToResultIfExists: Component<
   { Result: Component | undefined; symbol?: string }
