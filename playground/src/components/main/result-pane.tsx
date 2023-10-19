@@ -64,40 +64,37 @@ export const ResultPane: Component<
 
       <div ref={widgetAnchorEl} class="relative z-10" />
       <div class="flex flex-col gap-4">
-        <Show when={!props.records().length}>
-          <div class="flex justify-center items-center">
-            尚无
+        <Show when={props.records().length}>
+          <div ref={resultHeadEl} />
+          <div class="flex flex-col-reverse gap-4">
+            <For each={props.records()}>
+              {(record, i) => {
+                const isHead = () => i() === props.records.length - 1;
+                return (
+                  <Dynamic
+                    component={isHead()
+                      ? Portal
+                      : ({ children }) => <>{children}</>}
+                    mount={isHead() ? resultHeadEl : undefined}
+                  >
+                    <Switch>
+                      <Match when={record.type === "single"}>
+                        {(() => {
+                          const props = record as //
+                          Extract<ResultRecord, { type: "single" }>;
+                          return <SingleResultBlock i={i()} {...props} />;
+                        })()}
+                      </Match>
+                      <Match when={true}>
+                        TODO!
+                      </Match>
+                    </Switch>
+                  </Dynamic>
+                );
+              }}
+            </For>
           </div>
         </Show>
-        <div ref={resultHeadEl} />
-        <div class="flex flex-col-reverse gap-4">
-          <For each={props.records()}>
-            {(record, i) => {
-              const isHead = () => i() === props.records.length - 1;
-              return (
-                <Dynamic
-                  component={isHead()
-                    ? Portal
-                    : ({ children }) => <>{children}</>}
-                  mount={isHead() ? resultHeadEl : undefined}
-                >
-                  <Switch>
-                    <Match when={record.type === "single"}>
-                      {(() => {
-                        const props = record as //
-                        Extract<ResultRecord, { type: "single" }>;
-                        return <SingleResultBlock i={i()} {...props} />;
-                      })()}
-                    </Match>
-                    <Match when={true}>
-                      TODO!
-                    </Match>
-                  </Switch>
-                </Dynamic>
-              );
-            }}
-          </For>
-        </div>
       </div>
     </Card>
   );
