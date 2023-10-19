@@ -3,6 +3,7 @@ import { Unreachable } from "@dicexp/errors";
 import {
   Component,
   createMemo,
+  createSignal,
   For,
   Match,
   onMount,
@@ -18,7 +19,12 @@ import {
 import { ExecutionAppendix } from "dicexp/internal";
 import { EvaluationResultForWorker } from "@dicexp/evaluating-worker-manager/internal";
 
-import { VsClearAll, VsClose } from "solid-icons/vs";
+import {
+  VsChevronDown,
+  VsChevronUp,
+  VsClearAll,
+  VsClose,
+} from "solid-icons/vs";
 import { Button, Card } from "../ui";
 import * as store from "../../stores/store";
 import { ResultRecord } from "../../types";
@@ -34,6 +40,8 @@ export const ResultPane: Component<
   let widgetOwnerEl!: HTMLDivElement,
     widgetAnchorEl!: HTMLDivElement,
     resultHeadEl!: HTMLDivElement;
+
+  const [isHeadResultOnly, setIsHeadResultOnly] = createSignal(false);
 
   onMount(() => {
     const controller = registerRoWidgetOwner(widgetOwnerEl, {
@@ -52,21 +60,49 @@ export const ResultPane: Component<
     >
       <div class="flex justify-between items-center">
         <div class="text-xl">结果（{props.records().length}）</div>
-        {/* 清空 */}
-        <Button
-          icon={<VsClearAll size={24} />}
-          size="sm"
-          shape="square"
-          hasOutline={true}
-          onClick={() => store.clearResult()}
-        />
+        <div class="flex gap-4">
+          {/* 折叠 */}
+          <Button
+            icon={
+              <Dynamic
+                component={isHeadResultOnly() ? VsChevronUp : VsChevronDown}
+                size={24}
+              />
+            }
+            size="sm"
+            shape="square"
+            hasOutline={true}
+            onClick={() => setIsHeadResultOnly(!isHeadResultOnly())}
+          />
+          {/* 清空 */}
+          <Button
+            icon={<VsClearAll size={24} />}
+            size="sm"
+            shape="square"
+            hasOutline={true}
+            onClick={() => store.clearResult()}
+          />
+        </div>
       </div>
 
       <div ref={widgetAnchorEl} class="relative z-10" />
       <div class="flex flex-col gap-4">
         <Show when={props.records().length}>
           <div ref={resultHeadEl} />
-          <div class="flex flex-col-reverse gap-4">
+          <Show when={isHeadResultOnly() && props.records().length > 1}>
+            <div
+              class="flex justify-center items-center"
+              onClick={() => setIsHeadResultOnly(false)}
+            >
+              <span class="text-sm text-gray-300 cursor-pointer select-none underline">
+                {`已隐藏 ${props.records().length - 1} 条先前的结果`}
+              </span>
+            </div>
+          </Show>
+          <div
+            class="flex flex-col-reverse gap-4"
+            style={{ display: isHeadResultOnly() ? "none" : undefined }}
+          >
             <For each={props.records()}>
               {(record, i) => {
                 const isHead = () => i() === props.records().length - 1;
