@@ -2,10 +2,12 @@ import { Unreachable } from "@dicexp/errors";
 
 import {
   Component,
+  createEffect,
   createMemo,
   createSignal,
   For,
   Match,
+  on,
   onMount,
   Show,
   Switch,
@@ -50,6 +52,7 @@ export const ResultPane: Component<
     });
     const observer = new ResizeObserver(() => controller.nofityLayoutChange());
     observer.observe(widgetOwnerEl);
+    createEffect(on(props.records, () => controller.nofityLayoutChange()));
   });
 
   return (
