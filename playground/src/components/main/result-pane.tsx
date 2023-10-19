@@ -182,7 +182,7 @@ const SingleResultBlock: Component<
   return (
     <div class="flex flex-col gap-2">
       <h2 class="text-xl font-semibold border-b border-gray-500 w-full">
-        <div class="flex gap-2 items-center">
+        <div class="inline-flex flex-wrap gap-2 items-center">
           <Button
             icon={<VsClose size={18} />}
             size="xs"
@@ -190,7 +190,8 @@ const SingleResultBlock: Component<
             hasOutline={true}
             onClick={() => store.clear(props.i)}
           />
-          {dateToString(props.date)}
+          <span>单次</span>
+          <span>{dateToString(props.date)}</span>
         </div>
       </h2>
       {/* TODO: 未展现的信息：错误种类、统计中 “运行耗时” 之外的统计项（如 “调用次数”）。 */}
