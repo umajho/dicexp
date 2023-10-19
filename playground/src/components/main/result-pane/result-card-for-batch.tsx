@@ -87,8 +87,11 @@ export const BatchResultCard: Component<{ report: BatchReportForWorker }> = (
 
   const [highlighted, setHighlighted] = createSignal<number | null>(null);
 
+  const chartSizeClass = () =>
+    "w-[min(25rem,calc(100vw-4rem))] md:w-60 lg:w-80";
+
   return (
-    <Card class="min-w-[80vw] bg-base-200" bodyClass="p-6 gap-4">
+    <Card class="min-w-[80vw] bg-base-200" bodyClass="py-6 px-4 sm:px-6 gap-4">
       <Show when={error()}>
         <ErrorAlert
           kind={errorDisplayInfo()!.kind}
@@ -101,11 +104,13 @@ export const BatchResultCard: Component<{ report: BatchReportForWorker }> = (
       <Show when={(result()?.samples ?? 0) > 0}>
         <div class="flex flex-col md:flex-row justify-around items-center gap-2 max-md:divide-y">
           <LazyBarChartForBatchResultWithSuspense
-            report={() => result()!}
-            mode={() => "at-least"}
+            report={() =>
+              result()!}
+            mode={() =>
+              "at-least"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
-            sizeClass={() => "w-[25rem] md:w-60 lg:w-80"}
+            sizeClass={chartSizeClass}
           />
 
           <LazyBarChartForBatchResultWithSuspense
@@ -113,7 +118,7 @@ export const BatchResultCard: Component<{ report: BatchReportForWorker }> = (
             mode={() => "normal"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
-            sizeClass={() => "w-[25rem] md:w-60 lg:w-80"}
+            sizeClass={chartSizeClass}
           />
 
           <LazyBarChartForBatchResultWithSuspense
@@ -121,7 +126,7 @@ export const BatchResultCard: Component<{ report: BatchReportForWorker }> = (
             mode={() => "at-most"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
-            sizeClass={() => "w-[25rem] md:w-60 lg:w-80"}
+            sizeClass={chartSizeClass}
           />
         </div>
       </Show>

@@ -69,7 +69,7 @@ export const ResultPane: Component<
     <Card
       ref={widgetOwnerEl}
       class={`min-w-[80vw] ${WIDGET_OWNER_CLASS} ${props.class ?? ""}`}
-      bodyClass="p-6 gap-0"
+      bodyClass="py-6 px-4 sm:px-6 gap-0"
     >
       <div class="flex justify-between items-center">
         <div class="text-xl">结果（{props.records().length}）</div>
