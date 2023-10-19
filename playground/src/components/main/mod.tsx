@@ -11,7 +11,7 @@ export const Main: Component = () => {
     <main class="flex flex-col items-center gap-10">
       <ControlPane />
 
-      <ResultPane records={store.records} />
+      <ResultPane class="z-0" records={store.records} />
 
       <DocumentationPane />
     </main>

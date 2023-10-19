@@ -35,7 +35,7 @@ import { DicexpResult, WIDGET_OWNER_CLASS } from "../ro-widget-dicexp";
 import { Dynamic, Portal } from "solid-js/web";
 
 export const ResultPane: Component<
-  { records: () => ResultRecord[] }
+  { class?: string; records: () => ResultRecord[] }
 > = (
   props,
 ) => {
@@ -58,7 +58,7 @@ export const ResultPane: Component<
   return (
     <Card
       ref={widgetOwnerEl}
-      class={`min-w-[80vw] ${WIDGET_OWNER_CLASS}`}
+      class={`min-w-[80vw] ${WIDGET_OWNER_CLASS} ${props.class ?? ""}`}
       bodyClass="p-6 gap-0"
     >
       <div class="flex justify-between items-center">
