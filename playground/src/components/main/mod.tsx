@@ -2,7 +2,7 @@ import { Component } from "solid-js";
 
 import { ControlPane } from "./control-pane";
 import * as store from "../../stores/store";
-import { ResultPane } from "./result-pane";
+import { ResultPane } from "./result-pane/mod";
 
 import { DocumentationPane } from "./documentation-pane";
 

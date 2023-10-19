@@ -12,7 +12,7 @@ import {
 import DicexpEvaluatingWorker from "../workers/evaluation.worker?worker";
 import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
 
-import { ResultRecord } from "../types";
+import { BatchReportForPlayground, ResultRecord } from "../types";
 import { scopesForRuntime } from "../stores/scopes";
 
 export type Status = {
@@ -115,14 +115,10 @@ export default function createDicexpEvaluator(
             },
             restrictions: opts.restrictions() ?? undefined,
           };
-          await workerManager()!.batch(
-            code_,
-            evalOpts,
-            (report) =>
-              setResult(
-                { type: "batch", code: code_, report, date, environment },
-              ),
-          );
+          const [report, setReprot] = //
+            createSignal<BatchReportForPlayground>("preparing");
+          setResult({ type: "batch", code: code_, report, date, environment });
+          await workerManager()!.batch(code_, evalOpts, setReprot);
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);

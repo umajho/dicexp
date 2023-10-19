@@ -19,7 +19,10 @@ import {
 } from "@rotext/solid-components";
 
 import { ExecutionAppendix } from "dicexp/internal";
-import { EvaluationResultForWorker } from "@dicexp/evaluating-worker-manager/internal";
+import {
+  BatchReportForWorker,
+  EvaluationResultForWorker,
+} from "@dicexp/evaluating-worker-manager/internal";
 
 import {
   VsChevronDown,
@@ -27,12 +30,14 @@ import {
   VsClearAll,
   VsClose,
 } from "solid-icons/vs";
-import { Button, Card } from "../ui";
-import * as store from "../../stores/store";
-import { ResultRecord } from "../../types";
+import { Button, Card, Loading } from "../../ui";
+import * as store from "../../../stores/store";
+import { BatchReportForPlayground, ResultRecord } from "../../../types";
 
-import { DicexpResult, WIDGET_OWNER_CLASS } from "../ro-widget-dicexp";
+import { DicexpResult, WIDGET_OWNER_CLASS } from "../../ro-widget-dicexp";
 import { Dynamic, Portal } from "solid-js/web";
+import { ErrorAlert } from "../ui";
+import { BatchResultCard } from "./result-card-for-batch";
 
 export const ResultPane: Component<
   { class?: string; records: () => ResultRecord[] }
@@ -54,6 +59,11 @@ export const ResultPane: Component<
     observer.observe(widgetOwnerEl);
     createEffect(on(props.records, () => controller.nofityLayoutChange()));
   });
+
+  const isAnyBatchRunning = createMemo(() =>
+    props.records()
+      .some((r) => r.type === "batch" && isBatchRunning(r.report()))
+  );
 
   return (
     <Card
@@ -83,6 +93,7 @@ export const ResultPane: Component<
             size="sm"
             shape="square"
             hasOutline={true}
+            disabled={isAnyBatchRunning()}
             onClick={() => store.clearResult()}
           />
         </div>
@@ -118,8 +129,24 @@ export const ResultPane: Component<
                         return <SingleResultBlock i={i()} {...props} />;
                       })()}
                     </Match>
+                    <Match when={record.type === "batch"}>
+                      {(() => {
+                        const { report, date } = record as //
+                        Extract<ResultRecord, { type: "batch" }>;
+                        const props = { report, date };
+                        return <BatchResultBlock i={i()} {...props} />;
+                      })()}
+                    </Match>
+                    <Match when={record.type === "error"}>
+                      {(() => {
+                        const { error, date } = record as //
+                        Extract<ResultRecord, { type: "error" }>;
+                        const props = { error, date };
+                        return <ErrorResultBlock i={i()} {...props} />;
+                      })()}
+                    </Match>
                     <Match when={true}>
-                      TODO!
+                      Unreachable!
                     </Match>
                   </Switch>
                 );
@@ -199,6 +226,76 @@ const SingleResultBlock: Component<
       </h2>
       {/* TODO: 未展现的信息：错误种类、统计中 “运行耗时” 之外的统计项（如 “调用次数”）。 */}
       <DicexpResult code={props.code} evaluation={evaluation()} />
+    </div>
+  );
+};
+
+const BatchResultBlock: Component<{
+  i: number;
+  report: () => BatchReportForPlayground;
+  date: Date;
+}> = (
+  props,
+) => {
+  const isRunning = createMemo(() => isBatchRunning(props.report()));
+
+  return (
+    <div class="flex flex-col gap-2">
+      <h2 class="text-xl font-semibold border-b border-gray-500 w-full">
+        <div class="inline-flex flex-wrap gap-2 items-center">
+          <Button
+            icon={<VsClose size={18} />}
+            size="xs"
+            shape="square"
+            hasOutline={true}
+            disabled={isRunning()}
+            onClick={() => store.clear(props.i)}
+          />
+          <span>批量</span>
+          <span>{dateToString(props.date)}</span>
+        </div>
+        <Show
+          when={props.report() !== "preparing"}
+          fallback={
+            <div class="flex justify-center w-full h-20">
+              <Loading />
+            </div>
+          }
+        >
+          <BatchResultCard report={props.report() as BatchReportForWorker} />
+        </Show>
+      </h2>
+    </div>
+  );
+};
+
+function isBatchRunning(report: BatchReportForPlayground) {
+  return report === "preparing" || report[0] === "ok";
+}
+
+const ErrorResultBlock: Component<{
+  i: number;
+  error: Error;
+  date: Date;
+}> = (
+  props,
+) => {
+  return (
+    <div class="flex flex-col gap-2">
+      <h2 class="text-xl font-semibold border-b border-gray-500 w-full">
+        <div class="inline-flex flex-wrap gap-2 items-center">
+          <Button
+            icon={<VsClose size={18} />}
+            size="xs"
+            shape="square"
+            hasOutline={true}
+            onClick={() => store.clear(props.i)}
+          />
+          <span>错误</span>
+          <span>{dateToString(props.date)}</span>
+        </div>
+        <ErrorAlert error={props.error} showsStack={true} />
+      </h2>
     </div>
   );
 };
