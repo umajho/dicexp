@@ -104,7 +104,13 @@ export const ResultPane: Component<
 };
 
 const SingleResultBlock: Component<
-  { i: number; code: string; result: EvaluationResultForWorker; date: Date }
+  {
+    i: number;
+    code: string;
+    result: EvaluationResultForWorker;
+    date: Date;
+    environment?: NonNullable<DicexpEvaluation["environment"]>;
+  }
 > = (
   props,
 ) => {
@@ -133,6 +139,7 @@ const SingleResultBlock: Component<
       result,
       repr: appendix?.representation,
       statistics: appendix?.statistics,
+      environment: props.environment,
     };
   });
 

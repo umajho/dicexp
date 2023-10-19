@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 
-import DicexpEvaluatingWorker from "../workers/dicexp-evaluator?worker";
+import { DicexpEvaluation } from "@rotext/solid-components";
 
 import { Unreachable } from "@dicexp/errors";
 import {
@@ -8,6 +8,10 @@ import {
   EvaluatingWorkerManager,
   EvaluationRestrictionsForWorker,
 } from "@dicexp/evaluating-worker-manager/internal";
+
+import DicexpEvaluatingWorker from "../workers/evaluation.worker?worker";
+import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
+
 import { ResultRecord } from "../types";
 import { scopesForRuntime } from "../stores/scopes";
 
@@ -71,15 +75,21 @@ export default function createDicexpEvaluator(
     setResult(null);
     setIsRolling(opts.mode()!);
 
-    const code_ = code();
+    const code_ = code(), seed = opts.seed();
     const date = new Date();
+    // TODO: 更合理的方式是借由 manager 从 worker 中获取。
+    const environment: NonNullable<DicexpEvaluation["environment"]> = [
+      evaluatorInfo.nameWithVersion,
+      JSON.stringify({ r: seed, s: scopesInfo.version }),
+    ];
+
     switch (opts.mode()) {
       case "single": {
         try {
           const evalOpts: EvaluateOptionsForWorker<typeof scopesForRuntime> = {
             execute: {
               topLevelScopeName: opts.topLevelScopeName() ?? "standard",
-              seed: opts.seed(),
+              seed: seed,
             },
             restrictions: opts.restrictions() ?? undefined,
           };
@@ -87,12 +97,12 @@ export default function createDicexpEvaluator(
             code_,
             evalOpts,
           );
-          setResult({ type: "single", code: code_, result, date });
+          setResult({ type: "single", code: code_, result, date, environment });
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult({ type: "error", error: e as Error, date });
+          setResult({ type: "error", error: e as Error, date, environment });
         }
         break;
       }
@@ -108,13 +118,16 @@ export default function createDicexpEvaluator(
           await workerManager()!.batch(
             code_,
             evalOpts,
-            (report) => setResult({ type: "batch", code: code_, report, date }),
+            (report) =>
+              setResult(
+                { type: "batch", code: code_, report, date, environment },
+              ),
           );
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult({ type: "error", error: e as Error, date });
+          setResult({ type: "error", error: e as Error, date, environment });
         }
         break;
       }
