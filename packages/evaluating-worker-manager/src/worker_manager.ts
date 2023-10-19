@@ -81,7 +81,7 @@ export class EvaluatingWorkerManager<
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
-    this.client.batch(code, opts, reporter);
+    await this.client.batch(code, opts, reporter);
   }
 
   stopBatching() {
