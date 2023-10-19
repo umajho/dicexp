@@ -161,6 +161,17 @@ const SingleResultBlock: Component<
 };
 
 function dateToString(d: Date) {
-  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}` + " " +
-    `${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}.${d.getMilliseconds()}`;
+  const datePart = [
+    d.getFullYear(),
+    ...[d.getMonth() + 1, d.getDate()].map((n) => padTwoZeros(n)),
+  ].join("/");
+  const timePart = [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => padTwoZeros(n))
+    .join(":") +
+    `.${d.getMilliseconds()}`;
+  return `${datePart} ${timePart}`;
+}
+
+function padTwoZeros(input: number) {
+  return String(input).padStart(2, "0");
 }
