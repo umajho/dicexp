@@ -206,6 +206,7 @@ const SingleResultBlock: Component<
       repr: appendix?.representation,
       statistics: appendix?.statistics,
       environment: props.environment,
+      location: "local",
     };
   });
 
