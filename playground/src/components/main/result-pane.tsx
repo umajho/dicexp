@@ -6,6 +6,7 @@ import {
   For,
   Match,
   onMount,
+  Show,
   Switch,
 } from "solid-js";
 
@@ -17,7 +18,7 @@ import {
 import { ExecutionAppendix } from "dicexp/internal";
 import { EvaluationResultForWorker } from "@dicexp/evaluating-worker-manager/internal";
 
-import { VsClearAll } from "solid-icons/vs";
+import { VsClearAll, VsClose } from "solid-icons/vs";
 import { Button, Card } from "../ui";
 import * as store from "../../stores/store";
 import { ResultRecord } from "../../types";
@@ -47,11 +48,11 @@ export const ResultPane: Component<
     <Card
       ref={widgetOwnerEl}
       class={`min-w-[80vw] ${WIDGET_OWNER_CLASS}`}
-      bodyClass="p-6"
+      bodyClass="p-6 gap-0"
     >
       <div class="flex justify-between items-center">
-        <div class="text-xl">结果</div>
-        {/* 关闭 */}
+        <div class="text-xl">结果（{props.records().length}）</div>
+        {/* 清空 */}
         <Button
           icon={<VsClearAll size={24} />}
           size="sm"
@@ -62,9 +63,14 @@ export const ResultPane: Component<
       </div>
 
       <div ref={widgetAnchorEl} class="relative z-10" />
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-4">
+        <Show when={!props.records().length}>
+          <div class="flex justify-center items-center">
+            尚无
+          </div>
+        </Show>
         <div ref={resultHeadEl} />
-        <div class="flex flex-col-reverse gap-2">
+        <div class="flex flex-col-reverse gap-4">
           <For each={props.records()}>
             {(record, i) => {
               const isHead = () => i() === props.records.length - 1;
@@ -76,12 +82,11 @@ export const ResultPane: Component<
                   mount={isHead() ? resultHeadEl : undefined}
                 >
                   <Switch>
-                    <Match when={record[0] === "single"}>
+                    <Match when={record.type === "single"}>
                       {(() => {
-                        const [_, code, result] = record as //
-                        Extract<ResultRecord, { 0: "single" }>;
-                        const props = { code, result };
-                        return <SingleResultBlock {...props} />;
+                        const props = record as //
+                        Extract<ResultRecord, { type: "single" }>;
+                        return <SingleResultBlock i={i()} {...props} />;
                       })()}
                     </Match>
                     <Match when={true}>
@@ -99,7 +104,7 @@ export const ResultPane: Component<
 };
 
 const SingleResultBlock: Component<
-  { code: string; result: EvaluationResultForWorker }
+  { i: number; code: string; result: EvaluationResultForWorker; date: Date }
 > = (
   props,
 ) => {
@@ -132,9 +137,26 @@ const SingleResultBlock: Component<
   });
 
   return (
-    <div>
+    <div class="flex flex-col gap-2">
+      <h2 class="text-xl font-semibold border-b border-gray-500 w-full">
+        <div class="flex gap-2 items-center">
+          <Button
+            icon={<VsClose size={18} />}
+            size="xs"
+            shape="square"
+            hasOutline={true}
+            onClick={() => store.clear(props.i)}
+          />
+          {dateToString(props.date)}
+        </div>
+      </h2>
       {/* TODO: 未展现的信息：错误种类、统计中 “运行耗时” 之外的统计项（如 “调用次数”）。 */}
       <DicexpResult code={props.code} evaluation={evaluation()} />
     </div>
   );
 };
+
+function dateToString(d: Date) {
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}` + " " +
+    `${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}.${d.getMilliseconds()}`;
+}

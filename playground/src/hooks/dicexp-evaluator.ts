@@ -69,9 +69,10 @@ export default function createDicexpEvaluator(
   async function roll() {
     if (status().type !== "ready") return;
     setResult(null);
+    setIsRolling(opts.mode()!);
 
     const code_ = code();
-    setIsRolling(opts.mode()!);
+    const date = new Date();
     switch (opts.mode()) {
       case "single": {
         try {
@@ -86,12 +87,12 @@ export default function createDicexpEvaluator(
             code_,
             evalOpts,
           );
-          setResult(["single", code_, result]);
+          setResult({ type: "single", code: code_, result, date });
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult(["error", e as Error]);
+          setResult({ type: "error", error: e as Error, date });
         }
         break;
       }
@@ -107,13 +108,13 @@ export default function createDicexpEvaluator(
           await workerManager()!.batch(
             code_,
             evalOpts,
-            (report) => setResult(["batch", code_, report]),
+            (report) => setResult({ type: "batch", code: code_, report, date }),
           );
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult(["error", e as Error]);
+          setResult({ type: "error", error: e as Error, date });
         }
         break;
       }
