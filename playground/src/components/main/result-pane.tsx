@@ -70,6 +70,20 @@ export const ResultPane: Component<
             <For each={props.records()}>
               {(record, i) => {
                 const isHead = () => i() === props.records().length - 1;
+                const block = (
+                  <Switch>
+                    <Match when={record.type === "single"}>
+                      {(() => {
+                        const props = record as //
+                        Extract<ResultRecord, { type: "single" }>;
+                        return <SingleResultBlock i={i()} {...props} />;
+                      })()}
+                    </Match>
+                    <Match when={true}>
+                      TODO!
+                    </Match>
+                  </Switch>
+                );
                 return (
                   <Dynamic
                     component={isHead()
@@ -77,18 +91,7 @@ export const ResultPane: Component<
                       : ({ children }) => <>{children}</>}
                     mount={isHead() ? resultHeadEl : undefined}
                   >
-                    <Switch>
-                      <Match when={record.type === "single"}>
-                        {(() => {
-                          const props = record as //
-                          Extract<ResultRecord, { type: "single" }>;
-                          return <SingleResultBlock i={i()} {...props} />;
-                        })()}
-                      </Match>
-                      <Match when={true}>
-                        TODO!
-                      </Match>
-                    </Switch>
+                    {block}
                   </Dynamic>
                 );
               }}
