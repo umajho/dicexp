@@ -88,7 +88,7 @@ export const ResultPane: Component<
       <div ref={widgetAnchorEl} class="relative z-10" />
       <div class="flex flex-col gap-4">
         <Show when={props.records().length}>
-          <div ref={resultHeadEl} />
+          <div ref={resultHeadEl} class="pt-2" />
           <Show when={isHeadResultOnly() && props.records().length > 1}>
             <div
               class="flex justify-center items-center"
