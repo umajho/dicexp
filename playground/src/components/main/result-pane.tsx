@@ -69,7 +69,7 @@ export const ResultPane: Component<
           <div class="flex flex-col-reverse gap-4">
             <For each={props.records()}>
               {(record, i) => {
-                const isHead = () => i() === props.records.length - 1;
+                const isHead = () => i() === props.records().length - 1;
                 return (
                   <Dynamic
                     component={isHead()
