@@ -4,7 +4,6 @@ import {
   Component,
   createMemo,
   For,
-  Index,
   Match,
   onMount,
   Switch,
