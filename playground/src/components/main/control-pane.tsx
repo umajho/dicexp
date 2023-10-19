@@ -5,6 +5,7 @@ import {
   For,
   lazy,
   Match,
+  on,
   Show,
   Suspense,
   Switch,
@@ -57,9 +58,11 @@ export const ControlPane: Component = () => {
     if (theStatus.type !== "rolling") return null;
     return theStatus.mode;
   };
-  createEffect(() => {
-    store.setResult(evaluator.result());
-  });
+  createEffect(on([evaluator.result], () => {
+    const result = evaluator.result();
+    if (!result) return;
+    store.pushRecord(result);
+  }));
 
   function roll() {
     if (!isSeedFrozen()) {

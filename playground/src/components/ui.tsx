@@ -2,6 +2,7 @@ import { Component, createSignal, JSX, onMount, Show } from "solid-js";
 
 export const Card: Component<
   {
+    ref?: HTMLDivElement;
     children: JSX.Element;
     title?: JSX.Element;
     class?: string;
@@ -11,7 +12,10 @@ export const Card: Component<
   props,
 ) => {
   return (
-    <div class={`card bg-base-100 shadow-xl ${props.class ?? ""}`}>
+    <div
+      ref={props.ref}
+      class={`card bg-base-100 shadow-xl ${props.class ?? ""}`}
+    >
       <div class={`card-body h-full ${props.bodyClass ?? ""}`}>
         <Show when={props.title}>
           <div class="card-title">{props.title}</div>

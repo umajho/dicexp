@@ -2,8 +2,8 @@ import { Component, Show } from "solid-js";
 
 import { RuntimeError } from "dicexp/internal";
 
-export const ResultErrorAlert: Component<{
-  kind: string;
+export const ErrorAlert: Component<{
+  kind?: string;
   error: Error | RuntimeError;
   showsStack: boolean;
 }> = (props) => {

@@ -11,12 +11,10 @@ import {
   Suspense,
 } from "solid-js";
 
-import { HiOutlineXMark } from "solid-icons/hi";
-import { Button, Card, Loading } from "../ui";
-import { ResultErrorAlert } from "./ui";
-import * as store from "../../stores/store";
+import { Card, Loading } from "../../ui";
+import { ErrorAlert } from "../ui";
 
-import { ErrorWithType, getErrorDisplayInfo } from "../../misc";
+import { ErrorWithType, getErrorDisplayInfo } from "../../../misc";
 import {
   BatchReportForWorker,
   BatchResult,
@@ -32,7 +30,7 @@ const numberFormat = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 3,
 });
 
-export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
+export const BatchResultCard: Component<{ report: BatchReportForWorker }> = (
   props,
 ) => {
   const [statis, setStatis] = createSignal<BatchStatistics | null>(null),
@@ -58,8 +56,6 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
     setResult(result_);
     setError(error_);
   }));
-
-  const isRunning = () => props.report[0] === "ok";
 
   const timeConsumption = createMemo(() => {
     const statis_ = statis();
@@ -92,21 +88,9 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
   const [highlighted, setHighlighted] = createSignal<number | null>(null);
 
   return (
-    <Card class="min-w-[80vw]" bodyClass="p-6 gap-4">
-      <div class="flex justify-end">
-        {/* 关闭 */}
-        <Button
-          icon={<HiOutlineXMark size={24} />}
-          size="sm"
-          shape="square"
-          hasOutline={true}
-          disabled={isRunning()}
-          onClick={() => store.clearResult()}
-        />
-      </div>
-
+    <Card class="min-w-[80vw] bg-base-200" bodyClass="p-6 gap-4">
       <Show when={error()}>
-        <ResultErrorAlert
+        <ErrorAlert
           kind={errorDisplayInfo()!.kind}
           error={error()!}
           showsStack={errorDisplayInfo()!.showsStack}
@@ -121,7 +105,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
             mode={() => "at-least"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
-            sizeClass={() => "w-[25rem] min-h-[25rem] md:w-60 lg:w-80"}
+            sizeClass={() => "w-[25rem] md:w-60 lg:w-80"}
           />
 
           <LazyBarChartForBatchResultWithSuspense
@@ -129,7 +113,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
             mode={() => "normal"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
-            sizeClass={() => "w-[25rem] min-h-[25rem] md:w-60 lg:w-80"}
+            sizeClass={() => "w-[25rem] md:w-60 lg:w-80"}
           />
 
           <LazyBarChartForBatchResultWithSuspense
@@ -137,7 +121,7 @@ export const ResultPaneForBatch: Component<{ report: BatchReportForWorker }> = (
             mode={() => "at-most"}
             highlighted={highlighted}
             setHighlighted={setHighlighted}
-            sizeClass={() => "w-[25rem] min-h-[25rem] md:w-60 lg:w-80"}
+            sizeClass={() => "w-[25rem] md:w-60 lg:w-80"}
           />
         </div>
       </Show>

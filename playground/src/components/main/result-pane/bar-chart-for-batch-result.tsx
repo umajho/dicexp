@@ -217,7 +217,9 @@ const BarChartForBatchResult: Component<{
   });
 
   return (
-    <div class={`flex flex-col items-center ${props.class ?? ""}`}>
+    <div
+      class={`flex flex-col justify-center items-center ${props.class ?? ""}`}
+    >
       <div class="text-xl">{label()}</div>
 
       <svg ref={svgEl}>
