@@ -8,7 +8,7 @@ import { DocumentationPane } from "./documentation-pane";
 
 export const Main: Component = () => {
   return (
-    <main class="flex flex-col items-center gap-10">
+    <main class="flex flex-col items-center gap-4 sm:gap-8">
       <ControlPane />
 
       <ResultPane class="z-0" records={store.records} />

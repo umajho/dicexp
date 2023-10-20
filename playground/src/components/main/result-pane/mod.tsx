@@ -68,7 +68,9 @@ export const ResultPane: Component<
   return (
     <Card
       ref={widgetOwnerEl}
-      class={`min-w-[80vw] ${WIDGET_OWNER_CLASS} ${props.class ?? ""}`}
+      class={`min-w-[100vw] sm:min-w-[80vw] max-w-[100vw] ${WIDGET_OWNER_CLASS} ${
+        props.class ?? ""
+      }`}
       bodyClass="py-6 px-4 sm:px-6 gap-0"
     >
       <div class="flex justify-between items-center">

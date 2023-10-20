@@ -9,7 +9,7 @@ const App: Component = () => {
       <nav class="sticky top-0 z-10 w-full p-2">
         <NavBar />
       </nav>
-      <div class="h-10" />
+      <div class="h-4 sm:h-10" />
       <Main />
     </div>
   );
