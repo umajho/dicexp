@@ -33,8 +33,14 @@ type DeclarationToDocumentation<Decl extends RegularFunctionDeclaration> = {
   parameters: ParameterListToLabelDocumentationMap<Decl["parameters"]>;
   /**
    * 描述。
+   *
+   * - `.short`: 简洁的一句话描述。（不含句号）
+   * - `.further`：进一步的说明。
    */
-  description: string;
+  description: {
+    brief: string;
+    further?: string;
+  };
 } & ReturnValueToMapWithReturnValueDocumentation<Decl["returnValue"]>;
 
 export type Documentation = DeclarationToDocumentation<any>;

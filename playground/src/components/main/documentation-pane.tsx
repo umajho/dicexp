@@ -276,6 +276,9 @@ export const FunctionCard: Component<{
       }
       class="bg-base-200"
     >
+      <div class="flex justify-center w-full font-bold">
+        {doc().description.brief}
+      </div>
       <dl>
         <Show when={props.decl.aliases}>
           {(aliases) => (
@@ -347,8 +350,16 @@ export const FunctionCard: Component<{
           </code>
         </dd>
 
-        <dt>描述</dt>
-        <dd>{doc().description}</dd>
+        <Show when={doc().description.further}>
+          {(further) => (
+            <>
+              <dt>说明</dt>
+              <dd class="whitespace-pre-line">
+                {further()}
+              </dd>
+            </>
+          )}
+        </Show>
       </dl>
     </Card>
   );
