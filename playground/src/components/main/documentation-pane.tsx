@@ -5,10 +5,8 @@ import {
   createSignal,
   For,
   Index,
-  Match,
   on,
   Show,
-  Switch,
 } from "solid-js";
 import { createMasonryBreakpoints, Mason } from "solid-mason";
 
@@ -24,6 +22,7 @@ import {
 } from "@dicexp/runtime/regular-functions";
 import { getTypeDisplayName } from "@dicexp/runtime/values";
 import { createStore } from "solid-js/store";
+import { Documentation } from "@dicexp/runtime/src/regular-functions/types/docs";
 
 const gettingStartUrl =
   "https://github.com/umajho/dicexp/blob/main/docs/Dicexp.md";
@@ -131,8 +130,9 @@ const RegularFunctionsTab: Component = () => {
     let filtered = selectedScope().declarations
       .filter((decl) => {
         // @ts-ignore
-        const doc = selectedScope().documentations[getFunctionFullName(decl)];
-        return doc.groups.some((group: any) => enabledGroups[group]);
+        const doc = selectedScope()
+          .documentations[getFunctionFullName(decl)] as Documentation;
+        return doc.groups.some((group) => enabledGroups[group]);
       });
 
     const nameFilter_ = nameFilter();
@@ -244,9 +244,9 @@ export const FunctionCard: Component<{
 }> = (props) => {
   const fullName = () => getFunctionFullName(props.decl);
 
-  // FIXME: type
-  // @ts-ignore
-  const doc = createMemo(() => props.scope.documentations[fullName()]);
+  const doc = createMemo(() =>
+    (props.scope.documentations as Record<string, Documentation>)[fullName()]!
+  );
   const groups = (): string[] => doc().groups;
 
   const returnValueType = () => {
@@ -314,7 +314,9 @@ export const FunctionCard: Component<{
                       />
                     </code>
                   </dt>
-                  <dd>{doc().parameters[p.label]}</dd>
+                  <dd>
+                    {(doc().parameters as Record<string, string>)[p.label]}
+                  </dd>
                 </>
               )}
             </For>
@@ -324,19 +326,24 @@ export const FunctionCard: Component<{
         <dt>返回值类型</dt>
         <dd>
           <code>
-            <Switch>
-              <Match when={typeof returnValueType() === "string"}>
-                <TypeNameBadgeList
-                  typeNames={getPossibleTypeDisplayNameList(
-                    returnValueType() as any,
-                  )}
-                />
-              </Match>
-              <Match when={true}>
-                动态{(returnValueType() as any).lazy && "（惰性）"}：
-                {doc().returnValue.type.description}
-              </Match>
-            </Switch>
+            {(() => {
+              const returnValueType_ = returnValueType();
+              if (typeof returnValueType_ === "string") {
+                return (
+                  <TypeNameBadgeList
+                    typeNames={getPossibleTypeDisplayNameList(returnValueType_)}
+                  />
+                );
+              } else {
+                return (
+                  <>
+                    动态{returnValueType_.lazy && "（惰性）"}：
+                    {(doc() as Extract<Documentation, { returnValue: any }>)
+                      .returnValue.type.description}
+                  </>
+                );
+              }
+            })()}
           </code>
         </dd>
 

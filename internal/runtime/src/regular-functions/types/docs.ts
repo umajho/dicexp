@@ -37,6 +37,8 @@ type DeclarationToDocumentation<Decl extends RegularFunctionDeclaration> = {
   description: string;
 } & ReturnValueToMapWithReturnValueDocumentation<Decl["returnValue"]>;
 
+export type Documentation = DeclarationToDocumentation<any>;
+
 type ParameterListToLabelDocumentationMap<
   ParamList extends readonly any[],
 > = ParamList extends
