@@ -8,7 +8,10 @@ import {
   on,
   Show,
 } from "solid-js";
-import { createMasonryBreakpoints, Mason } from "solid-mason";
+import { render } from "solid-js/web";
+import { createBreakpoints } from "@solid-primitives/media";
+import { createMasonry } from "@solid-primitives/masonry";
+import { createElementSize } from "@solid-primitives/resize-observer";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
 import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui";
@@ -65,13 +68,6 @@ export const DocumentationPane: Component = () => {
     </Card>
   );
 };
-
-const breakpoints = createMasonryBreakpoints(() => [
-  { query: "(min-width: 1536px)", columns: 4 },
-  { query: "(min-width: 1152px) and (max-width: 1536px)", columns: 3 },
-  { query: "(min-width: 768px) and (max-width: 1152px)", columns: 2 },
-  { query: "(max-width: 768px)", columns: 1 },
-]);
 
 const RegularFunctionsTab: Component = () => {
   const [currentTab, setCurrentTab] = createSignal<number>(0);
@@ -226,34 +222,94 @@ const RegularFunctionsTab: Component = () => {
       </div>
 
       <div>
-        <Mason items={filteredDeclarations()} columns={breakpoints()}>
-          {(decl) => (
-            <div class="sm:px-2 py-2">
-              <FunctionCard decl={decl} scope={selectedScope()} />
-            </div>
-          )}
-        </Mason>
+        <FunctionCardMasonry
+          items={filteredDeclarations()}
+          scope={fullScope}
+        />
       </div>
+    </div>
+  );
+};
+
+const breakpoints = createBreakpoints({
+  two: "768px",
+  three: "1152px",
+  four: "1536px",
+});
+
+let nextMasonryID = 1;
+
+export const FunctionCardMasonry: Component<{
+  items: RegularFunctionDeclaration[];
+  scope: ScopeInfo;
+}> = (props) => {
+  const columns = createMemo(() => {
+    if (breakpoints.four) return 4;
+    if (breakpoints.three) return 3;
+    if (breakpoints.two) return 2;
+    return 1;
+  });
+
+  const masonaryID = `${nextMasonryID}`;
+  nextMasonryID++;
+
+  const cardMemos = new Map<RegularFunctionDeclaration, HTMLElement>();
+  const cards = () =>
+    props.items.map((decl) => {
+      const memo = cardMemos.get(decl);
+      if (memo) return memo;
+      const fullName = () => getFunctionFullName(decl);
+      const card = () => (
+        <FunctionCard
+          decl={decl}
+          doc={(props.scope.documentations as Record<string, Documentation>)[
+            fullName()
+          ]!}
+        />
+      );
+      const cardEl = document.createElement("div");
+      cardEl.dataset.masonaryId = masonaryID;
+      cardMemos.set(decl, cardEl);
+      render(card, cardEl);
+      return cardEl;
+    });
+
+  const masonry = createMasonry({
+    source: cards,
+    columns: columns,
+    mapHeight: (el) => {
+      const size = createElementSize(el);
+      return () => size.height;
+    },
+    mapElement: (el) => <>{el.source}</>,
+  });
+
+  return (
+    <div
+      class="flex flex-col flex-wrap items-center"
+      style={{
+        height: `${masonry.height()}px`,
+      }}
+    >
+      <style>
+        {`[data-masonary-id="${masonaryID}"] { padding: 0.5rem; width: calc(100% / ${columns()}); }`}
+      </style>
+      {masonry()}
     </div>
   );
 };
 
 export const FunctionCard: Component<{
   decl: RegularFunctionDeclaration;
-  scope: ScopeInfo;
+  doc: Documentation;
 }> = (props) => {
-  const fullName = () => getFunctionFullName(props.decl);
-
-  const doc = //
-    (props.scope.documentations as Record<string, Documentation>)[fullName()]!;
-
   return (
     <Card
       title={
         <div class="w-full flex items-center">
           <div class="flex-1" />
           <div class="flex-1 flex justify-center items-center gap-2">
-            {doc.isOperator ? <VsSymbolOperator /> : <VsSymbolMethod />}
+            {props.doc.isOperator ? <VsSymbolOperator /> : <VsSymbolMethod />}
             <code>
               {props.decl.name}
               <span class="text-sm align-sub">
@@ -262,7 +318,7 @@ export const FunctionCard: Component<{
             </code>
           </div>
           <div class="flex-1 flex justify-end gap-2">
-            <For each={doc.groups}>
+            <For each={props.doc.groups}>
               {(group) => <Badge type="neutral" size="lg">{group}</Badge>}
             </For>
           </div>
@@ -271,7 +327,7 @@ export const FunctionCard: Component<{
       class="bg-base-200"
     >
       <div class="flex justify-center w-full font-bold">
-        {doc.description.brief}
+        {props.doc.description.brief}
       </div>
       <dl>
         <Show when={props.decl.aliases}>
@@ -313,7 +369,7 @@ export const FunctionCard: Component<{
                     </code>
                   </dt>
                   <dd>
-                    {(doc.parameters as Record<string, string>)[p.label]}
+                    {(props.doc.parameters as Record<string, string>)[p.label]}
                   </dd>
                 </>
               )}
@@ -336,7 +392,7 @@ export const FunctionCard: Component<{
                 return (
                   <>
                     动态{returnValueType.lazy && "（惰性）"}：
-                    {(doc as Extract<Documentation, { returnValue: any }>)
+                    {(props.doc as Extract<Documentation, { returnValue: any }>)
                       .returnValue.type.description}
                   </>
                 );
@@ -345,7 +401,7 @@ export const FunctionCard: Component<{
           </code>
         </dd>
 
-        <Show when={doc.description.further}>
+        <Show when={props.doc.description.further}>
           {(further) => (
             <>
               <dt>说明</dt>
