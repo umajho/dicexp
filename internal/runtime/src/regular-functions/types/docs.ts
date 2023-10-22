@@ -41,6 +41,10 @@ type DeclarationToDocumentation<Decl extends RegularFunctionDeclaration> = {
     brief: string;
     further?: string;
   };
+  /**
+   * 示例，可以执行的代码。
+   */
+  examples?: string[];
 } & ReturnValueToMapWithReturnValueDocumentation<Decl["returnValue"]>;
 
 export type Documentation = DeclarationToDocumentation<any>;

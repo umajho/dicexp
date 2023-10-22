@@ -15,6 +15,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       brief: "逻辑或运算",
       further: "判断两个值是否任意为「真」。",
     },
+    examples: [
+      "true or false",
+    ],
   },
   "and/2": {
     isOperator: true,
@@ -27,6 +30,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       brief: "逻辑与运算",
       further: "判断两个值是否全部为「真」。",
     },
+    examples: [
+      "true and false",
+    ],
   },
 
   "==/2": {

@@ -6,26 +6,33 @@ import {
   For,
   Index,
   on,
+  onMount,
   Show,
 } from "solid-js";
+import { createStore } from "solid-js/store";
 import { render } from "solid-js/web";
 import { createBreakpoints } from "@solid-primitives/media";
 import { createMasonry } from "@solid-primitives/masonry";
 import { createElementSize } from "@solid-primitives/resize-observer";
 
-import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
-import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui";
-import { ShowKeepAlive } from "../utils";
-
-import { getFunctionFullName, ScopeInfo, scopes } from "../../stores/scopes";
+import {
+  ElementLayoutChangeObserver,
+  registerRoWidgetOwner,
+} from "@rotext/solid-components";
 
 import {
   DeclarationParameterTypeSpec,
   RegularFunctionDeclaration,
 } from "@dicexp/runtime/regular-functions";
 import { getTypeDisplayName } from "@dicexp/runtime/values";
-import { createStore } from "solid-js/store";
 import { Documentation } from "@dicexp/runtime/src/regular-functions/types/docs";
+
+import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
+import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui";
+import { ShowKeepAlive } from "../utils";
+
+import { getFunctionFullName, ScopeInfo, scopes } from "../../stores/scopes";
+import { WIDGET_OWNER_CLASS } from "../ro-widget-dicexp";
 
 const gettingStartUrl =
   "https://github.com/umajho/dicexp/blob/main/docs/Dicexp.md";
@@ -303,8 +310,21 @@ export const FunctionCard: Component<{
   decl: RegularFunctionDeclaration;
   doc: Documentation;
 }> = (props) => {
+  let widgetOwnerEl!: HTMLDivElement,
+    widgetAnchorEl!: HTMLDivElement;
+
+  onMount(() => {
+    registerRoWidgetOwner(widgetOwnerEl, {
+      widgetAnchorElement: widgetAnchorEl,
+      level: 1,
+      layoutChangeObserver: //
+        new ElementLayoutChangeObserver(widgetOwnerEl, { resize: true }),
+    });
+  });
+
   return (
     <Card
+      ref={widgetOwnerEl}
       title={
         <div class="w-full flex items-center">
           <div class="flex-1" />
@@ -324,8 +344,9 @@ export const FunctionCard: Component<{
           </div>
         </div>
       }
-      class="bg-base-200"
+      class={`${WIDGET_OWNER_CLASS} bg-base-200`}
     >
+      <div ref={widgetAnchorEl} class="relative z-10" />
       <div class="flex justify-center w-full font-bold">
         {props.doc.description.brief}
       </div>
@@ -410,6 +431,19 @@ export const FunctionCard: Component<{
               </dd>
             </>
           )}
+        </Show>
+
+        <Show when={props.doc.examples?.length}>
+          <>
+            <dt>示例</dt>
+            <Index each={props.doc.examples!}>
+              {(example) => (
+                <dd>
+                  <dicexp-example code={example()} />
+                </dd>
+              )}
+            </Index>
+          </>
         </Show>
       </dl>
     </Card>
