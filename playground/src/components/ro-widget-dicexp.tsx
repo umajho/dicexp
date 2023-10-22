@@ -4,13 +4,13 @@ import type { Repr } from "dicexp/internal";
 
 import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-components/internal";
 import {
+  ErrorAlert,
+  getDefaultDicexpStyleProviders,
   registerCustomElementForRoWidgetDicexp,
   RoWidgetDicexpProperties,
-  withDefaultDicexpStyle,
 } from "@rotext/solid-components";
 
 import { Loading } from "./ui";
-import { ErrorAlert } from "./main/ui";
 
 export const WIDGET_OWNER_CLASS = "widget-owner";
 
@@ -18,10 +18,10 @@ const BACKGROUND_COLOR = [0x1f, 0x1f, 0x1f, null];
 
 registerCustomElementForStepsRepresentation("steps-representation");
 registerCustomElementForRoWidgetDicexp("dicexp-result", {
-  withStyle: withDefaultDicexpStyle,
+  styleProviders: getDefaultDicexpStyleProviders(),
   backgroundColor: BACKGROUND_COLOR,
   widgetOwnerClass: WIDGET_OWNER_CLASS,
-  ErrorAlert,
+  ErrorAlert: ErrorAlert,
   Loading,
   tagNameForStepsRepresentation: "steps-representation",
 });

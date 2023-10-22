@@ -1,13 +1,9 @@
-import { Unreachable } from "@dicexp/errors";
-
 import {
   Component,
-  createEffect,
   createMemo,
   createSignal,
   For,
   Match,
-  on,
   onMount,
   Show,
   Switch,
@@ -15,6 +11,7 @@ import {
 
 import {
   DicexpEvaluation,
+  ElementLayoutChangeObserver,
   registerRoWidgetOwner,
 } from "@rotext/solid-components";
 
@@ -51,13 +48,12 @@ export const ResultPane: Component<
   const [isHeadResultOnly, setIsHeadResultOnly] = createSignal(false);
 
   onMount(() => {
-    const controller = registerRoWidgetOwner(widgetOwnerEl, {
+    registerRoWidgetOwner(widgetOwnerEl, {
       widgetAnchorElement: widgetAnchorEl,
       level: 1,
+      layoutChangeObserver: //
+        new ElementLayoutChangeObserver(widgetOwnerEl, { resize: true }),
     });
-    const observer = new ResizeObserver(() => controller.nofityLayoutChange());
-    observer.observe(widgetOwnerEl);
-    createEffect(on(props.records, () => controller.nofityLayoutChange()));
   });
 
   const isAnyBatchRunning = createMemo(() =>
@@ -192,15 +188,16 @@ const SingleResultBlock: Component<
       result = ["value", props.result[1]];
       appendix = props.result[2];
     } else if (props.result[0] === "error") {
-      if (props.result[1] === "execute") {
+      const kind = props.result[1];
+      if (kind === "execute") {
         const runtimeError = props.result[2];
-        result = ["error", runtimeError.message];
+        result = ["error", kind, runtimeError.message];
         appendix = props.result[3];
       } else {
-        result = ["error", props.result[2]];
+        result = ["error", kind, props.result[2].message];
       }
     } else {
-      result = ["error", new Unreachable()];
+      result = ["error", "other", "（内部实现问题：不可能到达的分支）"];
     }
 
     return {
