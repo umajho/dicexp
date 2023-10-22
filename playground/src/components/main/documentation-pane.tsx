@@ -244,14 +244,8 @@ export const FunctionCard: Component<{
 }> = (props) => {
   const fullName = () => getFunctionFullName(props.decl);
 
-  const doc = createMemo(() =>
-    (props.scope.documentations as Record<string, Documentation>)[fullName()]!
-  );
-  const groups = (): string[] => doc().groups;
-
-  const returnValueType = () => {
-    return props.decl.returnValue.type;
-  };
+  const doc = //
+    (props.scope.documentations as Record<string, Documentation>)[fullName()]!;
 
   return (
     <Card
@@ -259,7 +253,7 @@ export const FunctionCard: Component<{
         <div class="w-full flex items-center">
           <div class="flex-1" />
           <div class="flex-1 flex justify-center items-center gap-2">
-            {doc().isOperator ? <VsSymbolOperator /> : <VsSymbolMethod />}
+            {doc.isOperator ? <VsSymbolOperator /> : <VsSymbolMethod />}
             <code>
               {props.decl.name}
               <span class="text-sm align-sub">
@@ -268,7 +262,7 @@ export const FunctionCard: Component<{
             </code>
           </div>
           <div class="flex-1 flex justify-end gap-2">
-            <For each={groups()}>
+            <For each={doc.groups}>
               {(group) => <Badge type="neutral" size="lg">{group}</Badge>}
             </For>
           </div>
@@ -277,7 +271,7 @@ export const FunctionCard: Component<{
       class="bg-base-200"
     >
       <div class="flex justify-center w-full font-bold">
-        {doc().description.brief}
+        {doc.description.brief}
       </div>
       <dl>
         <Show when={props.decl.aliases}>
@@ -319,7 +313,7 @@ export const FunctionCard: Component<{
                     </code>
                   </dt>
                   <dd>
-                    {(doc().parameters as Record<string, string>)[p.label]}
+                    {(doc.parameters as Record<string, string>)[p.label]}
                   </dd>
                 </>
               )}
@@ -331,18 +325,18 @@ export const FunctionCard: Component<{
         <dd>
           <code>
             {(() => {
-              const returnValueType_ = returnValueType();
-              if (typeof returnValueType_ === "string") {
+              const returnValueType = props.decl.returnValue.type;
+              if (typeof returnValueType === "string") {
                 return (
                   <TypeNameBadgeList
-                    typeNames={getPossibleTypeDisplayNameList(returnValueType_)}
+                    typeNames={getPossibleTypeDisplayNameList(returnValueType)}
                   />
                 );
               } else {
                 return (
                   <>
-                    动态{returnValueType_.lazy && "（惰性）"}：
-                    {(doc() as Extract<Documentation, { returnValue: any }>)
+                    动态{returnValueType.lazy && "（惰性）"}：
+                    {(doc as Extract<Documentation, { returnValue: any }>)
                       .returnValue.type.description}
                   </>
                 );
@@ -351,7 +345,7 @@ export const FunctionCard: Component<{
           </code>
         </dd>
 
-        <Show when={doc().description.further}>
+        <Show when={doc.description.further}>
           {(further) => (
             <>
               <dt>说明</dt>
