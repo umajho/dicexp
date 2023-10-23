@@ -34,7 +34,7 @@
     "@dicexp/evaluating-worker-manager": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "@dicexp/solid-components": "workspace:*",
-    "@rotext/solid-components": "^0.2.1",
+    "@rotext/solid-components": "^0.2.2",
     "@solid-primitives/masonry": "^0.0.4",
     "@solid-primitives/media": "^2.2.5",
     "@solid-primitives/resize-observer": "^2.0.22",
