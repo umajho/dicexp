@@ -1,13 +1,13 @@
 import type {
   DeclarationListToDefinitionMap,
 } from "@dicexp/runtime/regular-functions";
-import {
-  type RuntimeError,
-  type RuntimeProxyForFunction,
-  type Value_Callable,
-  type Value_List,
-  type ValueBox,
-  type ValueTypeName,
+import type {
+  RuntimeError,
+  RuntimeProxyForFunction,
+  Value_Callable,
+  Value_List,
+  ValueBox,
+  ValueTypeName,
 } from "@dicexp/runtime/values";
 
 import { product, sum } from "../utils";
