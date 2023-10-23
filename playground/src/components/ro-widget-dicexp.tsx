@@ -11,9 +11,8 @@ import type { Repr } from "dicexp/internal";
 
 import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-components/internal";
 
+import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
 import { Loading } from "./ui";
-
-import DicexpEvaluatingWorker from "../workers/evaluation.worker?worker";
 
 export const WIDGET_OWNER_CLASS = "widget-owner";
 
@@ -32,19 +31,7 @@ registerCustomElementForRoWidgetDicexp("dicexp-example", {
   styleProviders: getDefaultDicexpStyleProviders(),
   backgroundColor: BACKGROUND_COLOR,
   widgetOwnerClass: WIDGET_OWNER_CLASS,
-  evaluatorProvider: {
-    default: () => {
-      return new Promise(async (r) => {
-        let manager!: any;
-        manager =
-          new (await import("@dicexp/evaluating-worker-manager/internal"))
-            .EvaluatingWorkerManager(
-            () => new DicexpEvaluatingWorker(),
-            (ready) => ready && r(manager),
-          );
-      });
-    },
-  },
+  evaluatorProvider: defaultEvaluatorProvider,
   ErrorAlert: ErrorAlert,
   Loading,
   tagNameForStepsRepresentation: "steps-representation",

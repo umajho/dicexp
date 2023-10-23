@@ -9,11 +9,11 @@ import {
   EvaluationRestrictionsForWorker,
 } from "@dicexp/evaluating-worker-manager/internal";
 
-import DicexpEvaluatingWorker from "../workers/evaluation.worker?worker";
 import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
 
 import { BatchReportForPlayground, ResultRecord } from "../types";
 import { scopesForRuntime } from "../stores/scopes";
+import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
 
 export type Status = {
   type: "loading"; // worker manager 尚未完成加载
@@ -41,12 +41,10 @@ export default function createDicexpEvaluator(
     EvaluatingWorkerManager<typeof scopesForRuntime> | null
   >(null);
   (async () => {
-    const manager = await import("@dicexp/evaluating-worker-manager/internal");
     setWorkerManager(
-      new manager.EvaluatingWorkerManager(
-        () => new DicexpEvaluatingWorker(),
-        (ready) => setLoading(!ready),
-      ),
+      await defaultEvaluatorProvider.default({
+        readinessWatcher: (ready) => setLoading(!ready),
+      }),
     );
   })();
 
