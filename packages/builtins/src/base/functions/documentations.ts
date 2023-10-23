@@ -4,6 +4,28 @@ import { builtinFunctionDeclarations } from "./declarations";
 export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
   typeof builtinFunctionDeclarations
 > = {
+  // 掷骰：
+  "reroll/2": {
+    groups: ["掷骰"],
+    parameters: {
+      "stream": "流",
+      "callable": "用于判断是否重投",
+    },
+    description: {
+      brief: "重投",
+      further: [
+        "对于流所产出的每个结果，如果该结果需要重投，则以新的结果代替，直到结果无需重投为止。",
+        "当无需重投的结果的数目到达流的预定长度时，返回结果。" +
+        "这个结果与 “原本的流在隐式转换后得到的结果” 在纳入的元素的数量上相对应。",
+      ].join("\n"),
+    },
+    returnValue: { type: { description: "与流在隐式转换后的类型相同" } },
+    examples: [
+      String.raw`reroll(10d10, \($x -> $x <= 5))`,
+      String.raw`reroll(10#d10, \($x -> $x <= 5))`,
+    ],
+  },
+
   // 实用：
   "count/2": {
     groups: ["实用"],

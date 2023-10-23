@@ -17,7 +17,42 @@ import { builtinFunctionDeclarations } from "./declarations";
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations
 > = { // 尚未实现的函数列表见 declarations
-  // 投骰子：
+  // 掷骰：
+  "reroll/2": (rtm, stream, callable) => {
+    let isSum = rtm.getValueTypeName(stream) === "stream$sum";
+    let remain = stream.nominalLength;
+
+    let result = isSum ? 0 : ([] as ValueBox[]);
+    for (let i = 0; remain; i++) {
+      const current = stream._at(i);
+
+      const shouldRerollResult = tryUnwrapBoolean(
+        rtm,
+        callable._call([
+          isSum
+            ? rtm.createValueBox.direct(current as number)
+            : current as ValueBox,
+        ]),
+        { functionFullName: "reroll/2" },
+      );
+      if (shouldRerollResult[0] === "error") return shouldRerollResult;
+
+      const shouldReroll = shouldRerollResult[1];
+      if (!shouldReroll) {
+        if (isSum) {
+          (result as number) += current as number;
+        } else {
+          (result as ValueBox[]).push(current as ValueBox);
+        }
+        remain--;
+      }
+    }
+
+    return [
+      "ok",
+      isSum ? result as number : rtm.createValue.list(result as ValueBox[]),
+    ];
+  },
 
   // 实用：
   "count/2": (rtm, list, callable) => {
@@ -137,21 +172,14 @@ function filter(
 ): ["ok", Value_List] | ["error", RuntimeError] {
   const filtered: ValueBox[] = [];
   for (const el of list) {
-    const result = rtm.callCallable(callable, [el]).get();
+    const result = tryUnwrapBoolean(rtm, rtm.callCallable(callable, [el]), {
+      functionFullName,
+    });
     if (result[0] === "error") return result;
     // result[0] === "ok"
+
     const value = result[1];
 
-    if (typeof value !== "boolean") {
-      const err = runtimeError_givenClosureReturnValueTypeMismatch(
-        rtm,
-        functionFullName,
-        "boolean",
-        rtm.getValueTypeName(value),
-        2,
-      );
-      return ["error", err];
-    }
     if (!value) continue;
     filtered.push(el);
   }
@@ -171,4 +199,30 @@ function runtimeError_givenClosureReturnValueTypeMismatch(
     `作为第 ${position} 个参数传入通常函数 ${name} 的返回值类型与期待不符：` +
       `期待「${expectedTypeText}」，实际「${actualTypeText}」。`,
   );
+}
+
+function tryUnwrapBoolean(
+  rtm: RuntimeProxyForFunction,
+  box: ValueBox,
+  opts: { functionFullName: string },
+):
+  | ["ok", boolean]
+  | ["error", RuntimeError] {
+  const result = box.get();
+  if (result[0] === "error") return result;
+  // result[0] === "ok"
+
+  const value = result[1];
+  if (typeof value !== "boolean") {
+    const err = runtimeError_givenClosureReturnValueTypeMismatch(
+      rtm,
+      opts.functionFullName,
+      "boolean",
+      rtm.getValueTypeName(value),
+      2,
+    );
+    return ["error", err];
+  }
+
+  return ["ok", value];
 }
