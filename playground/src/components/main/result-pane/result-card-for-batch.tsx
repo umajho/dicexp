@@ -11,7 +11,7 @@ import {
   Suspense,
 } from "solid-js";
 
-import { Card, Loading } from "../../ui";
+import { Card, Loading } from "../../ui/mod";
 import { ErrorAlert } from "../ui";
 
 import { ErrorWithType, getErrorDisplayInfo } from "../../../misc";

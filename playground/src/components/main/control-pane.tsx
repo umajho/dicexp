@@ -21,7 +21,7 @@ import {
   Skeleton,
   Tab,
   Tabs,
-} from "../ui";
+} from "../ui/mod";
 
 import * as store from "../../stores/store";
 import { examples } from "../../stores/examples";

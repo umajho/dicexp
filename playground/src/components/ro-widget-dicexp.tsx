@@ -12,7 +12,7 @@ import type { Repr } from "dicexp/internal";
 import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-components/internal";
 
 import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
-import { Loading } from "./ui";
+import { Loading } from "./ui/mod";
 
 export const WIDGET_OWNER_CLASS = "widget-owner";
 

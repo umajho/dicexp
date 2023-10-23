@@ -26,7 +26,7 @@ import { getTypeDisplayName } from "@dicexp/runtime/values";
 import { Documentation } from "@dicexp/runtime/src/regular-functions/types/docs";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
-import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui";
+import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui/mod";
 import { ShowKeepAlive } from "../utils";
 
 import { getFunctionFullName, ScopeInfo, scopes } from "../../stores/scopes";

@@ -27,7 +27,7 @@ import {
   VsClearAll,
   VsClose,
 } from "solid-icons/vs";
-import { Button, Card, Loading } from "../../ui";
+import { Button, Card, Loading } from "../../ui/mod";
 import * as store from "../../../stores/store";
 import { BatchReportForPlayground, ResultRecord } from "../../../types";
 
