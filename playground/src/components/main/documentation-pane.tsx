@@ -284,7 +284,14 @@ export const FunctionCardMasonry: Component<{
       render(card, cardEl);
       const size = createElementSize(cardEl);
 
-      const data = { el: cardEl, height: () => size.height };
+      const data = {
+        el: cardEl,
+        height: () =>
+          size.height +
+          ((s) => parseFloat(s.paddingTop) + parseFloat(s.paddingBottom))(
+            getComputedStyle(cardEl),
+          ),
+      };
       cardMemos.set(decl, data);
       return data;
     });
