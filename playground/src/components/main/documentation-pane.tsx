@@ -246,6 +246,8 @@ const breakpoints = createBreakpoints({
 
 let nextMasonryID = 1;
 
+const CARD_PADDING_PX = 8; // 0.5 rem
+
 export const FunctionCardMasonry: Component<{
   items: RegularFunctionDeclaration[];
   scope: ScopeInfo;
@@ -286,11 +288,7 @@ export const FunctionCardMasonry: Component<{
 
       const data = {
         el: cardEl,
-        height: () =>
-          size.height +
-          ((s) => parseFloat(s.paddingTop) + parseFloat(s.paddingBottom))(
-            getComputedStyle(cardEl),
-          ),
+        height: () => size.height + CARD_PADDING_PX * 2,
       };
       cardMemos.set(decl, data);
       return data;
@@ -311,7 +309,7 @@ export const FunctionCardMasonry: Component<{
       }}
     >
       <style>
-        {`[data-masonary-id="${masonaryID}"] { padding: 0.5rem; width: calc(100% / ${columns()}); }`}
+        {`[data-masonary-id="${masonaryID}"] { padding: ${CARD_PADDING_PX}px; width: calc(100% / ${columns()}); }`}
       </style>
       {masonry()}
     </div>
