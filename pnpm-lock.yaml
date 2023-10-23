@@ -306,15 +306,9 @@ importers:
       '@rotext/solid-components':
         specifier: ^0.2.2
         version: 0.2.2(solid-element@1.8.0)(solid-icons@1.0.12)(solid-js@1.8.3)
-      '@solid-primitives/masonry':
-        specifier: ^0.0.4
-        version: 0.0.4(solid-js@1.8.3)
       '@solid-primitives/media':
         specifier: ^2.2.5
         version: 2.2.5(solid-js@1.8.3)
-      '@solid-primitives/resize-observer':
-        specifier: ^2.0.22
-        version: 2.0.22(solid-js@1.8.3)
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.0.3)
@@ -1764,15 +1758,6 @@ packages:
       solid-js: 1.8.3
     dev: true
 
-  /@solid-primitives/masonry@0.0.4(solid-js@1.8.3):
-    resolution: {integrity: sha512-HH7wQIzc5aZdTBfBya8zS91Ne8BejdKSpLNJIaF2Iiq6Pq8sXcXbWFRpsHmw6GY7l54F58Yp8EPO3T7PbMvocw==}
-    peerDependencies:
-      solid-js: ^1.6.12
-    dependencies:
-      '@solid-primitives/utils': 6.2.1(solid-js@1.8.3)
-      solid-js: 1.8.3
-    dev: false
-
   /@solid-primitives/media@2.2.5(solid-js@1.8.3):
     resolution: {integrity: sha512-wTESNFteSwOZsNIBPLMIVLuOHIIzt2AIZdaCYYxfsJIr/xjDqSomlmdFlAmxfJD3ondO7fwtWfc0rcmAvjoPCA==}
     peerDependencies:
@@ -1811,6 +1796,7 @@ packages:
       '@solid-primitives/static-store': 0.0.5(solid-js@1.8.3)
       '@solid-primitives/utils': 6.2.1(solid-js@1.8.3)
       solid-js: 1.8.3
+    dev: true
 
   /@solid-primitives/rootless@1.4.1(solid-js@1.8.3):
     resolution: {integrity: sha512-h7VBUk8usD76Eh1a4wT17PcGtIRxGPlLuJ4Mf7roCNu46W5cc9DAoz8M6XebuZWVKeUkML/JuPMZQSV0mLo2Fw==}

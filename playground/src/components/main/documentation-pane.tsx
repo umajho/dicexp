@@ -12,8 +12,6 @@ import {
 import { createStore } from "solid-js/store";
 import { render } from "solid-js/web";
 import { createBreakpoints } from "@solid-primitives/media";
-import { createMasonry } from "@solid-primitives/masonry";
-import { createElementSize } from "@solid-primitives/resize-observer";
 
 import {
   ElementLayoutChangeObserver,
@@ -33,6 +31,7 @@ import { ShowKeepAlive } from "../utils";
 
 import { getFunctionFullName, ScopeInfo, scopes } from "../../stores/scopes";
 import { WIDGET_OWNER_CLASS } from "../ro-widget-dicexp";
+import FixedMasonry from "../FixedMasonry";
 
 const gettingStartUrl =
   "https://github.com/umajho/dicexp/blob/main/docs/Dicexp.md";
@@ -245,10 +244,6 @@ const breakpoints = createBreakpoints({
   four: "1536px",
 });
 
-let nextMasonryID = 1;
-
-const CARD_PADDING_PX = 8; // 0.5 rem
-
 export const FunctionCardMasonry: Component<{
   items: RegularFunctionDeclaration[];
   scope: ScopeInfo;
@@ -260,14 +255,7 @@ export const FunctionCardMasonry: Component<{
     return 1;
   });
 
-  const masonaryID = `${nextMasonryID}`;
-  nextMasonryID++;
-
-  interface CardData {
-    el: HTMLElement;
-    height: () => number;
-  }
-  const cardMemos = new Map<RegularFunctionDeclaration, CardData>();
+  const cardMemos = new Map<RegularFunctionDeclaration, HTMLElement>();
   const cards = () =>
     props.items.map((decl) => {
       const memo = cardMemos.get(decl);
@@ -275,54 +263,23 @@ export const FunctionCardMasonry: Component<{
 
       const fullName = () => getFunctionFullName(decl);
       const card = () => (
-        <FunctionCard
-          decl={decl}
-          doc={(props.scope.documentations as Record<string, Documentation>)[
-            fullName()
-          ]!}
-        />
+        <div class="p-2 max-sm:px-0">
+          <FunctionCard
+            decl={decl}
+            doc={(props.scope.documentations as Record<string, Documentation>)[
+              fullName()
+            ]!}
+          />
+        </div>
       );
       const cardEl = document.createElement("div");
-      cardEl.dataset.masonaryId = masonaryID;
       render(card, cardEl);
-      const size = createElementSize(cardEl);
 
-      const data = {
-        el: cardEl,
-        height: () => size.height + CARD_PADDING_PX * 2,
-      };
-      cardMemos.set(decl, data);
-      return data;
+      cardMemos.set(decl, cardEl);
+      return cardEl;
     });
 
-  const masonry = createMasonry({
-    source: cards,
-    columns: columns,
-    mapHeight: (data) => data.height,
-    mapElement: (data) => data.source.el,
-  });
-
-  return (
-    <div
-      class="flex flex-col flex-wrap items-center"
-      style={{
-        height: `${masonry.height()}px`,
-      }}
-    >
-      <style>
-        {`[data-masonary-id="${masonaryID}"] {${
-          [
-            `padding: ${CARD_PADDING_PX}px`,
-            ...(!breakpoints.sm
-              ? ["left", "right"].map((d) => `padding-${d}: 0`)
-              : []),
-            `width: calc(100% / ${columns()})`,
-          ].join(";")
-        }}`}
-      </style>
-      {masonry()}
-    </div>
-  );
+  return <FixedMasonry source={cards} columns={columns} />;
 };
 
 export const FunctionCard: Component<{
