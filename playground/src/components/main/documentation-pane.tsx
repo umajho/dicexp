@@ -239,6 +239,7 @@ const RegularFunctionsTab: Component = () => {
 };
 
 const breakpoints = createBreakpoints({
+  sm: "640px",
   two: "768px",
   three: "1152px",
   four: "1536px",
@@ -309,7 +310,15 @@ export const FunctionCardMasonry: Component<{
       }}
     >
       <style>
-        {`[data-masonary-id="${masonaryID}"] { padding: ${CARD_PADDING_PX}px; width: calc(100% / ${columns()}); }`}
+        {`[data-masonary-id="${masonaryID}"] {${
+          [
+            `padding: ${CARD_PADDING_PX}px`,
+            ...(!breakpoints.sm
+              ? ["left", "right"].map((d) => `padding-${d}: 0`)
+              : []),
+            `width: calc(100% / ${columns()})`,
+          ].join(";")
+        }}`}
       </style>
       {masonry()}
     </div>
