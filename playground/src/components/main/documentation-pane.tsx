@@ -260,11 +260,16 @@ export const FunctionCardMasonry: Component<{
   const masonaryID = `${nextMasonryID}`;
   nextMasonryID++;
 
-  const cardMemos = new Map<RegularFunctionDeclaration, HTMLElement>();
+  interface CardData {
+    el: HTMLElement;
+    height: () => number;
+  }
+  const cardMemos = new Map<RegularFunctionDeclaration, CardData>();
   const cards = () =>
     props.items.map((decl) => {
       const memo = cardMemos.get(decl);
       if (memo) return memo;
+
       const fullName = () => getFunctionFullName(decl);
       const card = () => (
         <FunctionCard
@@ -276,19 +281,19 @@ export const FunctionCardMasonry: Component<{
       );
       const cardEl = document.createElement("div");
       cardEl.dataset.masonaryId = masonaryID;
-      cardMemos.set(decl, cardEl);
       render(card, cardEl);
-      return cardEl;
+      const size = createElementSize(cardEl);
+
+      const data = { el: cardEl, height: () => size.height };
+      cardMemos.set(decl, data);
+      return data;
     });
 
   const masonry = createMasonry({
     source: cards,
     columns: columns,
-    mapHeight: (el) => {
-      const size = createElementSize(el);
-      return () => size.height;
-    },
-    mapElement: (el) => <>{el.source}</>,
+    mapHeight: (data) => data.height,
+    mapElement: (data) => data.source.el,
   });
 
   return (
