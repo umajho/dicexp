@@ -44,6 +44,10 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     },
     description: { brief: "判断相等" },
     returnValue: { type: { description: "与第一个值的类型相同" } },
+    examples: [
+      "1==1",
+      "true==false",
+    ],
   },
   "!=/2": {
     isOperator: true,
@@ -54,6 +58,10 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     },
     description: { brief: "判断相异" },
     returnValue: { type: { description: "与第一个值的类型相同" } },
+    examples: [
+      "1!=1",
+      "true!=false",
+    ],
   },
 
   "</2": {
@@ -64,6 +72,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "第二个值",
     },
     description: { brief: "小于" },
+    examples: [
+      "1<2",
+    ],
   },
   ">/2": {
     isOperator: true,
@@ -73,6 +84,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "第二个值",
     },
     description: { brief: "大于" },
+    examples: [
+      "2>1",
+    ],
   },
   "<=/2": {
     isOperator: true,
@@ -82,6 +96,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "第二个值",
     },
     description: { brief: "小于或等于" },
+    examples: [
+      "1<=1",
+    ],
   },
   ">=/2": {
     isOperator: true,
@@ -91,6 +108,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "第二个值",
     },
     description: { brief: "大于或等于" },
+    examples: [
+      "1>=1",
+    ],
   },
 
   "~/2": {
@@ -104,6 +124,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       brief: "范围生成随机整数",
       further: "随机生成一个最小值与最大值之间（包含两端）的整数。",
     },
+    examples: [
+      "1~10",
+    ],
   },
   "~/1": {
     isOperator: true,
@@ -115,6 +138,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       brief: "「1」至范围生成随机整数",
       further: "随机生成一个 1 与最大值之间（包含两端）的整数。",
     },
+    examples: [
+      "~10",
+    ],
   },
   "+/2": {
     isOperator: true,
@@ -124,6 +150,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "第二个加数",
     },
     description: { brief: "相加" },
+    examples: [
+      "1+2",
+    ],
   },
   "-/2": {
     isOperator: true,
@@ -133,6 +162,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "减数",
     },
     description: { brief: "相减" },
+    examples: [
+      "1-2",
+    ],
   },
   "+/1": {
     isOperator: true,
@@ -141,6 +173,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "a": "一个数",
     },
     description: { brief: "不变" },
+    examples: [
+      "+1",
+    ],
   },
   "-/1": {
     isOperator: true,
@@ -149,6 +184,10 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "a": "一个数",
     },
     description: { brief: "取相反数" },
+    examples: [
+      "-1",
+      "-(+1)",
+    ],
   },
 
   "*/2": {
@@ -159,6 +198,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "第二个乘数",
     },
     description: { brief: "相乘" },
+    examples: [
+      "3*4",
+    ],
   },
   "///2": {
     isOperator: true,
@@ -168,6 +210,11 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "除数，不能为 0",
     },
     description: { brief: "相整除" },
+    examples: [
+      "1//2",
+      "4//2",
+      "5//2",
+    ],
   },
   "%/2": {
     isOperator: true,
@@ -177,6 +224,11 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "b": "除数，大于 0",
     },
     description: { brief: "取余数" },
+    examples: [
+      "1%2",
+      "4%2",
+      "5%2",
+    ],
   },
   "**/2": {
     isOperator: true,
@@ -186,6 +238,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "n": "指数，不小于 0",
     },
     description: { brief: "幂运算" },
+    examples: [
+      "2**3",
+    ],
   },
 
   "d/2": {
@@ -199,6 +254,10 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       brief: "投掷数个骰子",
       further: "投掷 n 个 x 面骰子，获得点数之和。",
     },
+    examples: [
+      "1d10",
+      "3d10",
+    ],
   },
   "d/1": {
     isOperator: true,
@@ -210,6 +269,9 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       brief: "投掷一个骰子",
       further: "投掷 1 个 x 面骰子，获得其点数。",
     },
+    examples: [
+      "d10",
+    ],
   },
 
   "not/1": {
@@ -219,5 +281,8 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
       "a": "一个布尔值",
     },
     description: { brief: "逻辑非运算" },
+    examples: [
+      "not true",
+    ],
   },
 };

@@ -12,6 +12,9 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       "callable": "用于判断元素是否计入。输入列表元素，期待输出布尔值",
     },
     description: { brief: "有条件计数列表" },
+    examples: [
+      String.raw`count([2, 4, 6], \($x -> $x<5))`,
+    ],
   },
   // ...
   "sum/1": {
@@ -20,6 +23,9 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       "list": "由整数组成的列表",
     },
     description: { brief: "求列表项之和" },
+    examples: [
+      "sum([2, 3, 4])",
+    ],
   },
   "product/1": {
     groups: ["实用"],
@@ -27,6 +33,9 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       "list": "由整数组成的列表",
     },
     description: { brief: "求列表项之积" },
+    examples: [
+      "product([2, 3, 4])",
+    ],
   },
   // ...
   "any?/1": {
@@ -38,6 +47,11 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       brief: "判断列表中是否存在「真」",
       further: "空列表返回「假」。",
     },
+    examples: [
+      "any?([false, false])",
+      "any?([true, false])",
+      "any?([])",
+    ],
   },
   // ...
   "sort/1": {
@@ -46,6 +60,9 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       "list": "要排序的列表。所有元素类型一致，可以是整数或布尔值",
     },
     description: { brief: "排序列表（由小到大）" },
+    examples: [
+      "sort([100, 10, 1000, -10, 0])",
+    ],
   },
   // ...
   "append/2": {
@@ -55,6 +72,10 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       "el": "要添加的元素",
     },
     description: { brief: "追加元素至列表最后" },
+    examples: [
+      "append([1, 2], 3)",
+      "append([], 42)",
+    ],
   },
   "at/2": {
     groups: ["实用"],
@@ -67,6 +88,10 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       further: "索引由 0 开始。",
     },
     returnValue: { type: { description: "取出元素的类型" } },
+    examples: [
+      "at([1, 2, 3], 0)",
+      "at([1, 2, 3], 2)",
+    ],
   },
   // ...
 
@@ -81,6 +106,10 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       brief: "映射列表项",
       further: "返回元素由先前对应元素经过操作变换后的新列表。",
     },
+    examples: [
+      String.raw`map([1, 2, 3], \($x -> $x**2))`,
+      String.raw`map([1, 2, 3], &-/1)`,
+    ],
   },
   // ...
   "filter/2": {
@@ -93,6 +122,9 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       brief: "过滤列表项",
       further: "返回由通过过滤的元素组成的新列表。",
     },
+    examples: [
+      String.raw`filter([2, 4, 6], \($x -> $x<5))`,
+    ],
   },
   // ...
   "head/1": {
@@ -102,6 +134,9 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     },
     description: { brief: "取出列表首个元素" },
     returnValue: { type: { description: "首个元素的类型" } },
+    examples: [
+      "head([1, 2, 3])",
+    ],
   },
   "tail/1": {
     groups: ["函数式"],
@@ -112,6 +147,9 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       brief: "排除列表首个元素",
       further: "返回不含原先列表中首个元素的新列表。",
     },
+    examples: [
+      "tail([1, 2, 3])",
+    ],
   },
   // ...
   "zip/2": {
@@ -127,6 +165,9 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
         "如果两个列表长度不同，只会合并到较短列表的结束位置。",
       ].join("\n"),
     },
+    examples: [
+      "zip([1, 2, 3], [4, 5, 6])",
+    ],
   },
   "zipWith/3": {
     groups: ["函数式"],
@@ -143,6 +184,10 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
         "如果两个列表长度不同，只会合并到较短列表的结束位置。",
       ].join("\n"),
     },
+    examples: [
+      String.raw`zipWith([1, 2, 3], [4, 5, 6], &*/2)`,
+      String.raw`zipWith([1, 2, 3], [4, 5, 6], \($a, $b -> $a#$b))`,
+    ],
   },
   // 控制流
 };
