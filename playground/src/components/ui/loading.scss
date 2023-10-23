@@ -1,0 +1,14 @@
+.loading-indicator {
+  @apply loading;
+
+  &.spinner {
+    @apply loading-spinner;
+  }
+  &.bars {
+    @apply loading-bars;
+  }
+
+  &.lg {
+    @apply loading-lg;
+  }
+}

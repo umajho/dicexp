@@ -1,19 +1,32 @@
 import { Component } from "solid-js";
 
+import {
+  createStyleProviderFromCSSText,
+  ShadowRootAttacher,
+} from "@rolludejo/web-internal";
+
+import styles from "./Loading.scss?inline";
+
+const styleProvider = createStyleProviderFromCSSText(styles);
+
 const Loading: Component<{ type?: "spinner" | "bars"; size?: "lg" }> = (
   props,
 ) => {
   const classes = () =>
     [
-      `loading-${props.type ?? "spinner"}` satisfies
-        | "loading-spinner"
-        | "loading-bars",
-      props.size ? `loading-${props.size}` : "" satisfies
+      (props.type ?? "spinner") satisfies
+        | "spinner"
+        | "bars",
+      (props.size ?? "") satisfies
         | ""
-        | "loading-lg",
+        | "lg",
     ].join(" ");
 
-  return <span class={`loading ${classes()}`}></span>;
+  return (
+    <ShadowRootAttacher styleProviders={[styleProvider]}>
+      <span class={`loading-indicator ${classes()}`}></span>
+    </ShadowRootAttacher>
+  );
 };
 
 export default Loading;

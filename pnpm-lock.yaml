@@ -303,6 +303,9 @@ importers:
       '@dicexp/solid-components':
         specifier: workspace:*
         version: link:../packages/solid-components
+      '@rolludejo/web-internal':
+        specifier: ^0.1.0
+        version: 0.1.0(solid-js@1.8.3)
       '@rotext/solid-components':
         specifier: ^0.2.2
         version: 0.2.2(solid-element@1.8.0)(solid-icons@1.0.12)(solid-js@1.8.3)
@@ -340,6 +343,9 @@ importers:
       postcss:
         specifier: ^8.4.24
         version: 8.4.24
+      sass:
+        specifier: ^1.69.4
+        version: 1.69.4
       solid-devtools:
         specifier: ^0.27.7
         version: 0.27.7(solid-js@1.8.3)(vite@4.3.9)
@@ -351,7 +357,7 @@ importers:
         version: 5.1.3
       vite:
         specifier: ^4.3.9
-        version: 4.3.9
+        version: 4.3.9(sass@1.69.4)
       vite-plugin-solid:
         specifier: ^2.7.0
         version: 2.7.0(solid-js@1.8.3)(vite@4.3.9)
@@ -1646,6 +1652,15 @@ packages:
   /@polka/url@1.0.0-next.23:
     resolution: {integrity: sha512-C16M+IYz0rgRhWZdCmK+h58JMv8vijAA61gmz2rspCSwKwzBebpdcsiUmwrtJRdphuY30i6BSLEOP8ppbNLyLg==}
     dev: true
+
+  /@rolludejo/web-internal@0.1.0(solid-js@1.8.3):
+    resolution: {integrity: sha512-RcCCv9UAb+gJmO2HRh1XbGpLRhhlQzG5BIVGYF2fTzGAIUC/dLU0FfGLQB4YSqoB0yoIk9FT/HuC8K6cBJk+dA==}
+    engines: {node: '>=18', pnpm: '>=8.6.0'}
+    peerDependencies:
+      solid-js: ^1.8.1
+    dependencies:
+      solid-js: 1.8.3
+    dev: false
 
   /@rotext/solid-components@0.2.2(solid-element@1.8.0)(solid-icons@1.0.12)(solid-js@1.8.3):
     resolution: {integrity: sha512-3PtBjBLEUPC9BXJ0E9biWhOpv7aEZrzfczZX8Rmo9xzjq5BdbeyuulxQoqx1B8XkJHC8MAA5xHAQMumu+DByJQ==}
@@ -3237,6 +3252,10 @@ packages:
     engines: {node: '>= 4'}
     dev: true
 
+  /immutable@4.3.4:
+    resolution: {integrity: sha512-fsXeu4J4i6WNWSikpI88v/PcVflZz+6kMhUfIwc5SY+poQRPnaf5V7qds6SUyUN3cVxEzuCab7QIoLOQ+DQ1wA==}
+    dev: true
+
   /inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
     dependencies:
@@ -3799,6 +3818,16 @@ packages:
   /safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
+  /sass@1.69.4:
+    resolution: {integrity: sha512-+qEreVhqAy8o++aQfCJwp0sklr2xyEzkm9Pp/Igu9wNPoe7EZEQ8X/MBvvXggI2ql607cxKg/RKOwDj6pp2XDA==}
+    engines: {node: '>=14.0.0'}
+    hasBin: true
+    dependencies:
+      chokidar: 3.5.3
+      immutable: 4.3.4
+      source-map-js: 1.0.2
+    dev: true
+
   /saxes@6.0.0:
     resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
     engines: {node: '>=v12.22.7'}
@@ -3875,7 +3904,7 @@ packages:
       '@solid-devtools/debugger': 0.22.4(solid-js@1.8.3)
       '@solid-devtools/shared': 0.12.3(solid-js@1.8.3)
       solid-js: 1.8.3
-      vite: 4.3.9
+      vite: 4.3.9(sass@1.69.4)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -4349,7 +4378,7 @@ packages:
       merge-anything: 5.1.7
       solid-js: 1.8.3
       solid-refresh: 0.5.3(solid-js@1.8.3)
-      vite: 4.3.9
+      vite: 4.3.9(sass@1.69.4)
       vitefu: 0.2.4(vite@4.3.9)
     transitivePeerDependencies:
       - supports-color
@@ -4374,7 +4403,7 @@ packages:
       - supports-color
     dev: true
 
-  /vite@4.3.9:
+  /vite@4.3.9(sass@1.69.4):
     resolution: {integrity: sha512-qsTNZjO9NoJNW7KnOrgYwczm0WctJ8m/yqYAMAK9Lxt4SoySUfS5S8ia9K7JHpa3KEeMfyF8LoJ3c5NeBJy6pg==}
     engines: {node: ^14.18.0 || >=16.0.0}
     hasBin: true
@@ -4402,6 +4431,7 @@ packages:
       esbuild: 0.17.12
       postcss: 8.4.24
       rollup: 3.25.1
+      sass: 1.69.4
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
@@ -4485,7 +4515,7 @@ packages:
       vite:
         optional: true
     dependencies:
-      vite: 4.3.9
+      vite: 4.3.9(sass@1.69.4)
     dev: true
 
   /vitefu@0.2.4(vite@4.4.6):
