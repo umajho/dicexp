@@ -21,7 +21,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
 
   // 实用：
   "count/2": (rtm, list, callable) => {
-    const result = filter(rtm, list, callable);
+    const result = filter(rtm, list, callable, "count/2");
     if (result[0] === "error") return result;
     return ["ok", result[1].length];
   },
@@ -90,7 +90,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   "filter/2": (rtm, list, callable) => {
     // FIXME: 应该展现对每个值的过滤步骤
     // FIXME: 应该惰性求值
-    return filter(rtm, list, callable);
+    return filter(rtm, list, callable, "filter/2");
   },
   // ...
   "head/1": (_rtm, list) => {
@@ -133,6 +133,7 @@ function filter(
   rtm: RuntimeProxyForFunction,
   list: ValueBox[],
   callable: Value_Callable,
+  functionFullName: string,
 ): ["ok", Value_List] | ["error", RuntimeError] {
   const filtered: ValueBox[] = [];
   for (const el of list) {
@@ -144,7 +145,7 @@ function filter(
     if (typeof value !== "boolean") {
       const err = runtimeError_givenClosureReturnValueTypeMismatch(
         rtm,
-        "filter/2",
+        functionFullName,
         "boolean",
         rtm.getValueTypeName(value),
         2,
