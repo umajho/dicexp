@@ -281,9 +281,17 @@ export class ConcreteValueBoxFactory {
           return this.error(makeRuntimeError(errMsg), repr);
         }
 
+        let yieldedCount = 0;
         const list = createValue.stream$list(
-          countValue,
-          () => this.runtime.interpret(scope, body),
+          () => {
+            const valueBox = this.runtime.interpret(scope, body);
+            yieldedCount++;
+            return [
+              yieldedCount === countValue ? "last_nominal" : "ok",
+              [["regular", valueBox]],
+            ];
+          },
+          { initialNominalLength: countValue },
         );
 
         const repr = createRepr.repetition(

@@ -200,6 +200,59 @@ export type Value_NonContainer =
   | Value_Callable
   | Value_Stream;
 
+function createCreateStream<
+  Type extends "stream$list" | "stream$sum",
+  T = Type extends "stream$list" ? ValueBox : number,
+>(
+  type: Type,
+) {
+  return (
+    yielder: () => [
+      "ok" | "last" | "last_nominal",
+      StreamFragment<T>,
+    ],
+    opts?: { initialNominalLength?: number },
+  ): Type extends "stream$list" ? Value_Stream$List : Value_Stream$Sum => {
+    type Yielded = ReturnType<typeof yielder>;
+    const underlying: Yielded[] = //
+      new Array(opts?.initialNominalLength ?? 0);
+    let filled = 0, minimalPossibleNominalLength = opts?.initialNominalLength;
+    function fill(toIndex: number): Yielded {
+      let lastFilled: Yielded | null = null;
+      for (let unfilledI = filled; unfilledI <= toIndex; unfilledI++) {
+        if (!underlying[unfilledI]) {
+          lastFilled = yielder();
+          if (lastFilled[0] === "last" || lastFilled[0] === "last_nominal") {
+            minimalPossibleNominalLength = unfilledI + 1;
+          }
+          underlying[unfilledI] = lastFilled;
+        }
+      }
+      if (filled <= toIndex) {
+        filled = toIndex + 1;
+      }
+      return lastFilled ?? underlying[toIndex]!;
+    }
+
+    return {
+      type,
+      _getMinimalPossibleNominalLength: () => minimalPossibleNominalLength,
+      _getActualLength: () => filled,
+      _at: (index: number) => {
+        fill(index);
+        const [returnType, [[_, valueBox]]] = fill(index);
+        return [returnType, valueBox];
+      },
+      _fragmentAtForRepr: (index: number) => {
+        const result = underlying[index];
+        if (!result) throw new Unreachable();
+        const [_, fragement] = result;
+        return fragement;
+      },
+    } as Value_StreamBase<Type, T> as any;
+  };
+}
+
 export const createValue = {
   callable(
     arity: number,
@@ -221,57 +274,9 @@ export const createValue = {
     return v as Value_List;
   },
 
-  /**
-   * TODO: DRY with `stream$sum`.
-   */
-  stream$list(
-    nominalLength: number,
-    yielder: () => ValueBox,
-  ): Value_Stream$List {
-    const underlying: ValueBox[] = Array(nominalLength);
-    let filled = 0;
-    return {
-      type: "stream$list",
-      nominalLength,
-      _at(index: number) {
-        for (let unfilledI = filled; unfilledI <= index; unfilledI++) {
-          if (!underlying[unfilledI]) {
-            underlying[unfilledI] = yielder();
-          }
-        }
-        if (filled <= index) {
-          filled = index + 1;
-        }
-        return underlying[index]!;
-      },
-    };
-  },
+  stream$list: createCreateStream("stream$list"),
 
-  stream$sum(
-    nominalLength: number,
-    yielder: () => number,
-  ): Value_Stream$Sum {
-    const underlying: number[] = Array(nominalLength);
-    let filled = 0;
-    return {
-      type: "stream$sum",
-      nominalLength,
-      _at(index: number) {
-        for (let unfilledI = filled; unfilledI <= index; unfilledI++) {
-          if (!underlying[unfilledI]) {
-            underlying[unfilledI] = yielder();
-          }
-        }
-        if (filled <= index) {
-          filled = index + 1;
-        }
-        return underlying[index]!;
-      },
-      _getAddends() {
-        return underlying.slice(0, filled);
-      },
-    };
-  },
+  stream$sum: createCreateStream("stream$sum"),
 };
 
 export interface Value_Callable {
@@ -370,44 +375,59 @@ class InternalValue_List extends Array<ValueBox> implements Value_List {
 }
 
 export type Value_Stream = Value_Stream$List | Value_Stream$Sum;
+
+interface Value_StreamBase<Type extends string, T> {
+  type: Type;
+
+  /**
+   * 访问指定位置的值。
+   */
+  _at: (
+    index: number,
+  ) => [
+    | "ok"
+    | /* 名义上后面不再有值 */ "last_nominal"
+    | /* 实际上后面不再有值 */ "last",
+    T,
+  ] | null;
+
+  /**
+   * 获取可能的最小的名义上的长度。
+   */
+  _getMinimalPossibleNominalLength: () => number | undefined;
+
+  /**
+   * 获取实际产生的长度。
+   */
+  _getActualLength: () => number;
+
+  /**
+   * 访问与指定位置的值关联的片段。
+   *
+   * 只应该在创建 repr 的时候调用，这时所需获取的元素都已经填充好了。
+   */
+  _fragmentAtForRepr: (index: number) => StreamFragment<T>;
+}
+
+export type StreamFragment<T> = [
+  /**
+   * 留下的元素。
+   */
+  kept: [type: "regular", value: T],
+  /**
+   * 在上一个留下的元素与这次留下的元素之间的被遗弃（如在 reroll、filter 时）的元素。
+   */
+  abandonedBefore?: T[],
+];
+
 /**
  * 可以隐式转换为列表的流。
  */
-export interface Value_Stream$List {
-  type: "stream$list";
-
-  /**
-   * 名义上的长度，在转换成其他类型时只截取至这里。
-   *
-   * 比如，`5#d3` 的名义长度是 5，`3d6` 的名义长度是 3。
-   */
-  nominalLength: number;
-
-  /**
-   * 直接访问指定位置的值。
-   */
-  _at: (index: number) => ValueBox;
-}
+export type Value_Stream$List = Value_StreamBase<"stream$list", ValueBox>;
 /**
  * 可以隐式转换为整数（通过求和）的流。
  */
-export interface Value_Stream$Sum {
-  type: "stream$sum";
-
-  /**
-   * 名义上的长度，在转换成其他类型时只截取至这里。
-   *
-   * 比如，`5#d3` 的名义长度是 5，`3d6` 的名义长度是 3。
-   */
-  nominalLength: number;
-
-  /**
-   * 直接访问指定位置的值。
-   */
-  _at: (index: number) => number;
-
-  _getAddends: () => number[];
-}
+export type Value_Stream$Sum = Value_StreamBase<"stream$sum", number>;
 
 export function asInteger(value: Value): number | null {
   if (typeof value === "number") return value;
@@ -417,8 +437,11 @@ export function asInteger(value: Value): number | null {
     value.type === "stream$sum"
   ) {
     let sum = 0;
-    for (let i = 0; i < value.nominalLength; i++) {
-      sum += value._at(i);
+    for (let i = 0;; i++) {
+      const result = value._at(i);
+      if (!result) break;
+      sum += result[1];
+      if (result[0] === "last" || result[0] === "last_nominal") break;
     }
     return sum;
   }
@@ -430,9 +453,13 @@ export function asList(value: Value): Value_List | null {
   if (typeof value === "object" && value.type === "list") return value;
 
   if (typeof value === "object" && value.type === "stream$list") {
-    const list = new Array<ValueBox>(value.nominalLength);
-    for (let i = 0; i < value.nominalLength; i++) {
-      list[i] = value._at(i);
+    const list = //
+      new Array<ValueBox>(value._getMinimalPossibleNominalLength() ?? 0);
+    for (let i = 0;; i++) {
+      const result = value._at(i);
+      if (!result) break;
+      list[i] = result[1];
+      if (result[0] === "last" || result[0] === "last_nominal") break;
     }
     return createValue.list(list);
   }

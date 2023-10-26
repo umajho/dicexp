@@ -1,6 +1,14 @@
 import { precedenceTable } from "@dicexp/lezer";
 
-import { asInteger, asList, Value, Value_List } from "../values";
+import { Unreachable } from "@dicexp/errors";
+
+import {
+  asInteger,
+  asList,
+  Value,
+  Value_List,
+  Value_Stream$Sum,
+} from "../values";
 import { RuntimeError } from "../runtime_errors";
 
 type ReprBase<IsInRuntime extends boolean> =
@@ -91,7 +99,7 @@ export const createRepr = {
     } else if (value.type === "list" || value.type === "stream$list") {
       return createRepr.value_list(asList(value)!);
     } else if (value.type === "stream$sum") {
-      return createRepr.value_sum(asInteger(value)!, value._getAddends());
+      return createRepr.value_sum(value);
     } else {
       value.type satisfies "callable";
       return value.representation;
@@ -123,7 +131,16 @@ export const createRepr = {
   /**
    * 如：`(1 + 2 + 3 = 6)`。
    */
-  value_sum(sum: number, addends: number[]): ReprInRuntime & { 0: "vs" } {
+  value_sum(stream: Value_Stream$Sum): ReprInRuntime & { 0: "vs" } {
+    const addends = new Array(stream._getMinimalPossibleNominalLength());
+    for (let i = 0;; i++) {
+      const result = stream._at(i);
+      if (!result) break;
+      addends[i] = result[1];
+      if (result[0] === "last" || result[0] === "last_nominal") break;
+    }
+    const sum = addends.reduce((acc, cur) => acc + cur, 0);
+    if (sum !== asInteger(stream)) throw new Unreachable();
     return ["vs", sum, addends];
   },
 

@@ -20,37 +20,52 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   // 掷骰：
   "reroll/2": (rtm, stream, callable) => {
     let isSum = rtm.getValueTypeName(stream) === "stream$sum";
-    let remain = stream.nominalLength;
 
-    let result = isSum ? 0 : ([] as ValueBox[]);
-    for (let i = 0; remain; i++) {
-      const current = stream._at(i);
+    let remainRerolls = 0, hasExceededNominalLenght = false;
+    let acc = isSum ? 0 : ([] as ValueBox[]);
+    for (let i = 0;; i++) {
+      const curResult = stream._at(i);
+      if (!curResult) break;
+      const [curStatus, curValue] = curResult;
 
       const shouldRerollResult = tryUnwrapBoolean(
         rtm,
         callable._call([
           isSum
-            ? rtm.createValueBox.direct(current as number)
-            : current as ValueBox,
+            ? rtm.createValueBox.direct(curValue as number)
+            : curValue as ValueBox,
         ]),
         { functionFullName: "reroll/2" },
       );
       if (shouldRerollResult[0] === "error") return shouldRerollResult;
 
       const shouldReroll = shouldRerollResult[1];
-      if (!shouldReroll) {
+      if (shouldReroll) {
+        remainRerolls++;
+      } else {
         if (isSum) {
-          (result as number) += current as number;
+          (acc as number) += curValue as number;
         } else {
-          (result as ValueBox[]).push(current as ValueBox);
+          (acc as ValueBox[]).push(curValue as ValueBox);
         }
-        remain--;
+      }
+
+      if (hasExceededNominalLenght) {
+        remainRerolls--;
+        if (!remainRerolls) break;
+      }
+
+      if (curStatus === "last") {
+        break;
+      } else if (curStatus === "last_nominal") {
+        if (!remainRerolls) break;
+        hasExceededNominalLenght = true;
       }
     }
 
     return [
       "ok",
-      isSum ? result as number : rtm.createValue.list(result as ValueBox[]),
+      isSum ? acc as number : rtm.createValue.list(acc as ValueBox[]),
     ];
   },
 
