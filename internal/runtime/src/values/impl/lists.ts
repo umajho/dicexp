@@ -24,7 +24,7 @@ class InternalValue_List extends Array<ValueBox> implements Value_List {
    */
   static isCreating = false;
 
-  type!: "list";
+  readonly type = "list";
 
   private _confirmedError?: RuntimeError | null = null;
   private _errorHooks?: ((err: RuntimeError) => void)[];
@@ -34,7 +34,6 @@ class InternalValue_List extends Array<ValueBox> implements Value_List {
 
     if (!InternalValue_List.isCreating) return;
 
-    this.type = "list";
     this._confirmedError = null;
 
     const setComfirmedError = (err: RuntimeError) => {
