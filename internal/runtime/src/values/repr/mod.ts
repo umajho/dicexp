@@ -18,7 +18,7 @@ type ReprBase<IsInRuntime extends boolean> =
   | (IsInRuntime extends true /** type 中有后缀 `@` 代表是运行时版本，下同 */
     ? [
       type: "vl@",
-      items: (() => ReprBase<true>)[],
+      items: (() => ReprBase<true>[]),
       containsError: () => boolean,
     ]
     : [
@@ -125,7 +125,7 @@ export const createRepr = {
   ): ReprInRuntime & { 0: "vl@" } {
     return [
       "vl@",
-      list.map((item) => () => item.getRepr()),
+      () => list.map((item) => item.getRepr()),
       list.confirmsThatContainsError.bind(list),
     ];
   },
@@ -134,14 +134,17 @@ export const createRepr = {
    * 如：`[ 1, 2, 3 ]`。
    */
   value_stream$list(stream: Value_Stream$List): ReprInRuntime & { 0: "@" } {
-    return ["@", () => {
-      const list = stream.castImplicitly();
-      return [
-        "vl@",
-        list.map((item) => () => item.getRepr()),
-        list.confirmsThatContainsError.bind(list),
-      ];
-    }];
+    return [
+      "@",
+      () => {
+        const list = stream.castImplicitly();
+        return [
+          "vl@",
+          () => list.map((item) => item.getRepr()),
+          list.confirmsThatContainsError.bind(list),
+        ];
+      },
+    ];
   },
 
   /**
@@ -275,7 +278,7 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
     case "E":
       return rtmRepr;
     case "vl@":
-      const items = rtmRepr[1].map((item) => finalizeRepr(item()));
+      const items = rtmRepr[1]().map((item) => finalizeRepr(item));
       const containsError = rtmRepr[2]();
       return ["vl", items, containsError];
     case "i":
