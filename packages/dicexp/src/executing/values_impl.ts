@@ -61,7 +61,7 @@ export class ConcreteValueBoxFactory {
   }
 
   literalList(list: ValueBox[]): ValueBox {
-    return createValueBox.list(createValue.list(list));
+    return createValueBox.container(createValue.list(list));
   }
 
   callRegularFunction(
@@ -299,7 +299,7 @@ export class ConcreteValueBoxFactory {
           bodyRaw,
           createRepr.value(list),
         );
-        return createValueBox.direct(list, repr);
+        return createValueBox.container(list, repr);
       },
     );
   }

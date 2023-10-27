@@ -126,7 +126,7 @@ export const createRepr = {
     return [
       "vl@",
       () => list.map((item) => item.getRepr()),
-      list.confirmsThatContainsError.bind(list),
+      () => list.errorBeacon.comfirmsError(),
     ];
   },
 
@@ -141,7 +141,7 @@ export const createRepr = {
         return [
           "vl@",
           () => list.map((item) => item.getRepr()),
-          list.confirmsThatContainsError.bind(list),
+          () => stream.errorBeacon?.comfirmsError() ?? false,
         ];
       },
     ];

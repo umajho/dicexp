@@ -1,5 +1,9 @@
+import { Unreachable } from "@dicexp/errors";
+
+import { ErrorBeacon } from "../error-beacon";
 import {
   createValue,
+  RuntimeError,
   StreamFragment,
   Value_List,
   Value_Stream$List,
@@ -9,14 +13,14 @@ import {
 
 export function createStream$list(
   yielder: () => Yielded<ValueBox> | null,
-  opts?: { initialNominalLength?: number },
+  opts?: StreamOptions,
 ): Value_Stream$List {
   return new InternalValue_Stream$List(yielder, opts);
 }
 
 export function createStream$sum(
   yielder: () => Yielded<number> | null,
-  opts?: { initialNominalLength?: number },
+  opts?: StreamOptions,
 ): Value_Stream$Sum {
   return new InternalValue_Stream$Sum(yielder, opts);
 }
@@ -26,14 +30,21 @@ type Yielded<T> = [
   fragment: StreamFragment<T>,
 ];
 
+interface StreamOptions {
+  initialNominalLength?: number;
+}
+
 class InternalValue_StreamBase<T> {
   constructor(
     private readonly _yielder: () => Yielded<T> | null,
-    private readonly _opts?: { initialNominalLength?: number },
+    private readonly _opts?: StreamOptions,
   ) {}
 
   private readonly _underlying: Yielded<T>[] = //
     new Array(this._opts?.initialNominalLength ?? 0);
+
+  protected _errorBeacon?: ErrorBeacon;
+  protected _errorSetter?: (error: RuntimeError) => void;
 
   /**
    * 目前实际产生的元素的数量。
@@ -76,10 +87,7 @@ class InternalValue_StreamBase<T> {
    */
   protected get _nominalList(): T[] {
     this._fill({ allNominal: true });
-    return (this._confirmedNominalLength! === this._actualLength
-      ? this._underlying
-      : this._underlying.slice(0, this._confirmedNominalLength))
-      .map(([_1, [[_2, v]]]) => v);
+    return this.availableFragments.map(([[_1, v], _2]) => v);
   }
 
   get availableFragments(): StreamFragment<T>[] {
@@ -90,6 +98,8 @@ class InternalValue_StreamBase<T> {
       : this._underlying.slice(0, this.availableNominalLength))
       .map(([_1, f]) => f);
   }
+
+  protected _extractError?: (item: T) => RuntimeError | null;
 
   /**
    * 若参数为 to.index：
@@ -106,29 +116,40 @@ class InternalValue_StreamBase<T> {
     if ("index" in to && to.index < this._actualLength) {
       return this._underlying[to.index]!;
     }
-    if (this._isExhausted) return null;
+    if (this._isExhausted || this._errorBeacon?.comfirmsError()) return null;
 
     const p = "index" in to
       ? () => this._actualLength <= to.index
       : () => !this._hasSatisfiedNominal;
 
     let lastFilled: Yielded<T> | null = null;
-    for (; p(); this._actualLength++) {
+    for (; p();) {
       lastFilled = this._yielder();
       if (!lastFilled) {
         this._isExhausted = true;
         this._confirmedNominalLength = this._actualLength;
         break;
       }
-      this._underlying[this._actualLength] = lastFilled;
+
+      this._actualLength++;
+
+      const error = this._extractError?.(lastFilled[1][0][1]);
+      if (error) {
+        this._errorSetter!(error);
+      }
+
+      let shouldBreak = this._errorBeacon?.comfirmsError();
+
+      this._underlying[this._actualLength - 1] = lastFilled;
       if (lastFilled[0] === "last") {
         this._isExhausted = true;
-        this._actualLength++;
         this._confirmedNominalLength = this._actualLength;
-        break;
+        shouldBreak = true;
       } else if (lastFilled[0] === "last_nominal") {
-        this._confirmedNominalLength = this._actualLength + 1;
+        this._confirmedNominalLength = this._actualLength;
       }
+
+      if (shouldBreak) break;
     }
 
     if ("index" in to) {
@@ -142,6 +163,28 @@ class InternalValue_StreamBase<T> {
 class InternalValue_Stream$List extends InternalValue_StreamBase<ValueBox>
   implements Value_Stream$List {
   readonly type = "stream$list";
+
+  constructor(yielder: () => Yielded<ValueBox> | null, opts?: StreamOptions) {
+    super(yielder, opts);
+
+    this._errorBeacon = new ErrorBeacon((s) => this._errorSetter = s);
+  }
+
+  get errorBeacon() {
+    return this._errorBeacon!;
+  }
+
+  _extractError = (item: ValueBox) => {
+    if (item.confirmsError()) {
+      const itemResult = item.get();
+      if (itemResult[0] !== "error") throw new Unreachable();
+      return itemResult[1];
+    }
+    if (item.errorBeacon) {
+      item.errorBeacon.addDisposableHook((err) => this._errorSetter!(err));
+    }
+    return null;
+  };
 
   castImplicitly(): Value_List {
     return createValue.list(this._nominalList);

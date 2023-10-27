@@ -3,6 +3,7 @@ import { createRepr, ReprInRuntime } from "./repr/mod";
 import { createList } from "./impl/lists";
 import { createCallable } from "./impl/callable";
 import { createStream$list, createStream$sum } from "./impl/streams";
+import { ErrorBeacon } from "./error-beacon";
 
 export abstract class ValueBox {
   /**
@@ -13,34 +14,37 @@ export abstract class ValueBox {
    * 是否确定存在错误。
    */
   abstract confirmsError(): boolean;
+  get errorBeacon(): ErrorBeacon | undefined {
+    return undefined;
+  }
   abstract getRepr(): ReprInRuntime;
-}
-
-export interface DisposableErrorHookable {
-  addDisposableErrorHook(hook: (err: RuntimeError) => void): void;
 }
 
 export const createValueBox = {
   direct(
-    value: Value_NonContainer,
+    value: Value_Direct,
     repr: ReprInRuntime = createRepr.value(value),
   ) {
     return new ValueBoxDircet(value, repr);
   },
 
-  list(
-    list: Value_List,
+  container(
+    list: Value_Container,
     repr: ReprInRuntime = createRepr.value(list),
   ) {
-    return new ValueBoxList(list, repr);
+    return new ValueBoxContainer(list, repr);
   },
 
   value(
     value: Value,
     repr: ReprInRuntime = createRepr.value(value),
   ) {
-    if (typeof value === "object" && value.type === "list") {
-      return createValueBox.list(value, repr);
+    if (
+      typeof value === "object" &&
+      (value.type === "list" || value.type === "stream$list" ||
+        value.type === "stream$sum")
+    ) {
+      return createValueBox.container(value, repr);
     }
     return createValueBox.direct(value, repr);
   },
@@ -63,7 +67,7 @@ export const createValueBox = {
 
 class ValueBoxDircet extends ValueBox {
   constructor(
-    private value: Value_NonContainer,
+    private value: Value_Direct,
     private representation: ReprInRuntime,
   ) {
     super();
@@ -80,29 +84,27 @@ class ValueBoxDircet extends ValueBox {
   }
 }
 
-class ValueBoxList extends ValueBox implements DisposableErrorHookable {
-  private errorInItem?: RuntimeError;
-
+class ValueBoxContainer extends ValueBox {
   constructor(
-    private value: Value_List,
+    private value: Value_Container,
     private representation: ReprInRuntime,
   ) {
     super();
-    value.addDisposableErrorHook((err) => this.errorInItem = err);
   }
 
   get(): ["ok", Value] | ["error", RuntimeError] {
-    return this.errorInItem ? ["error", this.errorInItem] : ["ok", this.value];
+    return this.errorBeacon?.error
+      ? ["error", this.errorBeacon.error]
+      : ["ok", this.value];
+  }
+  get errorBeacon() {
+    return this.value.errorBeacon;
   }
   confirmsError(): boolean {
-    return !!this.errorInItem;
+    return this.errorBeacon?.comfirmsError() ?? false;
   }
   getRepr(): ReprInRuntime {
     return this.representation;
-  }
-
-  addDisposableErrorHook(hook: (err: RuntimeError) => void): void {
-    this.value.addDisposableErrorHook(hook);
   }
 }
 
@@ -131,14 +133,21 @@ class ValueBoxError extends ValueBox {
   }
 }
 
-class ValueBoxLazy extends ValueBox implements DisposableErrorHookable {
+class ValueBoxLazy extends ValueBox {
   memo?: [["ok", Value] | ["error", RuntimeError], ReprInRuntime];
   errorHooks?: ((err: RuntimeError) => void)[];
+
+  private _errorBeacon: ErrorBeacon;
+  private _errorSetter!: (error: RuntimeError) => void;
+  get errorBeacon() {
+    return this._errorBeacon;
+  }
 
   constructor(
     private yielder?: () => ValueBox,
   ) {
     super();
+    this._errorBeacon = new ErrorBeacon((s) => this._errorSetter = s);
   }
 
   get(): ["ok", Value] | ["error", RuntimeError] {
@@ -148,31 +157,19 @@ class ValueBoxLazy extends ValueBox implements DisposableErrorHookable {
       const result = valueBox.get();
       this.memo = [result, valueBox.getRepr()];
       if (result[0] === "error") {
-        this.errorHooks?.forEach((h) => h(result[1]));
-        delete this.errorHooks;
+        this._errorSetter(result[1]);
       }
     }
     return this.memo[0];
   }
   confirmsError(): boolean {
-    if (!this.memo) return false;
-    return this.memo[0][0] === "error";
+    return this.errorBeacon.comfirmsError();
   }
   getRepr(): ReprInRuntime {
     if (this.memo) {
       return this.memo[1];
     }
     return createRepr.unevaluated();
-  }
-
-  addDisposableErrorHook(hook: (err: RuntimeError) => void) {
-    if (this.memo?.[0][0] === "error") {
-      hook(this.memo[0][1]);
-    } else if (this.errorHooks) {
-      this.errorHooks.push(hook);
-    } else {
-      this.errorHooks = [hook];
-    }
   }
 }
 
@@ -190,16 +187,18 @@ class ValueBoxUnevaluated extends ValueBox {
 const valueBoxUnevaluated = new ValueBoxUnevaluated();
 
 export type Value =
-  | Value_NonContainer
-  | Value_List;
+  | Value_Direct
+  | Value_Container;
 /**
  * 没有更内部内容的值。
  * 用这样的值创建 ValueBox 时不用检查内部是否存在错误。
  */
-export type Value_NonContainer =
+export type Value_Direct =
   | number
   | boolean
-  | Value_Callable
+  | Value_Callable;
+export type Value_Container =
+  | Value_List
   | Value_Stream;
 type Value_Plain = Exclude<Value, Value_Stream>;
 
@@ -225,8 +224,7 @@ export interface Value_Callable {
 
 export type Value_List = ValueBox[] & {
   type: "list";
-  addDisposableErrorHook(hook: (err: RuntimeError) => void): void;
-  confirmsThatContainsError(): boolean;
+  errorBeacon: ErrorBeacon;
 };
 
 export type Value_Stream = Value_Stream$List | Value_Stream$Sum;
@@ -237,6 +235,8 @@ interface Value_StreamBase<
   CastingImplicitlyTo extends Value_Plain,
 > {
   type: Type;
+
+  errorBeacon?: ErrorBeacon;
 
   at: (index: number) => Item | null;
 

@@ -157,7 +157,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     const result = Array(zippedLength);
     for (let i = 0; i < zippedLength; i++) {
       const listValue = rtm.createValue.list([list1[i]!, list2[i]!]);
-      result[i] = rtm.createValueBox.list(listValue);
+      result[i] = rtm.createValueBox.container(listValue);
     }
     return ["ok", rtm.createValue.list(result)];
   },

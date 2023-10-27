@@ -1,11 +1,7 @@
 import { Unreachable } from "@dicexp/errors";
 
-import {
-  DisposableErrorHookable,
-  RuntimeError,
-  Value_List,
-  ValueBox,
-} from "../mod";
+import { RuntimeError, Value_List, ValueBox } from "../mod";
+import { ErrorBeacon } from "../error-beacon";
 
 export function createList(underlying: ValueBox[]): Value_List {
   InternalValue_List.isCreating = true;
@@ -26,49 +22,28 @@ class InternalValue_List extends Array<ValueBox> implements Value_List {
 
   readonly type = "list";
 
-  private _confirmedError?: RuntimeError | null = null;
-  private _errorHooks?: ((err: RuntimeError) => void)[];
+  private _errorBeacon!: ErrorBeacon;
+  private _errorSetter!: (error: RuntimeError) => void;
+  get errorBeacon() {
+    return this._errorBeacon;
+  }
 
   constructor(...underlying: ValueBox[]) {
     super(...underlying);
 
     if (!InternalValue_List.isCreating) return;
 
-    this._confirmedError = null;
-
-    const setComfirmedError = (err: RuntimeError) => {
-      this._confirmedError = err;
-      this._errorHooks?.forEach((hook) => hook(err));
-      delete this._errorHooks;
-    };
+    this._errorBeacon = new ErrorBeacon((s) => this._errorSetter = s);
 
     for (const item of underlying) {
-      if (this._confirmedError) break;
+      if (this._errorBeacon.error) break;
       if (item.confirmsError()) {
         const itemResult = item.get();
         if (itemResult[0] !== "error") throw new Unreachable();
-        setComfirmedError(itemResult[1]);
-      } else if ("addDisposableErrorHook" in item) {
-        (item as DisposableErrorHookable)
-          .addDisposableErrorHook((err) => setComfirmedError(err));
+        this._errorSetter(itemResult[1]);
+      } else if (item.errorBeacon) {
+        item.errorBeacon.addDisposableHook((err) => this._errorSetter(err));
       }
     }
-  }
-
-  /**
-   * 在确定有错误时，以该错误为参数调用 hook。
-   */
-  addDisposableErrorHook(hook: (err: RuntimeError) => void): void {
-    if (this._confirmedError) {
-      hook(this._confirmedError);
-    } else if (this._errorHooks) {
-      this._errorHooks.push(hook);
-    } else {
-      this._errorHooks = [hook];
-    }
-  }
-
-  confirmsThatContainsError(): boolean {
-    return !!this._confirmedError;
   }
 }
