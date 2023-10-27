@@ -19,7 +19,7 @@ type ReprBase<IsInRuntime extends boolean> =
     ? [
       type: "vl@",
       items: (() => ReprBase<true>)[],
-      containsError?: () => boolean,
+      containsError: () => boolean,
     ]
     : [
       type: /** value_list */ "vl",
@@ -276,7 +276,7 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
       return rtmRepr;
     case "vl@":
       const items = rtmRepr[1].map((item) => finalizeRepr(item()));
-      const containsError = rtmRepr[2]?.() ?? false;
+      const containsError = rtmRepr[2]();
       return ["vl", items, containsError];
     case "i":
       if (!(/* value */ rtmRepr[2])) return rtmRepr as Repr;
