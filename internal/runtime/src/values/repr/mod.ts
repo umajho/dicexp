@@ -1,17 +1,17 @@
 import { precedenceTable } from "@dicexp/lezer";
 
-import { Unreachable } from "@dicexp/errors";
-
 import {
-  asInteger,
-  asList,
   Value,
   Value_List,
+  Value_Stream$List,
   Value_Stream$Sum,
 } from "../values";
 import { RuntimeError } from "../runtime_errors";
 
 type ReprBase<IsInRuntime extends boolean> =
+  | (IsInRuntime extends true
+    ? [type: /** lazy */ "@", fn: () => ReprBase<true>]
+    : never)
   | [type: /** raw */ "r", raw: string]
   | [type: /** unevaluated */ "_"]
   | [type: /** value_primitive */ "vp", value: number | boolean]
@@ -96,10 +96,12 @@ export const createRepr = {
   value(value: Value): ReprInRuntime {
     if (typeof value === "number" || typeof value === "boolean") {
       return createRepr.value_primitive(value);
-    } else if (value.type === "list" || value.type === "stream$list") {
-      return createRepr.value_list(asList(value)!);
+    } else if (value.type === "list") {
+      return createRepr.value_list(value);
+    } else if (value.type === "stream$list") {
+      return createRepr.value_list(value.castImplicitly());
     } else if (value.type === "stream$sum") {
-      return createRepr.value_sum(value);
+      return createRepr.value_stream$sum(value);
     } else {
       value.type satisfies "callable";
       return value.representation;
@@ -129,19 +131,28 @@ export const createRepr = {
   },
 
   /**
+   * 如：`[ 1, 2, 3 ]`。
+   */
+  value_stream$list(stream: Value_Stream$List): ReprInRuntime & { 0: "@" } {
+    return ["@", () => {
+      const list = stream.castImplicitly();
+      return [
+        "vl@",
+        list.map((item) => () => item.getRepr()),
+        list.confirmsThatContainsError.bind(list),
+      ];
+    }];
+  },
+
+  /**
    * 如：`(1 + 2 + 3 = 6)`。
    */
-  value_sum(stream: Value_Stream$Sum): ReprInRuntime & { 0: "vs" } {
-    const addends = new Array(stream._getMinimalPossibleNominalLength());
-    for (let i = 0;; i++) {
-      const result = stream._at(i);
-      if (!result) break;
-      addends[i] = result[1];
-      if (result[0] === "last" || result[0] === "last_nominal") break;
-    }
-    const sum = addends.reduce((acc, cur) => acc + cur, 0);
-    if (sum !== asInteger(stream)) throw new Unreachable();
-    return ["vs", sum, addends];
+  value_stream$sum(stream: Value_Stream$Sum): ReprInRuntime & { 0: "@" } {
+    return ["@", () => {
+      const fragments = stream.availableFragments;
+      const addends = fragments.map((f) => f[0][1]);
+      return ["vs", stream.castImplicitly(), addends];
+    }];
   },
 
   /**
@@ -253,6 +264,8 @@ export const createRepr = {
 
 export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
   switch (/* type */ rtmRepr[0]) {
+    case "@":
+      return finalizeRepr(rtmRepr[1]());
     case "r":
     case "_":
     case "vp":

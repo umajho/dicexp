@@ -1,12 +1,9 @@
-import { Unreachable } from "@dicexp/errors";
 import {
   runtimeError_callArgumentTypeMismatch,
   runtimeError_typeMismatch,
   TypeMismatchKind,
 } from "../errors/mod";
 import {
-  asInteger,
-  asList,
   getValueTypeName,
   RuntimeError,
   Value,
@@ -47,39 +44,22 @@ function tryAdaptType(
   opts: CheckTypeOptions = {},
 ): ["ok", Value] | ["error", RuntimeError] {
   let typeName: ValueTypeName = getValueTypeName(value);
-  let shouldConvert = false;
-  if (typeName === "stream$sum") {
-    if (
-      spec !== "stream$sum" &&
-      !(spec instanceof Set && spec.has("stream$sum"))
-    ) {
-      typeName = "integer";
-      shouldConvert = true;
-    }
-  } else if (typeName === "stream$list") {
-    if (
-      spec !== "stream$list" &&
-      !(spec instanceof Set && spec.has("stream$list"))
-    ) {
-      typeName = "list";
-      shouldConvert = true;
-    }
+  if (
+    (typeName === "stream$sum" && !isInSpec(spec, "stream$sum")) ||
+    (typeName === "stream$list" && !isInSpec(spec, "stream$list"))
+  ) {
+    value = (value as Extract<Value, { castImplicitly: any }>).castImplicitly();
+    typeName = getValueTypeName(value);
   }
 
   const error = checkType(spec, typeName, opts);
   if (error) return ["error", error];
 
-  if (shouldConvert) {
-    if (typeName === "integer") {
-      value = asInteger(value)!;
-    } else if (typeName === "list") {
-      value = asList(value)!;
-    } else {
-      throw new Unreachable();
-    }
-  }
-
   return ["ok", value];
+}
+
+function isInSpec(spec: Exclude<ValueSpec, "lazy">, typeName: ValueTypeName) {
+  return spec === typeName || (spec instanceof Set && spec.has(typeName));
 }
 
 interface CheckTypeOptions {

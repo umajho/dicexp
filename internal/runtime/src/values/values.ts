@@ -2,7 +2,7 @@ import { makeRuntimeError, RuntimeError } from "./runtime_errors";
 import { createRepr, ReprInRuntime } from "./repr/mod";
 import { createList } from "./impl/lists";
 import { createCallable } from "./impl/callable";
-import { createCreateStream } from "./impl/streams";
+import { createStream$list, createStream$sum } from "./impl/streams";
 
 export abstract class ValueBox {
   /**
@@ -201,15 +201,16 @@ export type Value_NonContainer =
   | boolean
   | Value_Callable
   | Value_Stream;
+type Value_Plain = Exclude<Value, Value_Stream>;
 
 export const createValue = {
   callable: createCallable,
 
   list: createList,
 
-  stream$list: createCreateStream("stream$list"),
+  stream$list: createStream$list,
 
-  stream$sum: createCreateStream("stream$sum"),
+  stream$sum: createStream$sum,
 };
 
 export { asCallable, callCallable } from "./impl/callable";
@@ -230,44 +231,42 @@ export type Value_List = ValueBox[] & {
 
 export type Value_Stream = Value_Stream$List | Value_Stream$Sum;
 
-interface Value_StreamBase<Type extends string, T> {
+interface Value_StreamBase<
+  Type extends string,
+  Item,
+  CastingImplicitlyTo extends Value_Plain,
+> {
   type: Type;
 
-  /**
-   * 访问指定位置的值。
-   */
-  _at: (
+  at: (index: number) => Item | null;
+
+  atWithStatus: (
     index: number,
-  ) => [
-    | "ok"
-    | /* 名义上后面不再有值 */ "last_nominal"
-    | /* 实际上后面不再有值 */ "last",
-    T,
-  ] | null;
+  ) => ["ok" | "last" | "last_nominal", Item] | null;
 
   /**
-   * 获取可能的最小的名义上的长度。
+   * 隐式转换成其他类型的值。
    */
-  _getMinimalPossibleNominalLength: () => number | undefined;
+  castImplicitly(): CastingImplicitlyTo;
 
   /**
-   * 获取实际产生的长度。
-   */
-  _getActualLength: () => number;
-
-  /**
-   * 访问与指定位置的值关联的片段。
+   * 可用的名义上的长度。
    *
-   * 只应该在创建 repr 的时候调用，这时所需获取的元素都已经填充好了。
+   * 当流尚未到达名义上的界限时，这个值是实际长度，否则这个值是名义长度。
    */
-  _fragmentAtForRepr: (index: number) => StreamFragment<T>;
+  get availableNominalLength(): number;
+
+  /**
+   * 所有产生了的片段，用于生成步骤展现。
+   */
+  get availableFragments(): StreamFragment<Item>[];
 }
 
 export type StreamFragment<T> = [
   /**
    * 留下的元素。
    */
-  kept: [type: "regular", value: T],
+  kept: [type: "regular", item: T],
   /**
    * 在上一个留下的元素与这次留下的元素之间的被遗弃（如在 reroll、filter 时）的元素。
    */
@@ -277,60 +276,32 @@ export type StreamFragment<T> = [
 /**
  * 可以隐式转换为列表的流。
  */
-export type Value_Stream$List = Value_StreamBase<"stream$list", ValueBox>;
+export type Value_Stream$List = Value_StreamBase<
+  "stream$list",
+  ValueBox,
+  Value_List
+>;
 /**
  * 可以隐式转换为整数（通过求和）的流。
  */
-export type Value_Stream$Sum = Value_StreamBase<"stream$sum", number>;
+export type Value_Stream$Sum = Value_StreamBase<"stream$sum", number, number>;
 
-export function asInteger(value: Value): number | null {
-  if (typeof value === "number") return value;
-
-  if (
-    typeof value === "object" && !Array.isArray(value) &&
-    value.type === "stream$sum"
-  ) {
-    let sum = 0;
-    for (let i = 0;; i++) {
-      const result = value._at(i);
-      if (!result) break;
-      sum += result[1];
-      if (result[0] === "last" || result[0] === "last_nominal") break;
-    }
-    return sum;
+export function castImplicitly(value: Value): Value_Plain {
+  while (typeof value === "object" && "castImplicitly" in value) {
+    value = value.castImplicitly();
   }
-
-  return null;
+  return value;
 }
 
-export function asList(value: Value): Value_List | null {
-  if (typeof value === "object" && value.type === "list") return value;
-
-  if (typeof value === "object" && value.type === "stream$list") {
-    const list = //
-      new Array<ValueBox>(value._getMinimalPossibleNominalLength() ?? 0);
-    for (let i = 0;; i++) {
-      const result = value._at(i);
-      if (!result) break;
-      list[i] = result[1];
-      if (result[0] === "last" || result[0] === "last_nominal") break;
-    }
-    return createValue.list(list);
-  }
-
-  return null;
+export function asInteger(value: Value): number | null {
+  value = asPlain(value);
+  return typeof value === "number" ? value : null;
 }
 
 export function asPlain(
   value: Value,
-): Exclude<Value, Value_Stream> {
+): Value_Plain {
   if (typeof value !== "object") return value;
-
-  const integer = asInteger(value);
-  if (integer !== null) return integer;
-
-  const list = asList(value);
-  if (list !== null) return list;
-
-  return value as Exclude<Value, Value_Stream>;
+  if ("castImplicitly" in value) return value.castImplicitly();
+  return value;
 }

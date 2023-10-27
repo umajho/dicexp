@@ -24,7 +24,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     let remainRerolls = 0, hasExceededNominalLenght = false;
     let acc = isSum ? 0 : ([] as ValueBox[]);
     for (let i = 0;; i++) {
-      const curResult = stream._at(i);
+      const curResult = stream.atWithStatus(i);
       if (!curResult) break;
       const [curStatus, curValue] = curResult;
 
