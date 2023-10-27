@@ -2,6 +2,7 @@ import type { DeclarationListToDefinitionMap } from "@dicexp/runtime/regular-fun
 import type {
   RuntimeError,
   RuntimeProxyForFunction,
+  Value,
 } from "@dicexp/runtime/values";
 import { Unreachable } from "@dicexp/errors";
 
@@ -95,18 +96,23 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     const errRange = ensureUpperBound(rtm, "d", 1, 1, x);
     if (errRange) return ["error", errRange];
 
-    let yieldedCount = 0;
-    const sumValue = rtm.createValue.stream$sum(
-      () => {
-        const value = rtm.random.integer(1, x);
-        yieldedCount++;
-        return [
-          yieldedCount === n ? "last_nominal" : "ok",
-          [["regular", value]],
-        ];
-      },
-      { initialNominalLength: n },
-    );
+    let sumValue: Value;
+    if (n === 0) {
+      sumValue = 0;
+    } else {
+      let yieldedCount = 0;
+      sumValue = rtm.createValue.stream$sum(
+        () => {
+          const value = rtm.random.integer(1, x);
+          yieldedCount++;
+          return [
+            yieldedCount === n ? "last_nominal" : "ok",
+            [["regular", value]],
+          ];
+        },
+        { initialNominalLength: n },
+      );
+    }
 
     return ["ok", sumValue];
   },

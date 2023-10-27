@@ -11,6 +11,7 @@ import {
   RegularFunctionAlias,
   ReprInRuntime,
   RuntimeError,
+  Value_Container,
   ValueBox,
 } from "@dicexp/runtime/values";
 import { RegularFunction, Scope } from "@dicexp/runtime/values";
@@ -281,25 +282,30 @@ export class ConcreteValueBoxFactory {
           return this.error(makeRuntimeError(errMsg), repr);
         }
 
-        let yieldedCount = 0;
-        const list = createValue.stream$list(
-          () => {
-            const valueBox = this.runtime.interpret(scope, body);
-            yieldedCount++;
-            return [
-              yieldedCount === countValue ? "last_nominal" : "ok",
-              [["regular", valueBox]],
-            ];
-          },
-          { initialNominalLength: countValue },
-        );
+        let stream: Value_Container;
+        if (countValue === 0) {
+          stream = createValue.list([]);
+        } else {
+          let yieldedCount = 0;
+          stream = createValue.stream$list(
+            () => {
+              const valueBox = this.runtime.interpret(scope, body);
+              yieldedCount++;
+              return [
+                yieldedCount === countValue ? "last_nominal" : "ok",
+                [["regular", valueBox]],
+              ];
+            },
+            { initialNominalLength: countValue },
+          );
+        }
 
         const repr = createRepr.repetition(
           count.getRepr(),
           bodyRaw,
-          createRepr.value(list),
+          createRepr.value(stream),
         );
-        return createValueBox.container(list, repr);
+        return createValueBox.container(stream, repr);
       },
     );
   }

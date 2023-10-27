@@ -159,7 +159,7 @@ export const builtinOperatorDeclarations = ([
       { label: "n", type: "integer" },
       { label: "x", type: "integer" },
     ],
-    returnValue: { type: "stream$sum" },
+    returnValue: { type: { dynamic: true } },
   },
   {
     name: "d",
