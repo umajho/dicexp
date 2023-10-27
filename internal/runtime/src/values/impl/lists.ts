@@ -26,8 +26,8 @@ class InternalValue_List extends Array<ValueBox> implements Value_List {
 
   type!: "list";
 
-  private confirmedError?: RuntimeError | null = null;
-  private errorHooks?: ((err: RuntimeError) => void)[];
+  private _confirmedError?: RuntimeError | null = null;
+  private _errorHooks?: ((err: RuntimeError) => void)[];
 
   constructor(...underlying: ValueBox[]) {
     super(...underlying);
@@ -35,16 +35,16 @@ class InternalValue_List extends Array<ValueBox> implements Value_List {
     if (!InternalValue_List.isCreating) return;
 
     this.type = "list";
-    this.confirmedError = null;
+    this._confirmedError = null;
 
     const setComfirmedError = (err: RuntimeError) => {
-      this.confirmedError = err;
-      this.errorHooks?.forEach((hook) => hook(err));
-      delete this.errorHooks;
+      this._confirmedError = err;
+      this._errorHooks?.forEach((hook) => hook(err));
+      delete this._errorHooks;
     };
 
     for (const item of underlying) {
-      if (this.confirmedError) break;
+      if (this._confirmedError) break;
       if (item.confirmsError()) {
         const itemResult = item.get();
         if (itemResult[0] !== "error") throw new Unreachable();
@@ -60,16 +60,16 @@ class InternalValue_List extends Array<ValueBox> implements Value_List {
    * 在确定有错误时，以该错误为参数调用 hook。
    */
   addDisposableErrorHook(hook: (err: RuntimeError) => void): void {
-    if (this.confirmedError) {
-      hook(this.confirmedError);
-    } else if (this.errorHooks) {
-      this.errorHooks.push(hook);
+    if (this._confirmedError) {
+      hook(this._confirmedError);
+    } else if (this._errorHooks) {
+      this._errorHooks.push(hook);
     } else {
-      this.errorHooks = [hook];
+      this._errorHooks = [hook];
     }
   }
 
   confirmsThatContainsError(): boolean {
-    return !!this.confirmedError;
+    return !!this._confirmedError;
   }
 }
