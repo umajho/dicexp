@@ -18,7 +18,7 @@ type ReprBase<IsInRuntime extends boolean> =
   | (IsInRuntime extends true /** type 中有后缀 `@` 代表是运行时版本，下同 */
     ? [
       type: "vl@",
-      items: (() => ReprBase<true>[]),
+      items: () => ReprBase<true>[],
       containsError: () => boolean,
     ]
     : [
