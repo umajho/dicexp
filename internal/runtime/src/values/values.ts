@@ -1,6 +1,8 @@
 import { makeRuntimeError, RuntimeError } from "./runtime_errors";
 import { createRepr, ReprInRuntime } from "./repr/mod";
-import { Unreachable } from "@dicexp/errors";
+import { createList } from "./impl/lists";
+import { createCallable } from "./impl/callable";
+import { createCreateStream } from "./impl/streams";
 
 export abstract class ValueBox {
   /**
@@ -14,7 +16,7 @@ export abstract class ValueBox {
   abstract getRepr(): ReprInRuntime;
 }
 
-interface DisposableErrorHookable {
+export interface DisposableErrorHookable {
   addDisposableErrorHook(hook: (err: RuntimeError) => void): void;
 }
 
@@ -200,84 +202,17 @@ export type Value_NonContainer =
   | Value_Callable
   | Value_Stream;
 
-function createCreateStream<
-  Type extends "stream$list" | "stream$sum",
-  T = Type extends "stream$list" ? ValueBox : number,
->(
-  type: Type,
-) {
-  return (
-    yielder: () => [
-      "ok" | "last" | "last_nominal",
-      StreamFragment<T>,
-    ],
-    opts?: { initialNominalLength?: number },
-  ): Type extends "stream$list" ? Value_Stream$List : Value_Stream$Sum => {
-    type Yielded = ReturnType<typeof yielder>;
-    const underlying: Yielded[] = //
-      new Array(opts?.initialNominalLength ?? 0);
-    let filled = 0, minimalPossibleNominalLength = opts?.initialNominalLength;
-    function fill(toIndex: number): Yielded {
-      let lastFilled: Yielded | null = null;
-      for (let unfilledI = filled; unfilledI <= toIndex; unfilledI++) {
-        if (!underlying[unfilledI]) {
-          lastFilled = yielder();
-          if (lastFilled[0] === "last" || lastFilled[0] === "last_nominal") {
-            minimalPossibleNominalLength = unfilledI + 1;
-          }
-          underlying[unfilledI] = lastFilled;
-        }
-      }
-      if (filled <= toIndex) {
-        filled = toIndex + 1;
-      }
-      return lastFilled ?? underlying[toIndex]!;
-    }
-
-    return {
-      type,
-      _getMinimalPossibleNominalLength: () => minimalPossibleNominalLength,
-      _getActualLength: () => filled,
-      _at: (index: number) => {
-        fill(index);
-        const [returnType, [[_, valueBox]]] = fill(index);
-        return [returnType, valueBox];
-      },
-      _fragmentAtForRepr: (index: number) => {
-        const result = underlying[index];
-        if (!result) throw new Unreachable();
-        const [_, fragement] = result;
-        return fragement;
-      },
-    } as Value_StreamBase<Type, T> as any;
-  };
-}
-
 export const createValue = {
-  callable(
-    arity: number,
-    onCall: (args: ValueBox[]) => ValueBox,
-    repr: ReprInRuntime,
-  ): Value_Callable {
-    return {
-      type: "callable",
-      arity,
-      _call: onCall,
-      representation: repr,
-    };
-  },
+  callable: createCallable,
 
-  list(underlying: ValueBox[]): Value_List {
-    InternalValue_List.creating = true;
-    const v = new InternalValue_List(...underlying);
-    InternalValue_List.creating = false;
-    return v as Value_List;
-  },
+  list: createList,
 
   stream$list: createCreateStream("stream$list"),
 
   stream$sum: createCreateStream("stream$sum"),
 };
+
+export { asCallable, callCallable } from "./impl/callable";
 
 export interface Value_Callable {
   type: "callable";
@@ -287,92 +222,11 @@ export interface Value_Callable {
   representation: ReprInRuntime;
 }
 
-export function callCallable(
-  callable: Value_Callable,
-  args: ValueBox[],
-): ValueBox {
-  return callable._call(args);
-}
-
-export function asCallable(
-  value: Value,
-): Value_Callable | null {
-  if (
-    typeof value === "object" && "type" in value &&
-    value.type === "callable"
-  ) {
-    return value;
-  }
-  return null;
-}
-
 export type Value_List = ValueBox[] & {
   type: "list";
   addDisposableErrorHook(hook: (err: RuntimeError) => void): void;
   confirmsThatContainsError(): boolean;
 };
-/**
- * XXX: 在外部，其只允许通过 `createValue` 工厂来创建，以保证实现细节不会暴露。
- */
-class InternalValue_List extends Array<ValueBox> implements Value_List {
-  /**
-   * 之前尝试用 Proxy 实现 `Value_List`，但是开销太大了，故还是决定换成现在的继承 Array 来
-   * 实现。
-   * 由于 JavaScript 在调用 map 之类的方法时，创建新数组用的是继承后的 constructor，这里
-   * 通过 `creating` 这个 workaround 来确定创建者的来源。其为 false 代表来源并非
-   * `createValue` 工厂，这时不会有任何多余的逻辑。
-   */
-  static creating = false;
-
-  type!: "list";
-
-  private confirmedError?: RuntimeError | null = null;
-  private errorHooks?: ((err: RuntimeError) => void)[];
-
-  constructor(...underlying: ValueBox[]) {
-    super(...underlying);
-
-    if (!InternalValue_List.creating) return;
-
-    this.type = "list";
-    this.confirmedError = null;
-
-    const setComfirmedError = (err: RuntimeError) => {
-      this.confirmedError = err;
-      this.errorHooks?.forEach((hook) => hook(err));
-      delete this.errorHooks;
-    };
-
-    for (const item of underlying) {
-      if (this.confirmedError) break;
-      if (item.confirmsError()) {
-        const itemResult = item.get();
-        if (itemResult[0] !== "error") throw new Unreachable();
-        setComfirmedError(itemResult[1]);
-      } else if ("addDisposableErrorHook" in item) {
-        (item as DisposableErrorHookable)
-          .addDisposableErrorHook((err) => setComfirmedError(err));
-      }
-    }
-  }
-
-  /**
-   * 在确定有错误时，以该错误为参数调用 hook。
-   */
-  addDisposableErrorHook(hook: (err: RuntimeError) => void): void {
-    if (this.confirmedError) {
-      hook(this.confirmedError);
-    } else if (this.errorHooks) {
-      this.errorHooks.push(hook);
-    } else {
-      this.errorHooks = [hook];
-    }
-  }
-
-  confirmsThatContainsError(): boolean {
-    return !!this.confirmedError;
-  }
-}
 
 export type Value_Stream = Value_Stream$List | Value_Stream$Sum;
 
