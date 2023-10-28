@@ -13,6 +13,9 @@ export const precedenceTable: Record<string, number> = {
 
   // not
   "not/1": -2,
+  // negate
+  "+/1": -2,
+  "-/1": -2,
 
   // exp
   // XXX: `^/2` 是 `**/2` 的别称，实际应该用不到。
@@ -24,9 +27,6 @@ export const precedenceTable: Record<string, number> = {
   "///2": -4,
   "%/2": -4,
 
-  // negate
-  "+/1": -5,
-  "-/1": -5,
   // plus
   "+/2": -6,
   "-/2": -6,

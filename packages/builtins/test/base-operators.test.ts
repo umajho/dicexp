@@ -299,7 +299,7 @@ describe("base/operators", () => {
           "操作 “(-3) % -2” 非法：被除数不能为负数",
           { topLevelScope },
         );
-        assertExecutionOk("-3%2", -1, { topLevelScope }); // 取模的优先级更高
+        assertExecutionOk("-(3%2)", -1, { topLevelScope }); // 取模的优先级更高
       });
       binaryOperatorOnlyAcceptsNumbers("%", { topLevelScope });
     });
