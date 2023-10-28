@@ -31,7 +31,7 @@ export function getTypeDisplayName(name: ValueTypeName): string {
     case "callable":
       return "可调用的";
     case "stream$sum":
-      return "流【隐式转换为求和整数】";
+      return "流【隐式求和】";
     case "stream$list":
       return "流【隐式转换为列表】";
     default:
