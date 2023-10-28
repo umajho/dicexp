@@ -185,11 +185,11 @@ const createContentComponent: {
   },
   "vs": (repr) => {
     const context = useContext(RepresentationContext)!;
-    const sum = repr[1], addends = repr[2];
+    const [_, sum, addends, surplusAddends] = repr;
     const canCollapse = addends.length > context.sumPreviewLimit;
 
     if (addends.length === 1) {
-      return createContentComponent.vp(["vp", addends[0]!], context);
+      return createContentComponentForRepr(addends[0]!, context);
     }
 
     return (props) => (
@@ -199,12 +199,9 @@ const createContentComponent: {
             {"("}
             <Items
               items={addends}
+              surplusItems={surplusAddends}
               expansion={isExpanded() || context.sumPreviewLimit}
-              Deeper={({ item }) => (
-                <Colored {...context.colorScheme.value_number}>
-                  {item}
-                </Colored>
-              )}
+              Deeper={({ item, i }) => <DeeperStep repr={item} rank={i} />}
               separator={
                 <Colored {...context.colorScheme.opeator}>
                   {" + "}

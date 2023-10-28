@@ -1,10 +1,12 @@
 import { precedenceTable } from "@dicexp/lezer";
 
 import {
+  StreamFragment,
   Value,
   Value_List,
   Value_Stream$List,
   Value_Stream$Sum,
+  ValueBox,
 } from "../values";
 import { RuntimeError } from "../runtime_errors";
 
@@ -28,7 +30,18 @@ type ReprBase<IsInRuntime extends boolean> =
       containsError: boolean,
       surplusItems?: ReprBase<false>[],
     ])
-  | [type: /** value_sum */ "vs", sum: number, addends: number[]]
+  | (IsInRuntime extends true ? [
+      type: /** value_sum */ "vs@",
+      sum: () => number,
+      addends: () => ReprBase<true>[],
+      surplusAddends: () => ReprBase<true>[] | undefined,
+    ]
+    : [
+      type: /** value_sum */ "vs",
+      sum: number,
+      addends: ReprBase<false>[],
+      surplusAddends?: ReprBase<false>[],
+    ])
   | [
     type: "i", /** identifier */
     name: string,
@@ -136,23 +149,28 @@ export const createRepr = {
    * 如：`[ 1, 2, 3 ⟨, 4, 5, 6⟩ ]`。
    */
   value_stream$list(stream: Value_Stream$List): ReprInRuntime & { 0: "vl@" } {
+    const mapCb: (f: StreamFragment<ValueBox>) => ReprInRuntime = //
+      ([[_1, item], _2]) => item.getRepr();
     return [
       "vl@",
-      () => stream.nominalFragments.map(([[_1, item], _2]) => item.getRepr()),
+      () => stream.nominalFragments.map(mapCb),
       () => stream.errorBeacon?.comfirmsError() ?? false,
-      () => stream.surplusFragments?.map(([[_1, item], _2]) => item.getRepr()),
+      () => stream.surplusFragments?.map(mapCb),
     ];
   },
 
   /**
    * 如：`(1 + 2 + 3 ⟨+ 4 + 5 + 6⟩ = 6)`。
    */
-  value_stream$sum(stream: Value_Stream$Sum): ReprInRuntime & { 0: "@" } {
-    return ["@", () => {
-      const fragments = stream.actualFragments;
-      const addends = fragments.map((f) => f[0][1]);
-      return ["vs", stream.castImplicitly(), addends];
-    }];
+  value_stream$sum(stream: Value_Stream$Sum): ReprInRuntime & { 0: "vs@" } {
+    const mapCb: (f: StreamFragment<number>) => ReprInRuntime = //
+      ([[_1, item], _2]) => createRepr.value_primitive(item);
+    return [
+      "vs@",
+      () => stream.castImplicitly(),
+      () => stream.nominalFragments.map(mapCb),
+      () => stream.surplusFragments?.map(mapCb),
+    ];
   },
 
   /**
@@ -279,6 +297,11 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
       const containsError = rtmRepr[2]();
       const surplusItems = rtmRepr[3]?.()?.map((item) => finalizeRepr(item));
       return ["vl", items, containsError, surplusItems];
+    case "vs@":
+      const sum = rtmRepr[1]();
+      const addends = rtmRepr[2]().map((item) => finalizeRepr(item));
+      const surplusAddends = rtmRepr[3]?.()?.map((item) => finalizeRepr(item));
+      return ["vs", sum, addends, surplusAddends];
     case "i":
       if (!(/* value */ rtmRepr[2])) return rtmRepr as Repr;
       return ["i", rtmRepr[1], finalizeRepr(rtmRepr[2])];
