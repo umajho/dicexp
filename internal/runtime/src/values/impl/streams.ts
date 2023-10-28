@@ -87,16 +87,27 @@ class InternalValue_StreamBase<T> {
    */
   protected get _nominalList(): T[] {
     this._fill({ allNominal: true });
-    return this.availableFragments.map(([[_1, v], _2]) => v);
+    return this.nominalFragments.map(([[_1, v], _2]) => v);
   }
 
-  get availableFragments(): StreamFragment<T>[] {
-    return (this.availableNominalLength! === this._actualLength
-      ? (this._underlying.length === this._actualLength
-        ? this._underlying
-        : this._underlying.slice(0, this._actualLength))
-      : this._underlying.slice(0, this.availableNominalLength))
-      .map(([_1, f]) => f);
+  get nominalFragments(): StreamFragment<T>[] {
+    return this.availableNominalLength! === this._actualLength
+      ? this.actualFragments
+      : this._underlying.slice(0, this.availableNominalLength)
+        .map(([_1, f]) => f);
+  }
+
+  get surplusFragments(): StreamFragment<T>[] | null {
+    return this.availableNominalLength! === this._actualLength
+      ? null
+      : this._underlying.slice(this.availableNominalLength)
+        .map(([_1, f]) => f);
+  }
+
+  get actualFragments(): StreamFragment<T>[] {
+    return (this._underlying.length === this._actualLength
+      ? this._underlying
+      : this._underlying.slice(0, this._actualLength)).map(([_1, f]) => f);
   }
 
   protected _extractError?: (item: T) => RuntimeError | null;

@@ -20,11 +20,13 @@ type ReprBase<IsInRuntime extends boolean> =
       type: "vl@",
       items: () => ReprBase<true>[],
       containsError: () => boolean,
+      surplusItems?: () => ReprBase<true>[] | undefined,
     ]
     : [
       type: /** value_list */ "vl",
       items: ReprBase<false>[],
       containsError: boolean,
+      surplusItems?: ReprBase<false>[],
     ])
   | [type: /** value_sum */ "vs", sum: number, addends: number[]]
   | [
@@ -99,7 +101,7 @@ export const createRepr = {
     } else if (value.type === "list") {
       return createRepr.value_list(value);
     } else if (value.type === "stream$list") {
-      return createRepr.value_list(value.castImplicitly());
+      return createRepr.value_stream$list(value);
     } else if (value.type === "stream$sum") {
       return createRepr.value_stream$sum(value);
     } else {
@@ -131,28 +133,23 @@ export const createRepr = {
   },
 
   /**
-   * 如：`[ 1, 2, 3 ]`。
+   * 如：`[ 1, 2, 3 ⟨, 4, 5, 6⟩ ]`。
    */
-  value_stream$list(stream: Value_Stream$List): ReprInRuntime & { 0: "@" } {
+  value_stream$list(stream: Value_Stream$List): ReprInRuntime & { 0: "vl@" } {
     return [
-      "@",
-      () => {
-        const list = stream.castImplicitly();
-        return [
-          "vl@",
-          () => list.map((item) => item.getRepr()),
-          () => stream.errorBeacon?.comfirmsError() ?? false,
-        ];
-      },
+      "vl@",
+      () => stream.nominalFragments.map(([[_1, item], _2]) => item.getRepr()),
+      () => stream.errorBeacon?.comfirmsError() ?? false,
+      () => stream.surplusFragments?.map(([[_1, item], _2]) => item.getRepr()),
     ];
   },
 
   /**
-   * 如：`(1 + 2 + 3 = 6)`。
+   * 如：`(1 + 2 + 3 ⟨+ 4 + 5 + 6⟩ = 6)`。
    */
   value_stream$sum(stream: Value_Stream$Sum): ReprInRuntime & { 0: "@" } {
     return ["@", () => {
-      const fragments = stream.availableFragments;
+      const fragments = stream.actualFragments;
       const addends = fragments.map((f) => f[0][1]);
       return ["vs", stream.castImplicitly(), addends];
     }];
@@ -280,7 +277,8 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
     case "vl@":
       const items = rtmRepr[1]().map((item) => finalizeRepr(item));
       const containsError = rtmRepr[2]();
-      return ["vl", items, containsError];
+      const surplusItems = rtmRepr[3]?.()?.map((item) => finalizeRepr(item));
+      return ["vl", items, containsError, surplusItems];
     case "i":
       if (!(/* value */ rtmRepr[2])) return rtmRepr as Repr;
       return ["i", rtmRepr[1], finalizeRepr(rtmRepr[2])];

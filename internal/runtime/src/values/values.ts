@@ -256,10 +256,12 @@ interface Value_StreamBase<
    */
   get availableNominalLength(): number;
 
+  get nominalFragments(): StreamFragment<Item>[];
+  get surplusFragments(): StreamFragment<Item>[] | null;
   /**
    * 所有产生了的片段，用于生成步骤展现。
    */
-  get availableFragments(): StreamFragment<Item>[];
+  get actualFragments(): StreamFragment<Item>[];
 }
 
 export type StreamFragment<T> = [
