@@ -10,7 +10,14 @@ export const builtinFunctionDeclarations = ([
     ],
     returnValue: { type: { dynamic: true } },
   },
-  // explode/2
+  {
+    name: "explode",
+    parameters: [
+      { label: "stream", type: new Set(["stream$list", "stream$sum"]) },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: { dynamic: true } },
+  },
 
   // 实用：
   // abs/1

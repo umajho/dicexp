@@ -19,6 +19,7 @@ describe("base/functions", () => {
         ], { topLevelScope });
       });
     });
+    describe.todo("explode/2");
   });
   describe("实用", () => {
     describe("count/2", () => {

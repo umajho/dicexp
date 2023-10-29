@@ -71,6 +71,53 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
 
     return ["ok", newStream];
   },
+  "explode/2": (rtm, stream, callable) => {
+    let isSum = rtm.getValueTypeName(stream) === "stream$sum";
+
+    let remainRolls = 0, shouldTrackBaseRolls = true;
+    let isLastExploded = false;
+
+    const newStream = rtm.createValue.streamTransformer(
+      stream,
+      ([status, item]): Transformed<ValueBox | number> => {
+        const shouldExplodeResult = tryUnwrapBoolean(
+          rtm,
+          callable._call([
+            isSum
+              ? rtm.createValueBox.direct(item as number)
+              : item as ValueBox,
+          ]),
+          { functionFullName: "reroll/2" },
+        );
+        if (shouldExplodeResult[0] === "error") return shouldExplodeResult;
+
+        const shouldExplode = shouldExplodeResult[1];
+
+        if (shouldTrackBaseRolls) {
+          remainRolls++;
+        }
+        if (shouldExplode) {
+          remainRolls++;
+        }
+        remainRolls--;
+
+        if (status === "last_nominal") {
+          shouldTrackBaseRolls = false;
+        }
+
+        const newStatus = (!remainRolls && !shouldTrackBaseRolls)
+          ? "last_nominal"
+          : "ok";
+        const itemType = isLastExploded
+          ? "✨"
+          : (shouldExplode ? "⚡️" : "regular");
+        isLastExploded = shouldExplode;
+        return ["ok", [newStatus, [[itemType, item]]]];
+      },
+    );
+
+    return ["ok", newStream];
+  },
 
   // 实用：
   "count/2": (rtm, list, callable) => {
