@@ -227,6 +227,9 @@ importers:
       solid-element:
         specifier: ^1.8.0
         version: 1.8.0(solid-js@1.8.3)
+      solid-icons:
+        specifier: ^1.0.12
+        version: 1.0.12(solid-js@1.8.3)
     devDependencies:
       concurrently:
         specifier: ^8.2.0

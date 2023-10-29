@@ -2,6 +2,7 @@ import type { DeclarationListToDefinitionMap } from "@dicexp/runtime/regular-fun
 import type {
   RuntimeError,
   RuntimeProxyForFunction,
+  Value,
 } from "@dicexp/runtime/values";
 import { Unreachable } from "@dicexp/errors";
 
@@ -32,8 +33,18 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
   ">=/2": (_rtm, a, b) => ["ok", a >= b],
 
   "~/2": (rtm, lower, upper) => {
-    const yielder = () => rtm.random.integer(lower, upper);
-    const sumValue = rtm.createValue.stream$sum(1, yielder);
+    let yieldedCount = 0;
+    const sumValue = rtm.createValue.stream$sum(
+      () => {
+        const value = rtm.random.integer(lower, upper);
+        yieldedCount++;
+        return [
+          yieldedCount === 1 ? "last_nominal" : "ok",
+          [["regular", value]],
+        ];
+      },
+      { initialNominalLength: 1 },
+    );
 
     return ["ok", sumValue];
   },
@@ -85,8 +96,23 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     const errRange = ensureUpperBound(rtm, "d", 1, 1, x);
     if (errRange) return ["error", errRange];
 
-    const randFn = () => rtm.random.integer(1, x);
-    const sumValue = rtm.createValue.stream$sum(n, randFn);
+    let sumValue: Value;
+    if (n === 0) {
+      sumValue = 0;
+    } else {
+      let yieldedCount = 0;
+      sumValue = rtm.createValue.stream$sum(
+        () => {
+          const value = rtm.random.integer(1, x);
+          yieldedCount++;
+          return [
+            yieldedCount === n ? "last_nominal" : "ok",
+            [["regular", value]],
+          ];
+        },
+        { initialNominalLength: n },
+      );
+    }
 
     return ["ok", sumValue];
   },

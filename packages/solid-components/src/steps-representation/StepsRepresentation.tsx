@@ -12,6 +12,12 @@ import {
   Switch,
   useContext,
 } from "solid-js";
+import {
+  HiSolidArrowPath,
+  HiSolidBolt,
+  HiSolidSparkles,
+  HiSolidTrash,
+} from "solid-icons/hi";
 
 // 这里特意强调 imort type，防止真的引入了 dicexp 包中的实质内容
 import type { Repr } from "dicexp/internal";
@@ -137,7 +143,7 @@ function createContentComponentForRepr(
 
 const createContentComponent: {
   [key in Repr[0]]: (
-    repr: Repr & { 0: key },
+    repr: Extract<Repr, { 0: key }>,
     ctx: RepresentationContextData,
   ) => ContentComponent;
 } = {
@@ -165,7 +171,7 @@ const createContentComponent: {
     );
   },
   "vl": (repr, { listPreviewLimit }) => {
-    const items = repr[1], containsError = repr[2];
+    const [_, items, containsError, surplusItems] = repr;
     const canCollapse = items.length > listPreviewLimit;
     return (props) => (
       <Slot {...props} canCollapse={canCollapse} cannotAutoExpand={true}>
@@ -175,6 +181,7 @@ const createContentComponent: {
             padding=" "
             isRealList={true}
             items={items}
+            surplusItems={surplusItems}
             expansion={isExpanded() || listPreviewLimit}
             containsError={containsError}
           />
@@ -184,11 +191,11 @@ const createContentComponent: {
   },
   "vs": (repr) => {
     const context = useContext(RepresentationContext)!;
-    const sum = repr[1], addends = repr[2];
+    const [_, sum, addends, surplusAddends] = repr;
     const canCollapse = addends.length > context.sumPreviewLimit;
 
     if (addends.length === 1) {
-      return createContentComponent.vp(["vp", addends[0]!], context);
+      return createContentComponentForRepr(addends[0]!, context);
     }
 
     return (props) => (
@@ -198,12 +205,9 @@ const createContentComponent: {
             {"("}
             <Items
               items={addends}
+              surplusItems={surplusAddends}
               expansion={isExpanded() || context.sumPreviewLimit}
-              Deeper={({ item }) => (
-                <Colored {...context.colorScheme.value_number}>
-                  {item}
-                </Colored>
-              )}
+              Deeper={({ item, i }) => <DeeperStep repr={item} rank={i} />}
               separator={
                 <Colored {...context.colorScheme.opeator}>
                   {" + "}
@@ -378,6 +382,49 @@ const createContentComponent: {
     );
   },
   "E": () => () => <>（实现细节泄漏：此处是间接错误，不应展现在步骤中！）</>,
+  "d": (repr) => {
+    const [_, decorationType, innerRepr] = repr;
+    return (props) => (
+      <Slot {...props}>
+        {() => (
+          <>
+            <span
+              style={{
+                display: "inline-flex",
+                height: "16px",
+                "vertical-align": "bottom",
+                "align-items": "center",
+              }}
+            >
+              <Switch>
+                <Match when={decorationType === "🗑️"}>
+                  <HiSolidTrash />
+                </Match>
+                <Match when={decorationType === "🔄"}>
+                  <HiSolidArrowPath />
+                </Match>
+                <Match when={decorationType === "⚡️"}>
+                  <HiSolidBolt />
+                </Match>
+                <Match when={decorationType === "✨"}>
+                  <HiSolidSparkles />
+                </Match>
+              </Switch>
+            </span>
+            <span
+              style={{
+                "filter": decorationType === "🗑️"
+                  ? "sepia(1) opacity(50%)"
+                  : undefined,
+              }}
+            >
+              <Step repr={innerRepr} />
+            </span>
+          </>
+        )}
+      </Slot>
+    );
+  },
 };
 
 const createContentComponentForReprCall = {
@@ -646,6 +693,7 @@ const ListLike: Component<{
   isRealList?: boolean;
 
   items: Repr[];
+  surplusItems?: Repr[];
   rankOffset?: number;
 
   /**
@@ -689,6 +737,7 @@ const ListItems: Component<{
   isRealList?: boolean;
 
   items: Repr[];
+  surplusItems?: Repr[];
   rankOffset?: number;
 
   /**
@@ -702,6 +751,7 @@ const ListItems: Component<{
   return (
     <Items
       items={props.items}
+      surplusItems={props.surplusItems}
       expansion={props.expansion}
       checkError={(items) =>
         !!props.containsError &&
@@ -722,6 +772,7 @@ const ListItems: Component<{
 
 function Items<T>(props: {
   items: T[];
+  surplusItems?: T[];
 
   expansion: true | number;
   checkError?: (items: T[]) => boolean;
@@ -729,24 +780,56 @@ function Items<T>(props: {
   Deeper: Component<{ item: T; i: number }>;
   separator: JSX.Element;
 }) {
-  const Deeper = props.Deeper;
+  const outerListItemsContent = useContext(ListItemsContext);
 
   return (
-    <Index each={props.items}>
-      {(item, i) => {
-        return (
-          <Switch>
-            <Match when={props.expansion === true || i < props.expansion}>
-              <Deeper item={item()} i={i} />
-              <Show when={i < props.items.length - 1}>{props.separator}</Show>
-            </Match>
-            <Match when={props.expansion !== true && i === props.expansion}>
-              <More containsError={props.checkError?.(props.items)} />
-            </Match>
-          </Switch>
-        );
-      }}
-    </Index>
+    <>
+      <Index each={props.items}>
+        {(item, i) => {
+          return (
+            <Switch>
+              <Match when={props.expansion === true || i < props.expansion}>
+                <props.Deeper item={item()} i={i} />
+                <Show when={i < props.items.length - 1}>
+                  {props.separator}
+                </Show>
+              </Match>
+              <Match when={props.expansion !== true && i === props.expansion}>
+                <More containsError={props.checkError?.(props.items)} />
+              </Match>
+            </Switch>
+          );
+        }}
+      </Index>
+      <Show when={props.surplusItems}>
+        {(surplusItems) => (
+          <Show when={props.expansion === true}>
+            {" "}
+            <Deeper>
+              <Slot canCollapse={true} cannotAutoExpand={true}>
+                {({ isExpanded }) => (
+                  <>
+                    {"⟨"}
+                    {props.separator}
+                    <Show when={isExpanded()} fallback={<More />}>
+                      <ListItemsContext.Provider value={outerListItemsContent}>
+                        <Items
+                          items={surplusItems()}
+                          expansion={true}
+                          Deeper={props.Deeper}
+                          separator={props.separator}
+                        />
+                      </ListItemsContext.Provider>
+                    </Show>
+                    {"⟩"}
+                  </>
+                )}
+              </Slot>
+            </Deeper>
+          </Show>
+        )}
+      </Show>
+    </>
   );
 }
 
@@ -795,6 +878,16 @@ function separateIndirectErrorFromResult(
 const DeeperStep: Component<
   { repr: Repr; rank?: number; isListItem?: boolean }
 > = (props) => {
+  return (
+    <Deeper {...props}>
+      <Step repr={props.repr} />
+    </Deeper>
+  );
+};
+
+const Deeper: Component<
+  { children: JSX.Element; rank?: number; isListItem?: boolean }
+> = (props) => {
   const pos = useContext(PositionContext)!;
   return (
     <PositionContext.Provider
@@ -803,7 +896,7 @@ const DeeperStep: Component<
       <ListItemsContext.Provider
         value={props.isListItem ? useContext(ListItemsContext) : null}
       >
-        <Step repr={props.repr} />
+        {props.children}
       </ListItemsContext.Provider>
     </PositionContext.Provider>
   );

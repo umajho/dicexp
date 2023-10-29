@@ -1,9 +1,23 @@
 import { RegularFunctionDeclaration } from "@dicexp/runtime/regular-functions";
 
 export const builtinFunctionDeclarations = ([
-  // 投骰子：
-  // reroll/2
-  // explode/2
+  // 掷骰：
+  {
+    name: "reroll",
+    parameters: [
+      { label: "stream", type: new Set(["stream$list", "stream$sum"]) },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: { dynamic: true } },
+  },
+  {
+    name: "explode",
+    parameters: [
+      { label: "stream", type: new Set(["stream$list", "stream$sum"]) },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: { dynamic: true } },
+  },
 
   // 实用：
   // abs/1

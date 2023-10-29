@@ -7,6 +7,20 @@ import { scopeWith } from "./utils";
 import { functionScope, operatorScope } from "../lib";
 
 describe("base/functions", () => {
+  describe("掷骰", () => {
+    describe("reroll/2", () => {
+      const topLevelScope = {
+        ...scopeWith(functionScope, ["reroll/2"]),
+        ...scopeWith(operatorScope, ["d/2", "<=/2"]),
+      };
+      describe("正确使用时", () => {
+        theyAreOk([
+          [String.raw`10d6 |> reroll \($x -> $x <= 5)`, 60],
+        ], { topLevelScope });
+      });
+    });
+    describe.todo("explode/2");
+  });
   describe("实用", () => {
     describe("count/2", () => {
       const topLevelScope = {

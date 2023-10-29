@@ -1,5 +1,6 @@
 import { DeclarationListToDocumentationMap } from "@dicexp/runtime/src/regular-functions/types/docs";
 import { builtinOperatorDeclarations } from "./declarations";
+import { getTypeDisplayName } from "@dicexp/runtime/values";
 
 export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   typeof builtinOperatorDeclarations
@@ -248,7 +249,13 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     groups: ["掷骰"],
     parameters: {
       "n": "投掷次数，大于 0",
-      "x": "面数，大于 0",
+      "x": "面数，不小于 0",
+    },
+    returnValue: {
+      type: {
+        description: `通常返回「${getTypeDisplayName("stream$sum")}」。` +
+          `但如果面数为 0，会返回「${getTypeDisplayName("integer")}」0。`,
+      },
     },
     description: {
       brief: "投掷数个骰子",
@@ -263,7 +270,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     isOperator: true,
     groups: ["掷骰"],
     parameters: {
-      "x": "面数，大于 0",
+      "x": "面数，不小于 0",
     },
     description: {
       brief: "投掷一个骰子",
