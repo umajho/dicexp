@@ -12,6 +12,12 @@ import {
   Switch,
   useContext,
 } from "solid-js";
+import {
+  HiSolidArrowPath,
+  HiSolidBolt,
+  HiSolidSparkles,
+  HiSolidTrash,
+} from "solid-icons/hi";
 
 // 这里特意强调 imort type，防止真的引入了 dicexp 包中的实质内容
 import type { Repr } from "dicexp/internal";
@@ -376,6 +382,49 @@ const createContentComponent: {
     );
   },
   "E": () => () => <>（实现细节泄漏：此处是间接错误，不应展现在步骤中！）</>,
+  "d": (repr) => {
+    const [_, decorationType, innerRepr] = repr;
+    return (props) => (
+      <Slot {...props}>
+        {() => (
+          <>
+            <span
+              style={{
+                display: "inline-flex",
+                height: "16px",
+                "vertical-align": "bottom",
+                "align-items": "center",
+              }}
+            >
+              <Switch>
+                <Match when={decorationType === "🗑️"}>
+                  <HiSolidTrash />
+                </Match>
+                <Match when={decorationType === "🔄"}>
+                  <HiSolidArrowPath />
+                </Match>
+                <Match when={decorationType === "⚡️"}>
+                  <HiSolidBolt />
+                </Match>
+                <Match when={decorationType === "✨"}>
+                  <HiSolidSparkles />
+                </Match>
+              </Switch>
+            </span>
+            <span
+              style={{
+                "filter": decorationType === "🗑️"
+                  ? "sepia(1) opacity(50%)"
+                  : undefined,
+              }}
+            >
+              <Step repr={innerRepr} />
+            </span>
+          </>
+        )}
+      </Slot>
+    );
+  },
 };
 
 const createContentComponentForReprCall = {

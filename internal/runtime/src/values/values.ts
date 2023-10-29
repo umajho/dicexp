@@ -274,7 +274,7 @@ export type StreamFragment<T> = [
   /**
    * 留下的元素。
    */
-  kept: [type: "regular", item: T],
+  kept: [type: "regular" | Extract<ReprInRuntime, { 0: "d" }>[1], item: T],
   /**
    * 在上一个留下的元素与这次留下的元素之间的被遗弃（如在 reroll、filter 时）的元素。
    */

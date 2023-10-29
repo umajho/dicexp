@@ -23,6 +23,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
     let isSum = rtm.getValueTypeName(stream) === "stream$sum";
 
     let remainRolls = 0, shouldTrackBaseRolls = true;
+    let abandonedBefore: ValueBox[] | number[] = [];
 
     const newStream = rtm.createValue.streamTransformer(
       stream,
@@ -52,11 +53,19 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
           shouldTrackBaseRolls = false;
         }
 
-        if (shouldReroll) return "more";
-        const newStatus = (!remainRolls && !shouldTrackBaseRolls)
-          ? "last_nominal"
-          : "ok";
-        return ["ok", [newStatus, [["regular", item]]]];
+        if (shouldReroll) {
+          // @ts-ignore
+          abandonedBefore.push(item);
+          return "more";
+        } else {
+          const newStatus = (!remainRolls && !shouldTrackBaseRolls)
+            ? "last_nominal"
+            : "ok";
+          const itemType = abandonedBefore.length ? "🔄" : "regular";
+          const abandonedBefore_ = abandonedBefore;
+          abandonedBefore = [];
+          return ["ok", [newStatus, [[itemType, item], abandonedBefore_]]];
+        }
       },
     );
 

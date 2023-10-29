@@ -87,7 +87,12 @@ type ReprBase<IsInRuntime extends boolean> =
     errorMessage: string,
     source: ReprBase<IsInRuntime> | undefined,
   ]
-  | [type: /** error_indirect */ "E"];
+  | [type: /** error_indirect */ "E"]
+  | [
+    type: /** decoration */ "d",
+    decoration_type: "🗑️" | "🔄" | "⚡️" | "✨",
+    inner: ReprBase<IsInRuntime>,
+  ];
 
 export type Repr = ReprBase<false>;
 export type ReprInRuntime = ReprBase<true>;
@@ -149,13 +154,24 @@ export const createRepr = {
    * 如：`[ 1, 2, 3 ⟨, 4, 5, 6⟩ ]`。
    */
   value_stream$list(stream: Value_Stream$List): ReprInRuntime & { 0: "vl@" } {
-    const mapCb: (f: StreamFragment<ValueBox>) => ReprInRuntime = //
-      ([[_1, item], _2]) => item.getRepr();
+    const mapCb: (f: StreamFragment<ValueBox>) => ReprInRuntime[] = //
+      ([[itemType, item], abandoned]) => {
+        let itemRepr: ReprInRuntime = item.getRepr();
+        if (itemType !== "regular") {
+          itemRepr = createRepr.decoration(itemType, itemRepr);
+        }
+        const createAbandonedRepr = (item: ValueBox) =>
+          createRepr.decoration("🗑️", item.getRepr());
+        return [
+          ...(abandoned ? abandoned.map(createAbandonedRepr) : []),
+          itemRepr,
+        ];
+      };
     return [
       "vl@",
-      () => stream.nominalFragments.map(mapCb),
+      () => stream.nominalFragments.flatMap(mapCb),
       () => stream.errorBeacon?.comfirmsError() ?? false,
-      () => stream.surplusFragments?.map(mapCb),
+      () => stream.surplusFragments?.flatMap(mapCb),
     ];
   },
 
@@ -163,13 +179,24 @@ export const createRepr = {
    * 如：`(1 + 2 + 3 ⟨+ 4 + 5 + 6⟩ = 6)`。
    */
   value_stream$sum(stream: Value_Stream$Sum): ReprInRuntime & { 0: "vs@" } {
-    const mapCb: (f: StreamFragment<number>) => ReprInRuntime = //
-      ([[_1, item], _2]) => createRepr.value_primitive(item);
+    const mapCb: (f: StreamFragment<number>) => ReprInRuntime[] = //
+      ([[itemType, item], abandoned]) => {
+        let itemRepr: ReprInRuntime = createRepr.value_primitive(item);
+        if (itemType !== "regular") {
+          itemRepr = createRepr.decoration(itemType, itemRepr);
+        }
+        const createAbandonedRepr = (item: number) =>
+          createRepr.decoration("🗑️", createRepr.value_primitive(item));
+        return [
+          ...(abandoned ? abandoned.map(createAbandonedRepr) : []),
+          itemRepr,
+        ];
+      };
     return [
       "vs@",
       () => stream.castImplicitly(),
-      () => stream.nominalFragments.map(mapCb),
-      () => stream.surplusFragments?.map(mapCb),
+      () => stream.nominalFragments.flatMap(mapCb),
+      () => stream.surplusFragments?.flatMap(mapCb),
     ];
   },
 
@@ -278,6 +305,13 @@ export const createRepr = {
   error_indirect(): ReprInRuntime & { 0: "E" } {
     return ["E"];
   },
+
+  decoration(
+    decorationType: Extract<ReprInRuntime, { 0: "d" }>[1],
+    repr: ReprInRuntime,
+  ): ReprInRuntime & { 0: "d" } {
+    return ["d", decorationType, repr];
+  },
 };
 
 export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
@@ -339,6 +373,8 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
         rtmRepr[1], // error
         rtmRepr[2] && finalizeRepr(rtmRepr[2]), // source
       ];
+    case "d":
+      return ["d", rtmRepr[1], finalizeRepr(rtmRepr[2])];
   }
   return rtmRepr;
 }
