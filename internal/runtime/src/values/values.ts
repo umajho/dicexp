@@ -2,7 +2,11 @@ import { makeRuntimeError, RuntimeError } from "./runtime_errors";
 import { createRepr, ReprInRuntime } from "./repr/mod";
 import { createList } from "./impl/lists";
 import { createCallable } from "./impl/callable";
-import { createStream$list, createStream$sum } from "./impl/streams";
+import {
+  createStream$list,
+  createStream$sum,
+  createStreamTransformer,
+} from "./impl/streams";
 import { ErrorBeacon } from "./error-beacon";
 
 export abstract class ValueBox {
@@ -210,6 +214,8 @@ export const createValue = {
   stream$list: createStream$list,
 
   stream$sum: createStream$sum,
+
+  streamTransformer: createStreamTransformer,
 };
 
 export { asCallable, callCallable } from "./impl/callable";
@@ -229,7 +235,7 @@ export type Value_List = ValueBox[] & {
 
 export type Value_Stream = Value_Stream$List | Value_Stream$Sum;
 
-interface Value_StreamBase<
+export interface Value_StreamBase<
   Type extends string,
   Item,
   CastingImplicitlyTo extends Value_Plain,

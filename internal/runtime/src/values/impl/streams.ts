@@ -3,8 +3,10 @@ import { Unreachable } from "@dicexp/errors";
 import { ErrorBeacon } from "../error-beacon";
 import {
   createValue,
+  createValueBox,
   RuntimeError,
   StreamFragment,
+  Value_Stream,
   Value_Stream$List,
   Value_Stream$Sum,
   ValueBox,
@@ -47,10 +49,65 @@ export function createStream$sum(
   );
 }
 
-type Yielded<T> = [
+export function createStreamTransformer(
+  source: Value_Stream,
+  transformer: (
+    v: [status: "ok" | "last_nominal", v: ValueBox | number],
+  ) => Transformed<ValueBox | number>,
+  opts?: StreamOptions,
+): Value_Stream {
+  let nextAt = 0, hasNoMore = false;
+
+  const yielder = (): Yielded<ValueBox | number> | null => {
+    while (!hasNoMore) {
+      let currentItem = source.atWithStatus(nextAt);
+      nextAt++;
+      if (!currentItem) return null;
+      if (currentItem[0] === "last") {
+        hasNoMore = true;
+        currentItem[0] = "last_nominal";
+      }
+      // @ts-ignore
+      const transformed = transformer(currentItem);
+      if (transformed === "more") continue;
+      if (transformed[0] === "ok") {
+        if (transformed[1][0] === "last") {
+          hasNoMore = true;
+        } else if (hasNoMore) {
+          transformed[1][0] = "last";
+        }
+        return transformed[1];
+      } else if (transformed[0] === "error") {
+        return ["last", [
+          ["regular", createValueBox.error(transformed[1])],
+          transformed[2],
+        ]];
+      } else {
+        throw new Unreachable();
+      }
+    }
+    return null;
+  };
+
+  if (source.type === "stream$list") {
+    return createStream$list(yielder as () => Yielded<ValueBox> | null, opts);
+  } else if (source.type === "stream$sum") {
+    return createStream$sum(yielder as () => Yielded<number> | null, opts);
+  } else {
+    throw new Unreachable();
+  }
+}
+
+type WithStatus<T> = [
   status: "ok" | "last" | "last_nominal",
-  fragment: StreamFragment<T>,
+  v: T,
 ];
+export type Yielded<T> = WithStatus<StreamFragment<T>>;
+
+export type Transformed<T> =
+  | ["ok", Yielded<T>]
+  | "more"
+  | [type: "error", error: RuntimeError, abandonedBefore?: T[]];
 
 type ErrorSetter = (error: RuntimeError) => void;
 
@@ -62,11 +119,11 @@ class InternalValue_Stream<Type, T, CastingImplicitlyTo> {
   constructor(
     public readonly type: Type,
     private readonly _yielder: () => Yielded<T> | null,
-    private readonly _implicitCaster: (nominalList: T[]) => CastingImplicitlyTo,
-    private readonly _errorExtractor?: (item: T, s: ErrorSetter) => void,
+    public readonly implicitCaster: (nominalList: T[]) => CastingImplicitlyTo,
+    public readonly errorExtractor?: (item: T, s: ErrorSetter) => void,
     private readonly _opts?: StreamOptions,
   ) {
-    if (_errorExtractor) {
+    if (errorExtractor) {
       this._errorBeacon = new ErrorBeacon((s) => this._errorSetter = s);
     }
   }
@@ -106,7 +163,7 @@ class InternalValue_Stream<Type, T, CastingImplicitlyTo> {
     return item;
   }
 
-  atWithStatus(index: number): ["ok" | "last" | "last_nominal", T] | null {
+  atWithStatus(index: number): WithStatus<T> | null {
     const yielded = this._fill({ index });
     if (!yielded) return null;
     const [status, [[_, item]]] = yielded;
@@ -122,7 +179,7 @@ class InternalValue_Stream<Type, T, CastingImplicitlyTo> {
   }
 
   castImplicitly(): CastingImplicitlyTo {
-    return this._implicitCaster(this._nominalList);
+    return this.implicitCaster(this._nominalList);
   }
 
   get nominalFragments(): StreamFragment<T>[] {
@@ -177,7 +234,7 @@ class InternalValue_Stream<Type, T, CastingImplicitlyTo> {
 
       this._actualLength++;
 
-      this._errorExtractor?.(lastFilled[1][0][1], this._errorSetter!);
+      this.errorExtractor?.(lastFilled[1][0][1], this._errorSetter!);
 
       let shouldBreak = this._errorBeacon?.comfirmsError();
 

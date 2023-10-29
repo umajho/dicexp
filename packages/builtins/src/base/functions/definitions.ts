@@ -13,6 +13,7 @@ import type {
 import { product, sum } from "../utils";
 
 import { builtinFunctionDeclarations } from "./declarations";
+import { Transformed } from "@dicexp/runtime/src/values/impl/streams";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations
@@ -21,52 +22,45 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   "reroll/2": (rtm, stream, callable) => {
     let isSum = rtm.getValueTypeName(stream) === "stream$sum";
 
-    let remainRerolls = 0, hasExceededNominalLenght = false;
-    let acc = isSum ? 0 : ([] as ValueBox[]);
-    for (let i = 0;; i++) {
-      const curResult = stream.atWithStatus(i);
-      if (!curResult) break;
-      const [curStatus, curValue] = curResult;
+    let remainRolls = 0, shouldTrackBaseRolls = true;
 
-      const shouldRerollResult = tryUnwrapBoolean(
-        rtm,
-        callable._call([
-          isSum
-            ? rtm.createValueBox.direct(curValue as number)
-            : curValue as ValueBox,
-        ]),
-        { functionFullName: "reroll/2" },
-      );
-      if (shouldRerollResult[0] === "error") return shouldRerollResult;
+    const newStream = rtm.createValue.streamTransformer(
+      stream,
+      ([status, item]): Transformed<ValueBox | number> => {
+        const shouldRerollResult = tryUnwrapBoolean(
+          rtm,
+          callable._call([
+            isSum
+              ? rtm.createValueBox.direct(item as number)
+              : item as ValueBox,
+          ]),
+          { functionFullName: "reroll/2" },
+        );
+        if (shouldRerollResult[0] === "error") return shouldRerollResult;
 
-      const shouldReroll = shouldRerollResult[1];
-      if (shouldReroll) {
-        remainRerolls++;
-      } else {
-        if (isSum) {
-          (acc as number) += curValue as number;
-        } else {
-          (acc as ValueBox[]).push(curValue as ValueBox);
+        const shouldReroll = shouldRerollResult[1];
+
+        if (shouldTrackBaseRolls) {
+          remainRolls++;
         }
-      }
+        if (shouldReroll) {
+          remainRolls++;
+        }
+        remainRolls--;
 
-      if (hasExceededNominalLenght) {
-        remainRerolls--;
-        if (!remainRerolls) break;
-      }
+        if (status === "last_nominal") {
+          shouldTrackBaseRolls = false;
+        }
 
-      if (curStatus === "last") {
-        break;
-      } else if (curStatus === "last_nominal") {
-        if (!remainRerolls) break;
-        hasExceededNominalLenght = true;
-      }
-    }
+        if (shouldReroll) return "more";
+        const newStatus = (!remainRolls && !shouldTrackBaseRolls)
+          ? "last_nominal"
+          : "ok";
+        return ["ok", [newStatus, [["regular", item]]]];
+      },
+    );
 
-    return [
-      "ok",
-      isSum ? acc as number : rtm.createValue.list(acc as ValueBox[]),
-    ];
+    return ["ok", newStream];
   },
 
   // 实用：
