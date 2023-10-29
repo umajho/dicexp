@@ -5,7 +5,6 @@ import {
   createValue,
   RuntimeError,
   StreamFragment,
-  Value_List,
   Value_Stream$List,
   Value_Stream$Sum,
   ValueBox,
@@ -15,14 +14,37 @@ export function createStream$list(
   yielder: () => Yielded<ValueBox> | null,
   opts?: StreamOptions,
 ): Value_Stream$List {
-  return new InternalValue_Stream$List(yielder, opts);
+  const errorExtractor = (item: ValueBox, errorSetter: ErrorSetter): void => {
+    if (item.confirmsError()) {
+      const itemResult = item.get();
+      if (itemResult[0] !== "error") throw new Unreachable();
+      errorSetter(itemResult[1]);
+    }
+    if (item.errorBeacon) {
+      item.errorBeacon.addDisposableHook((err) => errorSetter!(err));
+    }
+  };
+
+  return new InternalValue_Stream(
+    "stream$list",
+    yielder,
+    (nominalList) => createValue.list(nominalList),
+    errorExtractor,
+    opts,
+  );
 }
 
 export function createStream$sum(
   yielder: () => Yielded<number> | null,
   opts?: StreamOptions,
 ): Value_Stream$Sum {
-  return new InternalValue_Stream$Sum(yielder, opts);
+  return new InternalValue_Stream(
+    "stream$sum",
+    yielder,
+    (nominalList) => nominalList.reduce((acc, cur) => acc + cur, 0),
+    undefined,
+    opts,
+  );
 }
 
 type Yielded<T> = [
@@ -30,15 +52,24 @@ type Yielded<T> = [
   fragment: StreamFragment<T>,
 ];
 
+type ErrorSetter = (error: RuntimeError) => void;
+
 interface StreamOptions {
   initialNominalLength?: number;
 }
 
-class InternalValue_StreamBase<T> {
+class InternalValue_Stream<Type, T, CastingImplicitlyTo> {
   constructor(
+    public readonly type: Type,
     private readonly _yielder: () => Yielded<T> | null,
+    private readonly _implicitCaster: (nominalList: T[]) => CastingImplicitlyTo,
+    private readonly _errorExtractor?: (item: T, s: ErrorSetter) => void,
     private readonly _opts?: StreamOptions,
-  ) {}
+  ) {
+    if (_errorExtractor) {
+      this._errorBeacon = new ErrorBeacon((s) => this._errorSetter = s);
+    }
+  }
 
   private readonly _underlying: Yielded<T>[] = //
     new Array(this._opts?.initialNominalLength ?? 0);
@@ -90,6 +121,10 @@ class InternalValue_StreamBase<T> {
     return this.nominalFragments.map(([[_1, v], _2]) => v);
   }
 
+  castImplicitly(): CastingImplicitlyTo {
+    return this._implicitCaster(this._nominalList);
+  }
+
   get nominalFragments(): StreamFragment<T>[] {
     return this.availableNominalLength! === this._actualLength
       ? this.actualFragments
@@ -109,8 +144,6 @@ class InternalValue_StreamBase<T> {
       ? this._underlying
       : this._underlying.slice(0, this._actualLength)).map(([_1, f]) => f);
   }
-
-  protected _extractError?: (item: T) => RuntimeError | null;
 
   /**
    * 若参数为 to.index：
@@ -144,10 +177,7 @@ class InternalValue_StreamBase<T> {
 
       this._actualLength++;
 
-      const error = this._extractError?.(lastFilled[1][0][1]);
-      if (error) {
-        this._errorSetter!(error);
-      }
+      this._errorExtractor?.(lastFilled[1][0][1], this._errorSetter!);
 
       let shouldBreak = this._errorBeacon?.comfirmsError();
 
@@ -168,45 +198,5 @@ class InternalValue_StreamBase<T> {
     } else {
       return null;
     }
-  }
-}
-
-class InternalValue_Stream$List extends InternalValue_StreamBase<ValueBox>
-  implements Value_Stream$List {
-  readonly type = "stream$list";
-
-  constructor(yielder: () => Yielded<ValueBox> | null, opts?: StreamOptions) {
-    super(yielder, opts);
-
-    this._errorBeacon = new ErrorBeacon((s) => this._errorSetter = s);
-  }
-
-  get errorBeacon() {
-    return this._errorBeacon!;
-  }
-
-  _extractError = (item: ValueBox) => {
-    if (item.confirmsError()) {
-      const itemResult = item.get();
-      if (itemResult[0] !== "error") throw new Unreachable();
-      return itemResult[1];
-    }
-    if (item.errorBeacon) {
-      item.errorBeacon.addDisposableHook((err) => this._errorSetter!(err));
-    }
-    return null;
-  };
-
-  castImplicitly(): Value_List {
-    return createValue.list(this._nominalList);
-  }
-}
-
-class InternalValue_Stream$Sum extends InternalValue_StreamBase<number>
-  implements Value_Stream$Sum {
-  readonly type = "stream$sum";
-
-  castImplicitly(): number {
-    return this._nominalList.reduce((acc, cur) => acc + cur, 0);
   }
 }
