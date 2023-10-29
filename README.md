@@ -1,16 +1,14 @@
-# dicexp
+# <ruby><abbr title="DICe EXPression">Dicexp</abbr><rt>骰子表达式</rt><ruby>
+
+![](https://img.shields.io/badge/WIP-Do%20Not%20Use-yellow)
 
 > In memory of ADNMB.
 
-<ruby>Dicexp<rt>骰子表达式</rt><ruby>&#160;。
-
-WIP / DO NOT USE.
-
-Playground: https://umajho.github.io/dicexp/
-
-## 骰子表达式 Dicexp
-
-简单的介绍文档见[这里](./docs/Dicexp.md)。
+|                                        |                                                      链接                                                       |
+| :------------------------------------: | :-------------------------------------------------------------------------------------------------------------: |
+| <ruby>实验场<rt>Playground</rt></ruby> |                                        https://umajho.github.io/dicexp/                                         |
+|                使用文档                |                                            [这里](./docs/Dicexp.md)                                             |
+|                待办事项                | [![GitHub issues](https://img.shields.io/github/issues/umajho/dicexp)](https://github.com/umajho/dicexp/issues) |
 
 ## 预备工作
 
@@ -27,7 +25,3 @@ Playground: https://umajho.github.io/dicexp/
   的兼容性。
   - `dicexp`：提供解析、执行 dicexp 代码的 API。
 - `playground`：一个简单的单网页应用，提供最基本的 dicexp 使用体验。
-
-## TODO
-
-参见本项目代码仓库的 [Issues](https://github.com/umajho/dicexp/issues)。
