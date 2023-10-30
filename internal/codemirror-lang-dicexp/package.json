@@ -1,5 +1,5 @@
 {
-  "packageManager": "pnpm@8.6.12",
+  "packageManager": "pnpm@8.10.0",
   "name": "@dicexp/codemirror-lang-dicexp",
   "version": "0.0.0",
   "main": "lib.ts",
