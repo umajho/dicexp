@@ -1,5 +1,5 @@
 import type { EvaluationResult } from "dicexp/internal";
-import type { Scope } from "@dicexp/runtime/values";
+import type { Scope } from "@dicexp/runtime/scopes";
 import { Unreachable } from "@dicexp/errors";
 
 import { proxyErrorFromWorker } from "./error_from_worker";

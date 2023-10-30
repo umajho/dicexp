@@ -1,4 +1,4 @@
-import { ValueTypeName } from "./value_names";
+import { ValueTypeName } from "./names";
 
 export type ValueSpec =
   | "lazy"

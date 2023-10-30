@@ -1,6 +1,6 @@
 import { Unreachable } from "@dicexp/errors";
 
-import { Value } from "./values";
+import { Value } from "./types";
 
 export function getValueTypeName(v: Value) {
   switch (typeof v) {
@@ -39,6 +39,6 @@ export function getTypeDisplayName(name: ValueTypeName): string {
   }
 }
 
-export function getDisplayNameOfValue(value: Value): string {
+export function getValueTypeDisplayName(value: Value): string {
   return getTypeDisplayName(getValueTypeName(value));
 }

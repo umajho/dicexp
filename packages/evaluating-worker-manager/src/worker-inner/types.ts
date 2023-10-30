@@ -3,7 +3,7 @@ import type {
   ParseOptions,
   RuntimeRestrictions,
 } from "dicexp/internal";
-import type { Scope } from "@dicexp/runtime/values";
+import type { Scope } from "@dicexp/runtime/scopes";
 
 export interface MessagePoster {
   tryPostMessage(data: DataFromWorker): void;

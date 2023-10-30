@@ -1,4 +1,7 @@
-import { ReprInRuntime, Value, Value_Callable, ValueBox } from "../mod";
+import { ReprInRuntime } from "../../repr/mod";
+import { ValueBox } from "../../value-boxes/mod";
+
+import { Value, Value_Callable } from "../types";
 
 export function createCallable(
   arity: number,

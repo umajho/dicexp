@@ -11,8 +11,11 @@ import {
   parse,
   ParseOptions,
 } from "dicexp/internal";
-import { RuntimeError, ValueTypeName } from "@dicexp/runtime/values";
-import { runtimeError_callArgumentTypeMismatch } from "@dicexp/runtime/errors";
+import {
+  createRuntimeError,
+  RuntimeError,
+} from "@dicexp/runtime/runtime-errors";
+import { ValueTypeName } from "@dicexp/runtime/values";
 import { Unreachable } from "@dicexp/errors";
 
 type ExecuteOptionsForTest = ExecuteOptions;
@@ -166,7 +169,7 @@ function unaryOperatorOnlyAccepts(
     it(`case ${i + 1}: ${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
       assertExecutionRuntimeError(
         code,
-        runtimeError_callArgumentTypeMismatch(1, expected, rightType),
+        createRuntimeError.callArgumentTypeMismatch(1, expected, rightType),
         opts,
       );
     });
@@ -187,7 +190,7 @@ function binaryOperatorOnlyAccepts(
     it(`case ${i + 1}: ${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
       assertExecutionRuntimeError(
         code,
-        runtimeError_callArgumentTypeMismatch(pos, expected, wrongType),
+        createRuntimeError.callArgumentTypeMismatch(pos, expected, wrongType),
         opts,
       );
     });

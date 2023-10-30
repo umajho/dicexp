@@ -1,12 +1,13 @@
-import {
-  RawScope,
-  RegularFunctionAlias,
-  Scope,
-  ValueSpec,
-} from "../values/mod";
-import { RegularFunctionDeclaration } from "./types/mod";
-import { makeFunction } from "./make_function";
 import { Unreachable } from "@dicexp/errors";
+
+import {
+  DeclarationListToDefinitionMap,
+  makeFunction,
+  RegularFunctionDeclaration,
+} from "../regular-functions/mod";
+import { ValueSpec } from "../values/mod";
+
+import { RawScope, RegularFunctionAlias, Scope } from "./Scope";
 
 export function makeScope(rawScope: RawScope): Scope {
   const opScope: Scope = {};
@@ -35,16 +36,9 @@ export function makeScope(rawScope: RawScope): Scope {
   return opScope;
 }
 
-export function asScope(stuff: Scope | RawScope | (Scope | RawScope)[]): Scope {
-  if (Array.isArray(stuff)) {
-    let scope: Scope = {};
-    for (const item of stuff) {
-      scope = { ...scope, ...asScope(item) };
-    }
-    return scope;
-  } else if ("isRawScope" in stuff && stuff.isRawScope === true) {
-    return makeScope(stuff as RawScope);
-  } else {
-    return stuff as Scope;
-  }
+export function makeRawScope<T extends readonly RegularFunctionDeclaration[]>(
+  declarations: T,
+  definitions: DeclarationListToDefinitionMap<T>,
+): RawScope {
+  return { isRawScope: true, declarations, definitions };
 }

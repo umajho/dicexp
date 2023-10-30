@@ -1,17 +1,12 @@
 import { Unreachable } from "@dicexp/errors";
 
-import {
-  createValueBox,
-  makeRuntimeError,
-  RawFunction,
-  RegularFunction,
-  RuntimeError,
-  Value,
-  ValueBox,
-  ValueSpec,
-} from "../values/mod";
-import { runtimeError_wrongArity } from "../errors/mod";
-import { unwrapValue } from "../value-utils/mod";
+import { Value, ValueSpec } from "../values/mod";
+import { createValueBox, ValueBox } from "../value-boxes/mod";
+import { unwrapValue } from "../utils/unwrapping";
+import { createRuntimeError, RuntimeError } from "../runtime-errors/mod";
+import { RawFunction } from "../scopes/mod";
+
+import { RegularFunction } from "./RegularFunction";
 
 /**
  * NOTE: 由于目前没有错误恢复机制，出现错误必然无法挽回，
@@ -38,7 +33,7 @@ export function makeFunction(
         } else if (result[0] === "error") {
           let err = result[1];
           if (typeof err === "string") {
-            err = makeRuntimeError(err);
+            err = createRuntimeError.simple(err);
           }
           return createValueBox.error(err);
         } else if (result[0] === "error_indirect") {
@@ -66,7 +61,8 @@ function unwrapArguments(
   if (spec.length !== args.length) {
     // NOTE: 实际上触发不了这里，因为对于通常函数而言，参数数目决定目标函数名，
     //       而参数数目不正确会因为找不到函数名对应的函数而先触发对应的错误。
-    const err = runtimeError_wrongArity(spec.length, args.length, "regular");
+    const err = //
+      createRuntimeError.wrongArity(spec.length, args.length, "regular");
     return ["error", err];
   }
 

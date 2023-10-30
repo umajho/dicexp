@@ -1,5 +1,5 @@
 import type { ExecuteOptions } from "dicexp/internal";
-import type { Scope } from "@dicexp/runtime/values";
+import type { Scope } from "@dicexp/runtime/scopes";
 import type { Node } from "@dicexp/nodes";
 import { Unreachable } from "@dicexp/errors";
 

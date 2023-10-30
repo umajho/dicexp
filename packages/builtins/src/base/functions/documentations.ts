@@ -1,4 +1,5 @@
-import { DeclarationListToDocumentationMap } from "@dicexp/runtime/src/regular-functions/types/docs";
+import { DeclarationListToDocumentationMap } from "@dicexp/runtime/regular-functions";
+
 import { builtinFunctionDeclarations } from "./declarations";
 
 export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<

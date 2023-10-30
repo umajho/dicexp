@@ -1,4 +1,4 @@
-import type { Scope } from "@dicexp/runtime/values";
+import type { Scope } from "@dicexp/runtime/scopes";
 import { asScope } from "dicexp/internal";
 
 import { functionScope, operatorScope } from "../internal";

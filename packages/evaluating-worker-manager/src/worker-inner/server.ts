@@ -1,4 +1,4 @@
-import type { Scope } from "@dicexp/runtime/values";
+import type { Scope } from "@dicexp/runtime/scopes";
 
 import { BatchHandler } from "./handler_batch";
 import { Pulser } from "./heartbeat";

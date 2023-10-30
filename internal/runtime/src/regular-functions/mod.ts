@@ -2,7 +2,9 @@ export type {
   DeclarationListToDefinitionMap,
   DeclarationListToDocumentationMap,
   DeclarationParameterTypeSpec,
+  Documentation,
   RegularFunctionDeclaration,
 } from "./types/mod";
-export * from "./make_function";
-export * from "./make_scope";
+export { makeFunction } from "./make-function";
+export type { RuntimeProxyForFunction } from "./runtime-proxy";
+export type { RegularFunction } from "./RegularFunction";

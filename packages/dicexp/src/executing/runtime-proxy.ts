@@ -1,21 +1,21 @@
 import { Node } from "@dicexp/nodes";
+import { createRuntimeError } from "@dicexp/runtime/runtime-errors";
+import { RandomGenerator } from "@dicexp/runtime/types";
 import {
   callCallable,
   createValue,
-  createValueBox,
   getTypeDisplayName,
   getValueTypeName,
-  makeRuntimeError,
-  RandomGenerator,
-  Scope,
-  ValueBox,
 } from "@dicexp/runtime/values";
-import { RuntimeProxy, RuntimeReporter } from "./runtime";
+import { createValueBox, ValueBox } from "@dicexp/runtime/value-boxes";
+import { Scope } from "@dicexp/runtime/scopes";
 import {
   flattenListAll,
   unwrapList,
   unwrapListOneOf,
-} from "@dicexp/runtime/value-utils";
+} from "@dicexp/runtime/utils";
+
+import { RuntimeProxy, RuntimeReporter } from "./runtime";
 
 export function createRuntimeProxy(opts: {
   random: RandomGenerator;
@@ -28,7 +28,7 @@ export function createRuntimeProxy(opts: {
     random,
     createValue,
     createValueBox,
-    makeRuntimeError,
+    createRuntimeError,
     callCallable,
     getValueTypeName,
     getTypeDisplayName,

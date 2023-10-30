@@ -1,6 +1,7 @@
-import { DeclarationListToDocumentationMap } from "@dicexp/runtime/src/regular-functions/types/docs";
-import { builtinOperatorDeclarations } from "./declarations";
 import { getTypeDisplayName } from "@dicexp/runtime/values";
+import { DeclarationListToDocumentationMap } from "@dicexp/runtime/regular-functions";
+
+import { builtinOperatorDeclarations } from "./declarations";
 
 export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   typeof builtinOperatorDeclarations

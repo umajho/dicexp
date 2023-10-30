@@ -1,13 +1,14 @@
+import { RuntimeError } from "../../runtime-errors/mod";
 import {
-  RuntimeError,
-  RuntimeProxyForFunction,
   Value_Callable,
   Value_List,
   Value_Stream$List,
   Value_Stream$Sum,
-  ValueBox,
   ValueTypeName,
 } from "../../values/mod";
+import { ValueBox } from "../../value-boxes/mod";
+import { RuntimeProxyForFunction } from "../runtime-proxy";
+
 import {
   DeclarationParameter,
   DeclarationReturnValueTypeSpec,

@@ -3,10 +3,14 @@
   "name": "@dicexp/runtime",
   "version": "0.0.0",
   "exports": {
-    "./errors": "./src/errors/mod.ts",
-    "./values": "./src/values/mod.ts",
-    "./value-utils": "./src/value-utils/mod.ts",
-    "./regular-functions": "./src/regular-functions/mod.ts"
+    "./regular-functions": "./regular-functions.ts",
+    "./repr": "./repr.ts",
+    "./runtime-errors": "./runtime-errors.ts",
+    "./scopes": "./scopes.ts",
+    "./types": "./types.ts",
+    "./utils": "./utils.ts",
+    "./value-boxes": "./value-boxes.ts",
+    "./values": "./values.ts"
   },
   "keywords": [],
   "author": "Umaĵo",

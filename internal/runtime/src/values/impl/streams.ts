@@ -1,16 +1,16 @@
 import { Unreachable } from "@dicexp/errors";
 
-import { ErrorBeacon } from "../error-beacon";
+import { RuntimeError } from "../../runtime-errors/mod";
+import { createValueBox, ValueBox } from "../../value-boxes/mod";
+import { ErrorBeacon } from "../../internal/error-beacon";
+
 import {
-  createValue,
-  createValueBox,
-  RuntimeError,
   StreamFragment,
   Value_Stream,
   Value_Stream$List,
   Value_Stream$Sum,
-  ValueBox,
-} from "../mod";
+} from "../types";
+import { createValue } from "../factory";
 
 export function createStream$list(
   yielder: () => Yielded<ValueBox> | null,

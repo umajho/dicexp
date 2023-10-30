@@ -1,7 +1,10 @@
 import { Unreachable } from "@dicexp/errors";
 
-import { RuntimeError, Value_List, ValueBox } from "../mod";
-import { ErrorBeacon } from "../error-beacon";
+import { RuntimeError } from "../../runtime-errors/mod";
+import { ValueBox } from "../../value-boxes/mod";
+import { ErrorBeacon } from "../../internal/error-beacon";
+
+import { Value_List } from "../types";
 
 export function createList(underlying: ValueBox[]): Value_List {
   InternalValue_List.isCreating = true;

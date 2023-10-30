@@ -1,19 +1,19 @@
-import type {
-  DeclarationListToDefinitionMap,
-} from "@dicexp/runtime/regular-functions";
-import type {
-  RuntimeError,
-  RuntimeProxyForFunction,
+import { RuntimeError } from "@dicexp/runtime/runtime-errors";
+import {
+  Transformed,
   Value_Callable,
   Value_List,
-  ValueBox,
   ValueTypeName,
 } from "@dicexp/runtime/values";
+import { ValueBox } from "@dicexp/runtime/value-boxes";
+import {
+  DeclarationListToDefinitionMap,
+  RuntimeProxyForFunction,
+} from "@dicexp/runtime/regular-functions";
 
 import { product, sum } from "../utils";
 
 import { builtinFunctionDeclarations } from "./declarations";
-import { Transformed } from "@dicexp/runtime/src/values/impl/streams";
 
 export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations
@@ -260,7 +260,7 @@ function runtimeError_givenClosureReturnValueTypeMismatch(
 ) {
   const expectedTypeText = rtm.getTypeDisplayName(expectedReturnValueType);
   const actualTypeText = rtm.getTypeDisplayName(actualReturnValueType);
-  return rtm.makeRuntimeError(
+  return rtm.createRuntimeError.simple(
     `作为第 ${position} 个参数传入通常函数 ${name} 的返回值类型与期待不符：` +
       `期待「${expectedTypeText}」，实际「${actualTypeText}」。`,
   );

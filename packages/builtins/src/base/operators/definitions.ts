@@ -1,9 +1,9 @@
-import type { DeclarationListToDefinitionMap } from "@dicexp/runtime/regular-functions";
-import type {
-  RuntimeError,
+import { RuntimeError } from "@dicexp/runtime/runtime-errors";
+import type { Value } from "@dicexp/runtime/values";
+import {
+  DeclarationListToDefinitionMap,
   RuntimeProxyForFunction,
-  Value,
-} from "@dicexp/runtime/values";
+} from "@dicexp/runtime/regular-functions";
 import { Unreachable } from "@dicexp/errors";
 
 import type { builtinOperatorDeclarations } from "./declarations";
@@ -170,5 +170,5 @@ export function runtimeError_illegalOperation(
   operation: string,
   reason: string,
 ): RuntimeError {
-  return rtm.makeRuntimeError(`操作 “${operation}” 非法：${reason}`);
+  return rtm.createRuntimeError.simple(`操作 “${operation}” 非法：${reason}`);
 }

@@ -12,10 +12,12 @@ export type {
 export type {
   Restrictions as RuntimeRestrictions, // `ExecutionResult` 中的一项
 } from "./restrictions";
-export {
-  type Repr, // `ExecutionResult` 中的一项
-  type RuntimeError, // `ExecutionResult` 在 "error" 时对应的结果的第一项
-} from "@dicexp/runtime/values";
+export type {
+  Repr, // `ExecutionResult` 中的一项
+} from "@dicexp/runtime/repr";
+export type {
+  RuntimeError, // `ExecutionResult` 在 "error" 时对应的结果的第一项
+} from "@dicexp/runtime/runtime-errors";
 
-export { asRuntimeError } from "@dicexp/runtime/values";
-export { asScope } from "@dicexp/runtime/regular-functions";
+export { asRuntimeError } from "@dicexp/runtime/runtime-errors";
+export { asScope } from "@dicexp/runtime/scopes";

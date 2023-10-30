@@ -3,10 +3,11 @@
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Node } from "@dicexp/nodes";
+import { Scope } from "@dicexp/runtime/scopes";
+
 import { ExecutionResult, Runtime } from "./runtime";
 import { RandomSource } from "./random";
 import { Restrictions } from "./restrictions";
-import { Scope } from "@dicexp/runtime/values";
 export type { ExecutionResult } from "./runtime";
 
 export type ExecuteOptions =

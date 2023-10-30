@@ -1,5 +1,4 @@
-import { makeRawScope } from "@dicexp/runtime/values";
-import { makeScope } from "@dicexp/runtime/regular-functions";
+import { makeRawScope, makeScope } from "@dicexp/runtime/scopes";
 
 import { ScopeExplicit } from "./types";
 

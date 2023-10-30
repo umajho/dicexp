@@ -1,6 +1,5 @@
 import { Unreachable } from "@dicexp/errors";
-import { Scope } from "@dicexp/runtime/values";
-import { asScope } from "@dicexp/runtime/regular-functions";
+import { asScope, Scope } from "@dicexp/runtime/scopes";
 
 import * as builtins from "@dicexp/builtins/internal";
 

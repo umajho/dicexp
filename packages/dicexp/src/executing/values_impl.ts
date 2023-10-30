@@ -3,25 +3,19 @@ import { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
   asInteger,
-  createRepr,
   createValue,
-  createValueBox,
-  getDisplayNameOfValue,
-  makeRuntimeError,
-  RegularFunctionAlias,
-  ReprInRuntime,
-  RuntimeError,
+  getValueTypeDisplayName,
   Value_Container,
-  ValueBox,
 } from "@dicexp/runtime/values";
-import { RegularFunction, Scope } from "@dicexp/runtime/values";
+import { RegularFunctionAlias, Scope } from "@dicexp/runtime/scopes";
 import {
-  runtimeError_duplicateClosureParameterNames,
-  runtimeError_limitationExceeded,
-  runtimeError_unknownRegularFunction,
-  runtimeError_valueIsNotCallable,
-  runtimeError_wrongArity,
-} from "@dicexp/runtime/errors";
+  createRuntimeError,
+  RuntimeError,
+} from "@dicexp/runtime/runtime-errors";
+import { createValueBox, ValueBox } from "@dicexp/runtime/value-boxes";
+import { createRepr, ReprInRuntime } from "@dicexp/runtime/repr";
+import { RegularFunction } from "@dicexp/runtime/regular-functions";
+
 import { RuntimeProxy } from "./runtime";
 
 export class ConcreteValueBoxFactory {
@@ -128,7 +122,11 @@ export class ConcreteValueBoxFactory {
       //       那此函数内处理惰性是否没有意义？
       (args) => {
         if (args.length !== arity) {
-          const err = runtimeError_wrongArity(arity, args.length, "closure");
+          const err = createRuntimeError.wrongArity(
+            arity,
+            args.length,
+            "closure",
+          );
           return createValueBox.error(err);
         }
 
@@ -137,7 +135,7 @@ export class ConcreteValueBoxFactory {
           if (ident === "_") continue;
           if (Object.prototype.hasOwnProperty.call(deeperScope, ident)) {
             return createValueBox.error(
-              runtimeError_duplicateClosureParameterNames(ident),
+              createRuntimeError.duplicateClosureParameterNames(ident),
             );
           }
           deeperScope[ident] = args[i]!;
@@ -189,7 +187,11 @@ export class ConcreteValueBoxFactory {
       arity,
       (args) => {
         if (args.length !== arity) {
-          const err = runtimeError_wrongArity(arity, args.length, "captured");
+          const err = createRuntimeError.wrongArity(
+            arity,
+            args.length,
+            "captured",
+          );
           return createValueBox.error(err);
         }
 
@@ -224,7 +226,7 @@ export class ConcreteValueBoxFactory {
     const callable = asCallable(value);
     if (!callable) {
       const callRepr = createRepr.call_value(style, calleeRepr);
-      return this.error(runtimeError_valueIsNotCallable(), callRepr);
+      return this.error(createRuntimeError.valueIsNotCallable(), callRepr);
     }
 
     return createValueBox.lazy(
@@ -276,10 +278,10 @@ export class ConcreteValueBoxFactory {
         const countValue = asInteger(countValue_);
 
         if (countValue === null) {
-          const typeName = getDisplayNameOfValue(countValue_);
+          const typeName = getValueTypeDisplayName(countValue_);
           const errMsg = `反复次数期待「整数」，实际类型为「${typeName}」`;
           const repr = createRepr.repetition(count.getRepr(), bodyRaw);
-          return this.error(makeRuntimeError(errMsg), repr);
+          return this.error(createRuntimeError.simple(errMsg), repr);
         }
 
         let stream: Value_Container;
@@ -323,7 +325,9 @@ function getFunctionFromScope(
   let fn = scope[fnName];
   let realName: string | undefined;
   while (true) {
-    if (!fn) return ["error", runtimeError_unknownRegularFunction(fnName)];
+    if (!fn) {
+      return ["error", createRuntimeError.unknownRegularFunction(fnName)];
+    }
     if (typeof fn === "function") {
       return realName ? ["alias", fn, realName] : ["ok", fn];
     }
@@ -341,13 +345,13 @@ const MIN_SAFE_INTEGER = -(2 ** 53) + 1;
 // 只需通常函数的结果，字面量由 parsing 检查，其他则不会改变数值
 function checkInteger(n: number): RuntimeError | null {
   if (n > MAX_SAFE_INTEGER) {
-    return runtimeError_limitationExceeded(
+    return createRuntimeError.limitationExceeded(
       "最大安全整数",
       null,
       MAX_SAFE_INTEGER,
     );
   } else if (n < MIN_SAFE_INTEGER) {
-    return runtimeError_limitationExceeded(
+    return createRuntimeError.limitationExceeded(
       "最小安全整数",
       null,
       MIN_SAFE_INTEGER,

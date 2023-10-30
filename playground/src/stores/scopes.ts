@@ -2,12 +2,12 @@ import { IconTypes } from "solid-icons";
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
 
 import {
-  asScope,
   DeclarationListToDocumentationMap,
   RegularFunctionDeclaration,
 } from "@dicexp/runtime/regular-functions";
+import { asScope, Scope } from "@dicexp/runtime/scopes";
+
 import * as builtins from "@dicexp/builtins/internal";
-import { Scope } from "@dicexp/runtime/values";
 
 export interface ScopeInfo {
   displayName: string;

@@ -3,4 +3,4 @@ export type {
   RegularFunctionDeclaration,
 } from "./decl";
 export type { DeclarationListToDefinitionMap } from "./def";
-export type { DeclarationListToDocumentationMap } from "./docs";
+export type { DeclarationListToDocumentationMap, Documentation } from "./docs";

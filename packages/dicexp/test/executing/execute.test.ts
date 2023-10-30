@@ -9,16 +9,15 @@ import {
   theyAreOk,
 } from "@dicexp/test-utils-for-executing";
 
-import {
-  runtimeError_duplicateClosureParameterNames,
-  runtimeError_wrongArity,
-} from "@dicexp/runtime/errors";
+import { createRuntimeError } from "@dicexp/runtime/runtime-errors";
+import { makeFunction } from "@dicexp/runtime/regular-functions";
+import { asScope, Scope } from "@dicexp/runtime/scopes";
+
+import * as builtins from "@dicexp/builtins/internal";
+
 import { JSValue } from "../../src/executing/mod";
 import { Restrictions } from "../../src/executing/restrictions";
 import { flatten } from "./utils";
-import { asScope, makeFunction } from "@dicexp/runtime/regular-functions";
-import * as builtins from "@dicexp/builtins/internal";
-import { Scope } from "@dicexp/runtime/values";
 
 import { testScope as topLevelScope } from "./test-scope";
 
@@ -191,7 +190,7 @@ describe("值", () => {
           it(`case ${i + 1}: ${code}`, () => {
             assertExecutionRuntimeError(
               code, // FIXME: 闭包名
-              runtimeError_wrongArity(expected, actual, "closure"),
+              createRuntimeError.wrongArity(expected, actual, "closure"),
               { topLevelScope },
             );
           });
@@ -200,7 +199,7 @@ describe("值", () => {
       it("不能有重复的参数名", () => {
         assertExecutionRuntimeError(
           String.raw`\($foo, $bar, $foo -> 0).(1, 2, 3)`,
-          runtimeError_duplicateClosureParameterNames("$foo"),
+          createRuntimeError.duplicateClosureParameterNames("$foo"),
           { topLevelScope },
         );
       });

@@ -1,13 +1,12 @@
 import {
-  runtimeError_callArgumentTypeMismatch,
-  runtimeError_typeMismatch,
+  createRuntimeError,
+  RuntimeError,
   TypeMismatchKind,
-} from "../errors/mod";
+} from "../runtime-errors/mod";
+import { ValueBox } from "../value-boxes/mod";
 import {
   getValueTypeName,
-  RuntimeError,
   Value,
-  ValueBox,
   ValueSpec,
   ValueTypeName,
 } from "../values/mod";
@@ -80,9 +79,9 @@ function checkType(
   }
   if (opts.nth !== undefined) {
     const nth = opts.nth;
-    return runtimeError_callArgumentTypeMismatch(nth, expected, actual);
+    return createRuntimeError.callArgumentTypeMismatch(nth, expected, actual);
   } else {
-    return runtimeError_typeMismatch(expected, actual, opts.kind ?? null);
+    return createRuntimeError.typeMismatch(expected, actual, opts.kind ?? null);
   }
 }
 

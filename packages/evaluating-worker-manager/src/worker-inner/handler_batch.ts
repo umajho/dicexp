@@ -1,6 +1,6 @@
 import type { RuntimeError } from "dicexp/internal";
 import type { Node } from "@dicexp/nodes";
-import type { Scope } from "@dicexp/runtime/values";
+import type { Scope } from "@dicexp/runtime/scopes";
 
 import { getDicexp } from "./dicexp";
 import {

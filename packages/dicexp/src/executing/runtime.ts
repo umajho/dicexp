@@ -1,3 +1,4 @@
+import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
   Node,
   Node_RegularCall,
@@ -8,26 +9,18 @@ import {
   NodeValue_List,
 } from "@dicexp/nodes";
 import {
-  runtimeError_badFinalResult,
-  runtimeError_restrictionExceeded,
-  runtimeError_unknownVariable,
-} from "@dicexp/runtime/errors";
+  createRuntimeError,
+  RuntimeError,
+} from "@dicexp/runtime/runtime-errors";
+import { asPlain, getValueTypeName, Value_List } from "@dicexp/runtime/values";
+import { finalizeRepr, Repr } from "@dicexp/runtime/repr";
+import { ValueBox } from "@dicexp/runtime/value-boxes";
+import { RuntimeProxyForFunction } from "@dicexp/runtime/regular-functions";
+import { RegularFunctionAlias, Scope } from "@dicexp/runtime/scopes";
+
 import { ConcreteValueBoxFactory } from "./values_impl";
 import { Restrictions } from "./restrictions";
 import { RandomGenerator, RandomSource } from "./random";
-import { Unimplemented, Unreachable } from "@dicexp/errors";
-import {
-  asPlain,
-  finalizeRepr,
-  getValueTypeName,
-  RegularFunctionAlias,
-  Repr,
-  RuntimeError,
-  RuntimeProxyForFunction,
-  Scope,
-  Value_List,
-  ValueBox,
-} from "@dicexp/runtime/values";
 import { createRuntimeProxy } from "./runtime-proxy";
 
 export interface RuntimeOptions {
@@ -136,7 +129,7 @@ export class Runtime {
     if (this._restrictions.maxCalls !== undefined) {
       const max = this._restrictions.maxCalls!;
       if (this._statistics.calls! > max) {
-        return runtimeError_restrictionExceeded("调用次数", "次", max);
+        return createRuntimeError.restrictionExceeded("调用次数", "次", max);
       }
     }
 
@@ -148,7 +141,7 @@ export class Runtime {
         const duration = now - this._statistics.start!.ms;
         if (duration > timeout.ms) {
           const ms = timeout.ms;
-          return runtimeError_restrictionExceeded("运行时间", "毫秒", ms);
+          return createRuntimeError.restrictionExceeded("运行时间", "毫秒", ms);
         }
       }
     }
@@ -162,7 +155,11 @@ export class Runtime {
       this._statistics.maxClosureCallDepth = current;
       const max = this._restrictions.maxClosureCallDepth!;
       if (current > max) {
-        return runtimeError_restrictionExceeded("闭包调用深度", "层", max);
+        return createRuntimeError.restrictionExceeded(
+          "闭包调用深度",
+          "层",
+          max,
+        );
       }
     }
 
@@ -243,7 +240,7 @@ export class Runtime {
     } else {
       // FIXME: 这种情况应该 eager，因为有没有变量这里就能决定了
       // 也许可以在执行前检查下每个 scope 里的标识符、通常函数名是否存在于 scope 之中？
-      const err = runtimeError_unknownVariable(ident);
+      const err = createRuntimeError.unknownVariable(ident);
       const errValue = this._createConcreteValueBox.error(err);
       return this._createConcreteValueBox.identifier(errValue, ident);
     }
@@ -340,7 +337,7 @@ function getFinalValue(
       return ["ok", value];
     default: {
       if (value.type === "list") return getFinalValueOfList(value);
-      const err = runtimeError_badFinalResult(getValueTypeName(value));
+      const err = createRuntimeError.badFinalResult(getValueTypeName(value));
       return ["error", err];
     }
   }

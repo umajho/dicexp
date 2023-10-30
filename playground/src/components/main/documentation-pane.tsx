@@ -20,10 +20,10 @@ import {
 
 import {
   DeclarationParameterTypeSpec,
+  Documentation,
   RegularFunctionDeclaration,
 } from "@dicexp/runtime/regular-functions";
 import { getTypeDisplayName } from "@dicexp/runtime/values";
-import { Documentation } from "@dicexp/runtime/src/regular-functions/types/docs";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
 import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui/mod";
