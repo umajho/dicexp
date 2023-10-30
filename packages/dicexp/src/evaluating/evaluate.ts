@@ -1,4 +1,4 @@
-import { parse, ParseOptions } from "../parsing/mod";
+import { parse, ParseOptions, ParsingError } from "../parsing/mod";
 import { execute, ExecuteOptions, RuntimeError } from "../executing/mod";
 import { JSValue } from "../executing/mod";
 import { ExecutionAppendix } from "../executing/runtime";
@@ -10,7 +10,8 @@ export interface EvaluateOptions {
 
 export type EvaluationResult =
   | ["ok", JSValue, ExecutionAppendix]
-  | ["error", "parse" | "other", Error]
+  | ["error", "parse", ParsingError]
+  | ["error", "other", Error]
   | ["error", "execute", RuntimeError, ExecutionAppendix];
 
 export function evaluate(

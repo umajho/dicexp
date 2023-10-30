@@ -18,10 +18,5 @@ export function parse(code: string, _opts?: ParseOptions): ParsingResult {
 
   const tree = lezerParser.parse(code);
   const transformer = new Transformer(tree, code);
-  try {
-    return ["ok", transformer.transform()];
-  } catch (e) {
-    if (e instanceof ParsingError) return ["error", e];
-    throw e;
-  }
+  return transformer.transform();
 }

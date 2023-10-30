@@ -1,6 +1,7 @@
 import type {
   EvaluationResult,
   ParseOptions,
+  ParsingError,
   RuntimeRestrictions,
 } from "dicexp/internal";
 import type { Scope } from "@dicexp/runtime/scopes";
@@ -68,7 +69,8 @@ export type InitializationResult =
 
 export type BatchReport =
   | ["ok" | "stop", BatchResult, BatchStatistics | null]
-  | ["error", "parse" | "other", Error]
+  | ["error", "parse", ParsingError]
+  | ["error", "other", Error]
   | ["error", "batch", Error, BatchResult, BatchStatistics | null];
 export interface BatchResult {
   samples: number;

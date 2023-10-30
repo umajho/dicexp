@@ -124,6 +124,8 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
   }
 }
 
-function makeSendableError(err: Error): Error {
-  return { name: err.name, message: err.message, stack: err.stack };
+function makeSendableError(
+  err: { name?: string; message: string; stack?: string },
+): Error {
+  return { name: err.name ?? "Error", message: err.message, stack: err.stack };
 }
