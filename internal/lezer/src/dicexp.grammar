@@ -65,29 +65,12 @@ UnaryExpression {
 
   !not @specialize[@name=UnaryOperator]<idBuiltin, "not"> expression |
   !negate (UnaryOperator<"+" | "-">) expression |
-  !rangeRollUnary UnaryOperator<"~"> expression |
-  FakeWorkaroundUnaryOperator<
-    "**" | "^"
-    "*" | "//" | "%" |
-    ("<"|">") "="? |
-    "==" | "!="
-    >
+  !rangeRollUnary UnaryOperator<"~"> expression
 }
 
 unaryOperatorDiceRoll {
   UnaryOperator { keywordD } //|
   // UnaryOperator { keywordDRemainder }
-}
-FakeWorkaroundUnaryOperator[@name="⚠"]<term> {
-  /*
-    不知道怎么回事，在 Capture 那里加上对应的运算符（如 “*”）后，
-    像是 “3 *3” 这样的双目运算符表达式会解析失败。（但 “3*3”“3* 3” 这些却可以。）
-    例外：如果这个运算符同时也是单目运算符，或者包含 Capture 中 arity 前面的 “/”。
-
-    感觉分析真正的原因可能花很长时间也没能搞明白，
-    所以还是先这样把其他受影响的双目运算符也当成假的单目运算符好了。
-  */
-  term
 }
 
 Grouping {
