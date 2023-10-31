@@ -210,7 +210,7 @@ const RestrictionsModal: Component<{
   createEffect(() => {
     const restrictions: EvaluationRestrictionsForWorker = {
       ...(hardTimeoutEnabled() ? { hardTimeout: { ms: hardTimeout() } } : {}),
-      execute: {
+      execution: {
         ...(softTimeoutEnabled() ? { softTimeout: { ms: softTimeout() } } : {}),
         ...(maxCallsEnabled() ? { maxCalls: maxCalls() } : {}),
       },

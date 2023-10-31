@@ -86,7 +86,7 @@ export default function createDicexpEvaluator(
         try {
           const evalOpts: EvaluationOptionsForWorker<typeof scopesForRuntime> =
             {
-              execute: {
+              execution: {
                 topLevelScopeName: opts.topLevelScopeName() ?? "standard",
                 seed: seed,
               },
@@ -109,7 +109,7 @@ export default function createDicexpEvaluator(
         try {
           const evalOpts: EvaluationOptionsForWorker<typeof scopesForRuntime> =
             {
-              execute: {
+              execution: {
                 topLevelScopeName: opts.topLevelScopeName() ?? "standard",
                 // seed 不生效
               },

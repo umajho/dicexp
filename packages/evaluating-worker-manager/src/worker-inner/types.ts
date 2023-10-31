@@ -13,7 +13,7 @@ export interface MessagePoster {
 export interface EvaluationOptionsForWorker<
   AvailableScopes extends Record<string, Scope>,
 > {
-  execute: ExecutionOptionsForWorker<AvailableScopes>;
+  execution: ExecutionOptionsForWorker<AvailableScopes>;
   parse?: ParseOptions;
 
   restrictions?: EvaluationRestrictionsForWorker;
@@ -21,7 +21,7 @@ export interface EvaluationOptionsForWorker<
 
 export interface EvaluationRestrictionsForWorker {
   hardTimeout?: { ms: number };
-  execute: RuntimeRestrictions;
+  execution: RuntimeRestrictions;
 }
 
 export interface ExecutionOptionsForWorker<

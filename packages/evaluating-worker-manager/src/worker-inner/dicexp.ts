@@ -1,6 +1,10 @@
+import { Dicexp as DicexpBase } from "@dicexp/interface";
+import { Node } from "@dicexp/nodes";
+import { Scope } from "@dicexp/runtime/scopes";
+
 import type { evaluate, execute, parse } from "dicexp/internal";
 
-export interface Dicexp {
+export interface Dicexp extends DicexpBase<Node, Scope> {
   parse: typeof parse;
   execute: typeof execute;
   evaluate: typeof evaluate;
