@@ -19,6 +19,7 @@
   "sideEffects": false,
   "peerDependencies": {
     "@dicexp/errors": "workspace:*",
+    "@dicexp/interface": "workspace:*",
     "@dicexp/js-utils": "workspace:*",
     "@dicexp/lezer": "workspace:*",
     "@dicexp/nodes": "workspace:*"

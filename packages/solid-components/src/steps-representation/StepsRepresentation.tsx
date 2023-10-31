@@ -19,8 +19,7 @@ import {
   HiSolidTrash,
 } from "solid-icons/hi";
 
-// 这里特意强调 imort type，防止真的引入了 dicexp 包中的实质内容
-import type { Repr } from "dicexp/internal";
+import { Repr } from "@dicexp/interface";
 
 import { RepresentationContext, RepresentationContextData } from "./context";
 import { ColorScheme, RGBColor } from "./color-scheme";

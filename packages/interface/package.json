@@ -1,0 +1,11 @@
+{
+  "packageManager": "pnpm@8.10.0",
+  "name": "@dicexp/interface",
+  "version": "0.4.1",
+  "main": "./lib.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false
+}

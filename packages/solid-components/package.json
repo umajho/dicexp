@@ -51,8 +51,8 @@
     "solid-js": "^1.8.3"
   },
   "devDependencies": {
+    "@dicexp/interface": "workspace:*",
     "concurrently": "^8.2.0",
-    "dicexp": "workspace:*",
     "esbuild": "^0.18.15",
     "esbuild-plugin-solid": "^0.5.0",
     "jsdom": "^22.1.0",

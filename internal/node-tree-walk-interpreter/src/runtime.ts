@@ -1,4 +1,5 @@
 import { Unimplemented, Unreachable } from "@dicexp/errors";
+import { Repr } from "@dicexp/interface";
 import {
   Node,
   Node_RegularCall,
@@ -13,7 +14,7 @@ import {
   RuntimeError,
 } from "@dicexp/runtime/runtime-errors";
 import { asPlain, getValueTypeName, Value_List } from "@dicexp/runtime/values";
-import { finalizeRepr, Repr } from "@dicexp/runtime/repr";
+import { finalizeRepr } from "@dicexp/runtime/repr";
 import { ValueBox } from "@dicexp/runtime/value-boxes";
 import { RuntimeProxyForFunction } from "@dicexp/runtime/regular-functions";
 import { RegularFunctionAlias, Scope } from "@dicexp/runtime/scopes";

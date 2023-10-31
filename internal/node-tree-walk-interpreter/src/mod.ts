@@ -2,7 +2,8 @@ export { execute } from "./execute";
 
 export type {
   ExecuteOptions, // `execute` 的选项
-  ExecutionResult, // `execute` 返回的结果
+  // `execute` 返回的结果。其内含的类型 `Repr` 已由 @dicexp/interface 包引出
+  ExecutionResult,
 } from "./execute";
 export type {
   ExecutionAppendix, // `ExecutionResult` 在 "ok" 及 "error" 时对应的结果的第二项
@@ -12,9 +13,6 @@ export type {
 export type {
   Restrictions as RuntimeRestrictions, // `ExecutionResult` 中的一项
 } from "./restrictions";
-export type {
-  Repr, // `ExecutionResult` 中的一项
-} from "@dicexp/runtime/repr";
 export type {
   RuntimeError, // `ExecutionResult` 在 "error" 时对应的结果的第一项
 } from "@dicexp/runtime/runtime-errors";

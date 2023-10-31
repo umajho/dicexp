@@ -1,4 +1,6 @@
-import { createRepr, ReprInRuntime } from "../repr/mod";
+import { ReprInRuntime } from "@dicexp/interface";
+
+import { createRepr } from "../repr/mod";
 import { RuntimeError } from "../runtime-errors/mod";
 import { Value, Value_Container, Value_Direct } from "../values/mod";
 

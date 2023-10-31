@@ -32,6 +32,7 @@
     "@dicexp/codemirror-lang-dicexp": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/evaluating-worker-manager": "workspace:*",
+    "@dicexp/interface": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "@dicexp/solid-components": "workspace:*",
     "@rolludejo/web-internal": "^0.1.0",

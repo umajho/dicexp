@@ -1,5 +1,6 @@
+import { ReprInRuntime } from "@dicexp/interface";
+
 import { ValueBox } from "../value-boxes/mod";
-import { ReprInRuntime } from "../repr/mod";
 import { ErrorBeacon } from "../internal/error-beacon";
 
 export type Value =

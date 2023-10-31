@@ -10,6 +10,7 @@
   "sideEffects": false,
   "peerDependencies": {
     "@dicexp/errors": "workspace:*",
+    "@dicexp/interface": "workspace:*",
     "@dicexp/nodes": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "esm-seedrandom": "^3.0.5"

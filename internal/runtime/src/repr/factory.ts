@@ -8,7 +8,7 @@ import {
 } from "../values/mod";
 import { ValueBox } from "../value-boxes/mod";
 
-import { Repr, ReprInRuntime } from "./types";
+import { Repr, ReprInRuntime } from "@dicexp/interface";
 
 const unevaluated: ["_"] = ["_"];
 

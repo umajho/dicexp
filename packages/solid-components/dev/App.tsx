@@ -1,6 +1,6 @@
 import type { Component } from "solid-js";
 
-import type { Repr } from "dicexp/internal";
+import { Repr } from "@dicexp/interface";
 
 import styles from "./App.module.css";
 

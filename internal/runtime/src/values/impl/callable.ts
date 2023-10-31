@@ -1,4 +1,5 @@
-import { ReprInRuntime } from "../../repr/mod";
+import { ReprInRuntime } from "@dicexp/interface";
+
 import { ValueBox } from "../../value-boxes/mod";
 
 import { Value, Value_Callable } from "../types";

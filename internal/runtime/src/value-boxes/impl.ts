@@ -1,5 +1,7 @@
+import { ReprInRuntime } from "@dicexp/interface";
+
 import { ErrorBeacon } from "../internal/error-beacon";
-import { createRepr, ReprInRuntime } from "../repr/mod";
+import { createRepr } from "../repr/mod";
 import { createRuntimeError, RuntimeError } from "../runtime-errors/mod";
 import { Value, Value_Container, Value_Direct } from "../values/mod";
 

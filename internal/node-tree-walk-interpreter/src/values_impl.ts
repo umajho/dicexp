@@ -1,4 +1,5 @@
 import { Unreachable } from "@dicexp/errors";
+import { ReprInRuntime } from "@dicexp/interface";
 import { Node, RegularCallStyle, ValueCallStyle } from "@dicexp/nodes";
 import {
   asCallable,
@@ -13,7 +14,7 @@ import {
   RuntimeError,
 } from "@dicexp/runtime/runtime-errors";
 import { createValueBox, ValueBox } from "@dicexp/runtime/value-boxes";
-import { createRepr, ReprInRuntime } from "@dicexp/runtime/repr";
+import { createRepr } from "@dicexp/runtime/repr";
 import { RegularFunction } from "@dicexp/runtime/regular-functions";
 
 import { RuntimeProxy } from "./runtime";
