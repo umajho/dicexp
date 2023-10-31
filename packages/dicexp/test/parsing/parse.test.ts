@@ -16,6 +16,8 @@ describe("空白", () => {
   describe("空白不影响解析", () => {
     const tablePre: [string, string][] = [
       ["1 + 1", "1+1"],
+      ["1+ 1", "1+1"],
+      ["1 +1", "1+1"],
       [" 1 ", "1"],
       ["foo ( bar , baz )", "foo(bar,baz)"],
     ];
