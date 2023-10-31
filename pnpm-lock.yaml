@@ -193,6 +193,9 @@ importers:
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../../internal/errors
+      '@dicexp/interface':
+        specifier: workspace:*
+        version: link:../interface
       '@dicexp/lezer':
         specifier: workspace:*
         version: link:../../internal/lezer

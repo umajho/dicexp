@@ -1,6 +1,6 @@
 import type { Scope } from "@dicexp/runtime/scopes";
 
-import { EvaluateOptionsForWorker } from "./worker-inner/types";
+import { EvaluationOptionsForWorker } from "./worker-inner/types";
 import {
   EvaluatingWorkerClient,
   EvaluatingWorkerClientOptions,
@@ -9,9 +9,9 @@ import { BatchReportForWorker, EvaluationResultForWorker } from "./types";
 
 export type NewEvaluatingWorkerManagerOptions = //
   Partial<EvaluatingWorkerClientOptions>;
-export type EvaluateOptionsForEvaluatingWorker<
+export type EvaluationOptionsForEvaluatingWorker<
   AvailableScopes extends Record<string, Scope>,
-> = EvaluateOptionsForWorker<AvailableScopes>;
+> = EvaluationOptionsForWorker<AvailableScopes>;
 
 export class EvaluatingWorkerManager<
   AvailableScopes extends Record<string, Scope>,
@@ -51,7 +51,7 @@ export class EvaluatingWorkerManager<
 
   async evaluate(
     code: string,
-    opts: EvaluateOptionsForEvaluatingWorker<AvailableScopes>,
+    opts: EvaluationOptionsForEvaluatingWorker<AvailableScopes>,
   ): Promise<EvaluationResultForWorker> {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
@@ -75,7 +75,7 @@ export class EvaluatingWorkerManager<
 
   async batch(
     code: string,
-    opts: EvaluateOptionsForEvaluatingWorker<AvailableScopes>,
+    opts: EvaluationOptionsForEvaluatingWorker<AvailableScopes>,
     reporter: (r: BatchReportForWorker) => void,
   ): Promise<void> {
     if (!this.client) {

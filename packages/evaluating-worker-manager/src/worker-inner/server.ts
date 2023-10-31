@@ -6,7 +6,7 @@ import {
   BatchReport,
   DataFromWorker,
   DataToWorker,
-  EvaluateOptionsForWorker,
+  EvaluationOptionsForWorker,
   WorkerInit,
 } from "./types";
 import { safe } from "./utils";
@@ -114,7 +114,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
   handleEvaluateSingle(
     id: string,
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
   ): DataFromWorker {
     let result = safe(() => this.evaluator.evaluate(code, opts));
     if (result[0] === "error" && typeof result[1] !== "string") {

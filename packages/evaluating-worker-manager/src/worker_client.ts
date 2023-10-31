@@ -6,7 +6,7 @@ import { proxyErrorFromWorker } from "./error_from_worker";
 import {
   DataFromWorker,
   DataToWorker,
-  EvaluateOptionsForWorker,
+  EvaluationOptionsForWorker,
   InitializationResult,
 } from "./worker-inner/types";
 import { BatchReportForWorker, EvaluationResultForWorker } from "./types";
@@ -241,7 +241,7 @@ export class EvaluatingWorkerClient<
 
   async evaluate(
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
   ) {
     return new Promise<EvaluationResultForWorker>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
@@ -293,7 +293,7 @@ export class EvaluatingWorkerClient<
 
   async batch(
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
     reporter: (r: BatchReportForWorker) => void,
   ) {
     return new Promise<void>((resolve, reject) => {

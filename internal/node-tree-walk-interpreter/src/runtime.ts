@@ -60,8 +60,7 @@ export interface ExecutionStatistics extends BasicExecutionStatistics {
 
 export type JSValue = number | boolean | JSValue[];
 
-export interface ExecutionAppendix
-  extends BasicExecutionAppendix<ExecutionStatistics> {
+export interface ExecutionAppendix extends BasicExecutionAppendix {
   representation: Repr;
   statistics: ExecutionStatistics;
 }

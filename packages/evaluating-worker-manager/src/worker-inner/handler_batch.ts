@@ -7,7 +7,7 @@ import {
   BatchReport,
   BatchResult,
   BatchStatistics,
-  EvaluateOptionsForWorker,
+  EvaluationOptionsForWorker,
 } from "./types";
 import { safe } from "./utils";
 import { Server } from "./server";
@@ -21,7 +21,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
   constructor(
     private readonly id: string,
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
     private server: Server<AvailableScopes>,
     private readonly stoppedCb: () => void,
   ) {
@@ -81,7 +81,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
 
   private async samplingLoop(
     node: Node,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
   ) {
     const executeOpts = this.server.evaluator.makeExecutionOptions(opts);
 

@@ -4,8 +4,8 @@ import { DicexpEvaluation } from "@rotext/solid-components";
 
 import { Unreachable } from "@dicexp/errors";
 import {
-  EvaluateOptionsForWorker,
   EvaluatingWorkerManager,
+  EvaluationOptionsForWorker,
   EvaluationRestrictionsForWorker,
 } from "@dicexp/evaluating-worker-manager/internal";
 
@@ -84,13 +84,14 @@ export default function createDicexpEvaluator(
     switch (opts.mode()) {
       case "single": {
         try {
-          const evalOpts: EvaluateOptionsForWorker<typeof scopesForRuntime> = {
-            execute: {
-              topLevelScopeName: opts.topLevelScopeName() ?? "standard",
-              seed: seed,
-            },
-            restrictions: opts.restrictions() ?? undefined,
-          };
+          const evalOpts: EvaluationOptionsForWorker<typeof scopesForRuntime> =
+            {
+              execute: {
+                topLevelScopeName: opts.topLevelScopeName() ?? "standard",
+                seed: seed,
+              },
+              restrictions: opts.restrictions() ?? undefined,
+            };
           const result = await workerManager()!.evaluate(
             code_,
             evalOpts,
@@ -106,13 +107,14 @@ export default function createDicexpEvaluator(
       }
       case "batch": {
         try {
-          const evalOpts: EvaluateOptionsForWorker<typeof scopesForRuntime> = {
-            execute: {
-              topLevelScopeName: opts.topLevelScopeName() ?? "standard",
-              // seed 不生效
-            },
-            restrictions: opts.restrictions() ?? undefined,
-          };
+          const evalOpts: EvaluationOptionsForWorker<typeof scopesForRuntime> =
+            {
+              execute: {
+                topLevelScopeName: opts.topLevelScopeName() ?? "standard",
+                // seed 不生效
+              },
+              restrictions: opts.restrictions() ?? undefined,
+            };
           const [report, setReprot] = //
             createSignal<BatchReportForPlayground>("preparing");
           setResult({ type: "batch", code: code_, report, date, environment });

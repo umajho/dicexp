@@ -12,25 +12,22 @@ export interface Dicexp<
   //
   ExecutionOptions extends BasicExecutionOptions<TopLevelScope> = //
     BasicExecutionOptions<TopLevelScope>,
-  ExecutionStatistics extends BasicExecutionStatistics = //
-    BasicExecutionStatistics,
-  ExecutionAppendix extends BasicExecutionAppendix<ExecutionStatistics> = //
-    BasicExecutionAppendix<ExecutionStatistics>,
+  ExecutionAppendix extends BasicExecutionAppendix = BasicExecutionAppendix,
   RuntimeError extends BasicRuntimeError = BasicRuntimeError,
   ExecutionResult extends //
-  BasicExecutionResult<ExecutionStatistics, ExecutionAppendix, RuntimeError> = //
-    BasicExecutionResult<ExecutionStatistics, ExecutionAppendix, RuntimeError>,
+  BasicExecutionResult<ExecutionAppendix, RuntimeError> = //
+    BasicExecutionResult<ExecutionAppendix, RuntimeError>,
   //
   EvaluationOptions extends //
   BasicEvaluationOptions<ParseOptions, ExecutionOptions> = //
     BasicEvaluationOptions<ParseOptions, ExecutionOptions>,
   EvaluationResult extends //
-  BasicEvaluationResult<ExecutionAppendix, ParseError, RuntimeError> = //
-    BasicEvaluationResult<ExecutionAppendix, ParseError, RuntimeError>,
+  BasicEvaluationResult<ParseError, ExecutionAppendix, RuntimeError> = //
+    BasicEvaluationResult<ParseError, ExecutionAppendix, RuntimeError>,
 > {
   parse: Parse<IR, ParseOptions, ParseResult>;
   execute: Execute<IR, TopLevelScope, ExecutionOptions, ExecutionResult>;
-  evaluate: (code: string, opts: EvaluationOptions) => EvaluationResult;
+  evaluate: Evaluate<TopLevelScope, EvaluationOptions, EvaluationResult>;
 }
 
 export type Parse<
@@ -55,11 +52,7 @@ export type Execute<
   TopLevelScope,
   ExecutionOptions extends BasicExecutionOptions<TopLevelScope>,
   ExecutionResult extends //
-  BasicExecutionResult<
-    BasicExecutionStatistics,
-    BasicExecutionAppendix<BasicExecutionStatistics>,
-    BasicRuntimeError
-  >,
+  BasicExecutionResult<BasicExecutionAppendix, BasicRuntimeError>,
 > = //
   (ir: IR, opts: ExecutionOptions) => ExecutionResult;
 
@@ -67,17 +60,14 @@ export interface BasicExecutionOptions<TopLevelScope> {
   topLevelScope: TopLevelScope;
 }
 export type BasicExecutionResult<
-  ExecutionStatistics extends BasicExecutionStatistics,
-  ExecutionAppendix extends BasicExecutionAppendix<ExecutionStatistics>,
+  ExecutionAppendix extends BasicExecutionAppendix,
   RuntimeError extends BasicRuntimeError,
 > =
   | ["ok", JSValue, ExecutionAppendix]
   | ["error", "runtime", RuntimeError, ExecutionAppendix];
-export interface BasicExecutionAppendix<
-  ExecutionStatistics extends BasicExecutionStatistics,
-> {
+export interface BasicExecutionAppendix {
   representation: Repr;
-  statistics: ExecutionStatistics;
+  statistics: BasicExecutionStatistics;
 }
 export interface BasicExecutionStatistics {
   timeConsumption: { ms: number };
@@ -86,16 +76,34 @@ export interface BasicRuntimeError {
   message: string;
 }
 
+// BasicEvaluationOptions<BasicParseOptions, BasicExecutionOptions<TopLevelScope>
+// BasicEvaluationResult<ParseError, ExecutionAppendix, RuntimeError>
+export type Evaluate<
+  TopLevelScope,
+  EvaluationOptions extends BasicEvaluationOptions<
+    BasicParseOptions,
+    BasicExecutionOptions<TopLevelScope>
+  >,
+  EvaluationResult extends BasicEvaluationResult<
+    BasicParseError,
+    BasicExecutionAppendix,
+    BasicRuntimeError
+  >,
+> = (
+  code: string,
+  opts: EvaluationOptions,
+) => EvaluationResult;
+
 export interface BasicEvaluationOptions<ParseOptions, ExecutionOptions> {
   parse?: ParseOptions;
   execution: ExecutionOptions;
 }
 export type BasicEvaluationResult<
-  ExecutionAppendix extends BasicExecutionAppendix<BasicExecutionStatistics>,
   ParseError extends BasicParseError,
+  ExecutionAppendix extends BasicExecutionAppendix,
   RuntimeError extends BasicRuntimeError,
 > =
   | ["ok", JSValue, ExecutionAppendix]
   | ["error", "parse", ParseError]
-  | ["error", "runtime", RuntimeError]
+  | ["error", "runtime", RuntimeError, ExecutionAppendix]
   | ["error", "other", Error];

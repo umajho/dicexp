@@ -4,7 +4,7 @@ import type { Node } from "@dicexp/nodes";
 import { Unreachable } from "@dicexp/errors";
 
 import { getDicexp } from "./dicexp";
-import { EvaluateOptionsForWorker } from "./types";
+import { EvaluationOptionsForWorker } from "./types";
 
 export class Evaluator<AvailableScopes extends Record<string, Scope>> {
   constructor(
@@ -17,16 +17,16 @@ export class Evaluator<AvailableScopes extends Record<string, Scope>> {
 
   evaluate(
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
   ) {
     return getDicexp().evaluate(code, {
-      execute: this.makeExecutionOptions(opts),
+      execution: this.makeExecutionOptions(opts),
       parse: opts.parse,
     });
   }
 
   makeExecutionOptions(
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
   ): ExecutionOptions {
     return {
       topLevelScope: this.getScopeCollection(opts.execute.topLevelScopeName),

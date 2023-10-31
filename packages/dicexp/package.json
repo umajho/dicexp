@@ -48,6 +48,7 @@
     "@dicexp/build-utils": "workspace:*",
     "@dicexp/builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
+    "@dicexp/interface": "workspace:*",
     "@dicexp/lezer": "workspace:*",
     "@dicexp/node-tree-walk-interpreter": "workspace:*",
     "@dicexp/nodes": "workspace:*",

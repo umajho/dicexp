@@ -10,7 +10,7 @@ export interface MessagePoster {
   tryPostMessage(data: DataFromWorker): void;
 }
 
-export interface EvaluateOptionsForWorker<
+export interface EvaluationOptionsForWorker<
   AvailableScopes extends Record<string, Scope>,
 > {
   execute: ExecutionOptionsForWorker<AvailableScopes>;
@@ -37,13 +37,13 @@ export type DataToWorker<AvailableScopes extends Record<string, Scope>> =
     type: "evaluate",
     id: string,
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
   ]
   | [
     type: "batch_start",
     id: string,
     code: string,
-    opts: EvaluateOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker<AvailableScopes>,
   ]
   | [type: "batch_stop", id: string];
 
