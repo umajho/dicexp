@@ -51,7 +51,7 @@
     "@dicexp/errors": "workspace:*",
     "@dicexp/lezer": "workspace:*",
     "@dicexp/nodes": "workspace:*",
-    "@dicexp/parsing-into-nodes": "workspace:*",
+    "@dicexp/parsing-into-node-tree": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "@dicexp/test-utils-for-executing": "workspace:*",
     "@lezer/common": "^1.1.0",

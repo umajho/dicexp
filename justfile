@@ -2,8 +2,8 @@ nodes *args:
 	just -f internal/nodes/justfile {{args}}
 lezer *args:
 	just -f internal/lezer/justfile {{args}}
-parsing-into-nodes *args:
-	just -f internal/parsing-into-nodes/justfile {{args}}
+parsing-into-node-tree *args:
+	just -f internal/parsing-into-node-tree/justfile {{args}}
 dicexp *args:
 	just -f packages/dicexp/justfile {{args}}
 builtins *args:
@@ -15,7 +15,7 @@ build-grammar:
 	just lezer build
 
 test:
-	just parsing-into-nodes test
+	just parsing-into-node-tree test
 	just dicexp test
 	just builtins test
 	just playground test

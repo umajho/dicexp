@@ -1,4 +1,8 @@
-import { parse, ParseOptions, ParsingError } from "@dicexp/parsing-into-nodes";
+import {
+  parse,
+  ParseOptions,
+  ParsingError,
+} from "@dicexp/parsing-into-node-tree";
 
 import { execute, ExecuteOptions, RuntimeError } from "../executing/mod";
 import { JSValue } from "../executing/mod";

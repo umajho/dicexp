@@ -59,7 +59,7 @@ importers:
 
   internal/nodes: {}
 
-  internal/parsing-into-nodes:
+  internal/parsing-into-node-tree:
     dependencies:
       '@dicexp/errors':
         specifier: workspace:*
@@ -174,9 +174,9 @@ importers:
       '@dicexp/nodes':
         specifier: workspace:*
         version: link:../../internal/nodes
-      '@dicexp/parsing-into-nodes':
+      '@dicexp/parsing-into-node-tree':
         specifier: workspace:*
-        version: link:../../internal/parsing-into-nodes
+        version: link:../../internal/parsing-into-node-tree
       '@dicexp/runtime':
         specifier: workspace:*
         version: link:../../internal/runtime
