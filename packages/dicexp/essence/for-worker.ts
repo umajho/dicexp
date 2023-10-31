@@ -1,4 +1,4 @@
-import { asRuntimeError, evaluate, execute, parse } from "../internal";
+import { evaluate, execute, parse } from "../internal";
 
-const dicexp = { parse, execute, evaluate, asRuntimeError };
+const dicexp = { parse, execute, evaluate };
 export default dicexp;

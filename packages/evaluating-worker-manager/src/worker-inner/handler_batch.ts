@@ -52,14 +52,14 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
           const err = this.shouldStop;
           report = ["error", "batch", err, this.result, this.statis];
         } else {
-          const runtimeError = getDicexp().asRuntimeError(this.shouldStop);
-          if (runtimeError) {
+          if (this.shouldStop === true) {
+            report = ["stop", this.result, this.statis];
+          } else {
             const err = new Error(
-              "某次求值时遭遇运行时错误：" + runtimeError.message,
+              "某次求值时遭遇运行时错误：" +
+                (this.shouldStop satisfies RuntimeError).message,
             );
             report = ["error", "batch", err, this.result, this.statis];
-          } else {
-            report = ["stop", this.result, this.statis];
           }
         }
         clearInterval(intervalId);

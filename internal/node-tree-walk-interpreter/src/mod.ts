@@ -19,5 +19,4 @@ export type {
   RuntimeError, // `ExecutionResult` 在 "error" 时对应的结果的第一项
 } from "@dicexp/runtime/runtime-errors";
 
-export { asRuntimeError } from "@dicexp/runtime/runtime-errors";
 export { asScope } from "@dicexp/runtime/scopes";

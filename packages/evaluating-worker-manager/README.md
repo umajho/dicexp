@@ -5,7 +5,7 @@
 `evaluating.worker.ts`:
 
 ```typescript
-import { asRuntimeError, asScope, evaluate, execute, parse } from "dicexp";
+import { asScope, evaluate, execute, parse } from "dicexp";
 import { functionScope, operatorScope } from "@dicexp/builtins";
 import { startWorkerServer } from "@dicexp/evaluating-worker-manager/internal";
 
@@ -15,7 +15,7 @@ const scopes = {
 
 export type Scopes = typeof scopes;
 
-const dicexp = { parse, execute, evaluate, asRuntimeError };
+const dicexp = { parse, execute, evaluate };
 startWorkerServer(dicexp, scopes);
 ```
 

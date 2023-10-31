@@ -1,2 +1,2 @@
-export { asRuntimeError, type RuntimeError } from "./RuntimeError";
+export { type RuntimeError } from "./RuntimeError";
 export { createRuntimeError, type TypeMismatchKind } from "./factory";
