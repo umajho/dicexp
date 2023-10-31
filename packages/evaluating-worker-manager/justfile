@@ -4,7 +4,7 @@ lint:
 	pnpm exec tsc --noEmit
 
 build: 
-	pnpm run build
+	pnpm exec tsup
 
 publish-no-build:
 	pnpm publish --access public

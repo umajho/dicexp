@@ -36,13 +36,13 @@
   "typesVersions": {},
   "scripts": {
     "dev": "vite serve dev",
-    "build": "tsup",
-    "test": "concurrently pnpm:test:*",
-    "test:client": "vitest",
-    "test:ssr": "pnpm run test:client --mode ssr",
+    "build": "just build",
+    "test": "just test",
+    "test:client": "just test-client",
+    "test:ssr": "just test-ssr",
     "prepublishOnly": "pnpm build",
-    "lint": "concurrently pnpm:lint:*",
-    "lint:types": "tsc --noEmit",
+    "lint": "just lint",
+    "lint:types": "just lint-types",
     "update-deps": "pnpm up -Li"
   },
   "peerDependencies": {

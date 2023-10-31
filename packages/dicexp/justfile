@@ -24,7 +24,7 @@ executing--bench: prepare
 	pnpm exec vitest bench --dir=test/executing --run
 
 build: prepare
-	pnpm run build
+	pnpm exec tsup
 
 publish-no-build:
 	pnpm publish --access public

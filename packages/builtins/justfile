@@ -7,7 +7,7 @@ test: lint
 	pnpm exec vitest --dir=test --run
 
 build:
-	pnpm run build
+	pnpm exec tsup
 
 publish:
 	pnpm publish --access public

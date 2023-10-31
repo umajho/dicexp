@@ -36,7 +36,9 @@
   "license": "MIT",
   "homepage": "https://github.com/umajho/dicexp/tree/main/packages/dicexp#readme",
   "scripts": {
-    "build": "tsup"
+    "lint": "just lint",
+    "test": "just test",
+    "build": "just build"
   },
   "peerDependencies": {
     "@lezer/highlight": "^1.1.6",

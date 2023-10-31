@@ -28,7 +28,9 @@
   "author": "Umaĵo",
   "license": "MIT",
   "scripts": {
-    "build": "tsup"
+    "lint": "just lint",
+    "test": "just test",
+    "build": "just build"
   },
   "devDependencies": {
     "@dicexp/build-utils": "workspace:*",

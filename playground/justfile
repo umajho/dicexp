@@ -4,7 +4,7 @@ prepare:
 	just build-grammar
 
 build: prepare
-	pnpm run build
+	pnpm exec vite build
 	gzip -k dist/**/*.js
 	brotli -k dist/**/*.js
 
@@ -13,7 +13,8 @@ lint: prepare
 
 test: lint
 
-serve: build serve-no-build
+serve: build
+	just serve-no-build
 
 serve-no-build:
 	# https://github.com/http-party/http-server

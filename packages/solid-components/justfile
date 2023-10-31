@@ -1,16 +1,24 @@
 set fallback
 
-lint:
-	pnpm run lint
+lint: lint-types
 
-test: lint
+lint-types:
+	tsc --noEmit
+
+test: lint test-client test-ssr
 	pnpm run test
+
+test-client: lint
+	pnpm exec vitest
+
+test-ssr: lint
+	pnpm exec vitest --mode ssr
 
 dev:
 	pnpm run dev
 
 build:
-	pnpm run build
+	pnpm exec tsup
 
 publish:
 	pnpm publish --access public
