@@ -1,6 +1,6 @@
 import { assert, describe, it } from "vitest";
 
-import { parse, ParsingResult } from "../lib";
+import { parse, ParseResult } from "../lib";
 
 import {
   captured,
@@ -343,7 +343,7 @@ describe("管道运算符", () => {
 
 function theyAreOk(
   table: ([string, Node] | string)[],
-  parseFn: (code: string) => ParsingResult = parse,
+  parseFn: (code: string) => ParseResult = parse,
 ) {
   for (const [i, row] of table.entries()) {
     let code: string, expected: Node | null;
@@ -371,7 +371,7 @@ function mustParse(code: string): Node {
 function assertOk(
   code: string,
   expected: Node | null,
-  parseFn: (code: string) => ParsingResult = parse,
+  parseFn: (code: string) => ParseResult = parse,
 ) {
   const result = parseFn(code);
 
@@ -386,7 +386,7 @@ function assertOk(
 
 function theyAreBad(
   table: string[],
-  parseFn: (code: string) => ParsingResult = parse,
+  parseFn: (code: string) => ParseResult = parse,
 ) {
   for (const [i, code] of table.entries()) {
     it(`case ${i + 1}: ${code}`, () => {
@@ -397,7 +397,7 @@ function theyAreBad(
 
 function assertBad(
   code: string,
-  parseFn: (code: string) => ParsingResult = parse,
+  parseFn: (code: string) => ParseResult = parse,
 ) {
   assert(parseFn(code)[0] === "error");
 }

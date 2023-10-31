@@ -25,10 +25,17 @@ export interface Dicexp<
   BasicEvaluationResult<ExecutionAppendix, ParseError, RuntimeError> = //
     BasicEvaluationResult<ExecutionAppendix, ParseError, RuntimeError>,
 > {
-  parse: (code: string, opts?: ParseOptions) => ParseResult;
+  parse: Parse<IR, ParseOptions, ParseResult>;
   execute: (ir: IR, opts: ExecutionOptions) => ExecutionResult;
   evaluate: (code: string, opts: EvaluationOptions) => EvaluationResult;
 }
+
+export type Parse<
+  IR,
+  ParseOptions extends BasicParseOptions,
+  ParseResult extends BasicParseResult<IR, BasicParseError>,
+> = //
+  (code: string, opts?: ParseOptions) => ParseResult;
 
 export interface BasicParseOptions {}
 export type BasicParseResult<IR, ParseError extends BasicParseError> =
@@ -60,9 +67,9 @@ export interface BasicRuntimeError {
   message: string;
 }
 
-export interface BasicEvaluationOptions<Parse, Execute> {
-  parse?: Parse;
-  execute: Execute;
+export interface BasicEvaluationOptions<ParseOptions, ExecutionOptions> {
+  parse?: ParseOptions;
+  execution: ExecutionOptions;
 }
 export type BasicEvaluationResult<
   ExecutionAppendix extends BasicExecutionAppendix,

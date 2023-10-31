@@ -1,6 +1,6 @@
 import { Unreachable } from "@dicexp/errors";
 import { Node_Value, value } from "@dicexp/nodes";
-import { createParsingError, ParsingError } from "./parsing_error";
+import { createParseError, ParseError } from "./parse_error";
 
 // see: https://stackoverflow.com/q/20486551
 export function convertTextToHalfWidth(text: string) {
@@ -15,13 +15,13 @@ const widthDelta = "！".charCodeAt(0) - "!".charCodeAt(0);
 export function parseInteger(
   sourceString: string,
   replacesDash = true,
-): ["ok", Node_Value] | ["error", ParsingError] {
+): ["ok", Node_Value] | ["error", ParseError] {
   if (replacesDash) {
     sourceString = sourceString.replace(/_/g, "");
   }
   const int = parseInt(sourceString);
   if (int < Number.MIN_SAFE_INTEGER || int > Number.MAX_SAFE_INTEGER) {
-    return ["error", createParsingError.badIntegerLiteral(sourceString)];
+    return ["error", createParseError.badIntegerLiteral(sourceString)];
   }
   return ["ok", value(int)];
 }

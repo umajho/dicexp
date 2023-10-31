@@ -1,14 +1,14 @@
+import { BasicParseError } from "@dicexp/interface";
+
 export interface Range {
   from: number;
   to: number;
 }
 
-export interface ParsingError {
-  message: string;
-}
+export interface ParseError extends BasicParseError {}
 
-export const createParsingError = {
-  generalGrammar(source: string, ranges: Range[]): ParsingError {
+export const createParseError = {
+  generalGrammar(source: string, ranges: Range[]): ParseError {
     let message = "以下位置的语法有误：";
     for (const range of ranges) {
       message += "\n\t";
@@ -18,11 +18,11 @@ export const createParsingError = {
     return { message };
   },
 
-  badPipeTarget(): ParsingError {
+  badPipeTarget(): ParseError {
     return { message: "管道运算符右侧无法传入参数" };
   },
 
-  badIntegerLiteral(source: string): ParsingError {
+  badIntegerLiteral(source: string): ParseError {
     return {
       message: `整数字面量 ${source} ` +
         `在整数的安全范围（${Number.MIN_SAFE_INTEGER} 至 ${Number.MAX_SAFE_INTEGER}）之外`,

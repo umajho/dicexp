@@ -1,7 +1,7 @@
 import {
   parse,
+  ParseError,
   ParseOptions,
-  ParsingError,
 } from "@dicexp/parsing-into-node-tree";
 
 import {
@@ -19,7 +19,7 @@ export interface EvaluateOptions {
 
 export type EvaluationResult =
   | ["ok", JSValue, ExecutionAppendix]
-  | ["error", "parse", ParsingError]
+  | ["error", "parse", ParseError]
   | ["error", "other", Error]
   | ["error", "runtime", RuntimeError, ExecutionAppendix];
 

@@ -86,6 +86,9 @@ importers:
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../errors
+      '@dicexp/interface':
+        specifier: workspace:*
+        version: link:../../packages/interface
       '@dicexp/lezer':
         specifier: workspace:*
         version: link:../lezer

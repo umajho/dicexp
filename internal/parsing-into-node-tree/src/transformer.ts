@@ -10,7 +10,7 @@ import {
   valueCall,
 } from "@dicexp/nodes";
 import { negateInteger, parseBoolean, parseInteger } from "./utils";
-import { createParsingError, ParsingError, Range } from "./parsing_error";
+import { createParseError, ParseError, Range } from "./parse_error";
 
 export class Transformer {
   constructor(
@@ -18,7 +18,7 @@ export class Transformer {
     private source: string,
   ) {}
 
-  transform(): ["ok", Node] | ["error", ParsingError] {
+  transform(): ["ok", Node] | ["error", ParseError] {
     {
       const result = this._ensureNoError(this.tree);
       if (result !== "ok") return result;
@@ -27,7 +27,7 @@ export class Transformer {
     return this._transform(this.tree.topNode.firstChild!);
   }
 
-  private _ensureNoError(tree: Tree): "ok" | ["error", ParsingError] {
+  private _ensureNoError(tree: Tree): "ok" | ["error", ParseError] {
     const badRanges: Range[] = [];
     tree.iterate({
       enter(node) {
@@ -39,14 +39,14 @@ export class Transformer {
     if (badRanges.length) {
       return [
         "error",
-        createParsingError.generalGrammar(this.source, badRanges),
+        createParseError.generalGrammar(this.source, badRanges),
       ];
     } else {
       return "ok";
     }
   }
 
-  private _transform(node: SyntaxNode): ["ok", Node] | ["error", ParsingError] {
+  private _transform(node: SyntaxNode): ["ok", Node] | ["error", ParseError] {
     const children = Transformer._getChildren(node);
 
     switch (node.type.name) {
@@ -167,14 +167,14 @@ export class Transformer {
 
   private _getArgumentListItems(
     argList: SyntaxNode,
-  ): ["ok", Node[]] | ["error", ParsingError] {
+  ): ["ok", Node[]] | ["error", ParseError] {
     const argListNode = Transformer._getChildren(argList);
     return this._getItems(Transformer._getChildren(argListNode[1]!));
   }
 
   private _getItems(
     children: SyntaxNode[],
-  ): ["ok", Node[]] | ["error", ParsingError] {
+  ): ["ok", Node[]] | ["error", ParseError] {
     const out: Node[] = [];
     for (const c of children) {
       const result = this._transform(c.firstChild!);
@@ -187,7 +187,7 @@ export class Transformer {
   private _transformPipeExpression(
     left: Node,
     right: Node,
-  ): ["ok", Node] | ["error", ParsingError] {
+  ): ["ok", Node] | ["error", ParseError] {
     if (typeof right === "string") {
       return ["ok", regularCall("piped", right, [left])];
     } else if (right.kind === "regular_call" && right.style === "function") {
@@ -196,7 +196,7 @@ export class Transformer {
       return ["ok", valueCall("piped", right.variable, [left, ...right.args])];
     }
 
-    return ["error", createParsingError.badPipeTarget()];
+    return ["error", createParseError.badPipeTarget()];
   }
 
   private static _handleAfterDiceRoll(right: Node): Node {

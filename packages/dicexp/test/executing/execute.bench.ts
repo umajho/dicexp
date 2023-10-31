@@ -4,7 +4,7 @@ import { bench, describe } from "vitest";
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Unreachable } from "@dicexp/errors";
-import { parse, ParsingResult } from "@dicexp/parsing-into-node-tree";
+import { parse, ParseResult } from "@dicexp/parsing-into-node-tree";
 import {
   asScope,
   execute,
@@ -70,7 +70,7 @@ describe("各种表达式", () => {
   ];
 
   for (const code of codes) {
-    let parseResult: ParsingResult;
+    let parseResult: ParseResult;
     try {
       parseResult = parse(code);
     } catch (e) {
