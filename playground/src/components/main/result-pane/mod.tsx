@@ -189,7 +189,7 @@ const SingleResultBlock: Component<
       appendix = props.result[2];
     } else if (props.result[0] === "error") {
       const kind = props.result[1];
-      if (kind === "execute") {
+      if (kind === "runtime") {
         const runtimeError = props.result[2];
         result = ["error", kind, runtimeError.message];
         appendix = props.result[3];

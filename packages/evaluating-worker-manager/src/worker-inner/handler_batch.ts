@@ -96,7 +96,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
         this.server.evaluator.execute(node, executeOpts)
       );
       if (executed[0] === "error") { // executed[1] satisfies Error | RuntimeError
-        this.markBatchToStop(executed[1]);
+        this.markBatchToStop(executed[2]);
         break;
       }
       // executed[0] === "ok"

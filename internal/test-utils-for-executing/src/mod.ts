@@ -74,7 +74,7 @@ export function assertExecutionOk(
     : `!= ${inspect(expectedResult)}`;
   if (result[0] === "error") {
     msg = `${code} => 运行时错误：` +
-      `「${result[1].message}」${msgRest}`;
+      `「${result[2].message}」${msgRest}`;
   } else { // result[0] === "ok"
     const actualResultInspected = inspect(result[1]);
     msg = `${code} => ${actualResultInspected} ${msgRest}`;
@@ -94,8 +94,8 @@ export function assertExecutionRuntimeError(
       `${code} => ${actualResultInspected}, did not return error "${expectedError}`,
     );
   }
-  // result[0] === "error"
-  const err = result[1];
+  // result[0] === "error" && result[1] === "runtime"
+  const err = result[2];
 
   if (typeof expectedError === "string") {
     if (err.message === expectedError) return;

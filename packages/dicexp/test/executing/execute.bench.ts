@@ -85,7 +85,7 @@ describe("各种表达式", () => {
         throw new Error(`${code}: unknown error during executing: ${e}`);
       }
       if (result[0] === "error") {
-        throw new Error(`${code}: runtime error: ${result[1].message}`);
+        throw new Error(`${code}: runtime error: ${result[2].message}`);
       }
     });
   }

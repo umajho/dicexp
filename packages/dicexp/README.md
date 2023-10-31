@@ -24,8 +24,8 @@ if (result[0] === "ok") {
   if (result[1] === "parse") {
     // result 元组为 `["error", "parse", error]`
     console.log("解析错误：" + result[2].message);
-  } else if (result[1] === "execute") {
-    // result 元组为 `["error", "execute", runtimeError, appendix]`
+  } else if (result[1] === "runtime") {
+    // result 元组为 `["error", "runtime", runtimeError, appendix]`
     console.log("执行错误：" + result[2].message);
   } else if (result[1] === "other") {
     // result 元组为 `["error", "other", error]`

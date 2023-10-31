@@ -62,7 +62,7 @@ export interface ExecutionAppendix {
 
 export type ExecutionResult =
   | ["ok", JSValue, ExecutionAppendix]
-  | ["error", RuntimeError, ExecutionAppendix];
+  | ["error", "runtime", RuntimeError, ExecutionAppendix];
 
 export class Runtime {
   private readonly _root: Node;
@@ -325,9 +325,9 @@ export interface RuntimeProxy extends RuntimeProxyForFunction {
 
 function getFinalValue(
   valueBox: ValueBox,
-): ["ok", JSValue] | ["error", RuntimeError] {
+): ["ok", JSValue] | ["error", "runtime", RuntimeError] {
   const result = valueBox.get();
-  if (result[0] === "error") return result;
+  if (result[0] === "error") return ["error", "runtime", result[1]];
   // result[0] === "ok"
   let value = asPlain(result[1]);
 
@@ -338,14 +338,14 @@ function getFinalValue(
     default: {
       if (value.type === "list") return getFinalValueOfList(value);
       const err = createRuntimeError.badFinalResult(getValueTypeName(value));
-      return ["error", err];
+      return ["error", "runtime", err];
     }
   }
 }
 
 function getFinalValueOfList(
   list: Value_List,
-): ["ok", JSValue] | ["error", RuntimeError] {
+): ["ok", JSValue] | ["error", "runtime", RuntimeError] {
   const resultList: JSValue = Array(list.length);
   for (const [i, elem] of list.entries()) {
     let result = getFinalValue(elem);

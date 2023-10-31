@@ -21,7 +21,7 @@ export type EvaluationResult =
   | ["ok", JSValue, ExecutionAppendix]
   | ["error", "parse", ParsingError]
   | ["error", "other", Error]
-  | ["error", "execute", RuntimeError, ExecutionAppendix];
+  | ["error", "runtime", RuntimeError, ExecutionAppendix];
 
 export function evaluate(
   code: string,
@@ -35,7 +35,7 @@ export function evaluate(
   const result = execute(node, opts.execute);
   if (result[0] === "ok") {
     return result;
-  } else { // result[0] === "error"
-    return ["error", "execute", result[1], result[2]];
+  } else { // result[0] === "error" && result[1] === "runtime"
+    return ["error", result[1], result[2], result[3]];
   }
 }
