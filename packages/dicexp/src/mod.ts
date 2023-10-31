@@ -1,4 +1,4 @@
-export * from "./parsing/mod";
+export * from "@dicexp/parsing-into-nodes";
 export * from "./executing/mod";
 export * from "./evaluating/mod";
 

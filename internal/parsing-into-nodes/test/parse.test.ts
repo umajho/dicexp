@@ -1,6 +1,6 @@
 import { assert, describe, it } from "vitest";
 
-import { parse, ParsingResult } from "../../src/parsing/mod";
+import { parse, ParsingResult } from "../lib";
 
 import {
   captured,

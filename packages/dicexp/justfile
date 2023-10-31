@@ -7,13 +7,10 @@ prepare:
 type-check: prepare
 	tsc --noEmit
 
-test: type-check parsing--test executing--test
+test: type-check executing--test
 
 test-watch-ui:
 	pnpm exec vitest --ui --open=false
-
-parsing--test: prepare
-	pnpm exec vitest --dir=test/parsing --run
 
 executing--test: prepare
 	pnpm exec vitest --dir=test/executing --run

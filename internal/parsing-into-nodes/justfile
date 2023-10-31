@@ -1,0 +1,5 @@
+lint:
+	pnpm exec tsc --noEmit
+
+test: lint
+	pnpm exec vitest --run
