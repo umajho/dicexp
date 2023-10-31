@@ -12,7 +12,7 @@ const topLevelScope = asScope([operatorScope, functionScope]);
 // 求值
 const result = evaluate(
   "(sort(10#d100) |> head) + 5d10",
-  { execute: { topLevelScope } },
+  { execution: { topLevelScope } },
 );
 
 if (result[0] === "ok") {
