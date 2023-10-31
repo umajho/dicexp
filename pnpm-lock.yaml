@@ -339,8 +339,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(solid-js@1.8.3)
       '@rotext/solid-components':
-        specifier: ^0.2.2
-        version: 0.2.2(solid-element@1.8.0)(solid-icons@1.0.12)(solid-js@1.8.3)
+        specifier: ^0.2.3
+        version: 0.2.3(@rolludejo/web-internal@0.1.0)(solid-element@1.8.0)(solid-icons@1.0.12)(solid-js@1.8.3)
       '@solid-primitives/media':
         specifier: ^2.2.5
         version: 2.2.5(solid-js@1.8.3)
@@ -1691,14 +1691,16 @@ packages:
       solid-js: 1.8.3
     dev: false
 
-  /@rotext/solid-components@0.2.2(solid-element@1.8.0)(solid-icons@1.0.12)(solid-js@1.8.3):
-    resolution: {integrity: sha512-3PtBjBLEUPC9BXJ0E9biWhOpv7aEZrzfczZX8Rmo9xzjq5BdbeyuulxQoqx1B8XkJHC8MAA5xHAQMumu+DByJQ==}
+  /@rotext/solid-components@0.2.3(@rolludejo/web-internal@0.1.0)(solid-element@1.8.0)(solid-icons@1.0.12)(solid-js@1.8.3):
+    resolution: {integrity: sha512-B5BPFbufiZH0FwCjB3Gg3NbgfMkJCU4M0PXbDo/NOFc4p4FYCC0lFSNmOsTfgmt87BN82R8SmElpBsCPsPqaNQ==}
     engines: {node: '>=18', pnpm: '>=8.6.0'}
     peerDependencies:
+      '@rolludejo/web-internal': ^0.1.0
       solid-element: ^1.8.0
       solid-icons: ^1.0.11
       solid-js: ^1.8.1
     dependencies:
+      '@rolludejo/web-internal': 0.1.0(solid-js@1.8.3)
       solid-element: 1.8.0(solid-js@1.8.3)
       solid-icons: 1.0.12(solid-js@1.8.3)
       solid-js: 1.8.3
