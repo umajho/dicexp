@@ -40,7 +40,7 @@
   },
   "peerDependencies": {
     "@lezer/highlight": "^1.1.6",
-    "@lezer/lr": "^1.3.7",
+    "@lezer/lr": "^1.3.13",
     "esm-seedrandom": "^3.0.5"
   },
   "devDependencies": {
@@ -51,7 +51,7 @@
     "@dicexp/nodes": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "@dicexp/test-utils-for-executing": "workspace:*",
-    "@lezer/common": "^1.0.3",
+    "@lezer/common": "^1.1.0",
     "@types/node": "^20.8.6",
     "@vitest/ui": "^0.34.2",
     "esbuild": "^0.18.20",

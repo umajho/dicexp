@@ -10,10 +10,10 @@
   "sideEffects": false,
   "peerDependencies": {
     "@lezer/highlight": "^1.1.6",
-    "@lezer/lr": "^1.3.7"
+    "@lezer/lr": "^1.3.13"
   },
   "devDependencies": {
-    "@lezer/common": "^1.0.3",
-    "@lezer/generator": "^1.3.0"
+    "@lezer/common": "^1.1.0",
+    "@lezer/generator": "^1.5.1"
   }
 }
