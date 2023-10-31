@@ -1,11 +1,17 @@
 import { bench, describe } from "vitest";
 
+// @ts-ignore
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Unreachable } from "@dicexp/errors";
-import { parse, ParsingResult } from "../../src/parsing/mod";
-import { asScope, execute, ExecutionResult } from "../../src/executing/mod";
-import { RandomGenerator, RandomSource } from "../../src/executing/random";
+import { parse, ParsingResult } from "@dicexp/parsing-into-node-tree";
+import {
+  asScope,
+  execute,
+  ExecutionResult,
+  RandomGenerator,
+  RandomSource,
+} from "@dicexp/node-tree-walk-interpreter";
 import * as builtins from "@dicexp/builtins/internal";
 
 const topLevelScope = asScope([builtins.operatorScope, builtins.functionScope]);

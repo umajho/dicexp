@@ -20,3 +20,5 @@ export type {
 } from "@dicexp/runtime/runtime-errors";
 
 export { asScope } from "@dicexp/runtime/scopes";
+
+export { RandomGenerator, type RandomSource } from "./random";
