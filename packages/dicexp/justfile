@@ -5,7 +5,7 @@ prepare:
 	# just builtins build
 
 type-check: prepare
-	tsc --noEmit
+	pnpm exec tsc --noEmit
 
 test: type-check executing--test
 

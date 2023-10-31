@@ -1,7 +1,7 @@
 set fallback
 
 type-check:
-	tsc --noEmit
+	pnpm exec tsc --noEmit
 
 test: type-check
 	pnpm exec vitest --dir=test --run

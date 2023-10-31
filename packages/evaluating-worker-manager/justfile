@@ -1,7 +1,7 @@
 set fallback
 
 lint:
-	tsc --noEmit
+	pnpm exec tsc --noEmit
 
 build: 
 	pnpm run build
