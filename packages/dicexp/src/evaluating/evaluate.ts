@@ -6,14 +6,14 @@ import {
 
 import {
   execute,
-  ExecuteOptions,
   ExecutionAppendix,
+  ExecutionOptions,
   JSValue,
   RuntimeError,
 } from "@dicexp/node-tree-walk-interpreter";
 
 export interface EvaluateOptions {
-  execute: ExecuteOptions;
+  execute: ExecutionOptions;
   parse?: ParseOptions;
 }
 

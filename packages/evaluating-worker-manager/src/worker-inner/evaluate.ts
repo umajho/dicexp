@@ -1,4 +1,4 @@
-import type { ExecuteOptions } from "dicexp/internal";
+import type { ExecutionOptions } from "dicexp/internal";
 import type { Scope } from "@dicexp/runtime/scopes";
 import type { Node } from "@dicexp/nodes";
 import { Unreachable } from "@dicexp/errors";
@@ -11,7 +11,7 @@ export class Evaluator<AvailableScopes extends Record<string, Scope>> {
     private availableScopes: AvailableScopes,
   ) {}
 
-  execute(node: Node, opts: ExecuteOptions) {
+  execute(node: Node, opts: ExecutionOptions) {
     return getDicexp().execute(node, opts);
   }
 
@@ -20,14 +20,14 @@ export class Evaluator<AvailableScopes extends Record<string, Scope>> {
     opts: EvaluateOptionsForWorker<AvailableScopes>,
   ) {
     return getDicexp().evaluate(code, {
-      execute: this.makeExecuteOptions(opts),
+      execute: this.makeExecutionOptions(opts),
       parse: opts.parse,
     });
   }
 
-  makeExecuteOptions(
+  makeExecutionOptions(
     opts: EvaluateOptionsForWorker<AvailableScopes>,
-  ): ExecuteOptions {
+  ): ExecutionOptions {
     return {
       topLevelScope: this.getScopeCollection(opts.execute.topLevelScopeName),
       restrictions: opts.restrictions?.execute,

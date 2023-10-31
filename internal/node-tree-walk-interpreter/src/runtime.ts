@@ -1,5 +1,9 @@
 import { Unimplemented, Unreachable } from "@dicexp/errors";
-import { Repr } from "@dicexp/interface";
+import {
+  BasicExecutionAppendix,
+  BasicExecutionStatistics,
+  Repr,
+} from "@dicexp/interface";
 import {
   Node,
   Node_RegularCall,
@@ -48,7 +52,7 @@ interface StatisticsUnfinished {
   maxClosureCallDepth?: number;
 }
 
-export interface Statistics {
+export interface ExecutionStatistics extends BasicExecutionStatistics {
   timeConsumption: { ms: number };
   calls?: number;
   maxClosureCallDepth?: number;
@@ -56,9 +60,10 @@ export interface Statistics {
 
 export type JSValue = number | boolean | JSValue[];
 
-export interface ExecutionAppendix {
+export interface ExecutionAppendix
+  extends BasicExecutionAppendix<ExecutionStatistics> {
   representation: Repr;
-  statistics: Statistics;
+  statistics: ExecutionStatistics;
 }
 
 export type ExecutionResult =

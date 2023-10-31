@@ -5,7 +5,7 @@ import { inspect } from "util";
 
 import {
   execute,
-  ExecuteOptions,
+  ExecutionOptions,
   ExecutionResult,
   JSValue,
   parse,
@@ -18,10 +18,10 @@ import {
 import { ValueTypeName } from "@dicexp/runtime/values";
 import { Unreachable } from "@dicexp/errors";
 
-type ExecuteOptionsForTest = ExecuteOptions;
+type ExecutionOptionsForTest = ExecutionOptions;
 export function evaluateForTest(
   code: string,
-  executeOpts: ExecuteOptionsForTest,
+  executeOpts: ExecutionOptionsForTest,
   parseOpts?: ParseOptions,
 ): ExecutionResult {
   const parseResult = parse(code, parseOpts);
@@ -58,7 +58,7 @@ export function assertNumberArray(result: ExecutionResult): number[] {
 export function assertExecutionOk(
   code: string,
   expectedResult: unknown | undefined,
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ): JSValue {
   const result = evaluateForTest(code, opts);
   if (result[0] === "ok") {
@@ -85,7 +85,7 @@ export function assertExecutionOk(
 export function assertExecutionRuntimeError(
   code: string,
   expectedError: string | RuntimeError,
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   const result = evaluateForTest(code, opts);
   if (result[0] === "ok") {
@@ -110,7 +110,7 @@ export function assertExecutionRuntimeError(
 
 export function unaryOperatorOnlyAcceptsBoolean(
   op: string,
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   describe("只能用于布尔", () => {
     unaryOperatorOnlyAccepts(op, "boolean", [
@@ -122,7 +122,7 @@ export function unaryOperatorOnlyAcceptsBoolean(
 
 export function binaryOperatorOnlyAcceptsBoolean(
   op: string,
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   describe("只能用于布尔", () => {
     binaryOperatorOnlyAccepts(op, "boolean", [
@@ -135,7 +135,7 @@ export function binaryOperatorOnlyAcceptsBoolean(
 
 export function unaryOperatorOnlyAcceptsNumbers(
   op: string,
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   describe("只能用于数字", () => {
     unaryOperatorOnlyAccepts(op, "integer", [
@@ -147,7 +147,7 @@ export function unaryOperatorOnlyAcceptsNumbers(
 
 export function binaryOperatorOnlyAcceptsNumbers(
   op: string,
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   describe("只能用于数字", () => {
     binaryOperatorOnlyAccepts(op, "integer", [
@@ -162,7 +162,7 @@ function unaryOperatorOnlyAccepts(
   op: string,
   expected: ValueTypeName,
   table: [string, ValueTypeName][],
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   for (const [i, [rightValue, rightType]] of table.entries()) {
     const code = `${op}(${rightValue})`;
@@ -180,7 +180,7 @@ function binaryOperatorOnlyAccepts(
   op: string,
   expected: ValueTypeName,
   table: [[string, string], ValueTypeName, number][],
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   for (
     const [i, [[leftValue, rightValue], wrongType, pos]] of table
@@ -199,7 +199,7 @@ function binaryOperatorOnlyAccepts(
 
 export function assertResultsAreRandom(
   code: string,
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   const results = Array(10).fill(null)
     .map((_) => assertNumber(evaluateForTest(code, opts)));
@@ -208,7 +208,7 @@ export function assertResultsAreRandom(
 
 export function theyAreOk<T extends JSValue = JSValue>(
   table: ([string, T] | string)[],
-  opts: ExecuteOptionsForTest,
+  opts: ExecutionOptionsForTest,
 ) {
   for (const [i, row] of table.entries()) {
     let code: string, expected: unknown | undefined;

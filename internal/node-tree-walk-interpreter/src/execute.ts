@@ -8,19 +8,15 @@ import { Scope } from "@dicexp/runtime/scopes";
 import { ExecutionResult, Runtime } from "./runtime";
 import { RandomSource } from "./random";
 import { Restrictions } from "./restrictions";
+import { BasicExecutionOptions, Execute } from "@dicexp/interface";
 export type { ExecutionResult } from "./runtime";
 
-export type ExecuteOptions =
-  & {
-    topLevelScope: Scope;
-    restrictions?: Restrictions;
-  }
+export type ExecutionOptions =
+  & BasicExecutionOptions<Scope>
+  & { restrictions?: Restrictions }
   & (
-    {
-      randomSource: RandomSource;
-    } | {
-      seed?: number;
-    }
+    | { randomSource: RandomSource }
+    | { seed?: number }
   );
 
 /**
@@ -28,27 +24,25 @@ export type ExecuteOptions =
  * @param opts
  * @returns
  */
-export function execute(
-  node: Node,
-  opts: ExecuteOptions,
-): ExecutionResult {
-  let randomSource: RandomSource;
-  if ("randomSource" in opts) {
-    randomSource = opts.randomSource;
-  } else {
-    const seed = opts.seed ?? Math.random();
-    randomSource = new RandomSourceWrapper(prng_xorshift7(seed));
-  }
+export const execute = //
+  ((node: Node, opts: ExecutionOptions): ExecutionResult => {
+    let randomSource: RandomSource;
+    if ("randomSource" in opts) {
+      randomSource = opts.randomSource;
+    } else {
+      const seed = opts.seed ?? Math.random();
+      randomSource = new RandomSourceWrapper(prng_xorshift7(seed));
+    }
 
-  const restrictions = opts.restrictions ?? {};
+    const restrictions = opts.restrictions ?? {};
 
-  const runtime = new Runtime(node, {
-    topLevelScope: opts.topLevelScope,
-    randomSource,
-    restrictions,
-  });
-  return runtime.execute();
-}
+    const runtime = new Runtime(node, {
+      topLevelScope: opts.topLevelScope,
+      randomSource,
+      restrictions,
+    });
+    return runtime.execute();
+  }) satisfies Execute<Node, Scope, ExecutionOptions, ExecutionResult>;
 
 class RandomSourceWrapper implements RandomSource {
   rng: { int32: () => number };

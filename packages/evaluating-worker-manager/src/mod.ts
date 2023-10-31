@@ -17,7 +17,7 @@ export type {
   // 其内含的类型 `ParseOptions` 已由 dicexp 包引出。
   EvaluateOptionsForWorker,
   EvaluationRestrictionsForWorker, // `EvaluateOptionsForWorker` 内含
-  ExecuteOptionsForWorker, // `EvaluateOptionsForWorker` 内含
+  ExecutionOptionsForWorker, // `EvaluateOptionsForWorker` 内含
 } from "./worker-inner/types";
 
 export { startWorkerServer } from "./worker-inner/mod";

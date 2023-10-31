@@ -83,7 +83,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
     node: Node,
     opts: EvaluateOptionsForWorker<AvailableScopes>,
   ) {
-    const executeOpts = this.server.evaluator.makeExecuteOptions(opts);
+    const executeOpts = this.server.evaluator.makeExecutionOptions(opts);
 
     while (true) {
       const durationSinceLastHB = Date.now() - this.server.pulser.lastHeartbeat;

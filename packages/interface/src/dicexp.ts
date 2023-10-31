@@ -12,11 +12,14 @@ export interface Dicexp<
   //
   ExecutionOptions extends BasicExecutionOptions<TopLevelScope> = //
     BasicExecutionOptions<TopLevelScope>,
-  ExecutionAppendix extends BasicExecutionAppendix = BasicExecutionAppendix,
+  ExecutionStatistics extends BasicExecutionStatistics = //
+    BasicExecutionStatistics,
+  ExecutionAppendix extends BasicExecutionAppendix<ExecutionStatistics> = //
+    BasicExecutionAppendix<ExecutionStatistics>,
   RuntimeError extends BasicRuntimeError = BasicRuntimeError,
   ExecutionResult extends //
-  BasicExecutionResult<ExecutionAppendix, RuntimeError> = //
-    BasicExecutionResult<ExecutionAppendix, RuntimeError>,
+  BasicExecutionResult<ExecutionStatistics, ExecutionAppendix, RuntimeError> = //
+    BasicExecutionResult<ExecutionStatistics, ExecutionAppendix, RuntimeError>,
   //
   EvaluationOptions extends //
   BasicEvaluationOptions<ParseOptions, ExecutionOptions> = //
@@ -26,7 +29,7 @@ export interface Dicexp<
     BasicEvaluationResult<ExecutionAppendix, ParseError, RuntimeError>,
 > {
   parse: Parse<IR, ParseOptions, ParseResult>;
-  execute: (ir: IR, opts: ExecutionOptions) => ExecutionResult;
+  execute: Execute<IR, TopLevelScope, ExecutionOptions, ExecutionResult>;
   evaluate: (code: string, opts: EvaluationOptions) => EvaluationResult;
 }
 
@@ -47,18 +50,34 @@ export interface BasicParseError {
 
 export type JSValue = number | boolean | JSValue[];
 
+export type Execute<
+  IR,
+  TopLevelScope,
+  ExecutionOptions extends BasicExecutionOptions<TopLevelScope>,
+  ExecutionResult extends //
+  BasicExecutionResult<
+    BasicExecutionStatistics,
+    BasicExecutionAppendix<BasicExecutionStatistics>,
+    BasicRuntimeError
+  >,
+> = //
+  (ir: IR, opts: ExecutionOptions) => ExecutionResult;
+
 export interface BasicExecutionOptions<TopLevelScope> {
   topLevelScope: TopLevelScope;
 }
 export type BasicExecutionResult<
-  ExecutionAppendix extends BasicExecutionAppendix,
+  ExecutionStatistics extends BasicExecutionStatistics,
+  ExecutionAppendix extends BasicExecutionAppendix<ExecutionStatistics>,
   RuntimeError extends BasicRuntimeError,
 > =
   | ["ok", JSValue, ExecutionAppendix]
   | ["error", "runtime", RuntimeError, ExecutionAppendix];
-export interface BasicExecutionAppendix {
+export interface BasicExecutionAppendix<
+  ExecutionStatistics extends BasicExecutionStatistics,
+> {
   representation: Repr;
-  statistics: BasicExecutionStatistics;
+  statistics: ExecutionStatistics;
 }
 export interface BasicExecutionStatistics {
   timeConsumption: { ms: number };
@@ -72,7 +91,7 @@ export interface BasicEvaluationOptions<ParseOptions, ExecutionOptions> {
   execution: ExecutionOptions;
 }
 export type BasicEvaluationResult<
-  ExecutionAppendix extends BasicExecutionAppendix,
+  ExecutionAppendix extends BasicExecutionAppendix<BasicExecutionStatistics>,
   ParseError extends BasicParseError,
   RuntimeError extends BasicRuntimeError,
 > =
