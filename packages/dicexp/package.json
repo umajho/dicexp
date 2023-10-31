@@ -42,14 +42,14 @@
   },
   "peerDependencies": {
     "@lezer/highlight": "^1.1.6",
-    "@lezer/lr": "^1.3.13",
-    "esm-seedrandom": "^3.0.5"
+    "@lezer/lr": "^1.3.13"
   },
   "devDependencies": {
     "@dicexp/build-utils": "workspace:*",
     "@dicexp/builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/lezer": "workspace:*",
+    "@dicexp/node-tree-walk-interpreter": "workspace:*",
     "@dicexp/nodes": "workspace:*",
     "@dicexp/parsing-into-node-tree": "workspace:*",
     "@dicexp/runtime": "workspace:*",

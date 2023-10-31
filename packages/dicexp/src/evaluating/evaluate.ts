@@ -4,9 +4,13 @@ import {
   ParsingError,
 } from "@dicexp/parsing-into-node-tree";
 
-import { execute, ExecuteOptions, RuntimeError } from "../executing/mod";
-import { JSValue } from "../executing/mod";
-import { ExecutionAppendix } from "../executing/runtime";
+import {
+  execute,
+  ExecuteOptions,
+  ExecutionAppendix,
+  JSValue,
+  RuntimeError,
+} from "@dicexp/node-tree-walk-interpreter";
 
 export interface EvaluateOptions {
   execute: ExecuteOptions;

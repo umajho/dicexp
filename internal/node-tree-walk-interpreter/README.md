@@ -1,4 +1,4 @@
-# @dicexp/executing
+# @dicexp/node-tree-walk-interpreter
 
 ## Ubiquitous Language
 
