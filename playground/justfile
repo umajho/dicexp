@@ -8,10 +8,10 @@ build: prepare
 	gzip -k dist/**/*.js
 	brotli -k dist/**/*.js
 
-type-check:
+lint: prepare
 	tsc --noEmit
 
-test: prepare type-check
+test: lint
 
 serve: build serve-no-build
 

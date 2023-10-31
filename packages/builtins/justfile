@@ -1,13 +1,13 @@
 set fallback
 
-type-check:
+lint:
 	pnpm exec tsc --noEmit
 
-test: type-check
+test: lint
 	pnpm exec vitest --dir=test --run
 
-build: type-check
+build:
 	pnpm run build
 
-publish-no-build:
+publish:
 	pnpm publish --access public

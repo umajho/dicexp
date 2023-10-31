@@ -4,10 +4,10 @@ prepare:
 	just build-grammar
 	# just builtins build
 
-type-check: prepare
+lint: prepare
 	pnpm exec tsc --noEmit
 
-test: type-check executing--test
+test: lint executing--test
 
 test-watch-ui:
 	pnpm exec vitest --ui --open=false
@@ -23,7 +23,7 @@ parsing--bench: prepare
 executing--bench: prepare
 	pnpm exec vitest bench --dir=test/executing --run
 
-build: prepare type-check
+build: prepare
 	pnpm run build
 
 publish-no-build:
