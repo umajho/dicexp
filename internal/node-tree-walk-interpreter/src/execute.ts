@@ -42,7 +42,7 @@ export const execute = //
       restrictions,
     });
     return runtime.execute();
-  }) satisfies Execute<Node, Scope, ExecutionOptions, ExecutionResult>;
+  }) satisfies Execute<Node, Scope>;
 
 class RandomSourceWrapper implements RandomSource {
   rng: { int32: () => number };

@@ -244,6 +244,9 @@ importers:
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../../internal/errors
+      '@dicexp/interface':
+        specifier: workspace:*
+        version: link:../interface
       '@dicexp/nodes':
         specifier: workspace:*
         version: link:../../internal/nodes

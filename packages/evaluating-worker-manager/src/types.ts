@@ -1,8 +1,8 @@
-import type { EvaluationResult } from "dicexp/internal";
+import type { BasicEvaluationResult } from "@dicexp/interface";
 import { BatchReport } from "./worker-inner/types";
 
 export type EvaluationResultForWorker =
-  | EvaluationResult
+  | BasicEvaluationResult
   | ["error", "worker_client", Error];
 
 export type BatchReportForWorker =

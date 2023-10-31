@@ -20,4 +20,4 @@ export const parse = //
     const tree = lezerParser.parse(code);
     const transformer = new Transformer(tree, code);
     return transformer.transform();
-  }) satisfies Parse<Node, ParseOptions, ParseResult>;
+  }) satisfies Parse<Node>;

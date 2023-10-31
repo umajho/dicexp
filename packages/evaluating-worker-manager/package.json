@@ -35,6 +35,7 @@
   "devDependencies": {
     "@dicexp/build-utils": "workspace:*",
     "@dicexp/errors": "workspace:*",
+    "@dicexp/interface": "workspace:*",
     "@dicexp/nodes": "workspace:*",
     "@dicexp/runtime": "workspace:*",
     "@types/node": "^20.8.6",
