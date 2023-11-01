@@ -51,7 +51,7 @@ export const ControlPane: Component = () => {
     seed,
     isSeedFrozen,
     restrictions,
-    topLevelScopeName: () => "standard",
+    topLevelScope: () => "standard",
   });
   const rollingMode = () => {
     const theStatus = evaluator.status();

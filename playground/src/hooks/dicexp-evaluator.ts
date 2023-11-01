@@ -29,7 +29,7 @@ export type Status = {
 type AvailableScopes = typeof scopesForRuntime;
 
 export interface EvaluationRestrictionsForWorker {
-  execution: EvaluationOptionsForWorker<any>["execution"]["restrictions"];
+  execution: EvaluationOptionsForWorker["execution"]["restrictions"];
   worker: EvaluationOptionsForWorkerSpecified["restrictions"];
 }
 
@@ -40,12 +40,12 @@ export default function createDicexpEvaluator(
     seed: () => number;
     isSeedFrozen: () => boolean;
     restrictions: () => EvaluationRestrictionsForWorker | null;
-    topLevelScopeName: () => keyof AvailableScopes;
+    topLevelScope: () => keyof AvailableScopes;
   },
 ) {
   const [loading, setLoading] = createSignal(true);
   const [workerManager, setWorkerManager] = createSignal<
-    EvaluatingWorkerManager<AvailableScopes> | null
+    EvaluatingWorkerManager | null
   >(null);
   (async () => {
     setWorkerManager(
@@ -93,9 +93,9 @@ export default function createDicexpEvaluator(
     switch (opts.mode()) {
       case "single": {
         try {
-          const evalOpts: EvaluationOptionsForWorker<AvailableScopes> = {
+          const evalOpts: EvaluationOptionsForWorker = {
             execution: {
-              topLevelScopeName: opts.topLevelScopeName() ?? "standard",
+              topLevelScope: opts.topLevelScope() ?? "standard",
               restrictions: restrictions?.execution,
               seed: seed,
             },
@@ -116,18 +116,24 @@ export default function createDicexpEvaluator(
       }
       case "batch": {
         try {
-          const evalOpts: EvaluationOptionsForWorker<AvailableScopes> = {
+          const evalOpts: EvaluationOptionsForWorker = {
             execution: {
-              topLevelScopeName: opts.topLevelScopeName() ?? "standard",
+              topLevelScope: opts.topLevelScope() ?? "standard",
               restrictions: restrictions?.execution,
               // seed 不生效
             },
             worker: { restrictions: restrictions?.worker },
           };
-          const [report, setReprot] = //
+          const code = code_;
+          const g = workerManager()!.batchEvaluate(code, evalOpts);
+          const [report, setReport] = //
             createSignal<BatchReportForPlayground>("preparing");
-          setResult({ type: "batch", code: code_, report, date, environment });
-          await workerManager()!.batch(code_, evalOpts, setReprot);
+          setResult({ type: "batch", code, report, date, environment });
+          while (true) {
+            const yielded = await g.next();
+            setReport(yielded.value);
+            if (yielded.done) break;
+          }
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);

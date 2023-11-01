@@ -1,5 +1,9 @@
 import type { EvaluationResult } from "dicexp/internal";
-import type { Scope } from "@dicexp/runtime/scopes";
+import type {
+  AsyncEvaluator,
+  BatchErrorReport,
+  BatchOkReport,
+} from "@dicexp/interface";
 import { Unreachable } from "@dicexp/errors";
 
 import { proxyErrorFromWorker } from "./error_from_worker";
@@ -32,9 +36,7 @@ export interface EvaluatingWorkerClientOptions {
   batchReportInterval: { ms: number };
 }
 
-export class EvaluatingWorkerClient<
-  AvailableScopes extends Record<string, Scope>,
-> {
+export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
   constructor(
     private worker: Worker,
     private options: EvaluatingWorkerClientOptions,
@@ -111,18 +113,20 @@ export class EvaluatingWorkerClient<
       if (this.taskState[0] !== "idle") {
         const unresponsiveMs = now - this.lastHeartbeatTimestamp;
         const error = new Error(
-          `Worker 失去响应（超过 ${unresponsiveMs} 毫秒没有收到心跳消息）`,
+          `联络 Worker 的客户端失去与 Worker 联络（超过 ${unresponsiveMs} 毫秒没有收到心跳消息）`,
         );
         if (this.taskState[0] === "processing") {
           const resolve = this.taskState[2];
-          resolve(["error", "worker_client", error]);
+          resolve(["error", "other", error]);
         } else { // "batch_processing"
           const report = this.taskState[2];
-          report(["error", "worker_client", error]); // FIXME: 应该保留之前的数据
+          report(["error", "other", error]); // FIXME: 应该保留之前的数据
         }
         this.taskState = ["idle"];
       } else {
-        console.warn("Worker 在未有工作的状态下失去响应");
+        console.warn(
+          "联络 Worker 的客户端在 Worker 空闲的状态下失去与 Worker 联络",
+        );
       }
       this._terminate();
     };
@@ -140,26 +144,29 @@ export class EvaluatingWorkerClient<
   private _terminate(from: "internal" | "external" = "internal") {
     this.worker.terminate();
     this.initState = ["terminated"];
+
+    let fn: ((v: ["error", "other", Error]) => void) | undefined;
+    let isBatch = false;
     if (this.taskState[0] === "processing") {
-      const resolve = this.taskState[2];
-      if (from === "internal") {
-        resolve(["error", "worker_client", new Error("内部中断")]);
-      } else {
-        resolve(["error", "worker_client", new Error("外部中断")]);
-      }
+      fn = this.taskState[2]; // resolve
     } else if (this.taskState[0] === "batch_processing") {
-      const report = this.taskState[2];
-      if (from === "internal") {
-        report(["error", "worker_client", new Error("内部中断")]); // FIXME: 保留原先数据
-      } else if (from === "external") {
-        console.warn("批量任务不应该使用 terminate 终结。");
-        report(["error", "worker_client", new Error("外部中断")]); // FIXME: 保留原先数据
-      }
+      isBatch = true;
+      fn = this.taskState[2];
     }
+    if (fn) {
+      const err = new Error(
+        `Worker 客户端由于${from === "internal" ? "外" : "内"}部原因中断`,
+      );
+      if (from === "external" && isBatch) {
+        console.warn("批量任务不应该使用 terminate 终结。");
+      }
+      fn(["error", "other", err]); // FIXME: 保留原先数据
+    }
+
     this.afterTerminate?.();
   }
 
-  private postMessage(data: DataToWorker<AvailableScopes>) {
+  private postMessage(data: DataToWorker) {
     // 防止由于 vue 之类的外部库把 data 中的内容用 Proxy 替代掉，
     // 导致无法用 postMessage 传递 data
     data = JSON.parse(JSON.stringify(data));
@@ -241,7 +248,7 @@ export class EvaluatingWorkerClient<
 
   async evaluate(
     code: string,
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
   ) {
     return new Promise<EvaluationResultForWorker>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
@@ -291,9 +298,35 @@ export class EvaluatingWorkerClient<
     this.taskState = ["idle"];
   }
 
-  async batch(
+  async *batchEvaluate(
     code: string,
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
+  ) {
+    let promise!: Promise<BatchReportForWorker>;
+    let resolve!: (v: BatchReportForWorker) => void;
+    function makeReportPromise(): Promise<BatchReportForWorker> {
+      return new Promise((r) => resolve = r);
+    }
+    promise = makeReportPromise();
+    this._batchEvaluate(code, opts, (report) => {
+      resolve(report);
+      if (report[0] !== "continue") return;
+      promise = makeReportPromise();
+    });
+
+    while (true) {
+      const report = await promise;
+      if (report[0] === "continue") {
+        yield report as BatchOkReport<"continue">;
+      } else {
+        return report as BatchOkReport<"stop"> | BatchErrorReport;
+      }
+    }
+  }
+
+  private async _batchEvaluate(
+    code: string,
+    opts: EvaluationOptionsForWorker,
     reporter: (r: BatchReportForWorker) => void,
   ) {
     return new Promise<void>((resolve, reject) => {

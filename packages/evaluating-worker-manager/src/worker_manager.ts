@@ -1,26 +1,22 @@
-import type { Scope } from "@dicexp/runtime/scopes";
+import { AsyncEvaluator } from "@dicexp/interface";
 
 import { EvaluationOptionsForWorker } from "./worker-inner/types";
 import {
   EvaluatingWorkerClient,
   EvaluatingWorkerClientOptions,
 } from "./worker_client";
-import { BatchReportForWorker, EvaluationResultForWorker } from "./types";
+import { EvaluationResultForWorker } from "./types";
 
 export type NewEvaluatingWorkerManagerOptions = //
   Partial<EvaluatingWorkerClientOptions>;
-export type EvaluationOptionsForEvaluatingWorker<
-  AvailableScopes extends Record<string, Scope>,
-> = EvaluationOptionsForWorker<AvailableScopes>;
+export type EvaluationOptionsForEvaluatingWorker = EvaluationOptionsForWorker;
 
-export class EvaluatingWorkerManager<
-  AvailableScopes extends Record<string, Scope>,
-> {
+export class EvaluatingWorkerManager implements AsyncEvaluator<string> {
   readonly options: Required<NewEvaluatingWorkerManagerOptions>;
 
   private readinessWatcher: (ready: boolean) => void;
 
-  private client: EvaluatingWorkerClient<AvailableScopes> | null = null;
+  private client: EvaluatingWorkerClient | null = null;
 
   constructor(
     workerProvider: () => Worker,
@@ -51,7 +47,7 @@ export class EvaluatingWorkerManager<
 
   async evaluate(
     code: string,
-    opts: EvaluationOptionsForEvaluatingWorker<AvailableScopes>,
+    opts: EvaluationOptionsForEvaluatingWorker,
   ): Promise<EvaluationResultForWorker> {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
@@ -73,15 +69,14 @@ export class EvaluatingWorkerManager<
     this.client.terminate();
   }
 
-  async batch(
+  batchEvaluate(
     code: string,
-    opts: EvaluationOptionsForEvaluatingWorker<AvailableScopes>,
-    reporter: (r: BatchReportForWorker) => void,
-  ): Promise<void> {
+    opts: EvaluationOptionsForEvaluatingWorker,
+  ) {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
-    await this.client.batch(code, opts, reporter);
+    return this.client.batchEvaluate(code, opts);
   }
 
   stopBatching() {

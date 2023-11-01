@@ -23,7 +23,5 @@ export async function startWorkerServer<
   if (onmessage) {
     console.error("onmessage 已被占用，");
   }
-  onmessage = (ev) => {
-    server.handle(ev.data as DataToWorker<AvailableScopes>);
-  };
+  onmessage = (ev) => server.handle(ev.data as DataToWorker);
 }

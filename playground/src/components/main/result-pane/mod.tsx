@@ -270,7 +270,7 @@ const BatchResultBlock: Component<{
 };
 
 function isBatchRunning(report: BatchReportForPlayground) {
-  return report === "preparing" || report[0] === "ok";
+  return report === "preparing" || report[0] === "continue";
 }
 
 const ErrorResultBlock: Component<{

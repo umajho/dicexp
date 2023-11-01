@@ -4,24 +4,19 @@ import type {
   ParseOptions,
   RuntimeRestrictions,
 } from "dicexp/internal";
-import type { Scope } from "@dicexp/runtime/scopes";
 
 export interface MessagePoster {
   tryPostMessage(data: DataFromWorker): void;
 }
 
-export interface EvaluationOptionsForWorker<
-  AvailableScopes extends Record<string, Scope>,
-> {
-  execution: ExecutionOptionsForWorker<AvailableScopes>;
+export interface EvaluationOptionsForWorker<> {
+  execution: ExecutionOptionsForWorker;
   parse?: ParseOptions;
   worker?: EvaluationOptionsForWorkerSpecified;
 }
 
-export interface ExecutionOptionsForWorker<
-  AvailableScopes extends Record<string, Scope>,
-> {
-  topLevelScopeName: keyof AvailableScopes;
+export interface ExecutionOptionsForWorker<> {
+  topLevelScope: string;
   restrictions?: RuntimeRestrictions;
   seed?: number;
 }
@@ -32,19 +27,19 @@ export interface EvaluationOptionsForWorkerSpecified {
   };
 }
 
-export type DataToWorker<AvailableScopes extends Record<string, Scope>> =
+export type DataToWorker =
   | [type: "initialize", init: WorkerInit]
   | [
     type: "evaluate",
     id: string,
     code: string,
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
   ]
   | [
     type: "batch_start",
     id: string,
     code: string,
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
   ]
   | [type: "batch_stop", id: string];
 
@@ -69,7 +64,7 @@ export type InitializationResult =
   | ["error", Error];
 
 export type BatchReport =
-  | ["ok" | "stop", BatchResult, BatchStatistics | null]
+  | ["continue" | "stop", BatchResult, BatchStatistics | null]
   | ["error", "parse", ParseError]
   | ["error", "other", Error]
   | ["error", "batch", Error, BatchResult, BatchStatistics | null];

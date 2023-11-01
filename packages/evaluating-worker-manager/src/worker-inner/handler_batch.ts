@@ -21,7 +21,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
   constructor(
     private readonly id: string,
     code: string,
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
     private server: Server<AvailableScopes>,
     private readonly stoppedCb: () => void,
   ) {
@@ -67,7 +67,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
       } else {
         // 尚未结束时的时间由这里更新，若已结束则在结束时更新，因为后者可能有延时
         this.statis!.now.ms = Date.now();
-        report = ["ok", this.result, this.statis];
+        report = ["continue", this.result, this.statis];
       }
 
       this.server.tryPostMessage(["batch_report", this.id, report]);
@@ -81,7 +81,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
 
   private async samplingLoop(
     node: Node,
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
   ) {
     const executeOpts = this.server.evaluator.makeExecutionOptions(opts);
 

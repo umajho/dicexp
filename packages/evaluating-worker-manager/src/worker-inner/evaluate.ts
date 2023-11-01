@@ -17,7 +17,7 @@ export class Evaluator<AvailableScopes extends Record<string, Scope>> {
 
   evaluate(
     code: string,
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
   ) {
     return getDicexp().evaluate(code, {
       execution: this.makeExecutionOptions(opts),
@@ -26,11 +26,11 @@ export class Evaluator<AvailableScopes extends Record<string, Scope>> {
   }
 
   makeExecutionOptions(
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
   ): ExecutionOptions {
     return {
       ...opts.execution,
-      topLevelScope: this.getScopeCollection(opts.execution.topLevelScopeName),
+      topLevelScope: this.getScopeCollection(opts.execution.topLevelScope),
     };
   }
 

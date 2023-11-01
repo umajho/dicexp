@@ -31,10 +31,10 @@ import type { Scopes } from "./evaluating.worker";
 let manager: EvaluatingWorkerManager<Scopes> | undefined;
 
 async function roll() {
-  // `result` 的类型是 `EvaluationResult | ["error", "worker_client", Error]`。
+  // `result` 的类型是 `EvaluationResult`。
   // “dicexp” 包的 README 中有列举 `EvaluationResult` 需要处理的分支。
   const result = await manager!.evaluate("d100", {
-    execution: { topLevelScopeName: "standard" },
+    execution: { topLevelScope: "standard" },
   });
   console.log(result);
 }

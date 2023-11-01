@@ -40,7 +40,7 @@ export const BatchResultCard: Component<{ report: BatchReportForWorker }> = (
     let statis_: BatchStatistics | null = null,
       result_: BatchResult | null = null,
       error_: ErrorWithType | null = null;
-    if (props.report[0] === "ok" || props.report[0] === "stop") {
+    if (props.report[0] === "continue" || props.report[0] === "stop") {
       statis_ = props.report[2], result_ = props.report[1];
     } else if (props.report[0] === "error") {
       error_ = props.report[2] as ErrorWithType;
@@ -143,7 +143,9 @@ export const BatchResultCard: Component<{ report: BatchReportForWorker }> = (
           <Show when={statisText()!.duration}>
             <div>
               <span class="font-mono">
-                {props.report[0] === "ok" ? "" : "目前"}用时：{statisText()!
+                {props.report[0] === "continue"
+                  ? ""
+                  : "目前"}用时：{statisText()!
                   .duration}秒
               </span>
             </div>

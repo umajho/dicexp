@@ -27,7 +27,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
     this.evaluator = new Evaluator(availableScopes);
   }
 
-  async handle(data: DataToWorker<AvailableScopes>): Promise<void> {
+  async handle(data: DataToWorker): Promise<void> {
     const dataToWorkerType = data[0];
 
     if (dataToWorkerType === "initialize") {
@@ -114,7 +114,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
   handleEvaluateSingle(
     id: string,
     code: string,
-    opts: EvaluationOptionsForWorker<AvailableScopes>,
+    opts: EvaluationOptionsForWorker,
   ): DataFromWorker {
     let result = safe(() => this.evaluator.evaluate(code, opts));
     if (result[0] === "error" && typeof result[1] !== "string") {
