@@ -1,5 +1,10 @@
-lint:
+set fallback
+
+prepare:
+	just build-grammar
+
+lint: prepare
 	pnpm exec tsc --noEmit
 
-test: lint
+test: prepare lint
 	pnpm exec vitest --run

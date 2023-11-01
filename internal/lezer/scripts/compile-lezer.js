@@ -8,8 +8,8 @@ async function main(args) {
 
   const sourcePath = args[0];
   const basePath = /^(.*)\.grammar$/.exec(sourcePath)[1];
-  const outPath = basePath + ".grammar.ts";
-  const outTermPath = basePath + ".grammar.term.ts";
+  const outPath = basePath + ".grammar.out.ts";
+  const outTermPath = basePath + ".grammar.out.term.ts";
 
   const source = await fs.readFile(sourcePath, { encoding: "utf-8" });
 

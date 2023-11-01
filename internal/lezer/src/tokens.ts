@@ -6,8 +6,7 @@ import {
   idIgnore,
   idUserDefined,
   keywordD,
-  // @ts-ignore
-} from "./dicexp.grammar.term";
+} from "./dicexp.grammar.out.term";
 
 // 参见：https://unicode.org/reports/tr31/
 // 另可参考：https://hexdocs.pm/elixir/1.12.3/unicode-syntax.html
