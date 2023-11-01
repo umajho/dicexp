@@ -11,8 +11,6 @@ import {
   Switch,
 } from "solid-js";
 
-import { EvaluationRestrictionsForWorker } from "@dicexp/evaluating-worker-manager/internal";
-
 import {
   Button,
   Card,
@@ -25,7 +23,9 @@ import {
 
 import * as store from "../../stores/store";
 import { examples } from "../../stores/examples";
-import createDicexpEvaluator from "../../hooks/dicexp-evaluator";
+import createDicexpEvaluator, {
+  EvaluationRestrictionsForWorker,
+} from "../../hooks/dicexp-evaluator";
 
 const LazyDicexpEditor = lazy(() => import("./dicexp-editor"));
 
@@ -209,10 +209,12 @@ const RestrictionsModal: Component<{
 
   createEffect(() => {
     const restrictions: EvaluationRestrictionsForWorker = {
-      ...(hardTimeoutEnabled() ? { hardTimeout: { ms: hardTimeout() } } : {}),
       execution: {
         ...(softTimeoutEnabled() ? { softTimeout: { ms: softTimeout() } } : {}),
         ...(maxCallsEnabled() ? { maxCalls: maxCalls() } : {}),
+      },
+      worker: {
+        ...(hardTimeoutEnabled() ? { hardTimeout: { ms: hardTimeout() } } : {}),
       },
     };
     if (Object.keys(restrictions).length === 0) {

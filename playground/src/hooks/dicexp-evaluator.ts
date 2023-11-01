@@ -6,7 +6,7 @@ import { Unreachable } from "@dicexp/errors";
 import {
   EvaluatingWorkerManager,
   EvaluationOptionsForWorker,
-  EvaluationRestrictionsForWorker,
+  EvaluationOptionsForWorkerSpecified,
 } from "@dicexp/evaluating-worker-manager/internal";
 
 import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
@@ -26,6 +26,13 @@ export type Status = {
   type: "invalid"; // 输入存在问题（为空）
 };
 
+type AvailableScopes = typeof scopesForRuntime;
+
+export interface EvaluationRestrictionsForWorker {
+  execution: EvaluationOptionsForWorker<any>["execution"]["restrictions"];
+  worker: EvaluationOptionsForWorkerSpecified["restrictions"];
+}
+
 export default function createDicexpEvaluator(
   code: () => string,
   opts: {
@@ -33,12 +40,12 @@ export default function createDicexpEvaluator(
     seed: () => number;
     isSeedFrozen: () => boolean;
     restrictions: () => EvaluationRestrictionsForWorker | null;
-    topLevelScopeName: () => keyof typeof scopesForRuntime;
+    topLevelScopeName: () => keyof AvailableScopes;
   },
 ) {
   const [loading, setLoading] = createSignal(true);
   const [workerManager, setWorkerManager] = createSignal<
-    EvaluatingWorkerManager<typeof scopesForRuntime> | null
+    EvaluatingWorkerManager<AvailableScopes> | null
   >(null);
   (async () => {
     setWorkerManager(
@@ -73,7 +80,9 @@ export default function createDicexpEvaluator(
     setResult(null);
     setIsRolling(opts.mode()!);
 
-    const code_ = code(), seed = opts.seed();
+    const code_ = code(),
+      seed = opts.seed(),
+      restrictions = opts.restrictions() ?? undefined;
     const date = new Date();
     // TODO: 更合理的方式是借由 manager 从 worker 中获取。
     const environment: NonNullable<DicexpEvaluation["environment"]> = [
@@ -84,14 +93,14 @@ export default function createDicexpEvaluator(
     switch (opts.mode()) {
       case "single": {
         try {
-          const evalOpts: EvaluationOptionsForWorker<typeof scopesForRuntime> =
-            {
-              execution: {
-                topLevelScopeName: opts.topLevelScopeName() ?? "standard",
-                seed: seed,
-              },
-              restrictions: opts.restrictions() ?? undefined,
-            };
+          const evalOpts: EvaluationOptionsForWorker<AvailableScopes> = {
+            execution: {
+              topLevelScopeName: opts.topLevelScopeName() ?? "standard",
+              restrictions: restrictions?.execution,
+              seed: seed,
+            },
+            worker: { restrictions: restrictions?.worker },
+          };
           const result = await workerManager()!.evaluate(
             code_,
             evalOpts,
@@ -107,14 +116,14 @@ export default function createDicexpEvaluator(
       }
       case "batch": {
         try {
-          const evalOpts: EvaluationOptionsForWorker<typeof scopesForRuntime> =
-            {
-              execution: {
-                topLevelScopeName: opts.topLevelScopeName() ?? "standard",
-                // seed 不生效
-              },
-              restrictions: opts.restrictions() ?? undefined,
-            };
+          const evalOpts: EvaluationOptionsForWorker<AvailableScopes> = {
+            execution: {
+              topLevelScopeName: opts.topLevelScopeName() ?? "standard",
+              restrictions: restrictions?.execution,
+              // seed 不生效
+            },
+            worker: { restrictions: restrictions?.worker },
+          };
           const [report, setReprot] = //
             createSignal<BatchReportForPlayground>("preparing");
           setResult({ type: "batch", code: code_, report, date, environment });

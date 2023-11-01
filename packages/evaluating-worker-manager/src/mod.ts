@@ -16,7 +16,7 @@ export type {
   // `EvaluationOptionsForEvaluatingWorker` 基于的类型。
   // 其内含的类型 `ParseOptions` 已由 dicexp 包引出。
   EvaluationOptionsForWorker,
-  EvaluationRestrictionsForWorker, // `EvaluationOptionsForWorker` 内含
+  EvaluationOptionsForWorkerSpecified, // `EvaluationOptionsForWorker` 内含
   ExecutionOptionsForWorker, // `EvaluationOptionsForWorker` 内含
 } from "./worker-inner/types";
 

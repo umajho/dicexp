@@ -29,9 +29,8 @@ export class Evaluator<AvailableScopes extends Record<string, Scope>> {
     opts: EvaluationOptionsForWorker<AvailableScopes>,
   ): ExecutionOptions {
     return {
+      ...opts.execution,
       topLevelScope: this.getScopeCollection(opts.execution.topLevelScopeName),
-      restrictions: opts.restrictions?.execution,
-      seed: opts.execution.seed,
     };
   }
 

@@ -15,20 +15,21 @@ export interface EvaluationOptionsForWorker<
 > {
   execution: ExecutionOptionsForWorker<AvailableScopes>;
   parse?: ParseOptions;
-
-  restrictions?: EvaluationRestrictionsForWorker;
-}
-
-export interface EvaluationRestrictionsForWorker {
-  hardTimeout?: { ms: number };
-  execution: RuntimeRestrictions;
+  worker?: EvaluationOptionsForWorkerSpecified;
 }
 
 export interface ExecutionOptionsForWorker<
   AvailableScopes extends Record<string, Scope>,
 > {
   topLevelScopeName: keyof AvailableScopes;
+  restrictions?: RuntimeRestrictions;
   seed?: number;
+}
+
+export interface EvaluationOptionsForWorkerSpecified {
+  restrictions?: {
+    hardTimeout?: { ms: number };
+  };
 }
 
 export type DataToWorker<AvailableScopes extends Record<string, Scope>> =

@@ -253,8 +253,8 @@ export class EvaluatingWorkerClient<
 
       this.taskState = ["processing", id, resolve];
 
-      if (opts.restrictions?.hardTimeout) {
-        const ms = opts.restrictions.hardTimeout.ms;
+      if (opts.worker?.restrictions?.hardTimeout) {
+        const ms = opts.worker.restrictions.hardTimeout.ms;
         setTimeout(() => {
           if (this.taskState[0] === "idle") return;
           const [_, idRecorded, resolve] = this.taskState;
