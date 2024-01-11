@@ -9,13 +9,13 @@ export interface MessagePoster {
   tryPostMessage(data: DataFromWorker): void;
 }
 
-export interface EvaluationOptionsForWorker<> {
+export interface EvaluationOptionsForWorker {
   execution: ExecutionOptionsForWorker;
   parse?: ParseOptions;
   worker?: EvaluationOptionsForWorkerSpecified;
 }
 
-export interface ExecutionOptionsForWorker<> {
+export interface ExecutionOptionsForWorker {
   topLevelScope: string;
   restrictions?: RuntimeRestrictions;
   seed?: number;
