@@ -1,5 +1,7 @@
 import { assert, describe, it } from "vitest";
 
+import { JSValue } from "@dicexp/interface";
+
 import {
   assertExecutionOk,
   assertExecutionRuntimeError,
@@ -12,11 +14,10 @@ import {
 import { createRuntimeError } from "@dicexp/runtime/runtime-errors";
 import { makeFunction } from "@dicexp/runtime/regular-functions";
 import { asScope, Scope } from "@dicexp/runtime/scopes";
+import { RuntimeRestrictions } from "@dicexp/node-tree-walk-interpreter";
 
 import * as builtins from "@dicexp/builtins/internal";
 
-import { JSValue } from "../../src/executing/mod";
-import { Restrictions } from "../../src/executing/restrictions";
 import { flatten } from "./utils";
 
 import { testScope as topLevelScope } from "./test-scope";
@@ -351,7 +352,7 @@ describe("限制", () => {
 
   describe("外加限制", () => {
     describe("软性超时", () => { // FIXME: 应该用 fake time
-      const restrictions: Restrictions = { softTimeout: { ms: 10 } };
+      const restrictions: RuntimeRestrictions = { softTimeout: { ms: 10 } };
       it("未超时则无影响", () => {
         assertExecutionOk(`${1}`, undefined, { restrictions, topLevelScope });
       });
@@ -391,7 +392,7 @@ describe("限制", () => {
 
     describe("调用次数", () => {
       describe("闭包", () => {
-        const restrictions: Restrictions = { maxCalls: 2 };
+        const restrictions: RuntimeRestrictions = { maxCalls: 2 };
         theyAreOk(
           [String.raw`\(->\(->1).()).()`],
           { restrictions, topLevelScope },
@@ -405,7 +406,7 @@ describe("限制", () => {
         });
       });
       describe("通常函数", () => {
-        const restrictions: Restrictions = { maxCalls: 2 };
+        const restrictions: RuntimeRestrictions = { maxCalls: 2 };
         theyAreOk([String.raw`1+1+1`], { restrictions, topLevelScope });
         it("超过次数则返回运行时错误", () => {
           assertExecutionRuntimeError(
