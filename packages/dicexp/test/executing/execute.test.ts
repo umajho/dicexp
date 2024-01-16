@@ -389,56 +389,6 @@ describe("限制", () => {
         });
       });
     });
-
-    describe("调用次数", () => {
-      describe("闭包", () => {
-        const restrictions: RuntimeRestrictions = { maxCalls: 2 };
-        theyAreOk(
-          [String.raw`\(->\(->1).()).()`],
-          { restrictions, topLevelScope },
-        );
-        it("超过次数则返回运行时错误", () => {
-          assertExecutionRuntimeError(
-            String.raw`\(->\(->\(->1).()).()).()`,
-            "越过外加限制「调用次数」（允许 2 次）",
-            { restrictions, topLevelScope },
-          );
-        });
-      });
-      describe("通常函数", () => {
-        const restrictions: RuntimeRestrictions = { maxCalls: 2 };
-        theyAreOk([String.raw`1+1+1`], { restrictions, topLevelScope });
-        it("超过次数则返回运行时错误", () => {
-          assertExecutionRuntimeError(
-            String.raw`1+1+1+1`,
-            "越过外加限制「调用次数」（允许 2 次）",
-            { restrictions, topLevelScope },
-          );
-        });
-      });
-    });
-
-    describe.skip("闭包调用深度", () => { // 功能不靠谱，暂时屏蔽掉
-      // const restrictions: Restrictions = { maxClosureCallDepth: 1 };
-      // theyAreOk([String.raw`\(x -> x).(1)`], { restrictions });
-      // describe("超过深度则返回运行时错误", () => {
-      //   const table = [
-      //     String.raw`\(->\(-> 1).()).()`,
-      //     String.raw`\($f -> $f.($f)) |> \($f -> $f.($f)).()`,
-      //     String.raw`[[1]] |> map \($outer -> $outer |> map \($x -> $x*2))`, // FIXME
-      //     String.raw`\($f -> map([$f], $f)) |> \($f -> $f.($f)).()`, // FIXME
-      //   ];
-      //   for (const [i, code] of table.entries()) {
-      //     it(`case ${i + 1}: ${code}`, () => {
-      //       assertExecutionRuntimeError(
-      //         code,
-      //         "越过外加限制「闭包调用深度」（允许 1 层）",
-      //         { restrictions },
-      //       );
-      //     });
-      //   }
-      // });
-    });
   });
 });
 

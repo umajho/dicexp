@@ -48,14 +48,11 @@ export interface RuntimeReporter {
 interface StatisticsUnfinished {
   start?: { ms: number };
   calls?: number;
-  closureCallDepth?: number;
-  maxClosureCallDepth?: number;
 }
 
 export interface ExecutionStatistics extends BasicExecutionStatistics {
   timeConsumption: { ms: number };
   calls?: number;
-  maxClosureCallDepth?: number;
 }
 
 export type JSValue = number | boolean | JSValue[];
@@ -97,26 +94,14 @@ export class Runtime {
     this._rng = new RandomGenerator(opts.randomSource);
 
     this._restrictions = opts.restrictions;
-    const recordsCalls = this._restrictions.maxCalls !== undefined ||
-        this._restrictions.softTimeout !== undefined,
-      recordsClosureCallDepth =
-        this._restrictions.maxClosureCallDepth !== undefined;
+    const recordsCalls = this._restrictions.softTimeout !== undefined;
     // start, // 在 execute() 中赋值
     this._statistics = {
       ...(recordsCalls ? { calls: 0 } : {}),
-      ...(recordsClosureCallDepth
-        ? { closureCallDepth: 0, maxClosureCallDepth: 0 }
-        : {}),
     };
 
     this.reporter = {
       ...(recordsCalls ? { called: this._reportCalled.bind(this) } : {}),
-      ...(recordsClosureCallDepth
-        ? {
-          closureEnter: this._reportClosureEnter.bind(this),
-          closureExit: this._reportClosureExit.bind(this),
-        }
-        : {}),
     };
 
     this._proxy = createRuntimeProxy({
@@ -130,13 +115,6 @@ export class Runtime {
 
   private _reportCalled(): RuntimeError | null {
     this._statistics.calls!++;
-
-    if (this._restrictions.maxCalls !== undefined) {
-      const max = this._restrictions.maxCalls!;
-      if (this._statistics.calls! > max) {
-        return createRuntimeError.restrictionExceeded("调用次数", "次", max);
-      }
-    }
 
     if (this._restrictions.softTimeout) {
       const timeout = this._restrictions.softTimeout;
@@ -152,27 +130,6 @@ export class Runtime {
     }
     return null;
   }
-  private _reportClosureEnter(): RuntimeError | null {
-    this._statistics.closureCallDepth!++;
-
-    const current = this._statistics.closureCallDepth!;
-    if (current > this._statistics.maxClosureCallDepth!) {
-      this._statistics.maxClosureCallDepth = current;
-      const max = this._restrictions.maxClosureCallDepth!;
-      if (current > max) {
-        return createRuntimeError.restrictionExceeded(
-          "闭包调用深度",
-          "层",
-          max,
-        );
-      }
-    }
-
-    return null;
-  }
-  private _reportClosureExit(): void {
-    this._statistics.closureCallDepth!--;
-  }
 
   execute(): ExecutionResult {
     this._statistics.start = { ms: Date.now() /*performance.now()*/ };
@@ -187,7 +144,6 @@ export class Runtime {
           ms: Date.now() /*performance.now()*/ - this._statistics.start.ms,
         },
         calls: this._statistics.calls,
-        maxClosureCallDepth: this._statistics.maxClosureCallDepth,
       },
     };
     return [...result, appendix];

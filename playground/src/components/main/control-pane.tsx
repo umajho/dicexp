@@ -202,16 +202,10 @@ const RestrictionsModal: Component<{
   const [softTimeout, setSoftTimeout] = createSignal(50);
   const [softTimeoutEnabled, setSoftTimeoutEnabled] = createSignal(false);
 
-  const [maxCalls, setMaxCalls] = createSignal(2000);
-  const [maxCallsEnabled, setMaxCallsEnabled] = createSignal(false);
-
-  // TODO: maxClosureCallDepth 最大闭包调用深度
-
   createEffect(() => {
     const restrictions: EvaluationRestrictionsForWorker = {
       execution: {
         ...(softTimeoutEnabled() ? { softTimeout: { ms: softTimeout() } } : {}),
-        ...(maxCallsEnabled() ? { maxCalls: maxCalls() } : {}),
       },
       worker: {
         ...(hardTimeoutEnabled() ? { hardTimeout: { ms: hardTimeout() } } : {}),
@@ -232,12 +226,6 @@ const RestrictionsModal: Component<{
     if (softTimeoutEnabled()) {
       items.push(`软性超时=${softTimeout()}ms`);
     }
-    if (maxCallsEnabled()) {
-      items.push(`调用次数=${maxCalls()}`);
-    }
-    // if (maxClosureCallDepthEnabled()) {
-    //   items.push(`最大闭包调用深度=${maxClosureCallDepth()}`);
-    // }
     if (items.length) {
       props.setRestrictionsText("单次限制：" + items.join("，"));
     } else {
@@ -279,17 +267,6 @@ const RestrictionsModal: Component<{
             >
               <span title="运行时尝试在超过后停止，保留运行时信息。">
                 软性超时（毫秒）
-              </span>
-            </OptionalNumberInput>
-
-            <OptionalNumberInput
-              number={maxCalls()}
-              setNumber={setMaxCalls}
-              enabled={maxCallsEnabled()}
-              setEnabled={setMaxCallsEnabled}
-            >
-              <span title="直接或间接地调用通常函数、闭包或捕获都会计入。">
-                {"　　" /* 偷个懒，不用正确的方式对齐了 */}最多调用次数
               </span>
             </OptionalNumberInput>
           </div>
