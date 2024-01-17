@@ -6,12 +6,9 @@ import {
 
 import type { EvaluationResult, NewEvaluatorOptions } from "dicexp/internal";
 
-export interface MessagePoster {
-  tryPostMessage(msg: MessageFromWorker): void;
-}
-
-export type MessageToWorker =
-  | [type: "initialize", init: WorkerInit]
+export type MessageToWorker = InitialMessageToWorker | MessageToServer;
+export type InitialMessageToWorker = [type: "initialize", init: WorkerInit];
+export type MessageToServer =
   | [type: "update_evaluator_options", opts: NewEvaluatorOptions]
   | [
     type: "evaluate",
@@ -29,9 +26,11 @@ export type MessageToWorker =
   ]
   | [type: "sample_stop", id: string];
 
-export type MessageFromWorker =
+export type MessageFromWorker = InitialMessageFromWorker | MessageFromServer;
+export type InitialMessageFromWorker =
   | [type: "loaded"]
-  | [type: "initialize_result", result: InitializationResult]
+  | [type: "initialize_result", result: InitializationResult];
+export type MessageFromServer =
   | [type: "heartbeat"]
   | [type: "evaluate_result", id: string, result: EvaluationResult]
   | [type: "sampling_report", id: string, report: SamplingReport]

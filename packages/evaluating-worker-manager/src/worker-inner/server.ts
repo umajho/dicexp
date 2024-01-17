@@ -12,42 +12,33 @@ import type { Scope } from "@dicexp/runtime/scopes";
 import { SamplingHandler } from "./handler_sampling";
 import { Pulser } from "./heartbeat";
 import {
-  MessageFromWorker,
-  MessageToWorker,
+  MessageFromServer,
+  MessageToServer,
   NewEvaluatorOptionsForWorker,
   WorkerInit,
 } from "./types";
+import { makeSendableError } from "./utils";
 
-declare function postMessage(msg: MessageFromWorker): void;
+declare function postMessage(msg: MessageFromServer): void;
 
 export class Server<AvailableScopes extends Record<string, Scope>> {
-  init!: WorkerInit;
-  pulser!: Pulser;
+  readonly pulser: Pulser;
 
   samplingHandler: SamplingHandler<AvailableScopes> | null = null;
 
   constructor(
+    public readonly init: WorkerInit,
     private evaluatorMaker: (opts: NewEvaluatorOptions) => Evaluator,
-    public availableScopes: AvailableScopes,
-  ) {}
+    readonly availableScopes: AvailableScopes,
+  ) {
+    this.pulser = new Pulser(
+      init.minHeartbeatInterval,
+      () => this.tryPostMessage(["heartbeat"]),
+    );
+  }
 
-  async handle(msg: MessageToWorker): Promise<void> {
+  async handle(msg: MessageToServer): Promise<void> {
     const msgType = msg[0];
-
-    if (msgType === "initialize") {
-      if (this.init) {
-        const error = new Error("Worker 重复初始化");
-        this.tryPostMessage(["initialize_result", ["error", error]]);
-        return;
-      }
-      this.init = msg[1];
-      this.pulser = new Pulser(this.init.minHeartbeatInterval, this);
-      this.tryPostMessage(["initialize_result", "ok"]);
-      return;
-    } else if (!this.init) {
-      console.error("Worker 尚未初始化！");
-      return;
-    }
 
     switch (msgType) {
       case "evaluate": {
@@ -115,11 +106,8 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
     };
   }
 
-  tryPostMessage(msg: MessageFromWorker): void {
-    if (msg[0] === "initialize_result" && msg[1] !== "ok") {
-      const result = msg[1];
-      msg[1] = ["error", makeSendableError(result[1])];
-    } else if (msg[0] === "evaluate_result") {
+  tryPostMessage(msg: MessageFromServer): void {
+    if (msg[0] === "evaluate_result") {
       let result = msg[2];
       if (
         result[0] === "error" &&
@@ -153,7 +141,7 @@ function handleEvaluateSingle(
   id: string,
   code: string,
   opts: EvaluationOptions,
-): MessageFromWorker {
+): MessageFromServer {
   let result: EvaluationResult;
   try {
     result = evaluator.evaluate(code, opts);
@@ -164,10 +152,4 @@ function handleEvaluateSingle(
     result = ["error", "other", e as Error];
   }
   return ["evaluate_result", id, result];
-}
-
-function makeSendableError(
-  err: { name?: string; message: string; stack?: string },
-): Error {
-  return { name: err.name ?? "Error", message: err.message, stack: err.stack };
 }

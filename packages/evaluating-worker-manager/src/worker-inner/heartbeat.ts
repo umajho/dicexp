@@ -1,5 +1,3 @@
-import { MessagePoster } from "./types";
-
 export class Pulser {
   private _lastHeartbeat!: number;
   get lastHeartbeat() {
@@ -8,17 +6,13 @@ export class Pulser {
 
   constructor(
     interval: { ms: number },
-    private poster: MessagePoster,
+    onHeartbeat: () => void,
   ) {
     const pulse = () => {
       this._lastHeartbeat = Date.now();
-      this.postHeartbeat();
+      onHeartbeat();
       setTimeout(pulse, interval.ms);
     };
     pulse();
-  }
-
-  postHeartbeat() {
-    this.poster.tryPostMessage(["heartbeat"]);
   }
 }
