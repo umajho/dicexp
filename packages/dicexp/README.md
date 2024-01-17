@@ -3,16 +3,22 @@
 ## Usage
 
 ```javascript
-import { asScope, evaluate } from "dicexp";
+import { asScope, Evaluator } from "dicexp";
 import { functionScope, operatorScope } from "@dicexp/builtins";
 
 // 将 “运算符作用域” 与 “函数作用域” 合并为一个作用域
 const topLevelScope = asScope([operatorScope, functionScope]);
 
+// 构造求值器
+const evaluator = new Evaluator({
+  topLevelScope,
+  randomSourceMaker: "xorshift7",
+});
+
 // 求值
-const result = evaluate(
+const result = evaluator.evaluate(
   "(sort(10#d100) |> head) + 5d10",
-  { execution: { topLevelScope } },
+  { execution: { seed: 42 } },
 );
 
 if (result[0] === "ok") {
