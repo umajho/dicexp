@@ -3,7 +3,7 @@ import { Evaluator, NewEvaluatorOptions } from "dicexp/internal";
 import type { Scope } from "@dicexp/runtime/scopes";
 
 import { Server } from "./server";
-import { DataToWorker } from "./types";
+import { MessageToWorker } from "./types";
 
 export async function startWorkerServer<
   AvailableScopes extends Record<string, Scope>,
@@ -27,5 +27,5 @@ export async function startWorkerServer<
   if (onmessage) {
     console.error("onmessage 已被占用，");
   }
-  onmessage = (ev) => server.handle(ev.data as DataToWorker);
+  onmessage = (ev) => server.handle(ev.data as MessageToWorker);
 }

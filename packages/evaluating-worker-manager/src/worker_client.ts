@@ -10,9 +10,9 @@ import { Unreachable } from "@dicexp/errors";
 
 import { proxyErrorFromWorker } from "./error_from_worker";
 import {
-  DataFromWorker,
-  DataToWorker,
   InitializationResult,
+  MessageFromWorker,
+  MessageToWorker,
   NewEvaluatorOptionsForWorker,
 } from "./worker-inner/types";
 
@@ -179,42 +179,42 @@ export class EvaluatingWorkerClient {
     this.afterTerminate?.();
   }
 
-  private postMessage(data: DataToWorker) {
+  private postMessage(msg: MessageToWorker) {
     // 防止由于 vue 之类的外部库把 data 中的内容用 Proxy 替代掉，
     // 导致无法用 postMessage 传递 data
-    data = JSON.parse(JSON.stringify(data));
-    this.worker.postMessage(data);
+    msg = JSON.parse(JSON.stringify(msg));
+    this.worker.postMessage(msg);
   }
 
-  private onMessage(ev: MessageEvent<DataFromWorker>) {
-    const data = ev.data;
-    switch (data[0]) {
+  private onMessage(ev: MessageEvent<MessageFromWorker>) {
+    const msg = ev.data;
+    switch (msg[0]) {
       // "loaded" 是在正式建立联系前，用于确保 worker 已完成载入而发送的，
       // 因此不会出现在这里。
 
       case "initialize_result":
-        this.handleInitializeResult(data[1]);
+        this.handleInitializeResult(msg[1]);
         return;
       case "heartbeat":
         this.handleHeartbeat();
         return;
       case "fatal": {
-        this.handleFatal(data[1]);
+        this.handleFatal(msg[1]);
         return;
       }
       case "evaluate_result": {
-        const id = data[1], result = data[2];
+        const id = msg[1], result = msg[2];
         this.handleEvaluateResult(id, result);
         return;
       }
       case "sampling_report": {
-        const id = data[1], report = data[2];
+        const id = msg[1], report = msg[2];
         this.handleSamplingReport(id, report);
         return;
       }
       default:
         console.error(
-          `收到来自 Worker 的未知消息：「${JSON.stringify(data)}」！`,
+          `收到来自 Worker 的未知消息：「${JSON.stringify(msg)}」！`,
         );
     }
   }

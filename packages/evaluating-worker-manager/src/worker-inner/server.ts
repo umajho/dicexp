@@ -12,13 +12,13 @@ import type { Scope } from "@dicexp/runtime/scopes";
 import { SamplingHandler } from "./handler_sampling";
 import { Pulser } from "./heartbeat";
 import {
-  DataFromWorker,
-  DataToWorker,
+  MessageFromWorker,
+  MessageToWorker,
   NewEvaluatorOptionsForWorker,
   WorkerInit,
 } from "./types";
 
-declare function postMessage(data: DataFromWorker): void;
+declare function postMessage(msg: MessageFromWorker): void;
 
 export class Server<AvailableScopes extends Record<string, Scope>> {
   init!: WorkerInit;
@@ -31,16 +31,16 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
     public availableScopes: AvailableScopes,
   ) {}
 
-  async handle(data: DataToWorker): Promise<void> {
-    const dataToWorkerType = data[0];
+  async handle(msg: MessageToWorker): Promise<void> {
+    const msgType = msg[0];
 
-    if (dataToWorkerType === "initialize") {
+    if (msgType === "initialize") {
       if (this.init) {
         const error = new Error("Worker 重复初始化");
         this.tryPostMessage(["initialize_result", ["error", error]]);
         return;
       }
-      this.init = data[1];
+      this.init = msg[1];
       this.pulser = new Pulser(this.init.minHeartbeatInterval, this);
       this.tryPostMessage(["initialize_result", "ok"]);
       return;
@@ -49,10 +49,10 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
       return;
     }
 
-    switch (dataToWorkerType) {
+    switch (msgType) {
       case "evaluate": {
-        const id = data[1];
-        const code = data[2], newEvaluatorOpts = data[3], opts = data[4];
+        const id = msg[1];
+        const code = msg[2], newEvaluatorOpts = msg[3], opts = msg[4];
         if (this.samplingHandler) {
           const error = new Error("抽样途中不能进行单次求值");
           const data: EvaluationResult = ["error", "other", error];
@@ -68,8 +68,8 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
         return;
       }
       case "sample_start": {
-        const id = data[1];
-        const code = data[2], newEvaluatorOpts = data[3], opts = data[4];
+        const id = msg[1];
+        const code = msg[2], newEvaluatorOpts = msg[3], opts = msg[4];
         if (this.samplingHandler) {
           const error = new Error("已在进行抽样");
           const data: SamplingReport = ["error", "other", error];
@@ -85,7 +85,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
         return;
       }
       case "sample_stop": {
-        const id = data[1];
+        const id = msg[1];
         if (!this.samplingHandler) {
           console.warn("不存在正在进行的抽样");
           return;
@@ -95,7 +95,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
       }
       default:
         console.error(
-          `收到来自外界的未知消息：「${JSON.stringify(dataToWorkerType)}」！`,
+          `收到来自外界的未知消息：「${JSON.stringify(msgType)}」！`,
         );
     }
   }
@@ -115,34 +115,34 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
     };
   }
 
-  tryPostMessage(data: DataFromWorker): void {
-    if (data[0] === "initialize_result" && data[1] !== "ok") {
-      const result = data[1];
-      data[1] = ["error", makeSendableError(result[1])];
-    } else if (data[0] === "evaluate_result") {
-      let result = data[2];
+  tryPostMessage(msg: MessageFromWorker): void {
+    if (msg[0] === "initialize_result" && msg[1] !== "ok") {
+      const result = msg[1];
+      msg[1] = ["error", makeSendableError(result[1])];
+    } else if (msg[0] === "evaluate_result") {
+      let result = msg[2];
       if (
         result[0] === "error" &&
         (result[1] === "parse" || result[1] === "other")
       ) {
-        data[2] = ["error", result[1], makeSendableError(result[2])];
+        msg[2] = ["error", result[1], makeSendableError(result[2])];
       }
-    } else if (data[0] === "sampling_report") {
-      let report = data[2];
+    } else if (msg[0] === "sampling_report") {
+      let report = msg[2];
       if (report[0] === "error") {
         const sendableErr = makeSendableError(report[2]);
         if (report[1] === "sampling") {
-          data[2] = ["error", "sampling", sendableErr, report[3], report[4]];
+          msg[2] = ["error", "sampling", sendableErr, report[3], report[4]];
         } else { // report[1] === "parse" || report[1] === "other"
-          data[2] = ["error", report[1], sendableErr];
+          msg[2] = ["error", report[1], sendableErr];
         }
       }
     }
     try {
-      postMessage(data);
+      postMessage(msg);
     } catch (e) {
       const errorMessage = (e instanceof Error) ? e.message : `${e}`;
-      console.log(data);
+      console.log(msg);
       postMessage(["fatal", "无法发送消息：" + errorMessage]);
     }
   }
@@ -153,7 +153,7 @@ function handleEvaluateSingle(
   id: string,
   code: string,
   opts: EvaluationOptions,
-): DataFromWorker {
+): MessageFromWorker {
   let result: EvaluationResult;
   try {
     result = evaluator.evaluate(code, opts);
