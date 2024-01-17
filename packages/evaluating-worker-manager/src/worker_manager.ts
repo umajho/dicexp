@@ -1,41 +1,51 @@
-import { AsyncEvaluator } from "@dicexp/interface";
+import {
+  EvaluationGenerationOptions,
+  RemoteEvaluationOptions,
+  RemoteEvaluatorClient,
+  RemoteSampler,
+} from "@dicexp/interface";
 
-import { EvaluationOptionsForWorker } from "./worker-inner/types";
+import { EvaluationResult } from "dicexp/internal";
+
 import {
   EvaluatingWorkerClient,
   EvaluatingWorkerClientOptions,
 } from "./worker_client";
-import { EvaluationResultForWorker } from "./types";
+import { NewEvaluatorOptionsForWorker } from "./worker-inner/types";
 
-export type NewEvaluatingWorkerManagerOptions = //
-  Partial<EvaluatingWorkerClientOptions>;
-export type EvaluationOptionsForEvaluatingWorker = EvaluationOptionsForWorker;
+export interface NewEvaluatingWorkerManagerOptions {
+  newEvaluatorOptions: NewEvaluatorOptionsForWorker;
+}
 
-export class EvaluatingWorkerManager implements AsyncEvaluator<string> {
-  readonly options: Required<NewEvaluatingWorkerManagerOptions>;
-
-  private readinessWatcher: (ready: boolean) => void;
+export class EvaluatingWorkerManager
+  implements RemoteEvaluatorClient, RemoteSampler {
+  readonly clientOptions: EvaluatingWorkerClientOptions;
 
   private client: EvaluatingWorkerClient | null = null;
 
+  newEvaluatorOptions: NewEvaluatorOptionsForWorker;
+
   constructor(
     workerProvider: () => Worker,
-    readinessWatcher: (ready: boolean) => void,
-    optsPartial: NewEvaluatingWorkerManagerOptions = {},
+    private readinessWatcher: (ready: boolean) => void,
+    opts: NewEvaluatingWorkerManagerOptions,
+    clientOptsPartial: Partial<EvaluatingWorkerClientOptions> = {},
   ) {
-    optsPartial = { ...optsPartial };
-    optsPartial.heartbeatTimeout ??= { ms: 5000 };
-    optsPartial.minHeartbeatInterval ??= { ms: 250 };
-    optsPartial.batchReportInterval ??= { ms: 500 };
-    this.options = optsPartial as EvaluatingWorkerClientOptions;
+    this.newEvaluatorOptions = opts.newEvaluatorOptions;
 
-    this.readinessWatcher = readinessWatcher;
+    this.clientOptions = {
+      heartbeatTimeout: { ms: 5000 },
+      minHeartbeatInterval: { ms: 250 },
+      batchReportInterval: { ms: 500 },
+      ...clientOptsPartial,
+    };
 
     this.initClient(workerProvider);
   }
 
   private async initClient(workerProvider: () => Worker) {
-    this.client = new EvaluatingWorkerClient(workerProvider(), this.options);
+    this.client = //
+      new EvaluatingWorkerClient(workerProvider(), this.clientOptions);
     this.client.afterTerminate = () => {
       this.client = null;
       this.readinessWatcher(false);
@@ -45,14 +55,18 @@ export class EvaluatingWorkerManager implements AsyncEvaluator<string> {
     this.readinessWatcher(true);
   }
 
-  async evaluate(
+  async evaluateRemote(
     code: string,
-    opts: EvaluationOptionsForEvaluatingWorker,
-  ): Promise<EvaluationResultForWorker> {
+    opts: RemoteEvaluationOptions,
+  ): Promise<EvaluationResult> {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
-    return this.client.evaluate(code, opts);
+    return this.client.evaluateRemote(code, {
+      hardTimeout: opts.local?.restrictions?.hardTimeout ?? null,
+      newEvaluator: this.newEvaluatorOptions,
+      evaluation: opts,
+    });
   }
 
   destroy() {
@@ -69,14 +83,14 @@ export class EvaluatingWorkerManager implements AsyncEvaluator<string> {
     this.client.terminate();
   }
 
-  batchEvaluate(
-    code: string,
-    opts: EvaluationOptionsForEvaluatingWorker,
-  ) {
+  batchEvaluate(code: string, opts: EvaluationGenerationOptions) {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
-    return this.client.batchEvaluate(code, opts);
+    return this.client.batchEvaluate(code, {
+      newEvaluator: this.newEvaluatorOptions,
+      evaluationGeneration: opts,
+    });
   }
 
   stopBatching() {

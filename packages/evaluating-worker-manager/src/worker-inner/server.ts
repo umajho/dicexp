@@ -1,16 +1,22 @@
+import { Unimplemented } from "@dicexp/errors";
+import { EvaluationOptions, SamplingReport } from "@dicexp/interface";
+
+import {
+  EvaluationResult,
+  Evaluator,
+  NewEvaluatorOptions,
+} from "dicexp/internal";
+
 import type { Scope } from "@dicexp/runtime/scopes";
 
-import { BatchHandler } from "./handler_batch";
+import { SamplingHandler } from "./handler_batch";
 import { Pulser } from "./heartbeat";
 import {
-  BatchReport,
   DataFromWorker,
   DataToWorker,
-  EvaluationOptionsForWorker,
+  NewEvaluatorOptionsForWorker,
   WorkerInit,
 } from "./types";
-import { safe } from "./utils";
-import { Evaluator } from "./evaluate";
 
 declare function postMessage(data: DataFromWorker): void;
 
@@ -18,14 +24,12 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
   init!: WorkerInit;
   pulser!: Pulser;
 
-  evaluator: Evaluator<AvailableScopes>;
-  batchHandler: BatchHandler<AvailableScopes> | null = null;
+  batchHandler: SamplingHandler<AvailableScopes> | null = null;
 
   constructor(
+    private evaluatorMaker: (opts: NewEvaluatorOptions) => Evaluator,
     public availableScopes: AvailableScopes,
-  ) {
-    this.evaluator = new Evaluator(availableScopes);
-  }
+  ) {}
 
   async handle(data: DataToWorker): Promise<void> {
     const dataToWorkerType = data[0];
@@ -46,21 +50,38 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
     }
 
     switch (dataToWorkerType) {
-      case "evaluate":
+      case "evaluate": {
+        const id = data[1];
+        const code = data[2], newEvaluatorOpts = data[3], opts = data[4];
+        if (this.batchHandler) {
+          const error = new Error("批量处理途中不能进行单次求值");
+          const data: EvaluationResult = ["error", "other", error];
+          this.tryPostMessage(["evaluate_result", id, data]);
+          return;
+        }
+        const evaluator = this.evaluatorMaker(
+          this.makeEvaluatorOptions(newEvaluatorOpts),
+        );
+        this.tryPostMessage(
+          handleEvaluateSingle(evaluator, id, code, opts),
+        );
+        return;
+      }
       case "batch_start": {
         const id = data[1];
-        const code = data[2], opts = data[3];
-        if (dataToWorkerType === "evaluate") {
-          this.tryPostMessage(this.handleEvaluateSingle(id, code, opts));
-        } else {
-          if (this.batchHandler) {
-            const error = new Error("已在进行批量处理");
-            const data: BatchReport = ["error", "other", error];
-            this.tryPostMessage(["batch_report", id, data]);
-          }
-          const clear = () => this.batchHandler = null;
-          this.batchHandler = new BatchHandler(id, code, opts, this, clear);
+        const code = data[2], newEvaluatorOpts = data[3], opts = data[4];
+        if (this.batchHandler) {
+          const error = new Error("已在进行批量处理");
+          const data: SamplingReport = ["error", "other", error];
+          this.tryPostMessage(["batch_report", id, data]);
+          return;
         }
+        const evaluator = this.evaluatorMaker(
+          this.makeEvaluatorOptions(newEvaluatorOpts),
+        );
+        const clear = () => this.batchHandler = null;
+        this.batchHandler = //
+          new SamplingHandler(evaluator, id, code, opts, this, clear);
         return;
       }
       case "batch_stop": {
@@ -79,6 +100,21 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
     }
   }
 
+  makeEvaluatorOptions(
+    opts: NewEvaluatorOptionsForWorker,
+  ): NewEvaluatorOptions {
+    const topLevelScope = this.availableScopes[opts.topLevelScope];
+    if (!topLevelScope) {
+      throw new Unimplemented(
+        "TODO: 处理指定 `topLevelScope` 不存在于 `availableScopes` 中的情况",
+      );
+    }
+    return {
+      topLevelScope,
+      randomSourceMaker: opts.randomSourceMaker,
+    };
+  }
+
   tryPostMessage(data: DataFromWorker): void {
     if (data[0] === "initialize_result" && data[1] !== "ok") {
       const result = data[1];
@@ -95,8 +131,8 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
       let report = data[2];
       if (report[0] === "error") {
         const sendableErr = makeSendableError(report[2]);
-        if (report[1] === "batch") {
-          data[2] = ["error", "batch", sendableErr, report[3], report[4]];
+        if (report[1] === "sampling") {
+          data[2] = ["error", "sampling", sendableErr, report[3], report[4]];
         } else { // report[1] === "parse" || report[1] === "other"
           data[2] = ["error", report[1], sendableErr];
         }
@@ -110,18 +146,24 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
       postMessage(["fatal", "无法发送消息：" + errorMessage]);
     }
   }
+}
 
-  handleEvaluateSingle(
-    id: string,
-    code: string,
-    opts: EvaluationOptionsForWorker,
-  ): DataFromWorker {
-    let result = safe(() => this.evaluator.evaluate(code, opts));
-    if (result[0] === "error" && typeof result[1] !== "string") {
-      result = ["error", "other", result[1]];
+function handleEvaluateSingle(
+  evaluator: Evaluator,
+  id: string,
+  code: string,
+  opts: EvaluationOptions,
+): DataFromWorker {
+  let result: EvaluationResult;
+  try {
+    result = evaluator.evaluate(code, opts);
+  } catch (e) {
+    if (!(e instanceof Error)) {
+      e = new Error(`未知抛出: ${e}`);
     }
-    return ["evaluate_result", id, result];
+    result = ["error", "other", e as Error];
   }
+  return ["evaluate_result", id, result];
 }
 
 function makeSendableError(

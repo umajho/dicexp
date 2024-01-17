@@ -25,6 +25,12 @@ export const defaultEvaluatorProvider = {
             opts.readinessWatcher(ready);
           }
         },
+        {
+          newEvaluatorOptions: {
+            topLevelScope: "standard",
+            randomSourceMaker: "xorshift7",
+          },
+        },
       );
     });
   },

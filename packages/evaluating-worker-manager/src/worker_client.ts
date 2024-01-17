@@ -1,8 +1,10 @@
 import type { EvaluationResult } from "dicexp/internal";
 import type {
-  AsyncEvaluator,
-  BatchErrorReport,
-  BatchOkReport,
+  EvaluationGenerationOptions,
+  EvaluationOptions,
+  SamplingErrorReport,
+  SamplingOkReport,
+  SamplingReport,
 } from "@dicexp/interface";
 import { Unreachable } from "@dicexp/errors";
 
@@ -10,10 +12,9 @@ import { proxyErrorFromWorker } from "./error_from_worker";
 import {
   DataFromWorker,
   DataToWorker,
-  EvaluationOptionsForWorker,
   InitializationResult,
+  NewEvaluatorOptionsForWorker,
 } from "./worker-inner/types";
-import { BatchReportForWorker, EvaluationResultForWorker } from "./types";
 
 export interface EvaluatingWorkerClientOptions {
   /**
@@ -36,7 +37,19 @@ export interface EvaluatingWorkerClientOptions {
   batchReportInterval: { ms: number };
 }
 
-export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
+export interface EvaluatingWorkerClientEvaluationOptions {
+  hardTimeout: { ms: number } | null;
+
+  newEvaluator: NewEvaluatorOptionsForWorker;
+  evaluation: EvaluationOptions;
+}
+
+export interface EvaluatingWorkerClientSamplingOptions {
+  newEvaluator: NewEvaluatorOptionsForWorker;
+  evaluationGeneration: EvaluationGenerationOptions;
+}
+
+export class EvaluatingWorkerClient {
   constructor(
     private worker: Worker,
     private options: EvaluatingWorkerClientOptions,
@@ -62,12 +75,12 @@ export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
     | [
       name: "processing",
       id: string,
-      resolve: (r: EvaluationResultForWorker) => void,
+      resolve: (r: EvaluationResult) => void,
     ]
     | [
       name: "batch_processing",
       id: string,
-      report: (r: BatchReportForWorker) => void,
+      report: (r: SamplingReport) => void,
       resolve: () => void,
     ] = ["idle"];
 
@@ -246,11 +259,11 @@ export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
     this._terminate();
   }
 
-  async evaluate(
+  async evaluateRemote(
     code: string,
-    opts: EvaluationOptionsForWorker,
+    opts: EvaluatingWorkerClientEvaluationOptions,
   ) {
-    return new Promise<EvaluationResultForWorker>((resolve, reject) => {
+    return new Promise<EvaluationResult>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
         reject(new Error("Worker 客户端正忙"));
         return;
@@ -260,8 +273,7 @@ export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
 
       this.taskState = ["processing", id, resolve];
 
-      if (opts.worker?.restrictions?.hardTimeout) {
-        const ms = opts.worker.restrictions.hardTimeout.ms;
+      if (opts.hardTimeout) {
         setTimeout(() => {
           if (this.taskState[0] === "idle") return;
           const [_, idRecorded, resolve] = this.taskState;
@@ -271,10 +283,12 @@ export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
           this.taskState = ["idle"];
 
           this.terminate();
-        }, ms);
+        }, opts.hardTimeout.ms);
       }
 
-      this.postMessage(["evaluate", id, code, opts]);
+      this.postMessage(
+        ["evaluate", id, code, opts.newEvaluator, opts.evaluation],
+      );
     });
   }
 
@@ -300,11 +314,11 @@ export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
 
   async *batchEvaluate(
     code: string,
-    opts: EvaluationOptionsForWorker,
+    opts: EvaluatingWorkerClientSamplingOptions,
   ) {
-    let promise!: Promise<BatchReportForWorker>;
-    let resolve!: (v: BatchReportForWorker) => void;
-    function makeReportPromise(): Promise<BatchReportForWorker> {
+    let promise!: Promise<SamplingReport>;
+    let resolve!: (v: SamplingReport) => void;
+    function makeReportPromise(): Promise<SamplingReport> {
       return new Promise((r) => resolve = r);
     }
     promise = makeReportPromise();
@@ -317,17 +331,17 @@ export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
     while (true) {
       const report = await promise;
       if (report[0] === "continue") {
-        yield report as BatchOkReport<"continue">;
+        yield report as SamplingOkReport<"continue">;
       } else {
-        return report as BatchOkReport<"stop"> | BatchErrorReport;
+        return report as SamplingOkReport<"stop"> | SamplingErrorReport;
       }
     }
   }
 
   private async _batchEvaluate(
     code: string,
-    opts: EvaluationOptionsForWorker,
-    reporter: (r: BatchReportForWorker) => void,
+    opts: EvaluatingWorkerClientSamplingOptions,
+    reporter: (r: SamplingReport) => void,
   ) {
     return new Promise<void>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
@@ -338,11 +352,13 @@ export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
       const id = this.nextId();
       this.taskState = ["batch_processing", id, reporter, resolve];
 
-      this.postMessage(["batch_start", id, code, opts]);
+      this.postMessage(
+        ["batch_start", id, code, opts.newEvaluator, opts.evaluationGeneration],
+      );
     });
   }
 
-  handleBatchReport(id: string, report: BatchReportForWorker) {
+  handleBatchReport(id: string, report: SamplingReport) {
     this.assertTaskStateName("batch_processing");
     if (this.taskState[0] !== "batch_processing") { // TS 类型推断
       throw new Unreachable();
@@ -358,8 +374,8 @@ export class EvaluatingWorkerClient implements AsyncEvaluator<string> {
     }
     if (report[0] === "error") {
       const errProxy = proxyErrorFromWorker(report[2]);
-      if (report[1] === "batch") {
-        report = ["error", "batch", errProxy, report[3], report[4]];
+      if (report[1] === "sampling") {
+        report = ["error", "sampling", errProxy, report[3], report[4]];
       } else { // report[1] === "parse" || report[1] === "other"
         report = ["error", report[1], errProxy];
       }

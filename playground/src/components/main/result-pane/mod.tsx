@@ -15,11 +15,11 @@ import {
   registerRoWidgetOwner,
 } from "@rotext/solid-components";
 
-import { ExecutionAppendix } from "dicexp/internal";
 import {
-  BatchReportForWorker,
-  EvaluationResultForWorker,
-} from "@dicexp/evaluating-worker-manager/internal";
+  EvaluationResult,
+  ExecutionAppendix,
+  SamplingReport,
+} from "@dicexp/interface";
 
 import {
   VsChevronDown,
@@ -171,7 +171,7 @@ const SingleResultBlock: Component<
   {
     i: number;
     code: string;
-    result: EvaluationResultForWorker;
+    result: EvaluationResult;
     date: Date;
     environment?: NonNullable<DicexpEvaluation["environment"]>;
   }
@@ -262,7 +262,7 @@ const BatchResultBlock: Component<{
             </div>
           }
         >
-          <BatchResultCard report={props.report() as BatchReportForWorker} />
+          <BatchResultCard report={props.report() as SamplingReport} />
         </Show>
       </h2>
     </div>

@@ -1,33 +1,71 @@
-import {
-  BasicEvaluationOptions,
-  BasicEvaluationResult,
-  BasicParseError,
-} from "./dicexp";
+import { Repr } from "./repr";
 
-export interface AsyncEvaluator<TopLevelScope> {
-  evaluate: (code: string, opts: BasicEvaluationOptions<TopLevelScope>) => //
-  Promise<BasicEvaluationResult>;
+export interface Evaluator {
+  evaluate: (code: string, opts: EvaluationOptions) => EvaluationResult;
 
-  batchEvaluate: (code: string, opts: BasicEvaluationOptions<TopLevelScope>) => //
-  AsyncGenerator<
-    BatchOkReport<"continue">,
-    BatchOkReport<"stop"> | BatchErrorReport
-  >;
+  makeEvaluationGenerator: (
+    code: string,
+    opts: EvaluationGenerationOptions,
+  ) => MakeEvaluationGeneratorResult;
 }
 
-export type BatchOkReport<Type extends "continue" | "stop"> = //
-  [Type, BasicBatchResult, BasicBatchStatistic | null];
+export interface EvaluationOptions {
+  parse?: {};
+  execution: {
+    /**
+     * 单次求值中随机数生成器使用的种子。
+     */
+    seed: number;
+    restrictions?: ExecutionRestrictions;
+  };
+}
 
-export type BatchErrorReport =
-  | ["error", "parse", BasicParseError]
-  | ["error", "batch", Error, BasicBatchResult, BasicBatchStatistic | null]
+export interface ExecutionRestrictions {
+  /**
+   * 执行代码时会试着遵守的超时时长。
+   *
+   * 由于在检查点间执行的代码时长无法保证，代码执行时间即使远超超时时长也有可
+   * 能不会终止，因此不能将其视为硬性指标。
+   */
+  softTimeout?: { ms: number };
+}
+
+export interface EvaluationGenerationOptions {
+  parse?: {};
+  execution?: {};
+}
+
+export type EvaluationResult =
+  | ["ok", JSValue, ExecutionAppendix]
+  | ["error", "parse", ParseError]
+  | ["error", "runtime", RuntimeError, ExecutionAppendix]
   | ["error", "other", Error];
 
-export interface BasicBatchResult {
-  samples: number;
-  counts: { [n: number]: number };
+export type MakeEvaluationGeneratorResult =
+  | ["ok", EvaluationGenerator]
+  | ["error", "parse", ParseError]
+  | ["error", "other", Error];
+export type EvaluationGenerator = Generator<
+  ["ok", JSValue, ExecutionAppendix],
+  | ["error", "runtime", RuntimeError, ExecutionAppendix]
+  | ["error", "other", Error]
+>;
+
+export type JSValue = number | boolean | JSValue[];
+
+export interface ExecutionAppendix {
+  representation: Repr;
+  statistics: ExecutionStatistics;
 }
-export interface BasicBatchStatistic {
-  start: { ms: number };
-  now: { ms: number };
+
+export interface ExecutionStatistics {
+  timeConsumption: { ms: number };
+}
+
+export interface ParseError {
+  message: string;
+}
+
+export interface RuntimeError {
+  message: string;
 }

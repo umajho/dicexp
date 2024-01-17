@@ -1,4 +1,4 @@
-import { BasicParseError } from "@dicexp/interface";
+import { ParseError as BasicParseError } from "@dicexp/interface";
 
 export interface Range {
   from: number;

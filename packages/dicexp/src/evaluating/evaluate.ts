@@ -1,13 +1,24 @@
+// import { MersenneTwister } from "npm:random-seedable@1";
+// @ts-ignore
+import { prng_xorshift7 } from "esm-seedrandom";
+
+import { Unreachable } from "@dicexp/errors";
+
 import {
-  BasicEvaluationOptions,
-  BasicEvaluationResult,
-  Evaluate,
+  EvaluationGenerationOptions,
+  EvaluationGenerator,
+  EvaluationOptions,
+  Evaluator as IEvaluator,
+  ExecutionRestrictions,
+  JSValue,
+  MakeEvaluationGeneratorResult,
 } from "@dicexp/interface";
 
 import {
+  Node,
   parse,
   ParseError,
-  ParseOptions,
+  ParseResult,
 } from "@dicexp/parsing-into-node-tree";
 
 import { Scope } from "@dicexp/runtime/scopes";
@@ -15,29 +26,115 @@ import { Scope } from "@dicexp/runtime/scopes";
 import {
   execute,
   ExecutionAppendix,
-  ExecutionOptions,
+  ExecutionResult,
+  RandomSource,
   RuntimeError,
 } from "@dicexp/node-tree-walk-interpreter";
 
-export interface EvaluationOptions extends BasicEvaluationOptions<Scope> {
-  execution: ExecutionOptions;
-  parse?: ParseOptions;
+export type EvaluationResult =
+  | ["ok", JSValue, ExecutionAppendix]
+  | ["error", "parse", ParseError]
+  | ["error", "runtime", RuntimeError, ExecutionAppendix]
+  | ["error", "other", Error];
+
+export interface NewEvaluatorOptions {
+  topLevelScope: Scope;
+  randomSourceMaker: ((seed: number) => RandomSource) | "xorshift7";
 }
 
-export type EvaluationResult = //
-  BasicEvaluationResult<ParseError, ExecutionAppendix, RuntimeError>;
+export class Evaluator implements IEvaluator {
+  private topLevelScope!: Scope;
+  private randomSourceMaker!: (seed: number) => RandomSource;
 
-export const evaluate = //
-  ((code: string, opts: EvaluationOptions): EvaluationResult => {
-    const parseResult = parse(code, opts.parse);
+  constructor(
+    opts: NewEvaluatorOptions,
+  ) {
+    this.topLevelScope = opts.topLevelScope;
+
+    if (typeof opts.randomSourceMaker === "function") {
+      this.randomSourceMaker = opts.randomSourceMaker;
+    } else {
+      switch (opts.randomSourceMaker) {
+        case "xorshift7":
+          this.randomSourceMaker = (seed: number) =>
+            new RandomSourceWrapper(prng_xorshift7(seed));
+          break;
+        default:
+          throw new Unreachable();
+      }
+    }
+  }
+
+  parse(code: string): ParseResult {
+    return parse(code);
+  }
+
+  execute(
+    node: Node,
+    opts: { seed: number; restrictions?: ExecutionRestrictions },
+  ): ExecutionResult {
+    return execute(node, {
+      topLevelScope: this.topLevelScope,
+      restrictions: {
+        ...(opts.restrictions ? opts.restrictions : {}),
+      },
+      randomSource: this.randomSourceMaker(opts.seed),
+    });
+  }
+
+  evaluate(
+    code: string,
+    opts: EvaluationOptions,
+  ): EvaluationResult {
+    const parseResult = this.parse(code);
     if (parseResult[0] === "error") return ["error", "parse", parseResult[1]];
     // parseResult[0] === "ok"
     const node = parseResult[1];
 
-    const result = execute(node, opts.execution);
+    const result = this.execute(node, opts.execution);
     if (result[0] === "ok") {
       return result;
     } else { // result[0] === "error" && result[1] === "runtime"
       return ["error", result[1], result[2], result[3]];
     }
-  }) satisfies Evaluate<Scope>;
+  }
+
+  makeEvaluationGenerator(
+    code: string,
+    _opts: EvaluationGenerationOptions,
+  ): MakeEvaluationGeneratorResult {
+    const zis = this;
+
+    const parseResult = this.parse(code);
+    if (parseResult[0] === "error") return ["error", "parse", parseResult[1]];
+    return [
+      "ok",
+      (function* (): EvaluationGenerator {
+        const node = parseResult[1];
+
+        let seed = 0;
+        while (true) {
+          const result = zis.execute(node, { seed });
+          if (result[0] === "ok") {
+            seed++;
+            yield result;
+          } else {
+            return result;
+          }
+        }
+      })(),
+    ];
+  }
+}
+
+class RandomSourceWrapper implements RandomSource {
+  rng: { int32: () => number };
+
+  constructor(rng: { int32: () => number }) {
+    this.rng = rng;
+  }
+
+  uint32(): number {
+    return this.rng.int32() >>> 0;
+  }
+}

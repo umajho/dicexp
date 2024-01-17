@@ -1,52 +1,65 @@
 import { assert, describe, it } from "vitest";
 
-import { JSValue } from "@dicexp/interface";
+import {
+  EvaluationOptions,
+  ExecutionRestrictions,
+  JSValue,
+} from "@dicexp/interface";
 
 import {
-  assertExecutionOk,
-  assertExecutionRuntimeError,
   assertNumber,
-  assertResultsAreRandom,
-  evaluateForTest,
-  theyAreOk,
+  EvaluationOptionsForTest,
+  EvaluationTester,
 } from "@dicexp/test-utils-for-executing";
 
 import { createRuntimeError } from "@dicexp/runtime/runtime-errors";
 import { makeFunction } from "@dicexp/runtime/regular-functions";
 import { asScope, Scope } from "@dicexp/runtime/scopes";
-import { RuntimeRestrictions } from "@dicexp/node-tree-walk-interpreter";
 
 import * as builtins from "@dicexp/builtins/internal";
 
 import { flatten } from "./utils";
 
 import { testScope as topLevelScope } from "./test-scope";
+import { Evaluator, NewEvaluatorOptions } from "../../lib";
+
+function makeTester(opts?: Partial<NewEvaluatorOptions>): EvaluationTester {
+  return new EvaluationTester(
+    new Evaluator({
+      topLevelScope,
+      randomSourceMaker: "xorshift7",
+      ...opts,
+    }),
+  );
+}
+
+const tester = makeTester();
 
 describe("值", () => {
   describe("整数", () => {
     describe("可以解析整数", () => {
-      theyAreOk<number>([
+      tester.theyAreOk<number>([
         ["1", 1],
-      ], { topLevelScope });
+      ]);
     });
   });
 
   describe("布尔", () => {
     describe("可以解析布尔", () => {
-      theyAreOk<boolean>([
+      tester.theyAreOk<boolean>([
         ["true", true],
         ["false", false],
-      ], { topLevelScope });
+      ]);
     });
   });
 
   describe("列表", () => {
     describe("可以解析列表", () => {
-      theyAreOk<JSValue[]>([
+      tester.theyAreOk<JSValue[]>([
         ["[]", []],
         ["[true]", [true]],
         ["[1, 2, 3]", [1, 2, 3]],
-      ], { topLevelScope });
+      ]);
     });
   });
 
@@ -58,7 +71,7 @@ describe("值", () => {
           const code = `${lower}~${lower * 2}`;
           for (let j = 0; j < 100; j++) {
             const result = assertNumber(
-              evaluateForTest(code, { topLevelScope }),
+              tester.evaluate(code),
             );
 
             assert(
@@ -71,7 +84,7 @@ describe("值", () => {
           // 有可忽略的 1/1000000^10 的概率 false negative，后几个同名测试也是
           const lower = 1000000;
           const code = `${lower}~${lower * 2}`;
-          assertResultsAreRandom(code, { topLevelScope });
+          tester.assertResultsAreRandom(code);
         });
       });
       describe("~/1", () => {
@@ -80,7 +93,7 @@ describe("值", () => {
           const code = `~${upper}`;
           for (let j = 0; j < 100; j++) {
             const result = assertNumber(
-              evaluateForTest(code, { topLevelScope }),
+              tester.evaluate(code),
             );
             assert(
               result >= 1 && result <= upper,
@@ -91,7 +104,7 @@ describe("值", () => {
         it("保证生成的是随机数", () => {
           const upper = 1000000;
           const code = `~${upper}`;
-          assertResultsAreRandom(code, { topLevelScope });
+          tester.assertResultsAreRandom(code);
         });
       });
 
@@ -104,7 +117,7 @@ describe("值", () => {
 
             for (let j = 0; j < 100; j++) {
               const result = assertNumber(
-                evaluateForTest(code, { topLevelScope }),
+                tester.evaluate(code),
               );
               assert(
                 result >= 1 * times && result <= upper * times,
@@ -116,7 +129,7 @@ describe("值", () => {
         it("保证生成的是随机数", () => {
           const upper = 1000000;
           const code = `d${upper}`;
-          assertResultsAreRandom(code, { topLevelScope });
+          tester.assertResultsAreRandom(code);
         });
         it.todo("`d2` 不会死循环", /*async*/ () => {
           // const d2 = await spawn(new Worker("./test_workers/d2.ts"));
@@ -140,12 +153,12 @@ describe("值", () => {
   describe("函数", () => {
     describe("通常函数", () => {
       describe("可以用", () => {
-        theyAreOk<JSValue>([
+        tester.theyAreOk<JSValue>([
           ["sum([1, 2, 3])", 6],
           ["zip([1, 2], [3, 4])", [[1, 3], [2, 4]]],
           ["[1, 2, 3] |> head", 1],
           ["[1, 2, 3] |> tail()", [2, 3]],
-        ], { topLevelScope });
+        ]);
       });
 
       describe.todo("错误处理", () => {
@@ -154,16 +167,16 @@ describe("值", () => {
 
     describe("运算符转函数", () => {
       describe("可以用", () => {
-        theyAreOk([
+        tester.theyAreOk([
           ["map([1, 2], &-/1)", [-1, -2]],
           ["zipWith([1, 2], [3, 4], &*/2)", [3, 8]],
-        ], { topLevelScope });
+        ]);
       });
     });
 
     describe("闭包", () => {
       describe("可以用", () => {
-        theyAreOk<JSValue>([
+        tester.theyAreOk<JSValue>([
           [String.raw`[2, 3, 5, 7] |> filter(\($x -> $x >= 5))`, [5, 7]],
           [String.raw`[2, 3, 5, 7] |> filter \($x -> $x >= 5)`, [5, 7]],
           [String.raw`\($a, $b -> $a + $b).(1, 2)`, 3],
@@ -180,7 +193,7 @@ describe("值", () => {
           //     .raw`\($f, $n, $l -> append(filter([$l], \(_ -> $n == 100)), $f.($f, $n+1, append($l, $n))) |> head) |> \($f -> $f.($f, 0, []))`,
           //   Array(100).fill(null).map((_, i) => i), // 0..<100
           // ],
-        ], { topLevelScope });
+        ]);
       });
       describe("在参数数量不匹配时报错", () => {
         const table: [string, number, number][] = [
@@ -189,34 +202,30 @@ describe("值", () => {
         ];
         for (const [i, [code, expected, actual]] of table.entries()) {
           it(`case ${i + 1}: ${code}`, () => {
-            assertExecutionRuntimeError(
+            tester.assertExecutionRuntimeError(
               code, // FIXME: 闭包名
               createRuntimeError.wrongArity(expected, actual, "closure"),
-              { topLevelScope },
             );
           });
         }
       });
       it("不能有重复的参数名", () => {
-        assertExecutionRuntimeError(
+        tester.assertExecutionRuntimeError(
           String.raw`\($foo, $bar, $foo -> 0).(1, 2, 3)`,
           createRuntimeError.duplicateClosureParameterNames("$foo"),
-          { topLevelScope },
         );
       });
       it("内外同名参数不算重复", () => {
-        assertExecutionOk(
+        tester.assertExecutionOk(
           String.raw`\($x -> $x |> \($x -> $x).()).(1)`,
           1,
-          { topLevelScope },
         );
       });
       describe("无视名为 `_` 的参数", () => {
         it("重复出现多次也没问题", () => {
-          assertExecutionOk(
+          tester.assertExecutionOk(
             String.raw`\(_, $x, _ -> $x).(1, 2, 3)`,
             2,
-            { topLevelScope },
           );
         });
         // NOTE: 现在 `_` 作为变量是解析错误
@@ -232,14 +241,14 @@ describe("运算符", () => {
   describe("#/2", () => {
     describe("将右侧内容在 eval 前反复左侧次", () => {
       it("反复字面量", () => {
-        assertExecutionOk("3#10", Array(3).fill(10), { topLevelScope });
+        tester.assertExecutionOk("3#10", Array(3).fill(10));
       });
     });
     describe("反复数组取值正常", () => {
-      theyAreOk([["10#([1]|>at(0))", Array(10).fill(1)]], { topLevelScope });
+      tester.theyAreOk([["10#([1]|>at(0))", Array(10).fill(1)]]);
     });
     describe("结果作为参数传入函数正常", () => {
-      theyAreOk([["10#true |> count(&not/1)", 0]], { topLevelScope });
+      tester.theyAreOk([["10#true |> count(&not/1)", 0]]);
     });
 
     // 测试 “重复求值结果不同” 放在了 “语义” 那里
@@ -266,7 +275,7 @@ describe("语义", () => {
 
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}: ${code}`, () => {
-        const result = assertExecutionOk(code, undefined, { topLevelScope });
+        const result = tester.assertExecutionOk(code, undefined);
         const resultFlatten = flatten(result as any, Infinity) as number[];
         assert(resultFlatten.every((el) => Number.isFinite(el)));
         assert.deepEqual((new Set(resultFlatten)).size, 1);
@@ -292,7 +301,7 @@ describe("语义", () => {
 
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}: ${code}`, () => {
-        const result = assertExecutionOk(code, undefined, { topLevelScope });
+        const result = tester.assertExecutionOk(code, undefined);
         const resultFlatten = flatten(result as any, Infinity);
         assert(resultFlatten.every((el) => Number.isFinite(el)));
         assert((new Set(resultFlatten)).size > 1);
@@ -302,7 +311,7 @@ describe("语义", () => {
 });
 
 describe("从管道的测试那里移过来的", () => {
-  theyAreOk([
+  tester.theyAreOk([
     ["[2, 3, 1] |> sort", [1, 2, 3]],
     ["[2, 3, 1] |> sort()", [1, 2, 3]],
     ["[2, 3, 1] |> append(4)", [2, 3, 1, 4]],
@@ -311,7 +320,7 @@ describe("从管道的测试那里移过来的", () => {
     [String.raw`10 |> \($x, $y -> $x*2).(20)`, 20],
     ["10 |> &-/1.()", -10],
     ["10 |> &-/2.(20)", -10],
-  ] as [string, JSValue][], { topLevelScope });
+  ] as [string, JSValue][]);
 });
 
 describe("限制", () => {
@@ -320,31 +329,29 @@ describe("限制", () => {
       it("不能允许大于 `Number.MAX_SAFE_INTEGER` 的整数", () => {
         const safe = Number.MAX_SAFE_INTEGER;
 
-        assertExecutionOk(`${safe}`, safe, { topLevelScope });
+        tester.assertExecutionOk(`${safe}`, safe);
         // 解析错误
         // assertExecutionRuntimeError(
         //   `${safe + 1}`,
         //   "越过内在限制「最大安全整数」（允许 9007199254740991）",
         // );
-        assertExecutionRuntimeError(
+        tester.assertExecutionRuntimeError(
           `${safe} + 1`,
           "越过内在限制「最大安全整数」（允许 9007199254740991）",
-          { topLevelScope },
         );
       });
       it("不能允许小于 `Number.MIN_SAFE_INTEGER` 的整数", () => {
         const safe = Number.MIN_SAFE_INTEGER;
 
-        assertExecutionOk(`${safe}`, safe, { topLevelScope });
+        tester.assertExecutionOk(`${safe}`, safe);
         // 解析错误
         // assertExecutionRuntimeError(
         //   `${safe - 1}`,
         //   "越过内在限制「最小安全整数」（允许 -9007199254740991）",
         // );
-        assertExecutionRuntimeError(
+        tester.assertExecutionRuntimeError(
           `${safe} - 1`,
           "越过内在限制「最小安全整数」（允许 -9007199254740991）",
-          { topLevelScope },
         );
       });
     });
@@ -352,9 +359,10 @@ describe("限制", () => {
 
   describe("外加限制", () => {
     describe("软性超时", () => { // FIXME: 应该用 fake time
-      const restrictions: RuntimeRestrictions = { softTimeout: { ms: 10 } };
+      const restrictions: ExecutionRestrictions = { softTimeout: { ms: 10 } };
+      const opts: EvaluationOptionsForTest = { execution: { restrictions } };
       it("未超时则无影响", () => {
-        assertExecutionOk(`${1}`, undefined, { restrictions, topLevelScope });
+        tester.assertExecutionOk(`${1}`, undefined, opts);
       });
 
       describe("超时则返回运行时错误", () => {
@@ -372,19 +380,17 @@ describe("限制", () => {
             ),
           },
         ]);
+        const testerS = makeTester({ topLevelScope: scope });
 
         it("超时后如果再也没有调用过函数则不会被触发", () => {
-          assertExecutionOk(`[[sleep(20)]]`, [[true]], {
-            topLevelScope: scope,
-            restrictions,
-          });
+          testerS.assertExecutionOk(`[[sleep(20)]]`, [[true]], opts);
         });
 
         it("超时后的下一次调用函数才会触发", () => {
-          assertExecutionRuntimeError(
+          testerS.assertExecutionRuntimeError(
             String.raw`sleep(20) and \(->true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
-            { topLevelScope: scope, restrictions },
+            opts,
           );
         });
       });

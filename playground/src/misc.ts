@@ -1,7 +1,7 @@
 export type ErrorType =
   | "parse"
   | "runtime"
-  | "batch"
+  | "sampling"
   | "worker_client"
   | "other";
 
@@ -14,7 +14,7 @@ export function getErrorDisplayInfo(
     case "parse":
       return { kind: "解析", showsStack: false };
     case "runtime":
-    case "batch":
+    case "sampling":
       return { kind: "运行时", showsStack: false };
     case "worker_client":
       return { kind: "Worker 客户端", showsStack: false };

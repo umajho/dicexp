@@ -24,7 +24,7 @@ import {
 import * as store from "../../stores/store";
 import { examples } from "../../stores/examples";
 import createDicexpEvaluator, {
-  EvaluationRestrictionsForWorker,
+  AllKindsOfnRestrictions,
 } from "../../hooks/dicexp-evaluator";
 
 const LazyDicexpEditor = lazy(() => import("./dicexp-editor"));
@@ -42,7 +42,7 @@ export const ControlPane: Component = () => {
   const [seed, setSeed] = createSignal(0);
   const [isSeedFrozen, setIsSeedFrozen] = createSignal(false);
   const [restrictions, setRestrictions] = createSignal<
-    EvaluationRestrictionsForWorker | null
+    AllKindsOfnRestrictions | null
   >(null);
   const [restrictionsText, setRestrictionsText] = createSignal("");
 
@@ -51,7 +51,6 @@ export const ControlPane: Component = () => {
     seed,
     isSeedFrozen,
     restrictions,
-    topLevelScope: () => "standard",
   });
   const rollingMode = () => {
     const theStatus = evaluator.status();
@@ -192,7 +191,7 @@ export const ControlPane: Component = () => {
 const RestrictionsModal: Component<{
   mode: "single" | "batch";
   setRestrictions: (
-    restrictions: EvaluationRestrictionsForWorker | null,
+    restrictions: AllKindsOfnRestrictions | null,
   ) => void;
   setRestrictionsText: (text: string) => void;
 }> = (props) => {
@@ -203,11 +202,11 @@ const RestrictionsModal: Component<{
   const [softTimeoutEnabled, setSoftTimeoutEnabled] = createSignal(false);
 
   createEffect(() => {
-    const restrictions: EvaluationRestrictionsForWorker = {
+    const restrictions: AllKindsOfnRestrictions = {
       execution: {
         ...(softTimeoutEnabled() ? { softTimeout: { ms: softTimeout() } } : {}),
       },
-      worker: {
+      local: {
         ...(hardTimeoutEnabled() ? { hardTimeout: { ms: hardTimeout() } } : {}),
       },
     };

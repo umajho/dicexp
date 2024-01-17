@@ -1,22 +1,26 @@
+import { Evaluator, NewEvaluatorOptions } from "dicexp/internal";
+
 import type { Scope } from "@dicexp/runtime/scopes";
 
-import { Dicexp, setDicexp } from "./dicexp";
 import { Server } from "./server";
 import { DataToWorker } from "./types";
 
 export async function startWorkerServer<
   AvailableScopes extends Record<string, Scope>,
->(dicexp: Dicexp | string, availableScopes: AvailableScopes | string) {
-  if (typeof dicexp === "string") {
-    dicexp = (await import(/* @vite-ignore */ dicexp)).default as Dicexp;
+>(
+  evaluatorMaker: ((opts: NewEvaluatorOptions) => Evaluator) | string,
+  availableScopes: AvailableScopes | string,
+) {
+  if (typeof evaluatorMaker === "string") {
+    evaluatorMaker = (await import(/* @vite-ignore */ evaluatorMaker))
+      .default as (opts: NewEvaluatorOptions) => Evaluator;
   }
   if (typeof availableScopes === "string") {
     availableScopes = (await import(/* @vite-ignore */ availableScopes))
       .default as AvailableScopes;
   }
 
-  setDicexp(dicexp);
-  const server = new Server(availableScopes);
+  const server = new Server(evaluatorMaker, availableScopes);
 
   postMessage(["loaded"]);
 

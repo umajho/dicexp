@@ -1,36 +1,49 @@
-import type { RuntimeError } from "dicexp/internal";
-import type { Node } from "@dicexp/nodes";
+import { Unreachable } from "@dicexp/errors";
+import {
+  EvaluationGenerationOptions,
+  EvaluationGenerator,
+  MakeEvaluationGeneratorResult,
+  RuntimeError,
+  SamplingReport,
+  SamplingResult,
+  SamplingStatistic,
+} from "@dicexp/interface";
+
+import type { Evaluator } from "dicexp/internal";
 import type { Scope } from "@dicexp/runtime/scopes";
 
-import { getDicexp } from "./dicexp";
-import {
-  BatchReport,
-  BatchResult,
-  BatchStatistics,
-  EvaluationOptionsForWorker,
-} from "./types";
-import { safe } from "./utils";
 import { Server } from "./server";
 
-export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
-  private readonly result: BatchResult = { samples: 0, counts: {} };
-  private readonly statis: BatchStatistics | null = null;
+export class SamplingHandler<AvailableScopes extends Record<string, Scope>> {
+  private readonly result: SamplingResult = { samples: 0, counts: {} };
+  private readonly statis: SamplingStatistic | null = null;
 
   private shouldStop: boolean | Error | RuntimeError = false;
 
   constructor(
+    evaluator: Evaluator,
     private readonly id: string,
     code: string,
-    opts: EvaluationOptionsForWorker,
+    opts: EvaluationGenerationOptions,
     private server: Server<AvailableScopes>,
     private readonly stoppedCb: () => void,
   ) {
     const nowMs = Date.now();
 
-    const parseResult = safe(() => getDicexp().parse(code, opts.parse));
-    if (parseResult[0] === "error") {
+    let makeGeneratorResult = ((): MakeEvaluationGeneratorResult => {
+      try {
+        return evaluator.makeEvaluationGenerator(code, opts);
+      } catch (e) {
+        if (!(e instanceof Error)) {
+          e = new Error(`未知抛出: ${e}`);
+        }
+        return ["error", "other", e as Error];
+      }
+    })();
+
+    if (makeGeneratorResult[0] === "error") {
       this.server.tryPostMessage(
-        ["batch_report", id, ["error", "parse", parseResult[1]]],
+        ["batch_report", id, makeGeneratorResult],
       );
       stoppedCb();
       return;
@@ -40,17 +53,17 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
 
     this.initBatchReporter();
 
-    this.samplingLoop(parseResult[1], opts);
+    this.samplingLoop(makeGeneratorResult[1]);
   }
 
   private initBatchReporter() {
     const intervalId = setInterval(() => {
-      let report: BatchReport;
+      let report: SamplingReport;
 
       if (this.shouldStop) {
         if (this.shouldStop instanceof Error) {
           const err = this.shouldStop;
-          report = ["error", "batch", err, this.result, this.statis];
+          report = ["error", "sampling", err, this.result, this.statis];
         } else {
           if (this.shouldStop === true) {
             report = ["stop", this.result, this.statis];
@@ -59,7 +72,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
               "某次求值时遭遇运行时错误：" +
                 (this.shouldStop satisfies RuntimeError).message,
             );
-            report = ["error", "batch", err, this.result, this.statis];
+            report = ["error", "sampling", err, this.result, this.statis];
           }
         }
         clearInterval(intervalId);
@@ -79,12 +92,7 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
     this.statis!.now.ms = Date.now();
   }
 
-  private async samplingLoop(
-    node: Node,
-    opts: EvaluationOptionsForWorker,
-  ) {
-    const executeOpts = this.server.evaluator.makeExecutionOptions(opts);
-
+  private async samplingLoop(generator: EvaluationGenerator) {
     while (true) {
       const durationSinceLastHB = Date.now() - this.server.pulser.lastHeartbeat;
       if (durationSinceLastHB > this.server.init.minHeartbeatInterval.ms) {
@@ -92,16 +100,24 @@ export class BatchHandler<AvailableScopes extends Record<string, Scope>> {
       }
       if (this.shouldStop) break;
 
-      const executed = safe(() =>
-        this.server.evaluator.execute(node, executeOpts)
-      );
-      if (executed[0] === "error") { // executed[1] satisfies Error | RuntimeError
-        this.markBatchToStop(executed[2]);
+      let stepResult: ReturnType<typeof generator.next>;
+      try {
+        stepResult = generator.next();
+      } catch (e) {
+        if (!(e instanceof Error)) {
+          e = new Error(`未知抛出: ${e}`);
+        }
+        this.markBatchToStop(e as Error);
         break;
       }
-      // executed[0] === "ok"
+      if (stepResult.done) {
+        if (stepResult.value[0] !== "error") {
+          throw new Unreachable();
+        }
+        this.markBatchToStop(stepResult.value[2]);
+      }
 
-      const value = executed[1];
+      const value = stepResult.value[1];
       if (typeof value !== "number") { // TODO: 支持布尔值
         const error = new Error(
           `批量时不支持求值结果 "${JSON.stringify(value)}" 的类型`,

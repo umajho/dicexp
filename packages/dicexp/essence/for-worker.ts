@@ -1,4 +1,9 @@
-import { evaluate, execute, parse } from "../internal";
+import { Evaluator as IEvaluator } from "@dicexp/interface";
 
-const dicexp = { parse, execute, evaluate };
-export default dicexp;
+import { Evaluator, NewEvaluatorOptions } from "../internal";
+
+const makeEvaluator = ((opts: NewEvaluatorOptions) => {
+  return new Evaluator(opts);
+}) satisfies ((opts: NewEvaluatorOptions) => IEvaluator);
+
+export default makeEvaluator;

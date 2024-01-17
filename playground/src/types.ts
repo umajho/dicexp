@@ -1,14 +1,11 @@
-import {
-  BatchReportForWorker,
-  EvaluationResultForWorker,
-} from "@dicexp/evaluating-worker-manager/internal";
+import { EvaluationResult, SamplingReport } from "@dicexp/interface";
 import { DicexpEvaluation } from "@rotext/solid-components";
 
-export type BatchReportForPlayground = BatchReportForWorker | "preparing";
+export type BatchReportForPlayground = SamplingReport | "preparing";
 
 export type ResultRecord =
   & (
-    | { type: "single"; code: string; result: EvaluationResultForWorker }
+    | { type: "single"; code: string; result: EvaluationResult }
     | { type: "batch"; code: string; report: () => BatchReportForPlayground }
     | { type: "error"; error: Error }
   )

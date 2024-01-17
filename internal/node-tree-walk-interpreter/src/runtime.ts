@@ -1,8 +1,9 @@
 import { Unimplemented, Unreachable } from "@dicexp/errors";
 import {
-  BasicExecutionAppendix,
-  BasicExecutionStatistics,
-  Repr,
+  ExecutionAppendix as BasicExecutionAppendix,
+  ExecutionRestrictions,
+  ExecutionStatistics as BasicExecutionStatistics,
+  JSValue,
 } from "@dicexp/interface";
 import {
   Node,
@@ -24,7 +25,6 @@ import { RuntimeProxyForFunction } from "@dicexp/runtime/regular-functions";
 import { RegularFunctionAlias, Scope } from "@dicexp/runtime/scopes";
 
 import { ConcreteValueBoxFactory } from "./values_impl";
-import { Restrictions } from "./restrictions";
 import { RandomGenerator, RandomSource } from "./random";
 import { createRuntimeProxy } from "./runtime-proxy";
 
@@ -34,7 +34,7 @@ export interface RuntimeOptions {
    */
   topLevelScope: Scope;
   randomSource: RandomSource;
-  restrictions: Restrictions;
+  restrictions: ExecutionRestrictions;
   // TODO: noRepresentations
   // TODO: noStatistics
 }
@@ -50,17 +50,13 @@ interface StatisticsUnfinished {
   calls?: number;
 }
 
-export interface ExecutionStatistics extends BasicExecutionStatistics {
-  timeConsumption: { ms: number };
+export type ExecutionStatistics = BasicExecutionStatistics & {
   calls?: number;
-}
+};
 
-export type JSValue = number | boolean | JSValue[];
-
-export interface ExecutionAppendix extends BasicExecutionAppendix {
-  representation: Repr;
+export type ExecutionAppendix = BasicExecutionAppendix & {
   statistics: ExecutionStatistics;
-}
+};
 
 export type ExecutionResult =
   | ["ok", JSValue, ExecutionAppendix]
@@ -78,7 +74,7 @@ export class Runtime {
 
   private _rng: RandomGenerator;
 
-  private _restrictions: Restrictions;
+  private _restrictions: ExecutionRestrictions;
   private _statistics: StatisticsUnfinished;
   reporter: RuntimeReporter;
 
@@ -118,8 +114,8 @@ export class Runtime {
 
     if (this._restrictions.softTimeout) {
       const timeout = this._restrictions.softTimeout;
-      const interval = timeout.intervalPerCheck?.calls ?? 1;
-      if (this._statistics.calls! % interval === 0) {
+      const INTERVAL = 1;
+      if (this._statistics.calls! % INTERVAL === 0) {
         const now = Date.now(); //performance.now();
         const duration = now - this._statistics.start!.ms;
         if (duration > timeout.ms) {

@@ -4,15 +4,18 @@ import { DicexpEvaluation } from "@rotext/solid-components";
 
 import { Unreachable } from "@dicexp/errors";
 import {
+  EvaluationGenerationOptions,
+  ExecutionRestrictions,
+  RemoteEvaluationLocalRestrictions,
+  RemoteEvaluationOptions,
+} from "@dicexp/interface";
+import {
   EvaluatingWorkerManager,
-  EvaluationOptionsForWorker,
-  EvaluationOptionsForWorkerSpecified,
 } from "@dicexp/evaluating-worker-manager/internal";
 
 import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
 
 import { BatchReportForPlayground, ResultRecord } from "../types";
-import { scopesForRuntime } from "../stores/scopes";
 import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
 
 export type Status = {
@@ -26,11 +29,9 @@ export type Status = {
   type: "invalid"; // 输入存在问题（为空）
 };
 
-type AvailableScopes = typeof scopesForRuntime;
-
-export interface EvaluationRestrictionsForWorker {
-  execution: EvaluationOptionsForWorker["execution"]["restrictions"];
-  worker: EvaluationOptionsForWorkerSpecified["restrictions"];
+export interface AllKindsOfnRestrictions {
+  execution: ExecutionRestrictions;
+  local: RemoteEvaluationLocalRestrictions;
 }
 
 export default function createDicexpEvaluator(
@@ -39,8 +40,7 @@ export default function createDicexpEvaluator(
     mode: () => "single" | "batch" | null;
     seed: () => number;
     isSeedFrozen: () => boolean;
-    restrictions: () => EvaluationRestrictionsForWorker | null;
-    topLevelScope: () => keyof AvailableScopes;
+    restrictions: () => AllKindsOfnRestrictions | null;
   },
 ) {
   const [loading, setLoading] = createSignal(true);
@@ -93,15 +93,22 @@ export default function createDicexpEvaluator(
     switch (opts.mode()) {
       case "single": {
         try {
-          const evalOpts: EvaluationOptionsForWorker = {
+          // execution: restrictions?.execution ?? null,
+          // local:  restrictions?.local ?? null,
+          const evalOpts: RemoteEvaluationOptions = {
             execution: {
-              topLevelScope: opts.topLevelScope() ?? "standard",
-              restrictions: restrictions?.execution,
-              seed: seed,
+              seed: opts.seed(),
+              ...(restrictions?.execution
+                ? { restrictions: restrictions.execution }
+                : {}),
             },
-            worker: { restrictions: restrictions?.worker },
+            local: {
+              ...(restrictions?.local
+                ? { restrictions: restrictions.local }
+                : {}),
+            },
           };
-          const result = await workerManager()!.evaluate(
+          const result = await workerManager()!.evaluateRemote(
             code_,
             evalOpts,
           );
@@ -116,14 +123,7 @@ export default function createDicexpEvaluator(
       }
       case "batch": {
         try {
-          const evalOpts: EvaluationOptionsForWorker = {
-            execution: {
-              topLevelScope: opts.topLevelScope() ?? "standard",
-              restrictions: restrictions?.execution,
-              // seed 不生效
-            },
-            worker: { restrictions: restrictions?.worker },
-          };
+          const evalOpts: EvaluationGenerationOptions = {};
           const code = code_;
           const g = workerManager()!.batchEvaluate(code, evalOpts);
           const [report, setReport] = //

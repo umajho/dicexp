@@ -8,11 +8,7 @@ export type {
 export type {
   ExecutionAppendix, // `ExecutionResult` 在 "ok" 及 "error" 时对应的结果的第二项
   ExecutionStatistics, // `ExecutionResult` 中的一项
-  JSValue, // `ExecutionResult` 在 "ok" 时对应的结果的第一项
 } from "./runtime";
-export type {
-  Restrictions as RuntimeRestrictions, // `ExecutionResult` 中的一项
-} from "./restrictions";
 export type {
   RuntimeError, // `ExecutionResult` 在 "error" 时对应的结果的第一项
 } from "@dicexp/runtime/runtime-errors";

@@ -82,11 +82,13 @@ describe("各种表达式", () => {
       continue;
     }
 
+    const randomSource = new RandomSourceWrapper(prng_xorshift7(42));
+
     bench(`${code}`, () => {
       let result: ExecutionResult;
       try {
         if (parseResult[0] === "error") throw new Unreachable();
-        result = execute(parseResult[1], { topLevelScope });
+        result = execute(parseResult[1], { topLevelScope, randomSource });
       } catch (e) {
         throw new Error(`${code}: unknown error during executing: ${e}`);
       }
@@ -98,19 +100,6 @@ describe("各种表达式", () => {
 });
 
 describe("d100 vs 直接生成随机数", () => {
-  // 来自 execute.ts
-  class RandomSourceWrapper implements RandomSource {
-    rng: { int32: () => number };
-
-    constructor(rng: { int32: () => number }) {
-      this.rng = rng;
-    }
-
-    uint32(): number {
-      return this.rng.int32() >>> 0;
-    }
-  }
-
   const randomSourceA = new RandomSourceWrapper(prng_xorshift7(42));
   const randomSourceB = new RandomSourceWrapper(prng_xorshift7(42));
 
@@ -126,3 +115,16 @@ describe("d100 vs 直接生成随机数", () => {
     rng.integer(1, 100);
   });
 });
+
+// 来自 evaluate.ts
+class RandomSourceWrapper implements RandomSource {
+  rng: { int32: () => number };
+
+  constructor(rng: { int32: () => number }) {
+    this.rng = rng;
+  }
+
+  uint32(): number {
+    return this.rng.int32() >>> 0;
+  }
+}
