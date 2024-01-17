@@ -112,11 +112,11 @@ export class Evaluator implements IEvaluator {
       (function* (): EvaluationGenerator {
         const node = parseResult[1];
 
-        let seed = 0;
-        while (true) {
+        // TODO: seed 到达最大有效值后停止循环（要报错吗？），
+        // 或者回到 0 重新开始？
+        for (let seed = 0;; seed++) {
           const result = zis.execute(node, { seed });
           if (result[0] === "ok") {
-            seed++;
             yield result;
           } else {
             return result;
