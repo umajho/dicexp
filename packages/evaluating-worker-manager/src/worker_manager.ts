@@ -36,7 +36,7 @@ export class EvaluatingWorkerManager
     this.clientOptions = {
       heartbeatTimeout: { ms: 5000 },
       minHeartbeatInterval: { ms: 250 },
-      batchReportInterval: { ms: 500 },
+      samplingReportInterval: { ms: 500 },
       ...clientOptsPartial,
     };
 
@@ -83,18 +83,18 @@ export class EvaluatingWorkerManager
     this.client.terminate();
   }
 
-  batchEvaluate(code: string, opts: EvaluationGenerationOptions) {
+  keepSampling(code: string, opts: EvaluationGenerationOptions) {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }
-    return this.client.batchEvaluate(code, {
+    return this.client.keepSampling(code, {
       newEvaluator: this.newEvaluatorOptions,
       evaluationGeneration: opts,
     });
   }
 
-  stopBatching() {
+  stopSampling() {
     if (!this.client) return;
-    this.client.stopBatching();
+    this.client.stopSampling();
   }
 }

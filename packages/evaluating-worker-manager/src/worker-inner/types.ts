@@ -21,20 +21,20 @@ export type DataToWorker =
     opts: EvaluationOptions,
   ]
   | [
-    type: "batch_start",
+    type: "sample_start",
     id: string,
     code: string,
     newEvaluatorOpts: NewEvaluatorOptionsForWorker,
     opts: EvaluationGenerationOptions,
   ]
-  | [type: "batch_stop", id: string];
+  | [type: "sample_stop", id: string];
 
 export type DataFromWorker =
   | [type: "loaded"]
   | [type: "initialize_result", result: InitializationResult]
   | [type: "heartbeat"]
   | [type: "evaluate_result", id: string, result: EvaluationResult]
-  | [type: "batch_report", id: string, report: SamplingReport]
+  | [type: "sampling_report", id: string, report: SamplingReport]
   | [type: "fatal", reason?: string];
 
 export interface NewEvaluatorOptionsForWorker {
@@ -47,7 +47,7 @@ export interface NewEvaluatorOptionsForWorker {
 
 export interface WorkerInit {
   minHeartbeatInterval: { ms: number };
-  batchReportInterval: { ms: number };
+  samplingReportInterval: { ms: number };
 }
 
 export type InitializationResult =

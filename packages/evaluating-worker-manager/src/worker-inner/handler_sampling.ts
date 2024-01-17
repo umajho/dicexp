@@ -43,7 +43,7 @@ export class SamplingHandler<AvailableScopes extends Record<string, Scope>> {
 
     if (makeGeneratorResult[0] === "error") {
       this.server.tryPostMessage(
-        ["batch_report", id, makeGeneratorResult],
+        ["sampling_report", id, makeGeneratorResult],
       );
       stoppedCb();
       return;
@@ -51,12 +51,12 @@ export class SamplingHandler<AvailableScopes extends Record<string, Scope>> {
 
     this.statis = { start: { ms: nowMs }, now: { ms: nowMs } };
 
-    this.initBatchReporter();
+    this.initSamplingReporter();
 
     this.samplingLoop(makeGeneratorResult[1]);
   }
 
-  private initBatchReporter() {
+  private initSamplingReporter() {
     const intervalId = setInterval(() => {
       let report: SamplingReport;
 
@@ -83,11 +83,11 @@ export class SamplingHandler<AvailableScopes extends Record<string, Scope>> {
         report = ["continue", this.result, this.statis];
       }
 
-      this.server.tryPostMessage(["batch_report", this.id, report]);
-    }, this.server.init.batchReportInterval.ms);
+      this.server.tryPostMessage(["sampling_report", this.id, report]);
+    }, this.server.init.samplingReportInterval.ms);
   }
 
-  private markBatchToStop(error?: Error | RuntimeError) {
+  private markSamplingToStop(error?: Error | RuntimeError) {
     this.shouldStop = error ? error : true;
     this.statis!.now.ms = Date.now();
   }
@@ -107,22 +107,22 @@ export class SamplingHandler<AvailableScopes extends Record<string, Scope>> {
         if (!(e instanceof Error)) {
           e = new Error(`未知抛出: ${e}`);
         }
-        this.markBatchToStop(e as Error);
+        this.markSamplingToStop(e as Error);
         break;
       }
       if (stepResult.done) {
         if (stepResult.value[0] !== "error") {
           throw new Unreachable();
         }
-        this.markBatchToStop(stepResult.value[2]);
+        this.markSamplingToStop(stepResult.value[2]);
       }
 
       const value = stepResult.value[1];
       if (typeof value !== "number") { // TODO: 支持布尔值
         const error = new Error(
-          `批量时不支持求值结果 "${JSON.stringify(value)}" 的类型`,
+          `抽样不支持求值结果 "${JSON.stringify(value)}" 的类型`,
         );
-        this.markBatchToStop(error);
+        this.markSamplingToStop(error);
         break;
       }
 
@@ -132,11 +132,11 @@ export class SamplingHandler<AvailableScopes extends Record<string, Scope>> {
     }
   }
 
-  handleBatchStop(id: string) {
+  handleSamplingStop(id: string) {
     if (this.id !== id) {
-      console.warn(`Batch ID 不匹配：期待 ${id}，实际为 ${this.id}。`);
+      console.warn(`抽样的 ID 不匹配：期待 ${id}，实际为 ${this.id}。`);
       return;
     }
-    this.markBatchToStop();
+    this.markSamplingToStop();
   }
 }

@@ -30,7 +30,7 @@ import createDicexpEvaluator, {
 const LazyDicexpEditor = lazy(() => import("./dicexp-editor"));
 
 export const ControlPane: Component = () => {
-  const [mode, setMode] = createSignal<"single" | "batch">("single");
+  const [mode, setMode] = createSignal<"single" | "sampling">("single");
 
   const [exampleSelectValue, setExampleSelectValue] = createSignal<string>("");
   createEffect(() => {
@@ -87,11 +87,11 @@ export const ControlPane: Component = () => {
             <span class="font-bold">单次</span>
           </Tab>
           <Tab
-            isActive={mode() === "batch"}
-            onClick={() => setMode("batch")}
+            isActive={mode() === "sampling"}
+            onClick={() => setMode("sampling")}
             size="lg"
           >
-            <span class="font-bold">批量</span>
+            <span class="font-bold">抽样</span>
           </Tab>
         </Tabs>
 
@@ -135,8 +135,8 @@ export const ControlPane: Component = () => {
                   终止
                 </Button>
               </Match>
-              <Match when={rollingMode() === "batch"}>
-                <Button type="secondary" onClick={evaluator.stopBatching}>
+              <Match when={rollingMode() === "sampling"}>
+                <Button type="secondary" onClick={evaluator.stopSampling}>
                   停止
                 </Button>
               </Match>
@@ -189,7 +189,7 @@ export const ControlPane: Component = () => {
 };
 
 const RestrictionsModal: Component<{
-  mode: "single" | "batch";
+  mode: "single" | "sampling";
   setRestrictions: (
     restrictions: AllKindsOfnRestrictions | null,
   ) => void;
@@ -253,7 +253,7 @@ const RestrictionsModal: Component<{
               </OptionalNumberInput>
               <div class="flex justify-center">
                 <div class="text-xs text-gray-400">
-                  （硬性超时在批量模式下不生效）
+                  （硬性超时只在单次模式下生效）
                 </div>
               </div>
             </div>

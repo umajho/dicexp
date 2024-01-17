@@ -32,9 +32,9 @@ export interface EvaluatingWorkerClientOptions {
    */
   minHeartbeatInterval: { ms: number };
   /**
-   * 每次间隔多久汇报批量执行的报告。
+   * 每次间隔多久汇报抽样报告。
    */
-  batchReportInterval: { ms: number };
+  samplingReportInterval: { ms: number };
 }
 
 export interface EvaluatingWorkerClientEvaluationOptions {
@@ -78,7 +78,7 @@ export class EvaluatingWorkerClient {
       resolve: (r: EvaluationResult) => void,
     ]
     | [
-      name: "batch_processing",
+      name: "sampling_processing",
       id: string,
       report: (r: SamplingReport) => void,
       resolve: () => void,
@@ -131,7 +131,7 @@ export class EvaluatingWorkerClient {
         if (this.taskState[0] === "processing") {
           const resolve = this.taskState[2];
           resolve(["error", "other", error]);
-        } else { // "batch_processing"
+        } else { // "sampling_processing"
           const report = this.taskState[2];
           report(["error", "other", error]); // FIXME: 应该保留之前的数据
         }
@@ -159,19 +159,19 @@ export class EvaluatingWorkerClient {
     this.initState = ["terminated"];
 
     let fn: ((v: ["error", "other", Error]) => void) | undefined;
-    let isBatch = false;
+    let isSampling = false;
     if (this.taskState[0] === "processing") {
       fn = this.taskState[2]; // resolve
-    } else if (this.taskState[0] === "batch_processing") {
-      isBatch = true;
+    } else if (this.taskState[0] === "sampling_processing") {
+      isSampling = true;
       fn = this.taskState[2];
     }
     if (fn) {
       const err = new Error(
         `Worker 客户端由于${from === "internal" ? "外" : "内"}部原因中断`,
       );
-      if (from === "external" && isBatch) {
-        console.warn("批量任务不应该使用 terminate 终结。");
+      if (from === "external" && isSampling) {
+        console.warn("抽样任务不应该使用 terminate 终结。");
       }
       fn(["error", "other", err]); // FIXME: 保留原先数据
     }
@@ -207,9 +207,9 @@ export class EvaluatingWorkerClient {
         this.handleEvaluateResult(id, result);
         return;
       }
-      case "batch_report": {
+      case "sampling_report": {
         const id = data[1], report = data[2];
-        this.handleBatchReport(id, report);
+        this.handleSamplingReport(id, report);
         return;
       }
       default:
@@ -248,7 +248,7 @@ export class EvaluatingWorkerClient {
         resolve(["error", "other", error]);
         break;
       }
-      case "batch_processing": {
+      case "sampling_processing": {
         const [_1, _2, report, resolve] = this.taskState;
         report(["error", "other", error]);
         resolve();
@@ -312,7 +312,7 @@ export class EvaluatingWorkerClient {
     this.taskState = ["idle"];
   }
 
-  async *batchEvaluate(
+  async *keepSampling(
     code: string,
     opts: EvaluatingWorkerClientSamplingOptions,
   ) {
@@ -322,7 +322,7 @@ export class EvaluatingWorkerClient {
       return new Promise((r) => resolve = r);
     }
     promise = makeReportPromise();
-    this._batchEvaluate(code, opts, (report) => {
+    this._keepSampling(code, opts, (report) => {
       resolve(report);
       if (report[0] !== "continue") return;
       promise = makeReportPromise();
@@ -338,7 +338,7 @@ export class EvaluatingWorkerClient {
     }
   }
 
-  private async _batchEvaluate(
+  private async _keepSampling(
     code: string,
     opts: EvaluatingWorkerClientSamplingOptions,
     reporter: (r: SamplingReport) => void,
@@ -350,25 +350,31 @@ export class EvaluatingWorkerClient {
       }
 
       const id = this.nextId();
-      this.taskState = ["batch_processing", id, reporter, resolve];
+      this.taskState = ["sampling_processing", id, reporter, resolve];
 
       this.postMessage(
-        ["batch_start", id, code, opts.newEvaluator, opts.evaluationGeneration],
+        [
+          "sample_start",
+          id,
+          code,
+          opts.newEvaluator,
+          opts.evaluationGeneration,
+        ],
       );
     });
   }
 
-  handleBatchReport(id: string, report: SamplingReport) {
-    this.assertTaskStateName("batch_processing");
-    if (this.taskState[0] !== "batch_processing") { // TS 类型推断
+  handleSamplingReport(id: string, report: SamplingReport) {
+    this.assertTaskStateName("sampling_processing");
+    if (this.taskState[0] !== "sampling_processing") { // TS 类型推断
       throw new Unreachable();
     }
     const [_, idRecorded, reporter, resolve] = this.taskState;
 
     if (idRecorded !== id) {
-      throw new Error(`Batch ID 不匹配：期待 ${idRecorded}，实际为 ${id}`);
+      throw new Error(`抽样的 ID 不匹配：期待 ${idRecorded}，实际为 ${id}`);
     }
-    if (report[0] === "stop" || report[0] === "error") { // 批量执行结束了
+    if (report[0] === "stop" || report[0] === "error") { // 抽样结束了
       resolve();
       this.taskState = ["idle"];
     }
@@ -383,14 +389,14 @@ export class EvaluatingWorkerClient {
     reporter(report);
   }
 
-  stopBatching() {
-    this.assertTaskStateName("batch_processing");
-    if (this.taskState[0] !== "batch_processing") { // TS 类型推断
+  stopSampling() {
+    this.assertTaskStateName("sampling_processing");
+    if (this.taskState[0] !== "sampling_processing") { // TS 类型推断
       throw new Unreachable();
     }
     const [_1, id, _2] = this.taskState;
 
-    this.postMessage(["batch_stop", id]);
+    this.postMessage(["sample_stop", id]);
   }
 
   assertTaskStateName(expectedName: (typeof this.taskState)[0]) {

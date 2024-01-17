@@ -15,14 +15,14 @@ import {
 
 import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
 
-import { BatchReportForPlayground, ResultRecord } from "../types";
+import { ResultRecord, SamplingReportForPlayground } from "../types";
 import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
 
 export type Status = {
   type: "loading"; // worker manager 尚未完成加载
 } | {
   type: "rolling"; // 正在掷骰
-  mode: "single" | "batch";
+  mode: "single" | "sampling";
 } | {
   type: "ready"; // 已准备好求值
 } | {
@@ -37,7 +37,7 @@ export interface AllKindsOfnRestrictions {
 export default function createDicexpEvaluator(
   code: () => string,
   opts: {
-    mode: () => "single" | "batch" | null;
+    mode: () => "single" | "sampling" | null;
     seed: () => number;
     isSeedFrozen: () => boolean;
     restrictions: () => AllKindsOfnRestrictions | null;
@@ -61,7 +61,7 @@ export default function createDicexpEvaluator(
     return Number.isInteger(opts.seed());
   };
 
-  const [isRolling, setIsRolling] = createSignal<false | "single" | "batch">(
+  const [isRolling, setIsRolling] = createSignal<false | "single" | "sampling">(
     false,
   );
   const [result, setResult] = createSignal<ResultRecord | null>(null);
@@ -121,14 +121,14 @@ export default function createDicexpEvaluator(
         }
         break;
       }
-      case "batch": {
+      case "sampling": {
         try {
           const evalOpts: EvaluationGenerationOptions = {};
           const code = code_;
-          const g = workerManager()!.batchEvaluate(code, evalOpts);
+          const g = workerManager()!.keepSampling(code, evalOpts);
           const [report, setReport] = //
-            createSignal<BatchReportForPlayground>("preparing");
-          setResult({ type: "batch", code, report, date, environment });
+            createSignal<SamplingReportForPlayground>("preparing");
+          setResult({ type: "sampling", code, report, date, environment });
           while (true) {
             const yielded = await g.next();
             setReport(yielded.value);
@@ -152,9 +152,9 @@ export default function createDicexpEvaluator(
     workerManager()!.terminateClient();
   }
 
-  function stopBatching() {
-    workerManager()!.stopBatching();
+  function stopSampling() {
+    workerManager()!.stopSampling();
   }
 
-  return { status, roll, result, terminate, stopBatching };
+  return { status, roll, result, terminate, stopSampling };
 }

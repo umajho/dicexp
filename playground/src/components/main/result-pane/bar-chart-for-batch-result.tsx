@@ -6,7 +6,7 @@ import * as d3 from "d3";
 import { SamplingResult } from "@dicexp/interface";
 import { Unreachable } from "@dicexp/errors";
 
-const BarChartForBatchResult: Component<{
+const BarChartForSamplingResult: Component<{
   report: SamplingResult;
   mode: "normal" | "at-least" | "at-most";
   highlighted: number | null;
@@ -246,4 +246,4 @@ const BarChartForBatchResult: Component<{
     </div>
   );
 };
-export default BarChartForBatchResult;
+export default BarChartForSamplingResult;

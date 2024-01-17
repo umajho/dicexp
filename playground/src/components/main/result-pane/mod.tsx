@@ -29,12 +29,12 @@ import {
 } from "solid-icons/vs";
 import { Button, Card, Loading } from "../../ui/mod";
 import * as store from "../../../stores/store";
-import { BatchReportForPlayground, ResultRecord } from "../../../types";
+import { ResultRecord, SamplingReportForPlayground } from "../../../types";
 
 import { DicexpResult, WIDGET_OWNER_CLASS } from "../../ro-widget-dicexp";
 import { Dynamic, Portal } from "solid-js/web";
 import { ErrorAlert } from "../ui";
-import { BatchResultCard } from "./result-card-for-batch";
+import { SamplingResultCard } from "./result-card-for-sampling";
 
 export const ResultPane: Component<
   { class?: string; records: () => ResultRecord[] }
@@ -56,9 +56,9 @@ export const ResultPane: Component<
     });
   });
 
-  const isAnyBatchRunning = createMemo(() =>
+  const isAnySamplingRunning = createMemo(() =>
     props.records()
-      .some((r) => r.type === "batch" && isBatchRunning(r.report()))
+      .some((r) => r.type === "sampling" && isSamplingRunning(r.report()))
   );
 
   return (
@@ -91,7 +91,7 @@ export const ResultPane: Component<
             size="sm"
             shape="square"
             hasOutline={true}
-            disabled={isAnyBatchRunning()}
+            disabled={isAnySamplingRunning()}
             onClick={() => store.clearResult()}
           />
         </div>
@@ -127,12 +127,12 @@ export const ResultPane: Component<
                         return <SingleResultBlock i={i()} {...props} />;
                       })()}
                     </Match>
-                    <Match when={record.type === "batch"}>
+                    <Match when={record.type === "sampling"}>
                       {(() => {
                         const { report, date } = record as //
-                        Extract<ResultRecord, { type: "batch" }>;
+                        Extract<ResultRecord, { type: "sampling" }>;
                         const props = { report, date };
-                        return <BatchResultBlock i={i()} {...props} />;
+                        return <SamplingResultBlock i={i()} {...props} />;
                       })()}
                     </Match>
                     <Match when={record.type === "error"}>
@@ -230,14 +230,14 @@ const SingleResultBlock: Component<
   );
 };
 
-const BatchResultBlock: Component<{
+const SamplingResultBlock: Component<{
   i: number;
-  report: () => BatchReportForPlayground;
+  report: () => SamplingReportForPlayground;
   date: Date;
 }> = (
   props,
 ) => {
-  const isRunning = createMemo(() => isBatchRunning(props.report()));
+  const isRunning = createMemo(() => isSamplingRunning(props.report()));
 
   return (
     <div class="flex flex-col gap-2">
@@ -251,7 +251,7 @@ const BatchResultBlock: Component<{
             disabled={isRunning()}
             onClick={() => store.clear(props.i)}
           />
-          <span>批量</span>
+          <span>抽样</span>
           <span>{dateToString(props.date)}</span>
         </div>
         <Show
@@ -262,14 +262,14 @@ const BatchResultBlock: Component<{
             </div>
           }
         >
-          <BatchResultCard report={props.report() as SamplingReport} />
+          <SamplingResultCard report={props.report() as SamplingReport} />
         </Show>
       </h2>
     </div>
   );
 };
 
-function isBatchRunning(report: BatchReportForPlayground) {
+function isSamplingRunning(report: SamplingReportForPlayground) {
   return report === "preparing" || report[0] === "continue";
 }
 

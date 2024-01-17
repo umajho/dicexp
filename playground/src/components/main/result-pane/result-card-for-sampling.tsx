@@ -31,7 +31,7 @@ const numberFormat = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 3,
 });
 
-export const BatchResultCard: Component<{ report: SamplingReport }> = (
+export const SamplingResultCard: Component<{ report: SamplingReport }> = (
   props,
 ) => {
   const [statis, setStatis] = createSignal<SamplingStatistic | null>(null),

@@ -9,7 +9,7 @@ import {
 
 import type { Scope } from "@dicexp/runtime/scopes";
 
-import { SamplingHandler } from "./handler_batch";
+import { SamplingHandler } from "./handler_sampling";
 import { Pulser } from "./heartbeat";
 import {
   DataFromWorker,
@@ -24,7 +24,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
   init!: WorkerInit;
   pulser!: Pulser;
 
-  batchHandler: SamplingHandler<AvailableScopes> | null = null;
+  samplingHandler: SamplingHandler<AvailableScopes> | null = null;
 
   constructor(
     private evaluatorMaker: (opts: NewEvaluatorOptions) => Evaluator,
@@ -53,8 +53,8 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
       case "evaluate": {
         const id = data[1];
         const code = data[2], newEvaluatorOpts = data[3], opts = data[4];
-        if (this.batchHandler) {
-          const error = new Error("批量处理途中不能进行单次求值");
+        if (this.samplingHandler) {
+          const error = new Error("抽样途中不能进行单次求值");
           const data: EvaluationResult = ["error", "other", error];
           this.tryPostMessage(["evaluate_result", id, data]);
           return;
@@ -67,30 +67,30 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
         );
         return;
       }
-      case "batch_start": {
+      case "sample_start": {
         const id = data[1];
         const code = data[2], newEvaluatorOpts = data[3], opts = data[4];
-        if (this.batchHandler) {
-          const error = new Error("已在进行批量处理");
+        if (this.samplingHandler) {
+          const error = new Error("已在进行抽样");
           const data: SamplingReport = ["error", "other", error];
-          this.tryPostMessage(["batch_report", id, data]);
+          this.tryPostMessage(["sampling_report", id, data]);
           return;
         }
         const evaluator = this.evaluatorMaker(
           this.makeEvaluatorOptions(newEvaluatorOpts),
         );
-        const clear = () => this.batchHandler = null;
-        this.batchHandler = //
+        const clear = () => this.samplingHandler = null;
+        this.samplingHandler = //
           new SamplingHandler(evaluator, id, code, opts, this, clear);
         return;
       }
-      case "batch_stop": {
+      case "sample_stop": {
         const id = data[1];
-        if (!this.batchHandler) {
-          console.warn("不存在批量处理");
+        if (!this.samplingHandler) {
+          console.warn("不存在正在进行的抽样");
           return;
         }
-        this.batchHandler.handleBatchStop(id);
+        this.samplingHandler.handleSamplingStop(id);
         return;
       }
       default:
@@ -127,7 +127,7 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
       ) {
         data[2] = ["error", result[1], makeSendableError(result[2])];
       }
-    } else if (data[0] === "batch_report") {
+    } else if (data[0] === "sampling_report") {
       let report = data[2];
       if (report[0] === "error") {
         const sendableErr = makeSendableError(report[2]);
