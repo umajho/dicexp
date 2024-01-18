@@ -57,28 +57,6 @@ importers:
         specifier: ^1.5.1
         version: 1.5.1
 
-  internal/node-tree-walk-interpreter:
-    dependencies:
-      '@dicexp/errors':
-        specifier: workspace:*
-        version: link:../errors
-      '@dicexp/interface':
-        specifier: workspace:*
-        version: link:../../packages/interface
-      '@dicexp/nodes':
-        specifier: workspace:*
-        version: link:../nodes
-      '@dicexp/runtime':
-        specifier: workspace:*
-        version: link:../runtime
-      esm-seedrandom:
-        specifier: ^3.0.5
-        version: 3.0.5
-    devDependencies:
-      vitest:
-        specifier: ^0.33.0
-        version: 0.33.0(jsdom@22.1.0)
-
   internal/nodes: {}
 
   internal/parsing-into-node-tree:
@@ -165,15 +143,9 @@ importers:
       '@dicexp/naive-evaluator-builtins':
         specifier: workspace:*
         version: link:../naive-evaluator-builtins
-      '@dicexp/node-tree-walk-interpreter':
-        specifier: workspace:*
-        version: link:../../internal/node-tree-walk-interpreter
       '@dicexp/nodes':
         specifier: workspace:*
         version: link:../../internal/nodes
-      '@dicexp/parsing-into-node-tree':
-        specifier: workspace:*
-        version: link:../../internal/parsing-into-node-tree
       '@dicexp/runtime':
         specifier: workspace:*
         version: link:../../internal/runtime
@@ -3083,6 +3055,7 @@ packages:
 
   /esm-seedrandom@3.0.5:
     resolution: {integrity: sha512-pMAq0mFIr5JQ3Ihbng7EBLMJ+llMbaDKkiG44pqbSXS0NIZWtEANpOpxb5s6Q8Q2R562P26qMHPv8YtP/NHh9g==}
+    dev: true
 
   /execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}

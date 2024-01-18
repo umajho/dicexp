@@ -1,5 +1,5 @@
-export * from "@dicexp/parsing-into-node-tree";
-export * from "@dicexp/node-tree-walk-interpreter";
+export * from "./parsing/mod";
+export * from "./executing/mod";
 export * from "./evaluating/mod";
 
 import { name, version } from "../package.json";

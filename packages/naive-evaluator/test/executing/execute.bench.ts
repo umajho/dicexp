@@ -4,14 +4,16 @@ import { bench, describe } from "vitest";
 import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Unreachable } from "@dicexp/errors";
-import { parse, ParseResult } from "@dicexp/parsing-into-node-tree";
+
+import { parse, ParseResult } from "../../src/parsing/mod";
 import {
   asScope,
   execute,
   ExecutionResult,
   RandomGenerator,
   RandomSource,
-} from "@dicexp/node-tree-walk-interpreter";
+} from "../../src/executing/mod";
+
 import * as builtins from "@dicexp/naive-evaluator-builtins/internal";
 
 const topLevelScope = asScope([builtins.operatorScope, builtins.functionScope]);

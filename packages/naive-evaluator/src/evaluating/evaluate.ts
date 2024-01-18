@@ -14,12 +14,7 @@ import {
   MakeEvaluationGeneratorResult,
 } from "@dicexp/interface";
 
-import {
-  Node,
-  parse,
-  ParseError,
-  ParseResult,
-} from "@dicexp/parsing-into-node-tree";
+import { Node, parse, ParseError, ParseResult } from "../parsing/mod";
 
 import { Scope } from "@dicexp/runtime/scopes";
 
@@ -29,7 +24,7 @@ import {
   ExecutionResult,
   RandomSource,
   RuntimeError,
-} from "@dicexp/node-tree-walk-interpreter";
+} from "../executing/mod";
 
 export type EvaluationResult =
   | ["ok", JSValue, ExecutionAppendix]

@@ -1,6 +1,6 @@
 import { bench } from "vitest";
 
-import { parse } from "../lib";
+import { parse } from "../../src/parsing/mod";
 
 const codes: string[] = [
   "~10",
