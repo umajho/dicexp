@@ -26,7 +26,7 @@ export const scopes: ScopeInfo[] = [
   {
     displayName: "函数",
     icon: VsSymbolMethod,
-    declarations: builtins.functiondDeclarations,
+    declarations: builtins.functionDeclarations,
     documentations: builtins.functionDocumentations,
   },
 ];

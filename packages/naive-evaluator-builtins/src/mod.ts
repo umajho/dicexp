@@ -5,7 +5,7 @@ import { ScopeExplicit } from "./types";
 import { builtinOperatorDeclarations as operatorDeclarations } from "./base/operators/declarations";
 import { builtinOperatorDefinitions as operatorDefinitions } from "./base/operators/definitions";
 import { builtinOperatorDocumentations as operatorDocumentations } from "./base/operators/documentations";
-import { builtinFunctionDeclarations as functiondDeclarations } from "./base/functions/declarations";
+import { builtinFunctionDeclarations as functionDeclarations } from "./base/functions/declarations";
 import { builtinFunctionDefinitions as functionDefinitions } from "./base/functions/definitions";
 import { builtinFunctionDocumentations as functionDocumentations } from "./base/functions/documentations";
 
@@ -20,9 +20,9 @@ export const operatorScope = makeScope(
 
 // functions
 
-export { functiondDeclarations, functionDefinitions, functionDocumentations };
+export { functionDeclarations, functionDefinitions, functionDocumentations };
 export const functionScope = makeScope(
-  makeRawScope(functiondDeclarations, functionDefinitions),
+  makeRawScope(functionDeclarations, functionDefinitions),
 ) as ScopeExplicit<
   typeof functionDefinitions
 >; // 包含非运算符函数的作用域
