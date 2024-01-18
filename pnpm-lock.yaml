@@ -129,9 +129,6 @@ importers:
       '@dicexp/interface':
         specifier: workspace:*
         version: link:../../packages/interface
-      '@dicexp/naive-evaluator-builtins':
-        specifier: workspace:*
-        version: link:../../packages/naive-evaluator-builtins
       '@dicexp/runtime':
         specifier: workspace:*
         version: link:../runtime
