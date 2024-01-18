@@ -7,7 +7,7 @@ import {
 } from "@dicexp/runtime/regular-functions";
 import { asScope, Scope } from "@dicexp/runtime/scopes";
 
-import * as builtins from "@dicexp/builtins/internal";
+import * as builtins from "@dicexp/naive-evaluator-builtins/internal";
 
 export interface ScopeInfo {
   displayName: string;

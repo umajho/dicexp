@@ -3,7 +3,7 @@ import { DicexpEvaluatorProvider } from "@rotext/solid-components";
 import DicexpEvaluatingWorker from "../workers/evaluation.worker?worker";
 
 let Manager:
-  | typeof import("@dicexp/evaluating-worker-manager/internal").EvaluatingWorkerManager
+  | typeof import("@dicexp/naive-evaluator-in-worker/internal").EvaluatingWorkerManager
   | null = null;
 
 export const defaultEvaluatorProvider = {
@@ -11,7 +11,7 @@ export const defaultEvaluatorProvider = {
     return new Promise(async (r) => {
       if (!Manager) {
         Manager = (await import(
-          "@dicexp/evaluating-worker-manager/internal"
+          "@dicexp/naive-evaluator-in-worker/internal"
         )).EvaluatingWorkerManager;
       }
       let hasBeenReady = false;

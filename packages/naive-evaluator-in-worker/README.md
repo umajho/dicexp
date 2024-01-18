@@ -1,13 +1,13 @@
-# evaluating-worker-manager
+# naive-evaluator-in-worker
 
 ## Usage
 
 `evaluating.worker.ts`:
 
 ```typescript
-import { asScope, evaluate, execute, parse } from "dicexp";
-import { functionScope, operatorScope } from "@dicexp/builtins";
-import { startWorkerServer } from "@dicexp/evaluating-worker-manager/internal";
+import { asScope, evaluate, execute, parse } from "@dicexp/naive-evaluator";
+import { functionScope, operatorScope } from "@dicexp/naive-evaluator-builtins";
+import { startWorkerServer } from "@dicexp/naive-evaluator-in-worker/internal";
 
 const scopes = {
   "standard": asScope([operatorScope, functionScope]),
@@ -22,7 +22,7 @@ startWorkerServer(dicexp, scopes);
 `main.ts`:
 
 ```typescript
-import { EvaluatingWorkerManager } from "@dicexp/evaluating-worker-manager";
+import { EvaluatingWorkerManager } from "@dicexp/naive-evaluator-in-worker";
 
 // 假设在用 Vite，总之 `DicexpEvaluatingWorker` 的类型是 `new () => Worker`
 import DicexpEvaluatingWorker from "./evaluating.worker?worker";

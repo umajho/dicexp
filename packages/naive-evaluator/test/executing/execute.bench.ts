@@ -12,7 +12,7 @@ import {
   RandomGenerator,
   RandomSource,
 } from "@dicexp/node-tree-walk-interpreter";
-import * as builtins from "@dicexp/builtins/internal";
+import * as builtins from "@dicexp/naive-evaluator-builtins/internal";
 
 const topLevelScope = asScope([builtins.operatorScope, builtins.functionScope]);
 

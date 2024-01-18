@@ -4,7 +4,10 @@ import {
   SamplingReport,
 } from "@dicexp/interface";
 
-import type { EvaluationResult, NewEvaluatorOptions } from "dicexp/internal";
+import type {
+  EvaluationResult,
+  NewEvaluatorOptions,
+} from "@dicexp/naive-evaluator/internal";
 
 export type MessageToWorker = InitialMessageToWorker | MessageToServer;
 export type InitialMessageToWorker = [type: "initialize", init: WorkerInit];

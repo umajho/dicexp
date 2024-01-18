@@ -1,7 +1,7 @@
 import { Unreachable } from "@dicexp/errors";
 import { asScope, Scope } from "@dicexp/runtime/scopes";
 
-import * as builtins from "@dicexp/builtins/internal";
+import * as builtins from "@dicexp/naive-evaluator-builtins/internal";
 
 export const testScope = ((): Scope => {
   const pickedFunctions: string[] = [

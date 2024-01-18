@@ -9,7 +9,7 @@ import {
   SamplingStatistic,
 } from "@dicexp/interface";
 
-import type { Evaluator } from "dicexp/internal";
+import type { Evaluator } from "@dicexp/naive-evaluator/internal";
 import type { Scope } from "@dicexp/runtime/scopes";
 
 import { Server } from "./server";

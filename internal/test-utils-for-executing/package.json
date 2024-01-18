@@ -9,7 +9,7 @@
   "type": "module",
   "sideEffects": false,
   "peerDependencies": {
-    "@dicexp/builtins": "workspace:*",
+    "@dicexp/naive-evaluator-builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/interface": "workspace:*",
     "@dicexp/runtime": "workspace:*",

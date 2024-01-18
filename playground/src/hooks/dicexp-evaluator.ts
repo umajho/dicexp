@@ -11,7 +11,7 @@ import {
 } from "@dicexp/interface";
 import {
   EvaluatingWorkerManager,
-} from "@dicexp/evaluating-worker-manager/internal";
+} from "@dicexp/naive-evaluator-in-worker/internal";
 
 import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
 

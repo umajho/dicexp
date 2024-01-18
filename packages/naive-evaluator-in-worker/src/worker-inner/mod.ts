@@ -1,4 +1,7 @@
-import { Evaluator, NewEvaluatorOptions } from "dicexp/internal";
+import {
+  Evaluator,
+  NewEvaluatorOptions,
+} from "@dicexp/naive-evaluator/internal";
 
 import type { Scope } from "@dicexp/runtime/scopes";
 

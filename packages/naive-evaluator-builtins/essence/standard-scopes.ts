@@ -1,5 +1,5 @@
 import type { Scope } from "@dicexp/runtime/scopes";
-import { asScope } from "dicexp/internal";
+import { asScope } from "@dicexp/naive-evaluator/internal";
 
 import { functionScope, operatorScope } from "../internal";
 

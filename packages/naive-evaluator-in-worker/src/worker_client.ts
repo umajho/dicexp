@@ -1,4 +1,4 @@
-import type { EvaluationResult } from "dicexp/internal";
+import type { EvaluationResult } from "@dicexp/naive-evaluator/internal";
 import type {
   EvaluationGenerationOptions,
   EvaluationOptions,

@@ -3,8 +3,8 @@
 ## Usage
 
 ```javascript
-import { asScope, Evaluator } from "dicexp";
-import { functionScope, operatorScope } from "@dicexp/builtins";
+import { asScope, Evaluator } from "@dicexp/naive-evaluator";
+import { functionScope, operatorScope } from "@dicexp/naive-evaluator-builtins";
 
 // 将 “运算符作用域” 与 “函数作用域” 合并为一个作用域
 const topLevelScope = asScope([operatorScope, functionScope]);

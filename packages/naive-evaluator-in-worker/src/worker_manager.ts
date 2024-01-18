@@ -5,7 +5,7 @@ import {
   RemoteSampler,
 } from "@dicexp/interface";
 
-import { EvaluationResult } from "dicexp/internal";
+import { EvaluationResult } from "@dicexp/naive-evaluator/internal";
 
 import {
   EvaluatingWorkerClient,
