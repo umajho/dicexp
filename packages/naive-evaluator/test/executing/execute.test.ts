@@ -1,10 +1,6 @@
 import { assert, describe, it } from "vitest";
 
-import {
-  EvaluationOptions,
-  ExecutionRestrictions,
-  JSValue,
-} from "@dicexp/interface";
+import { ExecutionRestrictions, JSValue } from "@dicexp/interface";
 
 import {
   assertNumber,
