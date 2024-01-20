@@ -1,6 +1,6 @@
 export * from "./lib";
 
 export {
-  default as essenceOfStandardScopes,
-  scopesInfo as essenceInfoOfStandardScopes,
-} from "./essence/standard-scopes";
+  default as essenceOfBuiltinScope,
+  scopeInfo as essenceInfoOfBuiltinScope,
+} from "./essence/builtin-scope";

@@ -40,7 +40,6 @@ export type MessageFromServer =
   | [type: "fatal", reason?: string];
 
 export interface NewEvaluatorOptionsForWorker {
-  topLevelScope: string;
   randomSourceMaker: Extract<
     NewEvaluatorOptions["randomSourceMaker"],
     string

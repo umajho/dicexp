@@ -10,11 +10,10 @@ import {
 } from "@dicexp/interface";
 
 import type { Evaluator } from "@dicexp/naive-evaluator/internal";
-import type { Scope } from "@dicexp/runtime/scopes";
 
 import { Server } from "./server";
 
-export class SamplingHandler<AvailableScopes extends Record<string, Scope>> {
+export class SamplingHandler {
   private readonly result: SamplingResult = { samples: 0, counts: {} };
   private readonly statis: SamplingStatistic | null = null;
 
@@ -25,7 +24,7 @@ export class SamplingHandler<AvailableScopes extends Record<string, Scope>> {
     private readonly id: string,
     code: string,
     opts: EvaluationGenerationOptions,
-    private server: Server<AvailableScopes>,
+    private server: Server,
     private readonly stoppedCb: () => void,
   ) {
     const nowMs = Date.now();

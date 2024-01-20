@@ -1,4 +1,3 @@
-import { Unimplemented } from "@dicexp/errors";
 import { EvaluationOptions, SamplingReport } from "@dicexp/interface";
 
 import {
@@ -21,15 +20,15 @@ import { makeSendableError } from "./utils";
 
 declare function postMessage(msg: MessageFromServer): void;
 
-export class Server<AvailableScopes extends Record<string, Scope>> {
+export class Server {
   readonly pulser: Pulser;
 
-  samplingHandler: SamplingHandler<AvailableScopes> | null = null;
+  samplingHandler: SamplingHandler | null = null;
 
   constructor(
     public readonly init: WorkerInit,
     private evaluatorMaker: (opts: NewEvaluatorOptions) => Evaluator,
-    readonly availableScopes: AvailableScopes,
+    readonly topLevelScope: Scope,
   ) {
     this.pulser = new Pulser(
       init.minHeartbeatInterval,
@@ -94,14 +93,8 @@ export class Server<AvailableScopes extends Record<string, Scope>> {
   makeEvaluatorOptions(
     opts: NewEvaluatorOptionsForWorker,
   ): NewEvaluatorOptions {
-    const topLevelScope = this.availableScopes[opts.topLevelScope];
-    if (!topLevelScope) {
-      throw new Unimplemented(
-        "TODO: 处理指定 `topLevelScope` 不存在于 `availableScopes` 中的情况",
-      );
-    }
     return {
-      topLevelScope,
+      topLevelScope: this.topLevelScope,
       randomSourceMaker: opts.randomSourceMaker,
     };
   }

@@ -27,7 +27,6 @@ export const defaultEvaluatorProvider = {
         },
         {
           newEvaluatorOptions: {
-            topLevelScope: "standard",
             randomSourceMaker: "xorshift7",
           },
         },

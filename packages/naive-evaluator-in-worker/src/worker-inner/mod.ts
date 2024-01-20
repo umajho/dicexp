@@ -9,11 +9,9 @@ import { Server } from "./server";
 import { InitialMessageFromWorker, MessageToWorker } from "./types";
 import { makeSendableError } from "./utils";
 
-export async function startWorkerServer<
-  AvailableScopes extends Record<string, Scope>,
->(
+export async function startWorkerServer(
   evaluatorMaker_: ((opts: NewEvaluatorOptions) => Evaluator) | string,
-  availableScopes_: AvailableScopes | string,
+  topLevelScope_: Scope | string,
 ) {
   const evaluatorMaker = await (async () => {
     if (typeof evaluatorMaker_ === "string") {
@@ -23,16 +21,16 @@ export async function startWorkerServer<
       return evaluatorMaker_;
     }
   })();
-  const availableScopes = await (async () => {
-    if (typeof availableScopes_ === "string") {
-      return (await import(/* @vite-ignore */ availableScopes_))
-        .default as AvailableScopes;
+  const topLevelScope = await (async () => {
+    if (typeof topLevelScope_ === "string") {
+      return (await import(/* @vite-ignore */ topLevelScope_))
+        .default as Scope;
     } else {
-      return availableScopes_;
+      return topLevelScope_;
     }
   })();
 
-  let server: Server<AvailableScopes> | null = null;
+  let server: Server | null = null;
 
   if (onmessage) {
     console.error("onmessage 已被占用，");
@@ -46,7 +44,7 @@ export async function startWorkerServer<
         return;
       }
       const init = msg[1];
-      server = new Server(init, evaluatorMaker, availableScopes);
+      server = new Server(init, evaluatorMaker, topLevelScope);
       tryPostMessage(["initialize_result", "ok"]);
       return;
     } else if (!server) {
