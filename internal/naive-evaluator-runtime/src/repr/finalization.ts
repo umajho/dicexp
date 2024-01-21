@@ -1,7 +1,9 @@
 import { precedenceTable } from "@dicexp/lezer";
 
-import { Repr, ReprInRuntime } from "@dicexp/interface";
+import { Repr } from "@dicexp/interface";
+
 import { createRepr } from "./factory";
+import { ReprInRuntime } from "./repr-in-runtime";
 
 export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
   switch (/* type */ rtmRepr[0]) {

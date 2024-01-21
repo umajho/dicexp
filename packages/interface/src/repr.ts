@@ -1,86 +1,59 @@
-type ReprBase<IsInRuntime extends boolean> =
-  | (IsInRuntime extends true
-    ? [type: /** lazy */ "@", fn: () => ReprBase<true>]
-    : never)
+export type Repr =
   | [type: /** raw */ "r", raw: string]
   | [type: /** unevaluated */ "_"]
   | [type: /** value_primitive */ "vp", value: number | boolean]
-  | (IsInRuntime extends true /** type 中有后缀 `@` 代表是运行时版本，下同 */
-    ? [
-      type: "vl@",
-      items: () => ReprBase<true>[],
-      containsError: () => boolean,
-      surplusItems?: () => ReprBase<true>[] | undefined,
-    ]
-    : [
-      type: /** value_list */ "vl",
-      items: ReprBase<false>[],
-      containsError: boolean,
-      surplusItems?: ReprBase<false>[],
-    ])
-  | (IsInRuntime extends true ? [
-      type: /** value_sum */ "vs@",
-      sum: () => number,
-      addends: () => ReprBase<true>[],
-      surplusAddends: () => ReprBase<true>[] | undefined,
-    ]
-    : [
-      type: /** value_sum */ "vs",
-      sum: number,
-      addends: ReprBase<false>[],
-      surplusAddends?: ReprBase<false>[],
-    ])
   | [
-    type: "i", /** identifier */
-    name: string,
-    value: ReprBase<IsInRuntime> | undefined,
+    type: /** value_list */ "vl",
+    items: Repr[],
+    containsError: boolean,
+    surplusItems?: Repr[],
   ]
   | [
-    type: IsInRuntime extends true ? "cr@" : "cr", /** call_regular */
+    type: /** value_sum */ "vs",
+    sum: number,
+    addends: Repr[],
+    surplusAddends?: Repr[],
+  ]
+  | [
+    type: /** identifier */ "i",
+    name: string,
+    value: Repr | undefined,
+  ]
+  | [
+    type: /** call_regular */ "cr",
     style: "f" | "o" | "p", /** function | operator | piped */
     callee: string,
-    args:
-      | (IsInRuntime extends true //
-        ? (() => ReprBase<true>)[]
-        : ReprBase<false>[])
-      | undefined,
-    result: ReprBase<IsInRuntime> | undefined,
+    args: Repr[] | undefined,
+    result: Repr | undefined,
   ]
   | [
-    type: IsInRuntime extends true ? "cv@" : "cv", /** call_value */
+    type: /** call_value */ "cv",
     style: "f" | "p", /** function | piped */
-    callee: ReprBase<IsInRuntime>,
-    args:
-      | (IsInRuntime extends true //
-        ? (() => ReprBase<true>)[]
-        : ReprBase<false>[])
-      | undefined,
-    result: ReprBase<IsInRuntime> | undefined,
+    callee: Repr,
+    args: Repr[] | undefined,
+    result: Repr | undefined,
   ]
-  | (IsInRuntime extends true ? never : [
-    type: "c$", /** calls_of_operators_with_same_precedence */
-    head: ReprBase<false>,
-    tail: [string, ReprBase<false>][],
-    result: ReprBase<false> | undefined,
-  ])
+  | [
+    type: /** calls_of_operators_with_same_precedence */ "c$",
+    head: Repr,
+    tail: [string, Repr][],
+    result: Repr | undefined,
+  ]
   | [type: /** capture */ "&", name: string, arity: number]
   | [
     type: /** repetition */ "#",
-    count: ReprBase<IsInRuntime>,
+    count: Repr,
     body: string,
-    result: ReprBase<IsInRuntime> | undefined,
+    result: Repr | undefined,
   ]
   | [
-    type: "e", /** error */
+    type: /** error */ "e",
     errorMessage: string,
-    source: ReprBase<IsInRuntime> | undefined,
+    source: Repr | undefined,
   ]
   | [type: /** error_indirect */ "E"]
   | [
     type: /** decoration */ "d",
     decoration_type: "🗑️" | "🔄" | "⚡️" | "✨",
-    inner: ReprBase<IsInRuntime>,
+    inner: Repr,
   ];
-
-export type Repr = ReprBase<false>;
-export type ReprInRuntime = ReprBase<true>;

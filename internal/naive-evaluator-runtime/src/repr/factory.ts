@@ -7,8 +7,9 @@ import {
   Value_Stream$Sum,
 } from "../values/mod";
 import { ValueBox } from "../value-boxes/mod";
+import { ReprInRuntime } from "./repr-in-runtime";
 
-import { Repr, ReprInRuntime } from "@dicexp/interface";
+import { Repr } from "@dicexp/interface";
 
 const unevaluated: ["_"] = ["_"];
 
