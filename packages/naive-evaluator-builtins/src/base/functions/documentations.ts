@@ -1,4 +1,4 @@
-import { DeclarationListToDocumentationMap } from "@dicexp/runtime/regular-functions";
+import { DeclarationListToDocumentationMap } from "@dicexp/naive-evaluator-runtime/regular-functions";
 
 import { builtinFunctionDeclarations } from "./declarations";
 

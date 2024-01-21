@@ -1,15 +1,15 @@
-import { RuntimeError } from "@dicexp/runtime/runtime-errors";
+import { RuntimeError } from "@dicexp/naive-evaluator-runtime/runtime-errors";
 import {
   Transformed,
   Value_Callable,
   Value_List,
   ValueTypeName,
-} from "@dicexp/runtime/values";
-import { ValueBox } from "@dicexp/runtime/value-boxes";
+} from "@dicexp/naive-evaluator-runtime/values";
+import { ValueBox } from "@dicexp/naive-evaluator-runtime/value-boxes";
 import {
   DeclarationListToDefinitionMap,
   RuntimeProxyForFunction,
-} from "@dicexp/runtime/regular-functions";
+} from "@dicexp/naive-evaluator-runtime/regular-functions";
 
 import { product, sum } from "../utils";
 
@@ -159,7 +159,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   },
   // ...
   "append/2": (rtm, list, el) => {
-    return ["ok", rtm.createValue.list([...(list), el])];
+    return ["ok", rtm.createValue.list([...list, el])];
   },
   "at/2": (_rtm, list, index) => {
     if (index >= list.length || index < 0) {

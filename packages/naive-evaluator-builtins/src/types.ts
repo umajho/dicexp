@@ -1,4 +1,4 @@
-import { Scope } from "@dicexp/runtime/scopes";
+import { Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 export type ScopeExplicit<
   T extends { [ident: string]: any },

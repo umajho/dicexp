@@ -11,8 +11,8 @@ export type {
 } from "./runtime";
 export type {
   RuntimeError, // `ExecutionResult` 在 "error" 时对应的结果的第一项
-} from "@dicexp/runtime/runtime-errors";
+} from "@dicexp/naive-evaluator-runtime/runtime-errors";
 
-export { asScope } from "@dicexp/runtime/scopes";
+export { asScope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 export { RandomGenerator, type RandomSource } from "./random";

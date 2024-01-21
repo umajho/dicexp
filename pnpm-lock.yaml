@@ -63,9 +63,7 @@ importers:
         specifier: ^1.5.1
         version: 1.5.1
 
-  internal/nodes: {}
-
-  internal/runtime:
+  internal/naive-evaluator-runtime:
     dependencies:
       '@dicexp/errors':
         specifier: workspace:*
@@ -86,6 +84,8 @@ importers:
         specifier: workspace:*
         version: link:../nodes
 
+  internal/nodes: {}
+
   internal/test-utils-for-executing:
     dependencies:
       '@dicexp/errors':
@@ -94,9 +94,9 @@ importers:
       '@dicexp/interface':
         specifier: workspace:*
         version: link:../../packages/interface
-      '@dicexp/runtime':
+      '@dicexp/naive-evaluator-runtime':
         specifier: workspace:*
-        version: link:../runtime
+        version: link:../naive-evaluator-runtime
       assertion-error:
         specifier: '*'
         version: 1.1.0
@@ -130,12 +130,12 @@ importers:
       '@dicexp/naive-evaluator-builtins':
         specifier: workspace:*
         version: link:../naive-evaluator-builtins
+      '@dicexp/naive-evaluator-runtime':
+        specifier: workspace:*
+        version: link:../../internal/naive-evaluator-runtime
       '@dicexp/nodes':
         specifier: workspace:*
         version: link:../../internal/nodes
-      '@dicexp/runtime':
-        specifier: workspace:*
-        version: link:../../internal/runtime
       '@dicexp/test-utils-for-executing':
         specifier: workspace:*
         version: link:../../internal/test-utils-for-executing
@@ -178,9 +178,9 @@ importers:
       '@dicexp/naive-evaluator':
         specifier: workspace:*
         version: link:../naive-evaluator
-      '@dicexp/runtime':
+      '@dicexp/naive-evaluator-runtime':
         specifier: workspace:*
-        version: link:../../internal/runtime
+        version: link:../../internal/naive-evaluator-runtime
       '@dicexp/test-utils-for-executing':
         specifier: workspace:*
         version: link:../../internal/test-utils-for-executing
@@ -214,9 +214,9 @@ importers:
       '@dicexp/naive-evaluator':
         specifier: workspace:*
         version: link:../naive-evaluator
-      '@dicexp/runtime':
+      '@dicexp/naive-evaluator-runtime':
         specifier: workspace:*
-        version: link:../../internal/runtime
+        version: link:../../internal/naive-evaluator-runtime
       '@types/node':
         specifier: ^20.8.6
         version: 20.8.6

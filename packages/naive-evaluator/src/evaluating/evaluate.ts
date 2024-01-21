@@ -16,7 +16,7 @@ import {
 
 import { Node, parse, ParseError, ParseResult } from "../parsing/mod";
 
-import { Scope } from "@dicexp/runtime/scopes";
+import { Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 import {
   execute,

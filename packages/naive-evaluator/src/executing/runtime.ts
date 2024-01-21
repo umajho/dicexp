@@ -17,12 +17,19 @@ import {
 import {
   createRuntimeError,
   RuntimeError,
-} from "@dicexp/runtime/runtime-errors";
-import { asPlain, getValueTypeName, Value_List } from "@dicexp/runtime/values";
-import { finalizeRepr } from "@dicexp/runtime/repr";
-import { ValueBox } from "@dicexp/runtime/value-boxes";
-import { RuntimeProxyForFunction } from "@dicexp/runtime/regular-functions";
-import { RegularFunctionAlias, Scope } from "@dicexp/runtime/scopes";
+} from "@dicexp/naive-evaluator-runtime/runtime-errors";
+import {
+  asPlain,
+  getValueTypeName,
+  Value_List,
+} from "@dicexp/naive-evaluator-runtime/values";
+import { finalizeRepr } from "@dicexp/naive-evaluator-runtime/repr";
+import { ValueBox } from "@dicexp/naive-evaluator-runtime/value-boxes";
+import { RuntimeProxyForFunction } from "@dicexp/naive-evaluator-runtime/regular-functions";
+import {
+  RegularFunctionAlias,
+  Scope,
+} from "@dicexp/naive-evaluator-runtime/scopes";
 
 import { ConcreteValueBoxFactory } from "./values_impl";
 import { RandomGenerator, RandomSource } from "./random";

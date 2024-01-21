@@ -7,15 +7,21 @@ import {
   createValue,
   getValueTypeDisplayName,
   Value_Container,
-} from "@dicexp/runtime/values";
-import { RegularFunctionAlias, Scope } from "@dicexp/runtime/scopes";
+} from "@dicexp/naive-evaluator-runtime/values";
+import {
+  RegularFunctionAlias,
+  Scope,
+} from "@dicexp/naive-evaluator-runtime/scopes";
 import {
   createRuntimeError,
   RuntimeError,
-} from "@dicexp/runtime/runtime-errors";
-import { createValueBox, ValueBox } from "@dicexp/runtime/value-boxes";
-import { createRepr } from "@dicexp/runtime/repr";
-import { RegularFunction } from "@dicexp/runtime/regular-functions";
+} from "@dicexp/naive-evaluator-runtime/runtime-errors";
+import {
+  createValueBox,
+  ValueBox,
+} from "@dicexp/naive-evaluator-runtime/value-boxes";
+import { createRepr } from "@dicexp/naive-evaluator-runtime/repr";
+import { RegularFunction } from "@dicexp/naive-evaluator-runtime/regular-functions";
 
 import { RuntimeProxy } from "./runtime";
 

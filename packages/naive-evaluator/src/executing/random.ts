@@ -1,5 +1,5 @@
 import { Unimplemented } from "@dicexp/errors";
-import { RandomGenerator as IRandomGenerator } from "@dicexp/runtime/types";
+import { RandomGenerator as IRandomGenerator } from "@dicexp/naive-evaluator-runtime/types";
 
 export interface RandomSource {
   uint32(): number;

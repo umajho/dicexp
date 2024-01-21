@@ -1,9 +1,9 @@
-import { RuntimeError } from "@dicexp/runtime/runtime-errors";
-import type { Value } from "@dicexp/runtime/values";
+import { RuntimeError } from "@dicexp/naive-evaluator-runtime/runtime-errors";
+import type { Value } from "@dicexp/naive-evaluator-runtime/values";
 import {
   DeclarationListToDefinitionMap,
   RuntimeProxyForFunction,
-} from "@dicexp/runtime/regular-functions";
+} from "@dicexp/naive-evaluator-runtime/regular-functions";
 import { Unreachable } from "@dicexp/errors";
 
 import type { builtinOperatorDeclarations } from "./declarations";

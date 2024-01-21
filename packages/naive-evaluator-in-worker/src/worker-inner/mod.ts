@@ -3,7 +3,7 @@ import {
   NewEvaluatorOptions,
 } from "@dicexp/naive-evaluator/internal";
 
-import type { Scope } from "@dicexp/runtime/scopes";
+import type { Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 import { Server } from "./server";
 import { InitialMessageFromWorker, MessageToWorker } from "./types";

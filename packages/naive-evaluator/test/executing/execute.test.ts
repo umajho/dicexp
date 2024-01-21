@@ -8,9 +8,9 @@ import {
   EvaluationTester,
 } from "@dicexp/test-utils-for-executing";
 
-import { createRuntimeError } from "@dicexp/runtime/runtime-errors";
-import { makeFunction } from "@dicexp/runtime/regular-functions";
-import { asScope, Scope } from "@dicexp/runtime/scopes";
+import { createRuntimeError } from "@dicexp/naive-evaluator-runtime/runtime-errors";
+import { makeFunction } from "@dicexp/naive-evaluator-runtime/regular-functions";
+import { asScope, Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 import * as builtins from "@dicexp/naive-evaluator-builtins/internal";
 

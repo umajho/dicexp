@@ -1,5 +1,5 @@
 import { localizeValueType } from "../../../../../internal/l10n/lib";
-import { DeclarationListToDocumentationMap } from "@dicexp/runtime/regular-functions";
+import { DeclarationListToDocumentationMap } from "@dicexp/naive-evaluator-runtime/regular-functions";
 
 import { builtinOperatorDeclarations } from "./declarations";
 

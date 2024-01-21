@@ -18,8 +18,8 @@ import {
 import {
   createRuntimeError,
   RuntimeError,
-} from "@dicexp/runtime/runtime-errors";
-import { ValueTypeName } from "@dicexp/runtime/values";
+} from "@dicexp/naive-evaluator-runtime/runtime-errors";
+import { ValueTypeName } from "@dicexp/naive-evaluator-runtime/values";
 
 export interface EvaluationOptionsForTest {
   parse?: {};

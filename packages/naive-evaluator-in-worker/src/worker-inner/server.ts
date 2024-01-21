@@ -6,7 +6,7 @@ import {
   NewEvaluatorOptions,
 } from "@dicexp/naive-evaluator/internal";
 
-import type { Scope } from "@dicexp/runtime/scopes";
+import type { Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 import { SamplingHandler } from "./handler_sampling";
 import { Pulser } from "./heartbeat";

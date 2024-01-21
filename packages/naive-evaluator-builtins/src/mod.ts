@@ -5,12 +5,16 @@ import {
   ScopeDocumentation,
 } from "@dicexp/interface";
 
-import { asScope, makeRawScope, makeScope } from "@dicexp/runtime/scopes";
+import {
+  asScope,
+  makeRawScope,
+  makeScope,
+} from "@dicexp/naive-evaluator-runtime/scopes";
 import {
   DeclarationListToDocumentationMap,
   Documentation as RegularFunctionRawDocumentation,
   RegularFunctionDeclaration,
-} from "@dicexp/runtime/regular-functions";
+} from "@dicexp/naive-evaluator-runtime/regular-functions";
 
 import { ScopeExplicit } from "./types";
 

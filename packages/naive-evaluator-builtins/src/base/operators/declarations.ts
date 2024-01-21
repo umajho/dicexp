@@ -1,4 +1,4 @@
-import { RegularFunctionDeclaration } from "@dicexp/runtime/regular-functions";
+import { RegularFunctionDeclaration } from "@dicexp/naive-evaluator-runtime/regular-functions";
 
 export const builtinOperatorDeclarations = ([
   {

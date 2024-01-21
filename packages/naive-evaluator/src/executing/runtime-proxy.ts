@@ -1,19 +1,22 @@
 import { Node } from "@dicexp/nodes";
-import { createRuntimeError } from "@dicexp/runtime/runtime-errors";
-import { RandomGenerator } from "@dicexp/runtime/types";
+import { createRuntimeError } from "@dicexp/naive-evaluator-runtime/runtime-errors";
+import { RandomGenerator } from "@dicexp/naive-evaluator-runtime/types";
 import {
   callCallable,
   createValue,
   getTypeDisplayName,
   getValueTypeName,
-} from "@dicexp/runtime/values";
-import { createValueBox, ValueBox } from "@dicexp/runtime/value-boxes";
-import { Scope } from "@dicexp/runtime/scopes";
+} from "@dicexp/naive-evaluator-runtime/values";
+import {
+  createValueBox,
+  ValueBox,
+} from "@dicexp/naive-evaluator-runtime/value-boxes";
+import { Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 import {
   flattenListAll,
   unwrapList,
   unwrapListOneOf,
-} from "@dicexp/runtime/utils";
+} from "@dicexp/naive-evaluator-runtime/utils";
 
 import { RuntimeProxy, RuntimeReporter } from "./runtime";
 

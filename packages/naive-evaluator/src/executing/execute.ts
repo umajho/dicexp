@@ -1,7 +1,7 @@
 import { ExecutionRestrictions } from "@dicexp/interface";
 
 import { Node } from "@dicexp/nodes";
-import { Scope } from "@dicexp/runtime/scopes";
+import { Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 import { ExecutionResult, Runtime } from "./runtime";
 import { RandomSource } from "./random";

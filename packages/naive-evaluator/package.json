@@ -51,7 +51,7 @@
     "@dicexp/interface": "workspace:*",
     "@dicexp/lezer": "workspace:*",
     "@dicexp/nodes": "workspace:*",
-    "@dicexp/runtime": "workspace:*",
+    "@dicexp/naive-evaluator-runtime": "workspace:*",
     "@dicexp/test-utils-for-executing": "workspace:*",
     "@lezer/common": "^1.1.0",
     "@types/node": "^20.8.6",

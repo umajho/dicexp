@@ -1,5 +1,5 @@
 import { Unreachable } from "@dicexp/errors";
-import { asScope, Scope } from "@dicexp/runtime/scopes";
+import { asScope, Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 import * as builtins from "@dicexp/naive-evaluator-builtins/internal";
 
