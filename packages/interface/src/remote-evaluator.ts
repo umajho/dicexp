@@ -31,7 +31,7 @@ export interface RemoteEvaluationLocalRestrictions {
   hardTimeout?: { ms: number };
 }
 
-export interface RemoteSampler {
+export interface RemoteSamplerClient {
   keepSampling: (
     code: string,
     opts: EvaluationGenerationOptions,

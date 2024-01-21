@@ -2,7 +2,7 @@ import {
   EvaluationGenerationOptions,
   RemoteEvaluationOptions,
   RemoteEvaluatorClient,
-  RemoteSampler,
+  RemoteSamplerClient,
 } from "@dicexp/interface";
 
 import { EvaluationResult } from "@dicexp/naive-evaluator/internal";
@@ -18,7 +18,7 @@ export interface NewEvaluatingWorkerManagerOptions {
 }
 
 export class EvaluatingWorkerManager
-  implements RemoteEvaluatorClient, RemoteSampler {
+  implements RemoteEvaluatorClient, RemoteSamplerClient {
   readonly clientOptions: EvaluatingWorkerClientOptions;
 
   private client: EvaluatingWorkerClient | null = null;
