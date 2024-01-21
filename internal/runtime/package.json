@@ -21,6 +21,7 @@
     "@dicexp/errors": "workspace:*",
     "@dicexp/interface": "workspace:*",
     "@dicexp/js-utils": "workspace:*",
+    "@dicexp/l10n": "workspace:*",
     "@dicexp/lezer": "workspace:*",
     "@dicexp/nodes": "workspace:*"
   }

@@ -1,4 +1,4 @@
-import { getTypeDisplayName } from "@dicexp/runtime/values";
+import { localizeValueType } from "../../../../../internal/l10n/lib";
 import { DeclarationListToDocumentationMap } from "@dicexp/runtime/regular-functions";
 
 import { builtinOperatorDeclarations } from "./declarations";
@@ -254,8 +254,8 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     },
     returnValue: {
       type: {
-        description: `通常返回「${getTypeDisplayName("stream$sum")}」。` +
-          `但如果面数为 0，会返回「${getTypeDisplayName("integer")}」0。`,
+        description: `通常返回「${localizeValueType("stream$sum")}」。` +
+          `但如果面数为 0，会返回「${localizeValueType("integer")}」0。`,
       },
     },
     description: {

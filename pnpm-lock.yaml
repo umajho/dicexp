@@ -41,6 +41,12 @@ importers:
 
   internal/js-utils: {}
 
+  internal/l10n:
+    dependencies:
+      '@dicexp/interface':
+        specifier: workspace:*
+        version: link:../../packages/interface
+
   internal/lezer:
     dependencies:
       '@lezer/highlight':
@@ -70,6 +76,9 @@ importers:
       '@dicexp/js-utils':
         specifier: workspace:*
         version: link:../js-utils
+      '@dicexp/l10n':
+        specifier: workspace:*
+        version: link:../l10n
       '@dicexp/lezer':
         specifier: workspace:*
         version: link:../lezer
@@ -293,6 +302,9 @@ importers:
       '@dicexp/interface':
         specifier: workspace:*
         version: link:../packages/interface
+      '@dicexp/l10n':
+        specifier: workspace:*
+        version: link:../internal/l10n
       '@dicexp/naive-evaluator':
         specifier: workspace:*
         version: link:../packages/naive-evaluator
@@ -302,9 +314,6 @@ importers:
       '@dicexp/naive-evaluator-in-worker':
         specifier: workspace:*
         version: link:../packages/naive-evaluator-in-worker
-      '@dicexp/runtime':
-        specifier: workspace:*
-        version: link:../internal/runtime
       '@dicexp/solid-components':
         specifier: workspace:*
         version: link:../packages/solid-components

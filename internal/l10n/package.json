@@ -1,0 +1,14 @@
+{
+  "packageManager": "pnpm@8.10.0",
+  "name": "@dicexp/l10n",
+  "version": "0.0.0",
+  "main": "lib.ts",
+  "keywords": [],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@dicexp/interface": "workspace:*"
+  }
+}

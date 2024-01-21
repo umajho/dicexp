@@ -22,7 +22,7 @@ import {
   RegularFunctionDocumentation,
   RegularFunctionParameterTypeSpec,
 } from "@dicexp/interface";
-import { getTypeDisplayName } from "@dicexp/runtime/values";
+import { localizeValueType } from "@dicexp/l10n";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
 import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui/mod";
@@ -419,7 +419,7 @@ function getPossibleTypeDisplayNameList(
   if (t === "*") return ["任意"];
   if (t === "$lazy") return ["惰性（不检查）"];
   if (t instanceof Set) {
-    return [...t].map(getTypeDisplayName);
+    return [...t].map(localizeValueType);
   }
-  return [getTypeDisplayName(t)];
+  return [localizeValueType(t)];
 }
