@@ -5,6 +5,8 @@ import AssertionError from "assertion-error";
 
 import { inspect } from "util";
 
+import { Unreachable } from "@dicexp/errors";
+
 import {
   EvaluationOptions,
   EvaluationResult,
@@ -18,7 +20,6 @@ import {
   RuntimeError,
 } from "@dicexp/runtime/runtime-errors";
 import { ValueTypeName } from "@dicexp/runtime/values";
-import { Unreachable } from "@dicexp/errors";
 
 export interface EvaluationOptionsForTest {
   parse?: {};
