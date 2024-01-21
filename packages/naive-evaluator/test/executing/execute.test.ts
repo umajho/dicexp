@@ -270,7 +270,7 @@ describe("语义", () => {
       .map((exp) => String.raw`${exp} |> \($x -> ${longListOfXs}).()`);
 
     for (const [i, code] of table.entries()) {
-      it(`case ${i + 1}: ${code}`, () => {
+      it(`case ${i + 1}`, () => {
         const result = tester.assertExecutionOk(code, undefined);
         const resultFlatten = flatten(result as any, Infinity) as number[];
         assert(resultFlatten.every((el) => Number.isFinite(el)));
