@@ -39,10 +39,8 @@ export interface DeclarationParameter {
 /**
  * 通常函数参数的类型规格。
  *
- * - "$lazy": 直接传入 ValueBox，不要求其值。
- * - ValueTypeName: 指定单一类型。
- * - readonly ValueTypeName[]: 指定几个可选类型，满足其一即可。
- * - "*": 任何类型都可以。
+ * 文档参见 `@dicexp/interface` 中 `RegularFunctionParameterTypeSpec` 类型的文
+ * 档。
  */
 export type DeclarationParameterTypeSpec =
   | "$lazy"
@@ -60,8 +58,8 @@ export interface DeclarationReturnValue {
 /**
  * 通常函数返回值的类型规格。
  *
- * - ValueTypeName: 指定单一类型。
- * - { dynamic: true, ... }: 根据情况动态改变。
+ * 文档参见 `@dicexp/interface` 中 `RegularFunctionReturnValueTypeSpec` 类型的文
+ * 档。
  */
 export type DeclarationReturnValueTypeSpec =
   | ValueTypeName

@@ -19,17 +19,16 @@ import {
 } from "@rotext/solid-components";
 
 import {
-  DeclarationParameterTypeSpec,
-  Documentation,
-  RegularFunctionDeclaration,
-} from "@dicexp/runtime/regular-functions";
+  RegularFunctionDocumentation,
+  RegularFunctionParameterTypeSpec,
+} from "@dicexp/interface";
 import { getTypeDisplayName } from "@dicexp/runtime/values";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
 import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui/mod";
 import { ShowKeepAlive } from "../utils";
 
-import { getFunctionFullName, ScopeInfo, scopes } from "../../stores/scopes";
+import { scopes, totalRegularFunctions } from "../../stores/scope-info";
 import { WIDGET_OWNER_CLASS } from "../ro-widget-dicexp";
 import FixedMasonry from "../FixedMasonry";
 
@@ -78,25 +77,11 @@ export const DocumentationPane: Component = () => {
 const RegularFunctionsTab: Component = () => {
   const [currentTab, setCurrentTab] = createSignal<number>(0);
 
-  const fullScope: ScopeInfo = {
-    displayName: "全部",
-    ...scopes.reduce(
-      (acc, s) => ({
-        declarations: [...acc.declarations, ...s.declarations],
-        documentations: { ...acc.documentations, ...s.documentations },
-      }),
-      {
-        declarations: [] as RegularFunctionDeclaration[],
-        documentations: {},
-      },
-    ),
-  };
-
-  const selectableScopes = [fullScope, ...scopes];
+  const selectableScopes = scopes;
   const selectedScope = () => selectableScopes[currentTab()]!;
   const groupSetInSelectedScope = createMemo(() =>
     Object
-      .values(selectedScope().documentations)
+      .values(selectedScope().documentation.functions)
       .flatMap((doc) => doc.groups)
       .reduce((acc, group) => acc.add(group), new Set<string>())
   );
@@ -128,12 +113,9 @@ const RegularFunctionsTab: Component = () => {
     if (!/^\d+$/.test(arityText)) return { lowerName };
     return { lowerName: lowerName.slice(0, i), arity: parseInt(arityText) };
   });
-  const filteredDeclarations = createMemo((): RegularFunctionDeclaration[] => {
-    let filtered = selectedScope().declarations
-      .filter((decl) => {
-        // @ts-ignore
-        const doc = selectedScope()
-          .documentations[getFunctionFullName(decl)] as Documentation;
+  const filteredFnDocs = createMemo((): RegularFunctionDocumentation[] => {
+    let filtered = selectedScope().documentation.functions
+      .filter((doc) => {
         return doc.groups.some((group) => enabledGroups[group]);
       });
 
@@ -144,8 +126,8 @@ const RegularFunctionsTab: Component = () => {
       );
     }
     if (nameFilter_.lowerName) {
-      filtered = filtered.reduce((acc, decl) => {
-        const scores = [decl.name, ...(decl.aliases ?? [])].map((name) => {
+      filtered = filtered.reduce((acc, doc) => {
+        const scores = [doc.name, ...(doc.aliases ?? [])].map((name) => {
           const i = name.toLowerCase().indexOf(nameFilter_.lowerName);
           if (i < 0) return -1;
           if (i === 0) return 2;
@@ -154,14 +136,14 @@ const RegularFunctionsTab: Component = () => {
         });
         const maxScore = Math.max(...scores);
         if (maxScore < 0) return acc;
-        return [...acc, { score: maxScore, decl }];
-      }, [] as { score: number; decl: RegularFunctionDeclaration }[])
+        return [...acc, { score: maxScore, doc }];
+      }, [] as { score: number; doc: RegularFunctionDocumentation }[])
         .sort((a, b) =>
           a.score !== b.score
             ? b.score - a.score
-            : a.decl.name.localeCompare(b.decl.name)
+            : a.doc.name.localeCompare(b.doc.name)
         )
-        .map(({ decl }) => decl);
+        .map(({ doc }) => doc);
     }
 
     return filtered;
@@ -223,15 +205,12 @@ const RegularFunctionsTab: Component = () => {
           setText={setNameFilterText}
         />
         <span>
-          {filteredDeclarations().length}/{fullScope.declarations.length}
+          {filteredFnDocs().length}/{totalRegularFunctions}
         </span>
       </div>
 
       <div>
-        <FunctionCardMasonry
-          items={filteredDeclarations()}
-          scope={fullScope}
-        />
+        <FunctionCardMasonry items={filteredFnDocs()} />
       </div>
     </div>
   );
@@ -245,8 +224,7 @@ const breakpoints = createBreakpoints({
 });
 
 export const FunctionCardMasonry: Component<{
-  items: RegularFunctionDeclaration[];
-  scope: ScopeInfo;
+  items: RegularFunctionDocumentation[];
 }> = (props) => {
   const columns = createMemo(() => {
     if (breakpoints.four) return 4;
@@ -255,27 +233,21 @@ export const FunctionCardMasonry: Component<{
     return 1;
   });
 
-  const cardMemos = new Map<RegularFunctionDeclaration, HTMLElement>();
+  const cardMemos = new Map<RegularFunctionDocumentation, HTMLElement>();
   const cards = () =>
-    props.items.map((decl) => {
-      const memo = cardMemos.get(decl);
+    props.items.map((doc) => {
+      const memo = cardMemos.get(doc);
       if (memo) return memo;
 
-      const fullName = () => getFunctionFullName(decl);
       const card = () => (
         <div class="p-2 max-sm:px-0">
-          <FunctionCard
-            decl={decl}
-            doc={(props.scope.documentations as Record<string, Documentation>)[
-              fullName()
-            ]!}
-          />
+          <FunctionCard doc={doc} />
         </div>
       );
       const cardEl = document.createElement("div");
       render(card, cardEl);
 
-      cardMemos.set(decl, cardEl);
+      cardMemos.set(doc, cardEl);
       return cardEl;
     });
 
@@ -283,8 +255,7 @@ export const FunctionCardMasonry: Component<{
 };
 
 export const FunctionCard: Component<{
-  decl: RegularFunctionDeclaration;
-  doc: Documentation;
+  doc: RegularFunctionDocumentation;
 }> = (props) => {
   let widgetOwnerEl!: HTMLDivElement,
     widgetAnchorEl!: HTMLDivElement;
@@ -307,9 +278,9 @@ export const FunctionCard: Component<{
           <div class="flex-1 flex justify-center items-center gap-2">
             {props.doc.isOperator ? <VsSymbolOperator /> : <VsSymbolMethod />}
             <code>
-              {props.decl.name}
+              {props.doc.name}
               <span class="text-sm align-sub">
-                /{props.decl.parameters.length}
+                /{props.doc.parameters.length}
               </span>
             </code>
           </div>
@@ -327,7 +298,7 @@ export const FunctionCard: Component<{
         {props.doc.description.brief}
       </div>
       <dl>
-        <Show when={props.decl.aliases}>
+        <Show when={props.doc.aliases}>
           {(aliases) => (
             <>
               <dt>别名</dt>
@@ -335,7 +306,7 @@ export const FunctionCard: Component<{
                 <Index each={aliases()}>
                   {(alias, i) => (
                     <>
-                      <code>{alias()}/{props.decl.parameters.length}</code>
+                      <code>{alias()}/{props.doc.parameters.length}</code>
                       <Show when={i < aliases().length - 1}>、</Show>
                     </>
                   )}
@@ -348,7 +319,7 @@ export const FunctionCard: Component<{
         <dt>参数</dt>
         <dd>
           <dl>
-            <For each={props.decl.parameters}>
+            <For each={props.doc.parameters}>
               {(p, i) => (
                 <>
                   <dt>
@@ -366,7 +337,7 @@ export const FunctionCard: Component<{
                     </code>
                   </dt>
                   <dd>
-                    {(props.doc.parameters as Record<string, string>)[p.label]}
+                    {p.description}
                   </dd>
                 </>
               )}
@@ -378,7 +349,7 @@ export const FunctionCard: Component<{
         <dd>
           <code>
             {(() => {
-              const returnValueType = props.decl.returnValue.type;
+              const returnValueType = props.doc.returnValue.type;
               if (typeof returnValueType === "string") {
                 return (
                   <TypeNameBadgeList
@@ -389,8 +360,7 @@ export const FunctionCard: Component<{
                 return (
                   <>
                     动态{returnValueType.lazy && "（惰性）"}：
-                    {(props.doc as Extract<Documentation, { returnValue: any }>)
-                      .returnValue.type.description}
+                    {returnValueType.description}
                   </>
                 );
               }
@@ -444,7 +414,7 @@ export const TypeNameBadgeList: Component<{ typeNames: string[] }> = (
 };
 
 function getPossibleTypeDisplayNameList(
-  t: DeclarationParameterTypeSpec,
+  t: RegularFunctionParameterTypeSpec,
 ): string[] {
   if (t === "*") return ["任意"];
   if (t === "$lazy") return ["惰性（不检查）"];

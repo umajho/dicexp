@@ -18,32 +18,18 @@ export type DeclarationListToDocumentationMap<DeclList extends readonly any[]> =
       & DeclarationListToDocumentationMap<Tail>
     : {};
 
+/**
+ * 各字段的文档参见 `@dicexp/interface` 中 `RegularFunctionDocumentation` 类型对
+ * 应字段的文档。
+ */
 type DeclarationToDocumentation<Decl extends RegularFunctionDeclaration> = {
-  /**
-   * 是否是运算符。
-   */
   isOperator?: true;
-  /**
-   * 所属分组。（仅用于文档。）
-   */
   groups: string[];
-  /**
-   * 参数列表的文档。
-   */
   parameters: ParameterListToLabelDocumentationMap<Decl["parameters"]>;
-  /**
-   * 描述。
-   *
-   * - `.short`: 简洁的一句话描述。（不含句号）
-   * - `.further`：进一步的说明。
-   */
   description: {
     brief: string;
     further?: string;
   };
-  /**
-   * 示例，可以执行的代码。
-   */
   examples?: string[];
 } & ReturnValueToMapWithReturnValueDocumentation<Decl["returnValue"]>;
 

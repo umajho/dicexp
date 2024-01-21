@@ -59,28 +59,6 @@ importers:
 
   internal/nodes: {}
 
-  internal/parsing-into-node-tree:
-    dependencies:
-      '@dicexp/errors':
-        specifier: workspace:*
-        version: link:../errors
-      '@dicexp/interface':
-        specifier: workspace:*
-        version: link:../../packages/interface
-      '@dicexp/lezer':
-        specifier: workspace:*
-        version: link:../lezer
-      '@dicexp/nodes':
-        specifier: workspace:*
-        version: link:../nodes
-      '@lezer/common':
-        specifier: ^1.1.0
-        version: 1.1.0
-    devDependencies:
-      vitest:
-        specifier: ^0.33.0
-        version: 0.33.0(jsdom@22.1.0)
-
   internal/runtime:
     dependencies:
       '@dicexp/errors':
@@ -185,6 +163,9 @@ importers:
       '@dicexp/errors':
         specifier: workspace:*
         version: link:../../internal/errors
+      '@dicexp/interface':
+        specifier: workspace:*
+        version: link:../interface
       '@dicexp/naive-evaluator':
         specifier: workspace:*
         version: link:../naive-evaluator

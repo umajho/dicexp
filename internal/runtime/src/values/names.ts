@@ -1,4 +1,5 @@
 import { Unreachable } from "@dicexp/errors";
+import { ValueType } from "@dicexp/interface";
 
 import { Value } from "./types";
 
@@ -15,6 +16,7 @@ export function getValueTypeName(v: Value) {
 }
 
 export type ValueTypeName = ReturnType<typeof getValueTypeName>;
+((v: ValueTypeName): ValueType => v); // 检查类型
 
 export function getTypeDisplayName(name: ValueTypeName): string {
   switch (name) {
