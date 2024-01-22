@@ -44,8 +44,8 @@ function tryAdaptType(
 ): ["ok", Value] | ["error", RuntimeError] {
   let typeName: ValueTypeName = getValueTypeName(value);
   if (
-    (typeName === "stream$sum" && !isInSpec(spec, "stream$sum")) ||
-    (typeName === "stream$list" && !isInSpec(spec, "stream$list"))
+    (typeName === "sequence$sum" && !isInSpec(spec, "sequence$sum")) ||
+    (typeName === "sequence" && !isInSpec(spec, "sequence"))
   ) {
     value = (value as Extract<Value, { castImplicitly: any }>).castImplicitly();
     typeName = getValueTypeName(value);

@@ -1,19 +1,19 @@
 import { createList } from "./impl/lists";
 import { createCallable } from "./impl/callable";
 import {
-  createStream$list,
-  createStream$sum,
-  createStreamTransformer,
-} from "./impl/streams";
+  createSequence,
+  createSequence$sum,
+  createSequenceTransformer,
+} from "./impl/sequences";
 
 export const createValue = {
   callable: createCallable,
 
   list: createList,
 
-  stream$list: createStream$list,
+  sequence: createSequence,
 
-  stream$sum: createStream$sum,
+  sequence$sum: createSequence$sum,
 
-  streamTransformer: createStreamTransformer,
+  sequenceTransformer: createSequenceTransformer,
 };

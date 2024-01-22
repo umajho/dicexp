@@ -54,8 +54,8 @@ export type ValueType =
   | "boolean"
   | "list"
   | "callable"
-  | "stream$sum"
-  | "stream$list";
+  | "sequence$sum"
+  | "sequence";
 
 /**
  * 通常函数参数的类型规格。

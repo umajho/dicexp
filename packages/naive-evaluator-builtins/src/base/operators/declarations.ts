@@ -78,14 +78,14 @@ export const builtinOperatorDeclarations = ([
       { label: "lower", type: "integer" },
       { label: "upper", type: "integer" },
     ],
-    returnValue: { type: "stream$sum" },
+    returnValue: { type: "sequence$sum" },
   },
   {
     name: "~",
     parameters: [
       { label: "upper", type: "integer" },
     ],
-    returnValue: { type: "stream$sum" },
+    returnValue: { type: "sequence$sum" },
   },
 
   {
@@ -166,7 +166,7 @@ export const builtinOperatorDeclarations = ([
     parameters: [
       { label: "x", type: "integer" },
     ],
-    returnValue: { type: "stream$sum" },
+    returnValue: { type: "sequence$sum" },
   },
 
   {

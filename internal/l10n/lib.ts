@@ -14,10 +14,10 @@ export function localizeValueType(vt: ValueType) {
     //   return "被捕获的通常函数";
     case "callable":
       return "可调用的";
-    case "stream$sum":
-      return "流【隐式求和】";
-    case "stream$list":
-      return "流【隐式转换为列表】";
+    case "sequence$sum":
+      return "求和序列";
+    case "sequence":
+      return "序列";
     default:
       return `未知（内部实现泄漏，${name}）`;
   }

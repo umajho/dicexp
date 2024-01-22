@@ -19,14 +19,14 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
   typeof builtinFunctionDeclarations
 > = { // 尚未实现的函数列表见 declarations
   // 掷骰：
-  "reroll/2": (rtm, stream, callable) => {
-    let isSum = rtm.getValueTypeName(stream) === "stream$sum";
+  "reroll/2": (rtm, seq, callable) => {
+    let isSum = rtm.getValueTypeName(seq) === "sequence$sum";
 
     let remainRolls = 0, shouldTrackBaseRolls = true;
     let abandonedBefore: ValueBox[] | number[] = [];
 
-    const newStream = rtm.createValue.streamTransformer(
-      stream,
+    const newSeq = rtm.createValue.sequenceTransformer(
+      seq,
       ([status, item]): Transformed<ValueBox | number> => {
         const shouldRerollResult = tryUnwrapBoolean(
           rtm,
@@ -69,16 +69,16 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
       },
     );
 
-    return ["ok", newStream];
+    return ["ok", newSeq];
   },
-  "explode/2": (rtm, stream, callable) => {
-    let isSum = rtm.getValueTypeName(stream) === "stream$sum";
+  "explode/2": (rtm, seq, callable) => {
+    let isSum = rtm.getValueTypeName(seq) === "sequence$sum";
 
     let remainRolls = 0, shouldTrackBaseRolls = true;
     let isLastExploded = false;
 
-    const newStream = rtm.createValue.streamTransformer(
-      stream,
+    const newSeq = rtm.createValue.sequenceTransformer(
+      seq,
       ([status, item]): Transformed<ValueBox | number> => {
         const shouldExplodeResult = tryUnwrapBoolean(
           rtm,
@@ -116,7 +116,7 @@ export const builtinFunctionDefinitions: DeclarationListToDefinitionMap<
       },
     );
 
-    return ["ok", newStream];
+    return ["ok", newSeq];
   },
 
   // 实用：

@@ -1,10 +1,10 @@
 import { RuntimeError } from "../runtime-errors/mod";
 import {
-  StreamFragment,
+  SequenceFragment,
   Value,
   Value_List,
-  Value_Stream$List,
-  Value_Stream$Sum,
+  Value_Sequence,
+  Value_Sequence$Sum,
 } from "../values/mod";
 import { ValueBox } from "../value-boxes/mod";
 import { ReprInRuntime } from "./repr-in-runtime";
@@ -32,10 +32,10 @@ export const createRepr = {
       return createRepr.value_primitive(value);
     } else if (value.type === "list") {
       return createRepr.value_list(value);
-    } else if (value.type === "stream$list") {
-      return createRepr.value_stream$list(value);
-    } else if (value.type === "stream$sum") {
-      return createRepr.value_stream$sum(value);
+    } else if (value.type === "sequence") {
+      return createRepr.value_sequence(value);
+    } else if (value.type === "sequence$sum") {
+      return createRepr.value_sequence$sum(value);
     } else {
       value.type satisfies "callable";
       return value.representation;
@@ -67,8 +67,8 @@ export const createRepr = {
   /**
    * 如：`[ 1, 2, 3 ⟨, 4, 5, 6⟩ ]`。
    */
-  value_stream$list(stream: Value_Stream$List): ReprInRuntime & { 0: "vl@" } {
-    const mapCb: (f: StreamFragment<ValueBox>) => ReprInRuntime[] = //
+  value_sequence(seq: Value_Sequence): ReprInRuntime & { 0: "vl@" } {
+    const mapCb: (f: SequenceFragment<ValueBox>) => ReprInRuntime[] = //
       ([[itemType, item], abandoned]) => {
         let itemRepr: ReprInRuntime = item.getRepr();
         if (itemType !== "regular") {
@@ -83,17 +83,17 @@ export const createRepr = {
       };
     return [
       "vl@",
-      () => stream.nominalFragments.flatMap(mapCb),
-      () => stream.errorBeacon?.comfirmsError() ?? false,
-      () => stream.surplusFragments?.flatMap(mapCb),
+      () => seq.nominalFragments.flatMap(mapCb),
+      () => seq.errorBeacon?.comfirmsError() ?? false,
+      () => seq.surplusFragments?.flatMap(mapCb),
     ];
   },
 
   /**
    * 如：`(1 + 2 + 3 ⟨+ 4 + 5 + 6⟩ = 6)`。
    */
-  value_stream$sum(stream: Value_Stream$Sum): ReprInRuntime & { 0: "vs@" } {
-    const mapCb: (f: StreamFragment<number>) => ReprInRuntime[] = //
+  value_sequence$sum(seq: Value_Sequence$Sum): ReprInRuntime & { 0: "vs@" } {
+    const mapCb: (f: SequenceFragment<number>) => ReprInRuntime[] = //
       ([[itemType, item], abandoned]) => {
         let itemRepr: ReprInRuntime = createRepr.value_primitive(item);
         if (itemType !== "regular") {
@@ -108,9 +108,9 @@ export const createRepr = {
       };
     return [
       "vs@",
-      () => stream.castImplicitly(),
-      () => stream.nominalFragments.flatMap(mapCb),
-      () => stream.surplusFragments?.flatMap(mapCb),
+      () => seq.castImplicitly(),
+      () => seq.nominalFragments.flatMap(mapCb),
+      () => seq.surplusFragments?.flatMap(mapCb),
     ];
   },
 

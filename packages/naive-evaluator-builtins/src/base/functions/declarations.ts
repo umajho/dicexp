@@ -5,7 +5,7 @@ export const builtinFunctionDeclarations = ([
   {
     name: "reroll",
     parameters: [
-      { label: "stream", type: new Set(["stream$list", "stream$sum"]) },
+      { label: "seq", type: new Set(["sequence", "sequence$sum"]) },
       { label: "callable", type: "callable" },
     ],
     returnValue: { type: { dynamic: true } },
@@ -13,7 +13,7 @@ export const builtinFunctionDeclarations = ([
   {
     name: "explode",
     parameters: [
-      { label: "stream", type: new Set(["stream$list", "stream$sum"]) },
+      { label: "seq", type: new Set(["sequence", "sequence$sum"]) },
       { label: "callable", type: "callable" },
     ],
     returnValue: { type: { dynamic: true } },

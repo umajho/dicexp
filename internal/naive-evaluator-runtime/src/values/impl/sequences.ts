@@ -4,18 +4,13 @@ import { RuntimeError } from "../../runtime-errors/mod";
 import { createValueBox, ValueBox } from "../../value-boxes/mod";
 import { ErrorBeacon } from "../../internal/error-beacon";
 
-import {
-  StreamFragment,
-  Value_Stream,
-  Value_Stream$List,
-  Value_Stream$Sum,
-} from "../types";
+import { SequenceFragment, Value_Sequence, Value_Sequence$Sum } from "../types";
 import { createValue } from "../factory";
 
-export function createStream$list(
+export function createSequence(
   yielder: () => Yielded<ValueBox> | null,
-  opts?: StreamOptions,
-): Value_Stream$List {
+  opts?: SequenceOptions,
+): Value_Sequence {
   const errorExtractor = (item: ValueBox, errorSetter: ErrorSetter): void => {
     if (item.confirmsError()) {
       const itemResult = item.get();
@@ -28,7 +23,7 @@ export function createStream$list(
   };
 
   return new InternalValue_Stream(
-    "stream$list",
+    "sequence",
     yielder,
     (nominalList) => createValue.list(nominalList),
     errorExtractor,
@@ -36,12 +31,12 @@ export function createStream$list(
   );
 }
 
-export function createStream$sum(
+export function createSequence$sum(
   yielder: () => Yielded<number> | null,
-  opts?: StreamOptions,
-): Value_Stream$Sum {
+  opts?: SequenceOptions,
+): Value_Sequence$Sum {
   return new InternalValue_Stream(
-    "stream$sum",
+    "sequence$sum",
     yielder,
     (nominalList) => nominalList.reduce((acc, cur) => acc + cur, 0),
     undefined,
@@ -49,13 +44,13 @@ export function createStream$sum(
   );
 }
 
-export function createStreamTransformer(
-  source: Value_Stream,
+export function createSequenceTransformer(
+  source: Value_Sequence | Value_Sequence$Sum,
   transformer: (
     v: [status: "ok" | "last_nominal", v: ValueBox | number],
   ) => Transformed<ValueBox | number>,
-  opts?: StreamOptions,
-): Value_Stream {
+  opts?: SequenceOptions,
+): Value_Sequence | Value_Sequence$Sum {
   let nextAt = 0, hasNoMore = false;
 
   const yielder = (): Yielded<ValueBox | number> | null => {
@@ -89,10 +84,10 @@ export function createStreamTransformer(
     return null;
   };
 
-  if (source.type === "stream$list") {
-    return createStream$list(yielder as () => Yielded<ValueBox> | null, opts);
-  } else if (source.type === "stream$sum") {
-    return createStream$sum(yielder as () => Yielded<number> | null, opts);
+  if (source.type === "sequence") {
+    return createSequence(yielder as () => Yielded<ValueBox> | null, opts);
+  } else if (source.type === "sequence$sum") {
+    return createSequence$sum(yielder as () => Yielded<number> | null, opts);
   } else {
     throw new Unreachable();
   }
@@ -102,7 +97,7 @@ type WithStatus<T> = [
   status: "ok" | "last" | "last_nominal",
   v: T,
 ];
-export type Yielded<T> = WithStatus<StreamFragment<T>>;
+export type Yielded<T> = WithStatus<SequenceFragment<T>>;
 
 export type Transformed<T> =
   | ["ok", Yielded<T>]
@@ -111,7 +106,7 @@ export type Transformed<T> =
 
 type ErrorSetter = (error: RuntimeError) => void;
 
-interface StreamOptions {
+interface SequenceOptions {
   initialNominalLength?: number;
 }
 
@@ -121,7 +116,7 @@ class InternalValue_Stream<Type, T, CastingImplicitlyTo> {
     private readonly _yielder: () => Yielded<T> | null,
     public readonly implicitCaster: (nominalList: T[]) => CastingImplicitlyTo,
     public readonly errorExtractor?: (item: T, s: ErrorSetter) => void,
-    private readonly _opts?: StreamOptions,
+    private readonly _opts?: SequenceOptions,
   ) {
     if (errorExtractor) {
       this._errorBeacon = new ErrorBeacon((s) => this._errorSetter = s);
@@ -182,21 +177,21 @@ class InternalValue_Stream<Type, T, CastingImplicitlyTo> {
     return this.implicitCaster(this._nominalList);
   }
 
-  get nominalFragments(): StreamFragment<T>[] {
+  get nominalFragments(): SequenceFragment<T>[] {
     return this.availableNominalLength! === this._actualLength
       ? this.actualFragments
       : this._underlying.slice(0, this.availableNominalLength)
         .map(([_1, f]) => f);
   }
 
-  get surplusFragments(): StreamFragment<T>[] | null {
+  get surplusFragments(): SequenceFragment<T>[] | null {
     return this.availableNominalLength! === this._actualLength
       ? null
       : this._underlying.slice(this.availableNominalLength)
         .map(([_1, f]) => f);
   }
 
-  get actualFragments(): StreamFragment<T>[] {
+  get actualFragments(): SequenceFragment<T>[] {
     return (this._underlying.length === this._actualLength
       ? this._underlying
       : this._underlying.slice(0, this._actualLength)).map(([_1, f]) => f);

@@ -34,7 +34,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
 
   "~/2": (rtm, lower, upper) => {
     let yieldedCount = 0;
-    const sumValue = rtm.createValue.stream$sum(
+    const sumValue = rtm.createValue.sequence$sum(
       () => {
         const value = rtm.random.integer(lower, upper);
         yieldedCount++;
@@ -101,7 +101,7 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
       sumValue = 0;
     } else {
       let yieldedCount = 0;
-      sumValue = rtm.createValue.stream$sum(
+      sumValue = rtm.createValue.sequence$sum(
         () => {
           const value = rtm.random.integer(1, x);
           yieldedCount++;

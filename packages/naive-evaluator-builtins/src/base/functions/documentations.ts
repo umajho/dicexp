@@ -9,16 +9,16 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
   "reroll/2": {
     groups: ["掷骰"],
     parameters: {
-      "stream": "流",
+      "seq": "序列",
       "callable": "用于判断是否满足重投条件",
     },
     description: {
       brief: "重投",
       further: [
-        "对于流所产出的每个结果，如果该结果满足重投条件，则这次结果不作数。",
+        "对于序列所产出的每个结果，如果该结果满足重投条件，则这次结果不作数。",
       ].join("\n"),
     },
-    returnValue: { type: { description: "与流在隐式转换后的类型相同" } },
+    returnValue: { type: { description: "与序列在隐式转换后的类型相同" } },
     examples: [
       String.raw`reroll(10d10, \($x -> $x <= 5))`,
       String.raw`reroll(10#d10, \($x -> $x <= 5))`,
@@ -27,16 +27,16 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
   "explode/2": {
     groups: ["掷骰"],
     parameters: {
-      "stream": "流",
+      "seq": "序列",
       "callable": "用于判断是否满足条件",
     },
     description: {
       brief: "爆炸骰",
       further: [
-        "对于流所产出的结果，每有一个结果满足条件，则额外增加一次产出。",
+        "对于序列所产出的结果，每有一个结果满足条件，则额外增加一次产出。",
       ].join("\n"),
     },
-    returnValue: { type: { description: "与流在隐式转换后的类型相同" } },
+    returnValue: { type: { description: "与序列在隐式转换后的类型相同" } },
     examples: [
       String.raw`explode(10d10, \($x -> $x > 5))`,
       String.raw`explode(10#d10, \($x -> $x > 5))`,

@@ -32,8 +32,8 @@ export const createValueBox = {
   ) {
     if (
       typeof value === "object" &&
-      (value.type === "list" || value.type === "stream$list" ||
-        value.type === "stream$sum")
+      (value.type === "list" || value.type === "sequence" ||
+        value.type === "sequence$sum")
     ) {
       return createValueBox.container(value, repr);
     }

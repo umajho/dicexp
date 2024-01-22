@@ -1,14 +1,13 @@
 export type {
-  StreamFragment,
+  SequenceFragment,
   Value,
   Value_Callable,
   Value_Container,
   Value_Direct,
   Value_List,
   Value_Plain,
-  Value_Stream,
-  Value_Stream$List,
-  Value_Stream$Sum,
+  Value_Sequence,
+  Value_Sequence$Sum,
 } from "./types";
 export { asInteger, asPlain, castImplicitly } from "./casting";
 export { createValue } from "./factory";
@@ -20,4 +19,4 @@ export {
 } from "./names";
 export type { ValueSpec } from "./spec";
 export { asCallable, callCallable } from "./impl/callable";
-export type { Transformed } from "./impl/streams";
+export type { Transformed } from "./impl/sequences";

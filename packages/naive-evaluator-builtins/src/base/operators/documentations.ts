@@ -254,7 +254,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     },
     returnValue: {
       type: {
-        description: `通常返回「${localizeValueType("stream$sum")}」。` +
+        description: `通常返回「${localizeValueType("sequence$sum")}」。` +
           `但如果面数为 0，会返回「${localizeValueType("integer")}」0。`,
       },
     },

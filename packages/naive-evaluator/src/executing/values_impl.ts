@@ -293,12 +293,12 @@ export class ConcreteValueBoxFactory {
           return this.error(createRuntimeError.simple(errMsg), repr);
         }
 
-        let stream: Value_Container;
+        let seq: Value_Container;
         if (countValue === 0) {
-          stream = createValue.list([]);
+          seq = createValue.list([]);
         } else {
           let yieldedCount = 0;
-          stream = createValue.stream$list(
+          seq = createValue.sequence(
             () => {
               const valueBox = this.runtime.interpret(scope, body);
               yieldedCount++;
@@ -314,9 +314,9 @@ export class ConcreteValueBoxFactory {
         const repr = createRepr.repetition(
           count.getRepr(),
           bodyRaw,
-          createRepr.value(stream),
+          createRepr.value(seq),
         );
-        return createValueBox.container(stream, repr);
+        return createValueBox.container(seq, repr);
       },
     );
   }

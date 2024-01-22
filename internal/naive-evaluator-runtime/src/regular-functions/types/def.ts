@@ -2,8 +2,8 @@ import { RuntimeError } from "../../runtime-errors/mod";
 import {
   Value_Callable,
   Value_List,
-  Value_Stream$List,
-  Value_Stream$Sum,
+  Value_Sequence,
+  Value_Sequence$Sum,
   ValueTypeName,
 } from "../../values/mod";
 import { ValueBox } from "../../value-boxes/mod";
@@ -93,8 +93,8 @@ type BasicTypeSpecToTypeMap = {
   boolean: boolean;
   list: Value_List;
   callable: Value_Callable;
-  stream$list: Value_Stream$List;
-  stream$sum: Value_Stream$Sum;
+  sequence: Value_Sequence;
+  sequence$sum: Value_Sequence$Sum;
 };
 
 /**

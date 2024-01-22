@@ -15,8 +15,9 @@ export type Value_Direct =
   | Value_Callable;
 export type Value_Container =
   | Value_List
-  | Value_Stream;
-export type Value_Plain = Exclude<Value, Value_Stream>;
+  | Value_Sequence
+  | Value_Sequence$Sum;
+export type Value_Plain = Exclude<Value, Value_Sequence | Value_Sequence$Sum>;
 
 export interface Value_Callable {
   type: "callable";
@@ -31,9 +32,7 @@ export type Value_List = ValueBox[] & {
   errorBeacon: ErrorBeacon;
 };
 
-export type Value_Stream = Value_Stream$List | Value_Stream$Sum;
-
-export interface Value_StreamBase<
+export interface Value_SequenceBase<
   Type extends string,
   Item,
   CastingImplicitlyTo extends Value_Plain,
@@ -56,19 +55,19 @@ export interface Value_StreamBase<
   /**
    * 可用的名义上的长度。
    *
-   * 当流尚未到达名义上的界限时，这个值是实际长度，否则这个值是名义长度。
+   * 当序列尚未到达名义上的界限时，这个值是实际长度，否则这个值是名义长度。
    */
   get availableNominalLength(): number;
 
-  get nominalFragments(): StreamFragment<Item>[];
-  get surplusFragments(): StreamFragment<Item>[] | null;
+  get nominalFragments(): SequenceFragment<Item>[];
+  get surplusFragments(): SequenceFragment<Item>[] | null;
   /**
    * 所有产生了的片段，用于生成步骤展现。
    */
-  get actualFragments(): StreamFragment<Item>[];
+  get actualFragments(): SequenceFragment<Item>[];
 }
 
-export type StreamFragment<T> = [
+export type SequenceFragment<T> = [
   /**
    * 留下的元素。
    */
@@ -80,14 +79,18 @@ export type StreamFragment<T> = [
 ];
 
 /**
- * 可以隐式转换为列表的流。
+ * 可以隐式转换为列表的序列。
  */
-export type Value_Stream$List = Value_StreamBase<
-  "stream$list",
+export type Value_Sequence = Value_SequenceBase<
+  "sequence",
   ValueBox,
   Value_List
 >;
 /**
- * 可以隐式转换为整数（通过求和）的流。
+ * 可以隐式求和为整数的序列。
  */
-export type Value_Stream$Sum = Value_StreamBase<"stream$sum", number, number>;
+export type Value_Sequence$Sum = Value_SequenceBase<
+  "sequence$sum",
+  number,
+  number
+>;
