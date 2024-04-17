@@ -14,8 +14,8 @@ export default defineConfig(async (_config) => {
   const opts: CommonOptions = {
     mainEntry: { entry: "lib.ts" },
     otherEntries: [{
-      entry: "essence/standard-scopes.ts",
-      name: "essence/standard-scopes",
+      entry: "essence/builtin-scope.ts",
+      name: "essence/builtin-scope",
     }],
   };
 

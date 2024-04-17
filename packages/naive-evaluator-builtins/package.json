@@ -16,10 +16,10 @@
         "default": "./dist/lib.js"
       }
     },
-    "./essence/standard-scopes": {
+    "./essence/builtin-scope": {
       "import": {
-        "types": "./dist/essence/standard-scopes.d.ts",
-        "default": "./dist/essence/standard-scopes.js"
+        "types": "./dist/essence/builtin-scope.d.ts",
+        "default": "./dist/essence/builtin-scope.js"
       }
     },
     "./internal": "./internal.ts"
@@ -35,9 +35,9 @@
   "license": "MIT",
   "homepage": "https://github.com/umajho/dicexp/tree/main/packages/naive-evaluator-builtins#readme",
   "scripts": {
-    "lint": "just lint",
-    "test": "just test",
-    "build": "just build"
+    "type-check": "tsc --noEmit",
+    "test": "vitest --dir=test --run",
+    "build": "tsup"
   },
   "devDependencies": {
     "@dicexp/build-utils": "workspace:*",

@@ -36,9 +36,14 @@
   "license": "MIT",
   "homepage": "https://github.com/umajho/dicexp/tree/main/packages/naive-evaluator#readme",
   "scripts": {
-    "lint": "just lint",
-    "test": "just test",
-    "build": "just build"
+    "type-check": "tsc --noEmit",
+    "test": "run-s test:*",
+    "test:parsing": "vitest --dir=test/parsing --run",
+    "test:executing": "vitest --dir=test/executing --run",
+    "bench": "run-s bench:*",
+    "bench:parsing": "vitest bench --dir=test/parsing --run",
+    "bench:executing": "vitest bench --dir=test/executing --run",
+    "build": "tsup"
   },
   "peerDependencies": {
     "@lezer/highlight": "^1.1.6",
