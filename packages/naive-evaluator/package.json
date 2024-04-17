@@ -34,7 +34,7 @@
   ],
   "author": "Umaĵo",
   "license": "MIT",
-  "homepage": "https://github.com/umajho/dicexp/tree/main/packages/dicexp#readme",
+  "homepage": "https://github.com/umajho/dicexp/tree/main/packages/naive-evaluator#readme",
   "scripts": {
     "lint": "just lint",
     "test": "just test",

@@ -3,9 +3,16 @@
   "name": "@dicexp/interface",
   "version": "0.4.1",
   "main": "./lib.ts",
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/umajho/dicexp/"
+  },
+  "keywords": [
+    "dicexp"
+  ],
   "author": "Umaĵo",
   "license": "MIT",
+  "homepage": "https://github.com/umajho/dicexp/tree/main/packages/interface#readme",
   "type": "module",
   "sideEffects": false
 }

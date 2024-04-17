@@ -24,9 +24,16 @@
     },
     "./internal": "./internal.ts"
   },
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/umajho/dicexp/"
+  },
+  "keywords": [
+    "dicexp"
+  ],
   "author": "Umaĵo",
   "license": "MIT",
+  "homepage": "https://github.com/umajho/dicexp/tree/main/packages/naive-evaluator-builtins#readme",
   "scripts": {
     "lint": "just lint",
     "test": "just test",
