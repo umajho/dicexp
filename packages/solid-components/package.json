@@ -40,7 +40,6 @@
     "test": "run-s test:*",
     "test:client": "vitest",
     "test:ssr": "vitest --mode ssr",
-    "prepublishOnly": "pnpm build",
     "lint": "run-p lint:*",
     "lint:types": "tsc --noEmit",
     "update-deps": "pnpm up -Li"
