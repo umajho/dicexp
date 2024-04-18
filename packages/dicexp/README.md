@@ -1,39 +1,36 @@
-# dicexp.js
+# <ruby><abbr title="DICe EXPression">Dicexp</abbr><rt>骰子表达式</rt><ruby>
 
-## Usage
+![](https://img.shields.io/badge/WIP-Do%20Not%20Use-yellow)
 
-```javascript
-import { asScope, evaluate } from "dicexp";
-import { functionScope, operatorScope } from "@dicexp/builtins";
+> 谨此纪念 A 岛的跑团版。
 
-// 将 “运算符作用域” 与 “函数作用域” 合并为一个作用域
-const topLevelScope = asScope([operatorScope, functionScope]);
+| <ruby>实验场<rt>Playground</rt></ruby> |         使用文档         |                                                    待办事项                                                     |
+| :------------------------------------: | :----------------------: | :-------------------------------------------------------------------------------------------------------------: |
+|    https://umajho.github.io/dicexp/    | [这里](./docs/Dicexp.md) | [![GitHub issues](https://img.shields.io/github/issues/umajho/dicexp)](https://github.com/umajho/dicexp/issues) |
 
-// 求值
-const result = evaluate(
-  "(sort(10#d100) |> head) + 5d10",
-  { execute: { topLevelScope } },
-);
+Dicexp 是一门用于模拟投掷骰子的领域特定语言。由于这门语言尚处于较为早期的<wbr/>
+开发阶段，尚无成型的标准/规格，因此：
 
-if (result[0] === "ok") {
-  // result 元组为 `["ok", value, appendix]`
-  const resultValue = result[1];
-  console.log("结果：" + resultValue);
-} else if (result[0] === "error") {
-  // result 元组为 `["error", …]`
-  if (result[1] === "parse") {
-    // result 元组为 `["error", "parse", error]`
-    console.log("解析错误：" + result[2].message);
-  } else if (result[1] === "runtime") {
-    // result 元组为 `["error", "runtime", runtimeError, appendix]`
-    console.log("执行错误：" + result[2].message);
-  } else if (result[1] === "other") {
-    // result 元组为 `["error", "other", error]`
-    console.log("其他错误：" + result[2].message);
-  } else {
-    throw new Error("impossible");
-  }
-} else {
-  throw new Error("impossible");
-}
-```
+- 目前将 “[@dicexp/naive-evaluator]” 视为这门语言本身的事实标准；
+- 目前将 “[@dicexp/naive-evaluator-builtins]” 视为这门语言内建函数的事实标准。
+
+“[@dicexp/naive-evaluator]” 也是目前仅有的求值器实现，使用方法请移步该包。
+
+[@dicexp/naive-evaluator]: https://www.npmjs.com/package//@dicexp/naive-evaluator
+[@dicexp/naive-evaluator-builtins]: https://www.npmjs.com/package//@dicexp/naive-evaluator-builtins
+
+## 开发的预备工作
+
+- 安装 [just](https://just.systems)。
+- 安装 [Node.js](https://nodejs.org)、[pnpm](https://pnpm.io)。
+- 安装 tsc、rollup（`pnpm install -g typescript rollup`）。
+- 若涉及 playground：
+  - 安装 brotli：用于构建。
+
+## 文件夹结构
+
+- `internal`：项目内部代码，一般不会发布到 npm 上，即使发布了也完全不会对 API
+  稳定性作保证。
+- `packages`：会发布在 npm 上的库，除主版本 `0` 之外，保证大版本内公开 API
+  的兼容性。
+- `playground`：一个简单的单网页应用，提供最基本的 dicexp 使用体验。

@@ -4,41 +4,48 @@ import { DicexpEvaluation } from "@rotext/solid-components";
 
 import { Unreachable } from "@dicexp/errors";
 import {
-  EvaluateOptionsForWorker,
+  EvaluationGenerationOptions,
+  ExecutionRestrictions,
+  RemoteEvaluationLocalRestrictions,
+  RemoteEvaluationOptions,
+} from "@dicexp/interface";
+import {
   EvaluatingWorkerManager,
-  EvaluationRestrictionsForWorker,
-} from "@dicexp/evaluating-worker-manager/internal";
+} from "@dicexp/naive-evaluator-in-worker/internal";
 
 import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
 
-import { BatchReportForPlayground, ResultRecord } from "../types";
-import { scopesForRuntime } from "../stores/scopes";
+import { ResultRecord, SamplingReportForPlayground } from "../types";
 import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
 
 export type Status = {
   type: "loading"; // worker manager 尚未完成加载
 } | {
   type: "rolling"; // 正在掷骰
-  mode: "single" | "batch";
+  mode: "single" | "sampling";
 } | {
   type: "ready"; // 已准备好求值
 } | {
   type: "invalid"; // 输入存在问题（为空）
 };
 
+export interface AllKindsOfnRestrictions {
+  execution: ExecutionRestrictions;
+  local: RemoteEvaluationLocalRestrictions;
+}
+
 export default function createDicexpEvaluator(
   code: () => string,
   opts: {
-    mode: () => "single" | "batch" | null;
+    mode: () => "single" | "sampling" | null;
     seed: () => number;
     isSeedFrozen: () => boolean;
-    restrictions: () => EvaluationRestrictionsForWorker | null;
-    topLevelScopeName: () => keyof typeof scopesForRuntime;
+    restrictions: () => AllKindsOfnRestrictions | null;
   },
 ) {
   const [loading, setLoading] = createSignal(true);
   const [workerManager, setWorkerManager] = createSignal<
-    EvaluatingWorkerManager<typeof scopesForRuntime> | null
+    EvaluatingWorkerManager | null
   >(null);
   (async () => {
     setWorkerManager(
@@ -54,7 +61,7 @@ export default function createDicexpEvaluator(
     return Number.isInteger(opts.seed());
   };
 
-  const [isRolling, setIsRolling] = createSignal<false | "single" | "batch">(
+  const [isRolling, setIsRolling] = createSignal<false | "single" | "sampling">(
     false,
   );
   const [result, setResult] = createSignal<ResultRecord | null>(null);
@@ -73,7 +80,9 @@ export default function createDicexpEvaluator(
     setResult(null);
     setIsRolling(opts.mode()!);
 
-    const code_ = code(), seed = opts.seed();
+    const code_ = code(),
+      seed = opts.seed(),
+      restrictions = opts.restrictions() ?? undefined;
     const date = new Date();
     // TODO: 更合理的方式是借由 manager 从 worker 中获取。
     const environment: NonNullable<DicexpEvaluation["environment"]> = [
@@ -84,14 +93,22 @@ export default function createDicexpEvaluator(
     switch (opts.mode()) {
       case "single": {
         try {
-          const evalOpts: EvaluateOptionsForWorker<typeof scopesForRuntime> = {
-            execute: {
-              topLevelScopeName: opts.topLevelScopeName() ?? "standard",
-              seed: seed,
+          // execution: restrictions?.execution ?? null,
+          // local:  restrictions?.local ?? null,
+          const evalOpts: RemoteEvaluationOptions = {
+            execution: {
+              seed: opts.seed(),
+              ...(restrictions?.execution
+                ? { restrictions: restrictions.execution }
+                : {}),
             },
-            restrictions: opts.restrictions() ?? undefined,
+            local: {
+              ...(restrictions?.local
+                ? { restrictions: restrictions.local }
+                : {}),
+            },
           };
-          const result = await workerManager()!.evaluate(
+          const result = await workerManager()!.evaluateRemote(
             code_,
             evalOpts,
           );
@@ -104,19 +121,19 @@ export default function createDicexpEvaluator(
         }
         break;
       }
-      case "batch": {
+      case "sampling": {
         try {
-          const evalOpts: EvaluateOptionsForWorker<typeof scopesForRuntime> = {
-            execute: {
-              topLevelScopeName: opts.topLevelScopeName() ?? "standard",
-              // seed 不生效
-            },
-            restrictions: opts.restrictions() ?? undefined,
-          };
-          const [report, setReprot] = //
-            createSignal<BatchReportForPlayground>("preparing");
-          setResult({ type: "batch", code: code_, report, date, environment });
-          await workerManager()!.batch(code_, evalOpts, setReprot);
+          const evalOpts: EvaluationGenerationOptions = {};
+          const code = code_;
+          const g = workerManager()!.keepSampling(code, evalOpts);
+          const [report, setReport] = //
+            createSignal<SamplingReportForPlayground>("preparing");
+          setResult({ type: "sampling", code, report, date, environment });
+          while (true) {
+            const yielded = await g.next();
+            setReport(yielded.value);
+            if (yielded.done) break;
+          }
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
@@ -135,9 +152,9 @@ export default function createDicexpEvaluator(
     workerManager()!.terminateClient();
   }
 
-  function stopBatching() {
-    workerManager()!.stopBatching();
+  function stopSampling() {
+    workerManager()!.stopSampling();
   }
 
-  return { status, roll, result, terminate, stopBatching };
+  return { status, roll, result, terminate, stopSampling };
 }

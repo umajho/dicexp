@@ -1,17 +1,15 @@
 set fallback
 
 prepare:
-	just build-grammar
+	just build-lezer
 
 build: prepare
 	pnpm exec vite build
 	gzip -k dist/**/*.js
 	brotli -k dist/**/*.js
 
-lint: prepare
+type-check: prepare
 	tsc --noEmit
-
-test: lint
 
 serve: build
 	just serve-no-build

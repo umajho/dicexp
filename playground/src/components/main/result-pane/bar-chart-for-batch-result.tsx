@@ -1,13 +1,13 @@
 import { Component, createEffect, createMemo, on, onMount } from "solid-js";
+import { Portal } from "solid-js/web";
 
 import * as d3 from "d3";
 
-import { BatchResult } from "@dicexp/evaluating-worker-manager/internal";
+import { SamplingResult } from "@dicexp/interface";
 import { Unreachable } from "@dicexp/errors";
-import { Portal } from "solid-js/web";
 
-const BarChartForBatchResult: Component<{
-  report: BatchResult;
+const BarChartForSamplingResult: Component<{
+  report: SamplingResult;
   mode: "normal" | "at-least" | "at-most";
   highlighted: number | null;
   setHighlighted: (value: number | null) => void;
@@ -246,4 +246,4 @@ const BarChartForBatchResult: Component<{
     </div>
   );
 };
-export default BarChartForBatchResult;
+export default BarChartForSamplingResult;

@@ -1,6 +1,6 @@
 import { Component, Show } from "solid-js";
 
-import { RuntimeError } from "dicexp/internal";
+import { RuntimeError } from "@dicexp/interface";
 
 export const ErrorAlert: Component<{
   kind?: string;

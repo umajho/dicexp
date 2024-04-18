@@ -11,8 +11,6 @@ import {
   Switch,
 } from "solid-js";
 
-import { EvaluationRestrictionsForWorker } from "@dicexp/evaluating-worker-manager/internal";
-
 import {
   Button,
   Card,
@@ -25,12 +23,14 @@ import {
 
 import * as store from "../../stores/store";
 import { examples } from "../../stores/examples";
-import createDicexpEvaluator from "../../hooks/dicexp-evaluator";
+import createDicexpEvaluator, {
+  AllKindsOfnRestrictions,
+} from "../../hooks/dicexp-evaluator";
 
 const LazyDicexpEditor = lazy(() => import("./dicexp-editor"));
 
 export const ControlPane: Component = () => {
-  const [mode, setMode] = createSignal<"single" | "batch">("single");
+  const [mode, setMode] = createSignal<"single" | "sampling">("single");
 
   const [exampleSelectValue, setExampleSelectValue] = createSignal<string>("");
   createEffect(() => {
@@ -42,7 +42,7 @@ export const ControlPane: Component = () => {
   const [seed, setSeed] = createSignal(0);
   const [isSeedFrozen, setIsSeedFrozen] = createSignal(false);
   const [restrictions, setRestrictions] = createSignal<
-    EvaluationRestrictionsForWorker | null
+    AllKindsOfnRestrictions | null
   >(null);
   const [restrictionsText, setRestrictionsText] = createSignal("");
 
@@ -51,7 +51,6 @@ export const ControlPane: Component = () => {
     seed,
     isSeedFrozen,
     restrictions,
-    topLevelScopeName: () => "standard",
   });
   const rollingMode = () => {
     const theStatus = evaluator.status();
@@ -88,11 +87,11 @@ export const ControlPane: Component = () => {
             <span class="font-bold">单次</span>
           </Tab>
           <Tab
-            isActive={mode() === "batch"}
-            onClick={() => setMode("batch")}
+            isActive={mode() === "sampling"}
+            onClick={() => setMode("sampling")}
             size="lg"
           >
-            <span class="font-bold">批量</span>
+            <span class="font-bold">抽样</span>
           </Tab>
         </Tabs>
 
@@ -136,8 +135,8 @@ export const ControlPane: Component = () => {
                   终止
                 </Button>
               </Match>
-              <Match when={rollingMode() === "batch"}>
-                <Button type="secondary" onClick={evaluator.stopBatching}>
+              <Match when={rollingMode() === "sampling"}>
+                <Button type="secondary" onClick={evaluator.stopSampling}>
                   停止
                 </Button>
               </Match>
@@ -190,9 +189,9 @@ export const ControlPane: Component = () => {
 };
 
 const RestrictionsModal: Component<{
-  mode: "single" | "batch";
+  mode: "single" | "sampling";
   setRestrictions: (
-    restrictions: EvaluationRestrictionsForWorker | null,
+    restrictions: AllKindsOfnRestrictions | null,
   ) => void;
   setRestrictionsText: (text: string) => void;
 }> = (props) => {
@@ -202,17 +201,13 @@ const RestrictionsModal: Component<{
   const [softTimeout, setSoftTimeout] = createSignal(50);
   const [softTimeoutEnabled, setSoftTimeoutEnabled] = createSignal(false);
 
-  const [maxCalls, setMaxCalls] = createSignal(2000);
-  const [maxCallsEnabled, setMaxCallsEnabled] = createSignal(false);
-
-  // TODO: maxClosureCallDepth 最大闭包调用深度
-
   createEffect(() => {
-    const restrictions: EvaluationRestrictionsForWorker = {
-      ...(hardTimeoutEnabled() ? { hardTimeout: { ms: hardTimeout() } } : {}),
-      execute: {
+    const restrictions: AllKindsOfnRestrictions = {
+      execution: {
         ...(softTimeoutEnabled() ? { softTimeout: { ms: softTimeout() } } : {}),
-        ...(maxCallsEnabled() ? { maxCalls: maxCalls() } : {}),
+      },
+      local: {
+        ...(hardTimeoutEnabled() ? { hardTimeout: { ms: hardTimeout() } } : {}),
       },
     };
     if (Object.keys(restrictions).length === 0) {
@@ -230,12 +225,6 @@ const RestrictionsModal: Component<{
     if (softTimeoutEnabled()) {
       items.push(`软性超时=${softTimeout()}ms`);
     }
-    if (maxCallsEnabled()) {
-      items.push(`调用次数=${maxCalls()}`);
-    }
-    // if (maxClosureCallDepthEnabled()) {
-    //   items.push(`最大闭包调用深度=${maxClosureCallDepth()}`);
-    // }
     if (items.length) {
       props.setRestrictionsText("单次限制：" + items.join("，"));
     } else {
@@ -264,7 +253,7 @@ const RestrictionsModal: Component<{
               </OptionalNumberInput>
               <div class="flex justify-center">
                 <div class="text-xs text-gray-400">
-                  （硬性超时在批量模式下不生效）
+                  （硬性超时只在单次模式下生效）
                 </div>
               </div>
             </div>
@@ -277,17 +266,6 @@ const RestrictionsModal: Component<{
             >
               <span title="运行时尝试在超过后停止，保留运行时信息。">
                 软性超时（毫秒）
-              </span>
-            </OptionalNumberInput>
-
-            <OptionalNumberInput
-              number={maxCalls()}
-              setNumber={setMaxCalls}
-              enabled={maxCallsEnabled()}
-              setEnabled={setMaxCallsEnabled}
-            >
-              <span title="直接或间接地调用通常函数、闭包或捕获都会计入。">
-                {"　　" /* 偷个懒，不用正确的方式对齐了 */}最多调用次数
               </span>
             </OptionalNumberInput>
           </div>

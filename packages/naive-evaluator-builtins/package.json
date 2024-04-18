@@ -1,0 +1,55 @@
+{
+  "packageManager": "pnpm@8.10.0",
+  "name": "@dicexp/naive-evaluator-builtins",
+  "version": "0.5.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/lib.d.ts",
+  "module": "./dist/lib.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/lib.d.ts",
+        "default": "./dist/lib.js"
+      }
+    },
+    "./essence/builtin-scope": {
+      "import": {
+        "types": "./dist/essence/builtin-scope.d.ts",
+        "default": "./dist/essence/builtin-scope.js"
+      }
+    },
+    "./internal": "./internal.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/umajho/dicexp/"
+  },
+  "keywords": [
+    "dicexp"
+  ],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "homepage": "https://github.com/umajho/dicexp/tree/main/packages/naive-evaluator-builtins#readme",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "vitest --dir=test --run",
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@dicexp/build-utils": "workspace:*",
+    "@dicexp/errors": "workspace:*",
+    "@dicexp/interface": "workspace:*",
+    "@dicexp/naive-evaluator": "workspace:*",
+    "@dicexp/naive-evaluator-runtime": "workspace:*",
+    "@dicexp/test-utils-for-executing": "workspace:*",
+    "@types/node": "^20.8.6",
+    "esbuild": "^0.18.20",
+    "terser": "^5.21.0",
+    "tsup": "^7.1.0",
+    "vitest": "^0.34.2"
+  }
+}

@@ -3,7 +3,7 @@ export {
 } from "./custom-element";
 
 export type {
-  // 其内含的 `Repr` 已由 dicexp 包引出
+  // 其内含的类型 `Repr` 已由 @dicexp/internal 包引出
   Properties as StepsRepresentationProperties,
 } from "./StepsRepresentation";
 export type {

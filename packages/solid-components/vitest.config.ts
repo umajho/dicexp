@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
 import solidPlugin from "vite-plugin-solid";
 
+// FIXME: 不知为何 TypeScript（包括在 VSCode 里查看以及直接执行 `tsc --noEmit`
+// 来检查类型）抱怨类型有问题，但测试实际可以正常执行。因为不是很重要，就先在
+// tsconfig 里设置排除掉 `*.config.ts` 了。
 export default defineConfig(({ mode }) => {
   // to test in server environment, run with "--mode ssr" or "--mode test:ssr" flag
   // loads only server.test.ts file

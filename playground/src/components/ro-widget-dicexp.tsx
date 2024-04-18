@@ -7,7 +7,7 @@ import {
   RoWidgetDicexpProperties,
 } from "@rotext/solid-components";
 
-import type { Repr } from "dicexp/internal";
+import type { Repr } from "@dicexp/interface";
 
 import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-components/internal";
 

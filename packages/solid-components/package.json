@@ -1,6 +1,6 @@
 {
   "name": "@dicexp/solid-components",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "license": "MIT",
   "author": "Umaĵo",
   "contributors": [],
@@ -36,13 +36,12 @@
   "typesVersions": {},
   "scripts": {
     "dev": "vite serve dev",
-    "build": "just build",
-    "test": "just test",
-    "test:client": "just test-client",
-    "test:ssr": "just test-ssr",
-    "prepublishOnly": "pnpm build",
-    "lint": "just lint",
-    "lint:types": "just lint-types",
+    "build": "tsup",
+    "test": "run-s test:*",
+    "test:client": "vitest",
+    "test:ssr": "vitest --mode ssr",
+    "lint": "run-p lint:*",
+    "lint:types": "tsc --noEmit",
     "update-deps": "pnpm up -Li"
   },
   "peerDependencies": {
@@ -51,8 +50,8 @@
     "solid-js": "^1.8.3"
   },
   "devDependencies": {
+    "@dicexp/interface": "workspace:*",
     "concurrently": "^8.2.0",
-    "dicexp": "workspace:*",
     "esbuild": "^0.18.15",
     "esbuild-plugin-solid": "^0.5.0",
     "jsdom": "^22.1.0",
