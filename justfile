@@ -1,3 +1,5 @@
+test-all: test-solid-components test-naive-evaluator-all
+
 publish-interface:
 	cd packages/interface && pnpm publish --access public
 
