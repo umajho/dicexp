@@ -4,9 +4,9 @@ import Worker from "./container.worker?worker&inline";
 
 export function createWorkerByImportURLs(
   dicexpImportURL: string,
-  scopesImportURL: string,
+  topLevelScopeImportURL: string,
 ): Worker {
   const worker = new Worker();
-  worker.postMessage([dicexpImportURL, scopesImportURL]);
+  worker.postMessage([dicexpImportURL, topLevelScopeImportURL]);
   return worker;
 }
