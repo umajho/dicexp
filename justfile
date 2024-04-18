@@ -4,6 +4,16 @@ publish-interface:
 build-lezer:
 	cd internal/lezer && node scripts/compile-lezer.js ./src/dicexp.grammar
 
+prepare-solid-components:
+lint-solid-components: prepare-solid-components
+	cd packages/solid-components && pnpm run lint
+test-solid-components: prepare-solid-components lint-solid-components
+	cd packages/solid-components && pnpm run test
+build-solid-components: prepare-solid-components test-solid-components
+	cd packages/solid-components && pnpm run build
+publish-solid-components: build-solid-components
+	cd packages/solid-components && pnpm publish --access public
+
 prepare-naive-evaluator: build-lezer
 lint-naive-evaluator: prepare-naive-evaluator
 	cd packages/naive-evaluator && pnpm run type-check
