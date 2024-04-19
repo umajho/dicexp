@@ -107,6 +107,8 @@ importers:
         specifier: ^0.34.2
         version: 0.34.2
 
+  packages/dicexp: {}
+
   packages/interface: {}
 
   packages/naive-evaluator:
