@@ -1,17 +1,14 @@
 import { IconTypes } from "solid-icons";
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
 
-import {
-  RegularFunctionDocumentation,
-  ScopeDocumentation,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import * as builtins from "@dicexp/naive-evaluator-builtins/internal";
 
 export interface ScopeInfo {
   displayName: string;
   icon?: IconTypes;
-  documentation: ScopeDocumentation;
+  documentation: I.ScopeDocumentation;
 }
 
 /**
@@ -39,6 +36,6 @@ export const scopes: ScopeInfo[] = [
 export const totalRegularFunctions =
   builtins.builtinScopeDocumentation.functions.length;
 
-export function getFunctionFullName(doc: RegularFunctionDocumentation) {
+export function getFunctionFullName(doc: I.RegularFunctionDocumentation) {
   return `${doc.name}/${doc.parameters.length}`;
 }

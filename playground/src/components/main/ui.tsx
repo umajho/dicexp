@@ -1,10 +1,10 @@
 import { Component, Show } from "solid-js";
 
-import { RuntimeError } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 export const ErrorAlert: Component<{
   kind?: string;
-  error: Error | RuntimeError;
+  error: Error | I.RuntimeError;
   showsStack: boolean;
 }> = (props) => {
   return (

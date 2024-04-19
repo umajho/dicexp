@@ -1,4 +1,4 @@
-import { EvaluationOptions, SamplingReport } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import {
   EvaluationResult,
@@ -62,7 +62,7 @@ export class Server {
         const code = msg[2], newEvaluatorOpts = msg[3], opts = msg[4];
         if (this.samplingHandler) {
           const error = new Error("已在进行抽样");
-          const data: SamplingReport = ["error", "other", error];
+          const data: I.SamplingReport = ["error", "other", error];
           this.tryPostMessage(["sampling_report", id, data]);
           return;
         }
@@ -133,7 +133,7 @@ function handleEvaluateSingle(
   evaluator: Evaluator,
   id: string,
   code: string,
-  opts: EvaluationOptions,
+  opts: I.EvaluationOptions,
 ): MessageFromServer {
   let result: EvaluationResult;
   try {

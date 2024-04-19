@@ -1,9 +1,4 @@
-import {
-  EvaluationGenerationOptions,
-  RemoteEvaluationOptions,
-  RemoteEvaluatorClient,
-  RemoteSamplerClient,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import { EvaluationResult } from "@dicexp/naive-evaluator/internal";
 
@@ -18,7 +13,7 @@ export interface NewEvaluatingWorkerManagerOptions {
 }
 
 export class EvaluatingWorkerManager
-  implements RemoteEvaluatorClient, RemoteSamplerClient {
+  implements I.RemoteEvaluatorClient, I.RemoteSamplerClient {
   readonly clientOptions: EvaluatingWorkerClientOptions;
 
   private client: EvaluatingWorkerClient | null = null;
@@ -57,7 +52,7 @@ export class EvaluatingWorkerManager
 
   async evaluateRemote(
     code: string,
-    opts: RemoteEvaluationOptions,
+    opts: I.RemoteEvaluationOptions,
   ): Promise<EvaluationResult> {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
@@ -83,7 +78,7 @@ export class EvaluatingWorkerManager
     this.client.terminate();
   }
 
-  keepSampling(code: string, opts: EvaluationGenerationOptions) {
+  keepSampling(code: string, opts: I.EvaluationGenerationOptions) {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }

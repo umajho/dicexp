@@ -3,12 +3,7 @@ import { createSignal } from "solid-js";
 import { DicexpEvaluation } from "@rotext/solid-components";
 
 import { Unreachable } from "@dicexp/errors";
-import {
-  EvaluationGenerationOptions,
-  ExecutionRestrictions,
-  RemoteEvaluationLocalRestrictions,
-  RemoteEvaluationOptions,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 import {
   EvaluatingWorkerManager,
 } from "@dicexp/naive-evaluator-in-worker/internal";
@@ -30,8 +25,8 @@ export type Status = {
 };
 
 export interface AllKindsOfnRestrictions {
-  execution: ExecutionRestrictions;
-  local: RemoteEvaluationLocalRestrictions;
+  execution: I.ExecutionRestrictions;
+  local: I.RemoteEvaluationLocalRestrictions;
 }
 
 export default function createDicexpEvaluator(
@@ -95,7 +90,7 @@ export default function createDicexpEvaluator(
         try {
           // execution: restrictions?.execution ?? null,
           // local:  restrictions?.local ?? null,
-          const evalOpts: RemoteEvaluationOptions = {
+          const evalOpts: I.RemoteEvaluationOptions = {
             execution: {
               seed: opts.seed(),
               ...(restrictions?.execution
@@ -123,7 +118,7 @@ export default function createDicexpEvaluator(
       }
       case "sampling": {
         try {
-          const evalOpts: EvaluationGenerationOptions = {};
+          const evalOpts: I.EvaluationGenerationOptions = {};
           const code = code_;
           const g = workerManager()!.keepSampling(code, evalOpts);
           const [report, setReport] = //

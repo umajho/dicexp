@@ -7,7 +7,7 @@ import {
   RoWidgetDicexpProperties,
 } from "@rotext/solid-components";
 
-import type { Repr } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-components/internal";
 
@@ -40,7 +40,7 @@ registerCustomElementForRoWidgetDicexp("dicexp-example", {
 declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
-      "steps-representation": { repr: Repr };
+      "steps-representation": { repr: I.Repr };
       "dicexp-result": RoWidgetDicexpProperties;
       "dicexp-example": Omit<RoWidgetDicexpProperties, "evaluation">;
     }

@@ -18,10 +18,7 @@ import {
   registerRoWidgetOwner,
 } from "@rotext/solid-components";
 
-import {
-  RegularFunctionDocumentation,
-  RegularFunctionParameterTypeSpec,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 import { localizeValueType } from "@dicexp/l10n";
 
 import { VsSymbolMethod, VsSymbolOperator } from "solid-icons/vs";
@@ -113,7 +110,7 @@ const RegularFunctionsTab: Component = () => {
     if (!/^\d+$/.test(arityText)) return { lowerName };
     return { lowerName: lowerName.slice(0, i), arity: parseInt(arityText) };
   });
-  const filteredFnDocs = createMemo((): RegularFunctionDocumentation[] => {
+  const filteredFnDocs = createMemo((): I.RegularFunctionDocumentation[] => {
     let filtered = selectedScope().documentation.functions
       .filter((doc) => {
         return doc.groups.some((group) => enabledGroups[group]);
@@ -137,7 +134,7 @@ const RegularFunctionsTab: Component = () => {
         const maxScore = Math.max(...scores);
         if (maxScore < 0) return acc;
         return [...acc, { score: maxScore, doc }];
-      }, [] as { score: number; doc: RegularFunctionDocumentation }[])
+      }, [] as { score: number; doc: I.RegularFunctionDocumentation }[])
         .sort((a, b) =>
           a.score !== b.score
             ? b.score - a.score
@@ -224,7 +221,7 @@ const breakpoints = createBreakpoints({
 });
 
 export const FunctionCardMasonry: Component<{
-  items: RegularFunctionDocumentation[];
+  items: I.RegularFunctionDocumentation[];
 }> = (props) => {
   const columns = createMemo(() => {
     if (breakpoints.four) return 4;
@@ -233,7 +230,7 @@ export const FunctionCardMasonry: Component<{
     return 1;
   });
 
-  const cardMemos = new Map<RegularFunctionDocumentation, HTMLElement>();
+  const cardMemos = new Map<I.RegularFunctionDocumentation, HTMLElement>();
   const cards = () =>
     props.items.map((doc) => {
       const memo = cardMemos.get(doc);
@@ -255,7 +252,7 @@ export const FunctionCardMasonry: Component<{
 };
 
 export const FunctionCard: Component<{
-  doc: RegularFunctionDocumentation;
+  doc: I.RegularFunctionDocumentation;
 }> = (props) => {
   let widgetOwnerEl!: HTMLDivElement,
     widgetAnchorEl!: HTMLDivElement;
@@ -414,7 +411,7 @@ export const TypeNameBadgeList: Component<{ typeNames: string[] }> = (
 };
 
 function getPossibleTypeDisplayNameList(
-  t: RegularFunctionParameterTypeSpec,
+  t: I.RegularFunctionParameterTypeSpec,
 ): string[] {
   if (t === "*") return ["任意"];
   if (t === "$lazy") return ["惰性（不检查）"];

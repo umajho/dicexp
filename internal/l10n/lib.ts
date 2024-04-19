@@ -1,6 +1,6 @@
-import { ValueType } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
-export function localizeValueType(vt: ValueType) {
+export function localizeValueType(vt: I.ValueType) {
   switch (vt) {
     case "integer":
       return "整数";

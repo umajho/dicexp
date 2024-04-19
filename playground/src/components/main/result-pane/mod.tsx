@@ -15,11 +15,7 @@ import {
   registerRoWidgetOwner,
 } from "@rotext/solid-components";
 
-import {
-  EvaluationResult,
-  ExecutionAppendix,
-  SamplingReport,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import {
   VsChevronDown,
@@ -171,7 +167,7 @@ const SingleResultBlock: Component<
   {
     i: number;
     code: string;
-    result: EvaluationResult;
+    result: I.EvaluationResult;
     date: Date;
     environment?: NonNullable<DicexpEvaluation["environment"]>;
   }
@@ -182,7 +178,7 @@ const SingleResultBlock: Component<
     if (!props.result) return null;
 
     let result: DicexpEvaluation["result"];
-    let appendix: ExecutionAppendix | undefined;
+    let appendix: I.ExecutionAppendix | undefined;
 
     if (props.result[0] === "ok") {
       result = ["value", props.result[1]];
@@ -262,7 +258,7 @@ const SamplingResultBlock: Component<{
             </div>
           }
         >
-          <SamplingResultCard report={props.report() as SamplingReport} />
+          <SamplingResultCard report={props.report() as I.SamplingReport} />
         </Show>
       </h2>
     </div>

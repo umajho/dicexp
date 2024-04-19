@@ -1,11 +1,11 @@
 import { precedenceTable } from "@dicexp/lezer";
 
-import { Repr } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import { createRepr } from "./factory";
 import { ReprInRuntime } from "./repr-in-runtime";
 
-export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
+export function finalizeRepr(rtmRepr: ReprInRuntime | I.Repr): I.Repr {
   switch (/* type */ rtmRepr[0]) {
     case "@":
       return finalizeRepr(rtmRepr[1]());
@@ -28,7 +28,7 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
       const surplusAddends = rtmRepr[3]?.()?.map((item) => finalizeRepr(item));
       return ["vs", sum, addends, surplusAddends];
     case "i":
-      if (!(/* value */ rtmRepr[2])) return rtmRepr as Repr;
+      if (!(/* value */ rtmRepr[2])) return rtmRepr as I.Repr;
       return ["i", rtmRepr[1], finalizeRepr(rtmRepr[2])];
     case "cr@":
       const args = rtmRepr[3]?.map((arg) => finalizeRepr(arg()));
@@ -72,8 +72,8 @@ export function finalizeRepr(rtmRepr: ReprInRuntime | Repr): Repr {
 
 function tryCreateReprForCallGroupOfOperatorsWithSamePrecedence(
   repr: ReprInRuntime & { 0: "cr@" },
-  args: Repr[] | undefined,
-): (Repr & { 0: "c$" }) | null {
+  args: I.Repr[] | undefined,
+): (I.Repr & { 0: "c$" }) | null {
   if (/* style */ repr[1] !== "o" || args?.length !== 2) return null;
 
   const lArg = args[0]!; // left argument

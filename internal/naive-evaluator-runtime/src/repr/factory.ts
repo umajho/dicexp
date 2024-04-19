@@ -9,7 +9,7 @@ import {
 import { ValueBox } from "../value-boxes/mod";
 import { ReprInRuntime } from "./repr-in-runtime";
 
-import { Repr } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 const unevaluated: ["_"] = ["_"];
 
@@ -182,10 +182,10 @@ export const createRepr = {
    * 自身之外，位于运算符（包括 `|>`）的一侧时需要括号包围，如：`(1 + 2 + 3 = 6) * 3`。
    */
   calls_ord_bin_op(
-    head: Repr,
-    tail: [callee: string, rightArg: Repr][],
-    result?: Repr,
-  ): Repr & { 0: "c$" } {
+    head: I.Repr,
+    tail: [callee: string, rightArg: I.Repr][],
+    result?: I.Repr,
+  ): I.Repr & { 0: "c$" } {
     return ["c$", head, tail, result];
   },
 

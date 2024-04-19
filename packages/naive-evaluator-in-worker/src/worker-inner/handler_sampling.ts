@@ -1,35 +1,27 @@
 import { Unreachable } from "@dicexp/errors";
-import {
-  EvaluationGenerationOptions,
-  EvaluationGenerator,
-  MakeEvaluationGeneratorResult,
-  RuntimeError,
-  SamplingReport,
-  SamplingResult,
-  SamplingStatistic,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import type { Evaluator } from "@dicexp/naive-evaluator/internal";
 
 import { Server } from "./server";
 
 export class SamplingHandler {
-  private readonly result: SamplingResult = { samples: 0, counts: {} };
-  private readonly statis: SamplingStatistic | null = null;
+  private readonly result: I.SamplingResult = { samples: 0, counts: {} };
+  private readonly statis: I.SamplingStatistic | null = null;
 
-  private shouldStop: boolean | Error | RuntimeError = false;
+  private shouldStop: boolean | Error | I.RuntimeError = false;
 
   constructor(
     evaluator: Evaluator,
     private readonly id: string,
     code: string,
-    opts: EvaluationGenerationOptions,
+    opts: I.EvaluationGenerationOptions,
     private server: Server,
     private readonly stoppedCb: () => void,
   ) {
     const nowMs = Date.now();
 
-    let makeGeneratorResult = ((): MakeEvaluationGeneratorResult => {
+    let makeGeneratorResult = ((): I.MakeEvaluationGeneratorResult => {
       try {
         return evaluator.makeEvaluationGenerator(code, opts);
       } catch (e) {
@@ -57,7 +49,7 @@ export class SamplingHandler {
 
   private initSamplingReporter() {
     const intervalId = setInterval(() => {
-      let report: SamplingReport;
+      let report: I.SamplingReport;
 
       if (this.shouldStop) {
         if (this.shouldStop instanceof Error) {
@@ -69,7 +61,7 @@ export class SamplingHandler {
           } else {
             const err = new Error(
               "某次求值时遭遇运行时错误：" +
-                (this.shouldStop satisfies RuntimeError).message,
+                (this.shouldStop satisfies I.RuntimeError).message,
             );
             report = ["error", "sampling", err, this.result, this.statis];
           }
@@ -86,12 +78,12 @@ export class SamplingHandler {
     }, this.server.init.samplingReportInterval.ms);
   }
 
-  private markSamplingToStop(error?: Error | RuntimeError) {
+  private markSamplingToStop(error?: Error | I.RuntimeError) {
     this.shouldStop = error ? error : true;
     this.statis!.now.ms = Date.now();
   }
 
-  private async samplingLoop(generator: EvaluationGenerator) {
+  private async samplingLoop(generator: I.EvaluationGenerator) {
     while (true) {
       const durationSinceLastHB = Date.now() - this.server.pulser.lastHeartbeat;
       if (durationSinceLastHB > this.server.init.minHeartbeatInterval.ms) {

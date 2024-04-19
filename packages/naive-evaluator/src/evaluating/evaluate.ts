@@ -4,15 +4,7 @@ import { prng_xorshift7 } from "esm-seedrandom";
 
 import { Unreachable } from "@dicexp/errors";
 
-import {
-  EvaluationGenerationOptions,
-  EvaluationGenerator,
-  EvaluationOptions,
-  Evaluator as IEvaluator,
-  ExecutionRestrictions,
-  JSValue,
-  MakeEvaluationGeneratorResult,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import { Node, parse, ParseError, ParseResult } from "../parsing/mod";
 
@@ -27,7 +19,7 @@ import {
 } from "../executing/mod";
 
 export type EvaluationResult =
-  | ["ok", JSValue, ExecutionAppendix]
+  | ["ok", I.JSValue, ExecutionAppendix]
   | ["error", "parse", ParseError]
   | ["error", "runtime", RuntimeError, ExecutionAppendix]
   | ["error", "other", Error];
@@ -37,7 +29,7 @@ export interface NewEvaluatorOptions {
   randomSourceMaker: ((seed: number) => RandomSource) | "xorshift7";
 }
 
-export class Evaluator implements IEvaluator {
+export class Evaluator implements I.Evaluator {
   private topLevelScope!: Scope;
   private randomSourceMaker!: (seed: number) => RandomSource;
 
@@ -66,7 +58,7 @@ export class Evaluator implements IEvaluator {
 
   execute(
     node: Node,
-    opts: { seed: number; restrictions?: ExecutionRestrictions },
+    opts: { seed: number; restrictions?: I.ExecutionRestrictions },
   ): ExecutionResult {
     return execute(node, {
       topLevelScope: this.topLevelScope,
@@ -79,7 +71,7 @@ export class Evaluator implements IEvaluator {
 
   evaluate(
     code: string,
-    opts: EvaluationOptions,
+    opts: I.EvaluationOptions,
   ): EvaluationResult {
     const parseResult = this.parse(code);
     if (parseResult[0] === "error") return ["error", "parse", parseResult[1]];
@@ -96,15 +88,15 @@ export class Evaluator implements IEvaluator {
 
   makeEvaluationGenerator(
     code: string,
-    _opts: EvaluationGenerationOptions,
-  ): MakeEvaluationGeneratorResult {
+    _opts: I.EvaluationGenerationOptions,
+  ): I.MakeEvaluationGeneratorResult {
     const zis = this;
 
     const parseResult = this.parse(code);
     if (parseResult[0] === "error") return ["error", "parse", parseResult[1]];
     return [
       "ok",
-      (function* (): EvaluationGenerator {
+      (function* (): I.EvaluationGenerator {
         const node = parseResult[1];
 
         // TODO: seed 到达最大有效值后停止循环（要报错吗？），

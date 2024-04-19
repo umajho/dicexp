@@ -1,9 +1,6 @@
 import { Unreachable } from "@dicexp/errors";
 
-import {
-  RegularFunctionDocumentation,
-  ScopeDocumentation,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import {
   asScope,
@@ -58,9 +55,9 @@ export const builtinScopeDocumentation = mergeScopeDocumentations([
  */
 function makeScopeDocumentation<
   T extends readonly RegularFunctionDeclaration[],
->(decls: T, docs: DeclarationListToDocumentationMap<T>): ScopeDocumentation {
+>(decls: T, docs: DeclarationListToDocumentationMap<T>): I.ScopeDocumentation {
   return {
-    functions: decls.map((decl): RegularFunctionDocumentation => {
+    functions: decls.map((decl): I.RegularFunctionDocumentation => {
       const fullName = `${decl.name}/${decl.parameters.length}`;
       // @ts-ignore
       const doc: RegularFunctionRawDocumentation = docs[fullName];
@@ -102,8 +99,8 @@ function makeScopeDocumentation<
  * TODO: 移到更合适的地方去。
  */
 function mergeScopeDocumentations(
-  docs: ScopeDocumentation[],
-): ScopeDocumentation {
+  docs: I.ScopeDocumentation[],
+): I.ScopeDocumentation {
   return {
     functions: docs.flatMap((doc) => doc.functions),
   };

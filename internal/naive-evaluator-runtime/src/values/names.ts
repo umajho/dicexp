@@ -1,5 +1,5 @@
 import { Unreachable } from "@dicexp/errors";
-import { ValueType } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 import { localizeValueType } from "@dicexp/l10n";
 
 import { Value } from "./types";
@@ -17,7 +17,7 @@ export function getValueTypeName(v: Value) {
 }
 
 export type ValueTypeName = ReturnType<typeof getValueTypeName>;
-((v: ValueTypeName): ValueType => v); // 检查类型
+((v: ValueTypeName): I.ValueType => v); // 检查类型
 
 export function getTypeDisplayName(name: ValueTypeName): string {
   return localizeValueType(name);

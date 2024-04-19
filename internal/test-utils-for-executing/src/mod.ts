@@ -7,13 +7,7 @@ import { inspect } from "util";
 
 import { Unreachable } from "@dicexp/errors";
 
-import {
-  EvaluationOptions,
-  EvaluationResult,
-  Evaluator,
-  ExecutionRestrictions,
-  JSValue,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import {
   createRuntimeError,
@@ -25,20 +19,20 @@ export interface EvaluationOptionsForTest {
   parse?: {};
   execution?: {
     seed?: number;
-    restrictions?: ExecutionRestrictions;
+    restrictions?: I.ExecutionRestrictions;
   };
 }
 
 export class EvaluationTester {
   constructor(
-    private readonly evaluator: Evaluator,
+    private readonly evaluator: I.Evaluator,
   ) {}
 
   evaluate(
     code: string,
     opts?: EvaluationOptionsForTest,
-  ): EvaluationResult {
-    const realOpts: EvaluationOptions = {
+  ): I.EvaluationResult {
+    const realOpts: I.EvaluationOptions = {
       parse: {
         ...opts?.parse,
       },
@@ -57,7 +51,7 @@ export class EvaluationTester {
     code: string,
     expectedResult: unknown | undefined,
     opts?: EvaluationOptionsForTest,
-  ): JSValue {
+  ): I.JSValue {
     const result = this.evaluate(code, opts);
     if (result[0] === "ok") {
       const value = result[1];
@@ -204,7 +198,7 @@ export class EvaluationTester {
     assert(new Set(results).size > 1);
   }
 
-  theyAreOk<T extends JSValue = JSValue>(
+  theyAreOk<T extends I.JSValue = I.JSValue>(
     table: ([string, T] | string)[],
     opts?: EvaluationOptionsForTest,
   ) {
@@ -223,14 +217,14 @@ export class EvaluationTester {
   }
 }
 
-export function assertNumber(result: EvaluationResult): number {
+export function assertNumber(result: I.EvaluationResult): number {
   assert(result[0] === "ok");
 
   assert.deepEqual(typeof result[1], "number");
   return result[1] as number;
 }
 
-export function assertNumberArray(result: EvaluationResult): number[] {
+export function assertNumberArray(result: I.EvaluationResult): number[] {
   assert(result[0] === "ok");
 
   assert(Array.isArray(result[1]));

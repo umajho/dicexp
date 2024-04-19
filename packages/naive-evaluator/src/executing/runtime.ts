@@ -1,10 +1,5 @@
 import { Unimplemented, Unreachable } from "@dicexp/errors";
-import {
-  ExecutionAppendix as BasicExecutionAppendix,
-  ExecutionRestrictions,
-  ExecutionStatistics as BasicExecutionStatistics,
-  JSValue,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 import {
   Node,
   Node_RegularCall,
@@ -41,7 +36,7 @@ export interface RuntimeOptions {
    */
   topLevelScope: Scope;
   randomSource: RandomSource;
-  restrictions: ExecutionRestrictions;
+  restrictions: I.ExecutionRestrictions;
   // TODO: noRepresentations
   // TODO: noStatistics
 }
@@ -57,16 +52,16 @@ interface StatisticsUnfinished {
   calls?: number;
 }
 
-export type ExecutionStatistics = BasicExecutionStatistics & {
+export type ExecutionStatistics = I.ExecutionStatistics & {
   calls?: number;
 };
 
-export type ExecutionAppendix = BasicExecutionAppendix & {
+export type ExecutionAppendix = I.ExecutionAppendix & {
   statistics: ExecutionStatistics;
 };
 
 export type ExecutionResult =
-  | ["ok", JSValue, ExecutionAppendix]
+  | ["ok", I.JSValue, ExecutionAppendix]
   | ["error", "runtime", RuntimeError, ExecutionAppendix];
 
 export class Runtime {
@@ -81,7 +76,7 @@ export class Runtime {
 
   private _rng: RandomGenerator;
 
-  private _restrictions: ExecutionRestrictions;
+  private _restrictions: I.ExecutionRestrictions;
   private _statistics: StatisticsUnfinished;
   reporter: RuntimeReporter;
 
@@ -289,7 +284,7 @@ export interface RuntimeProxy extends RuntimeProxyForFunction {
 
 function getFinalValue(
   valueBox: ValueBox,
-): ["ok", JSValue] | ["error", "runtime", RuntimeError] {
+): ["ok", I.JSValue] | ["error", "runtime", RuntimeError] {
   const result = valueBox.get();
   if (result[0] === "error") return ["error", "runtime", result[1]];
   // result[0] === "ok"
@@ -309,8 +304,8 @@ function getFinalValue(
 
 function getFinalValueOfList(
   list: Value_List,
-): ["ok", JSValue] | ["error", "runtime", RuntimeError] {
-  const resultList: JSValue = Array(list.length);
+): ["ok", I.JSValue] | ["error", "runtime", RuntimeError] {
+  const resultList: I.JSValue = Array(list.length);
   for (const [i, elem] of list.entries()) {
     let result = getFinalValue(elem);
     if (result[0] === "error") return result;

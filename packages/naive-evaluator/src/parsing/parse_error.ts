@@ -1,11 +1,11 @@
-import { ParseError as BasicParseError } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 export interface Range {
   from: number;
   to: number;
 }
 
-export interface ParseError extends BasicParseError {}
+export interface ParseError extends I.ParseError {}
 
 export const createParseError = {
   generalGrammar(source: string, ranges: Range[]): ParseError {

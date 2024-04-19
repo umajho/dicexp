@@ -1,6 +1,6 @@
 import { assert, describe, it } from "vitest";
 
-import { ExecutionRestrictions, JSValue } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import {
   assertNumber,
@@ -51,7 +51,7 @@ describe("值", () => {
 
   describe("列表", () => {
     describe("可以解析列表", () => {
-      tester.theyAreOk<JSValue[]>([
+      tester.theyAreOk<I.JSValue[]>([
         ["[]", []],
         ["[true]", [true]],
         ["[1, 2, 3]", [1, 2, 3]],
@@ -149,7 +149,7 @@ describe("值", () => {
   describe("函数", () => {
     describe("通常函数", () => {
       describe("可以用", () => {
-        tester.theyAreOk<JSValue>([
+        tester.theyAreOk<I.JSValue>([
           ["sum([1, 2, 3])", 6],
           ["zip([1, 2], [3, 4])", [[1, 3], [2, 4]]],
           ["[1, 2, 3] |> head", 1],
@@ -172,7 +172,7 @@ describe("值", () => {
 
     describe("闭包", () => {
       describe("可以用", () => {
-        tester.theyAreOk<JSValue>([
+        tester.theyAreOk<I.JSValue>([
           [String.raw`[2, 3, 5, 7] |> filter(\($x -> $x >= 5))`, [5, 7]],
           [String.raw`[2, 3, 5, 7] |> filter \($x -> $x >= 5)`, [5, 7]],
           [String.raw`\($a, $b -> $a + $b).(1, 2)`, 3],
@@ -316,7 +316,7 @@ describe("从管道的测试那里移过来的", () => {
     [String.raw`10 |> \($x, $y -> $x*2).(20)`, 20],
     ["10 |> &-/1.()", -10],
     ["10 |> &-/2.(20)", -10],
-  ] as [string, JSValue][]);
+  ] as [string, I.JSValue][]);
 });
 
 describe("限制", () => {
@@ -355,7 +355,7 @@ describe("限制", () => {
 
   describe("外加限制", () => {
     describe("软性超时", () => { // FIXME: 应该用 fake time
-      const restrictions: ExecutionRestrictions = { softTimeout: { ms: 10 } };
+      const restrictions: I.ExecutionRestrictions = { softTimeout: { ms: 10 } };
       const opts: EvaluationOptionsForTest = { execution: { restrictions } };
       it("未超时则无影响", () => {
         tester.assertExecutionOk(`${1}`, undefined, opts);

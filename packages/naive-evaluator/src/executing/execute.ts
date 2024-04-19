@@ -1,4 +1,4 @@
-import { ExecutionRestrictions } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import { Node } from "@dicexp/nodes";
 import { Scope } from "@dicexp/naive-evaluator-runtime/scopes";
@@ -9,7 +9,7 @@ export type { ExecutionResult } from "./runtime";
 
 export interface ExecutionOptions {
   topLevelScope: Scope;
-  restrictions?: ExecutionRestrictions;
+  restrictions?: I.ExecutionRestrictions;
   randomSource: RandomSource;
 }
 

@@ -1,6 +1,6 @@
 import type { Component } from "solid-js";
 
-import { Repr } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import styles from "./App.module.css";
 
@@ -11,7 +11,7 @@ registerCustomElementForStepsRepresentation("steps-representation");
 declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
-      "steps-representation": { repr: Repr };
+      "steps-representation": { repr: I.Repr };
     }
   }
 }

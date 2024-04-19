@@ -3,11 +3,11 @@ import { Portal } from "solid-js/web";
 
 import * as d3 from "d3";
 
-import { SamplingResult } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 import { Unreachable } from "@dicexp/errors";
 
 const BarChartForSamplingResult: Component<{
-  report: SamplingResult;
+  report: I.SamplingResult;
   mode: "normal" | "at-least" | "at-most";
   highlighted: number | null;
   setHighlighted: (value: number | null) => void;

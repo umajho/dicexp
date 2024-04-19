@@ -14,11 +14,7 @@ import {
 import { Card, Loading } from "../../ui/mod";
 import { ErrorAlert } from "../ui";
 
-import {
-  SamplingReport,
-  SamplingResult,
-  SamplingStatistic,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import { ErrorWithType, getErrorDisplayInfo } from "../../../misc";
 
@@ -31,15 +27,15 @@ const numberFormat = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 3,
 });
 
-export const SamplingResultCard: Component<{ report: SamplingReport }> = (
+export const SamplingResultCard: Component<{ report: I.SamplingReport }> = (
   props,
 ) => {
-  const [statis, setStatis] = createSignal<SamplingStatistic | null>(null),
-    [result, setResult] = createSignal<SamplingResult | null>(null),
+  const [statis, setStatis] = createSignal<I.SamplingStatistic | null>(null),
+    [result, setResult] = createSignal<I.SamplingResult | null>(null),
     [error, setError] = createSignal<ErrorWithType | null>(null);
   createEffect(on([() => props.report], () => {
-    let statis_: SamplingStatistic | null = null,
-      result_: SamplingResult | null = null,
+    let statis_: I.SamplingStatistic | null = null,
+      result_: I.SamplingResult | null = null,
       error_: ErrorWithType | null = null;
     if (props.report[0] === "continue" || props.report[0] === "stop") {
       statis_ = props.report[2], result_ = props.report[1];
@@ -166,7 +162,7 @@ export const SamplingResultCard: Component<{ report: SamplingReport }> = (
 };
 
 const LazyBarChartForBatchResultWithSuspense: Component<{
-  report: () => SamplingResult;
+  report: () => I.SamplingResult;
   mode: () => "normal" | "at-least" | "at-most";
   highlighted: () => number | null;
   setHighlighted: (value: number | null) => void;

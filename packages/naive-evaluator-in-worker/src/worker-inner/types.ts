@@ -1,8 +1,4 @@
-import {
-  EvaluationGenerationOptions,
-  EvaluationOptions,
-  SamplingReport,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import type {
   EvaluationResult,
@@ -18,14 +14,14 @@ export type MessageToServer =
     id: string,
     code: string,
     newEvaluatorOpts: NewEvaluatorOptionsForWorker,
-    opts: EvaluationOptions,
+    opts: I.EvaluationOptions,
   ]
   | [
     type: "sample_start",
     id: string,
     code: string,
     newEvaluatorOpts: NewEvaluatorOptionsForWorker,
-    opts: EvaluationGenerationOptions,
+    opts: I.EvaluationGenerationOptions,
   ]
   | [type: "sample_stop", id: string];
 
@@ -36,7 +32,7 @@ export type InitialMessageFromWorker =
 export type MessageFromServer =
   | [type: "heartbeat"]
   | [type: "evaluate_result", id: string, result: EvaluationResult]
-  | [type: "sampling_report", id: string, report: SamplingReport]
+  | [type: "sampling_report", id: string, report: I.SamplingReport]
   | [type: "fatal", reason?: string];
 
 export interface NewEvaluatorOptionsForWorker {

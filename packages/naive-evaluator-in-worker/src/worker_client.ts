@@ -1,11 +1,5 @@
 import type { EvaluationResult } from "@dicexp/naive-evaluator/internal";
-import type {
-  EvaluationGenerationOptions,
-  EvaluationOptions,
-  SamplingErrorReport,
-  SamplingOkReport,
-  SamplingReport,
-} from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 import { Unreachable } from "@dicexp/errors";
 
 import { proxyErrorFromWorker } from "./error_from_worker";
@@ -41,12 +35,12 @@ export interface EvaluatingWorkerClientEvaluationOptions {
   hardTimeout: { ms: number } | null;
 
   newEvaluator: NewEvaluatorOptionsForWorker;
-  evaluation: EvaluationOptions;
+  evaluation: I.EvaluationOptions;
 }
 
 export interface EvaluatingWorkerClientSamplingOptions {
   newEvaluator: NewEvaluatorOptionsForWorker;
-  evaluationGeneration: EvaluationGenerationOptions;
+  evaluationGeneration: I.EvaluationGenerationOptions;
 }
 
 export class EvaluatingWorkerClient {
@@ -80,7 +74,7 @@ export class EvaluatingWorkerClient {
     | [
       name: "sampling_processing",
       id: string,
-      report: (r: SamplingReport) => void,
+      report: (r: I.SamplingReport) => void,
       resolve: () => void,
     ] = ["idle"];
 
@@ -316,9 +310,9 @@ export class EvaluatingWorkerClient {
     code: string,
     opts: EvaluatingWorkerClientSamplingOptions,
   ) {
-    let promise!: Promise<SamplingReport>;
-    let resolve!: (v: SamplingReport) => void;
-    function makeReportPromise(): Promise<SamplingReport> {
+    let promise!: Promise<I.SamplingReport>;
+    let resolve!: (v: I.SamplingReport) => void;
+    function makeReportPromise(): Promise<I.SamplingReport> {
       return new Promise((r) => resolve = r);
     }
     promise = makeReportPromise();
@@ -331,9 +325,9 @@ export class EvaluatingWorkerClient {
     while (true) {
       const report = await promise;
       if (report[0] === "continue") {
-        yield report as SamplingOkReport<"continue">;
+        yield report as I.SamplingOkReport<"continue">;
       } else {
-        return report as SamplingOkReport<"stop"> | SamplingErrorReport;
+        return report as I.SamplingOkReport<"stop"> | I.SamplingErrorReport;
       }
     }
   }
@@ -341,7 +335,7 @@ export class EvaluatingWorkerClient {
   private async _keepSampling(
     code: string,
     opts: EvaluatingWorkerClientSamplingOptions,
-    reporter: (r: SamplingReport) => void,
+    reporter: (r: I.SamplingReport) => void,
   ) {
     return new Promise<void>((resolve, reject) => {
       if (this.taskState[0] !== "idle") {
@@ -364,7 +358,7 @@ export class EvaluatingWorkerClient {
     });
   }
 
-  handleSamplingReport(id: string, report: SamplingReport) {
+  handleSamplingReport(id: string, report: I.SamplingReport) {
     this.assertTaskStateName("sampling_processing");
     if (this.taskState[0] !== "sampling_processing") { // TS 类型推断
       throw new Unreachable();

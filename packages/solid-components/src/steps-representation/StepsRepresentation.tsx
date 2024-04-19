@@ -19,7 +19,7 @@ import {
   HiSolidTrash,
 } from "solid-icons/hi";
 
-import { Repr } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 import { RepresentationContext, RepresentationContextData } from "./context";
 import { ColorScheme, RGBColor } from "./color-scheme";
@@ -38,7 +38,7 @@ const ListItemsContext = createContext<
 >(null);
 
 export type Properties =
-  & { repr: Repr }
+  & { repr: I.Repr }
   & Partial<RepresentationContextData>;
 
 export const StepsRepresentation: Component<Properties> = (props) => {
@@ -121,7 +121,7 @@ color: rgb(${colorScheme.default.text.join(",")});
   ].join("\n");
 }
 
-const Step: Component<{ repr: Repr }> = (props) => {
+const Step: Component<{ repr: I.Repr }> = (props) => {
   const context = useContext(RepresentationContext)!;
 
   const ContentComp = createContentComponentForRepr(props.repr, context);
@@ -132,7 +132,7 @@ const Step: Component<{ repr: Repr }> = (props) => {
 type ContentComponent = Component<{}>;
 
 function createContentComponentForRepr(
-  repr: Repr,
+  repr: I.Repr,
   ctx: RepresentationContextData,
 ): ContentComponent {
   // @ts-ignore ts(2590)
@@ -141,8 +141,8 @@ function createContentComponentForRepr(
 }
 
 const createContentComponent: {
-  [key in Repr[0]]: (
-    repr: Extract<Repr, { 0: key }>,
+  [key in I.Repr[0]]: (
+    repr: Extract<I.Repr, { 0: key }>,
     ctx: RepresentationContextData,
   ) => ContentComponent;
 } = {
@@ -266,7 +266,7 @@ const createContentComponent: {
         if (args.length === 1) {
           return c.regularAsUnaryOperator(callee, args[0]!, Result, ctx);
         } else if (args.length === 2) {
-          const operands = args as [Repr, Repr];
+          const operands = args as [I.Repr, I.Repr];
           return c.regularAsBinaryOperator(callee, operands, Result, ctx);
         }
         throw new Error(
@@ -429,7 +429,7 @@ const createContentComponent: {
 const createContentComponentForReprCall = {
   regularAsFunction(
     callee: string,
-    args: Repr[],
+    args: I.Repr[],
     Result: Component | undefined,
     { colorScheme }: RepresentationContextData,
   ) {
@@ -454,7 +454,7 @@ const createContentComponentForReprCall = {
   },
   regularAsUnaryOperator(
     callee: string,
-    operand: Repr,
+    operand: I.Repr,
     Result: Component | undefined,
     { colorScheme }: RepresentationContextData,
   ) {
@@ -499,7 +499,7 @@ const createContentComponentForReprCall = {
   },
   regularAsBinaryOperator(
     callee: string,
-    operands: [Repr, Repr],
+    operands: [I.Repr, I.Repr],
     Result: Component | undefined,
     { colorScheme }: RepresentationContextData,
   ) {
@@ -529,8 +529,8 @@ const createContentComponentForReprCall = {
   },
   regularAsPiped(
     callee: string,
-    headArg: Repr,
-    tailArgs: Repr[],
+    headArg: I.Repr,
+    tailArgs: I.Repr[],
     Result: Component | undefined,
     { colorScheme }: RepresentationContextData,
   ) {
@@ -568,7 +568,7 @@ const createContentComponentForReprCall = {
 
   valueAsFunction(
     Callee: Component,
-    args: Repr[],
+    args: I.Repr[],
     Result: Component | undefined,
     _: RepresentationContextData,
   ) {
@@ -603,8 +603,8 @@ const createContentComponentForReprCall = {
   },
   valueAsPiped(
     Callee: Component,
-    headArg: Repr,
-    tailArgs: Repr[],
+    headArg: I.Repr,
+    tailArgs: I.Repr[],
     Result: Component | undefined,
     { colorScheme }: RepresentationContextData,
   ) {
@@ -644,8 +644,8 @@ const createContentComponentForReprCall = {
   },
 
   groupOfRegularOperators(
-    head: Repr,
-    tail: [string, Repr][],
+    head: I.Repr,
+    tail: [string, I.Repr][],
     Result: Component | undefined,
     { colorScheme }: RepresentationContextData,
   ) {
@@ -691,8 +691,8 @@ const ListLike: Component<{
 
   isRealList?: boolean;
 
-  items: Repr[];
-  surplusItems?: Repr[];
+  items: I.Repr[];
+  surplusItems?: I.Repr[];
   rankOffset?: number;
 
   /**
@@ -735,8 +735,8 @@ const ListLike: Component<{
 const ListItems: Component<{
   isRealList?: boolean;
 
-  items: Repr[];
-  surplusItems?: Repr[];
+  items: I.Repr[];
+  surplusItems?: I.Repr[];
   rankOffset?: number;
 
   /**
@@ -867,15 +867,15 @@ const FromSourceIfExists: Component<{ Source: Component | undefined }> = (
 );
 
 function separateIndirectErrorFromResult(
-  result: Repr | undefined,
-): [result: Repr | undefined, isIndirectError: boolean] {
+  result: I.Repr | undefined,
+): [result: I.Repr | undefined, isIndirectError: boolean] {
   if (!result) return [undefined, false];
   if (result[0] === "E") return [undefined, true];
   return [result, false];
 }
 
 const DeeperStep: Component<
-  { repr: Repr; rank?: number; isListItem?: boolean }
+  { repr: I.Repr; rank?: number; isListItem?: boolean }
 > = (props) => {
   return (
     <Deeper {...props}>
@@ -1007,11 +1007,11 @@ const Colored: Component<
   );
 };
 
-function isSimpleRepr(repr: Repr) {
+function isSimpleRepr(repr: I.Repr) {
   return repr[0] === "_" || repr[0] === "vp";
 }
 
-function isWithError(repr: Repr): boolean {
+function isWithError(repr: I.Repr): boolean {
   if (isError(repr)) return true;
 
   if (repr[0] === "vl") return repr[2];
@@ -1026,6 +1026,6 @@ function isWithError(repr: Repr): boolean {
   return false;
 }
 
-function isError(repr: Repr): boolean {
+function isError(repr: I.Repr): boolean {
   return repr[0] === "e" || repr[0] === "E";
 }

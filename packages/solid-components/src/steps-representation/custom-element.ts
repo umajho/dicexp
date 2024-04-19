@@ -1,8 +1,8 @@
 import { customElement } from "solid-element";
 
 import { StepsRepresentation } from "./StepsRepresentation";
-import { Repr } from "@dicexp/interface";
+import type * as I from "@dicexp/interface";
 
 export function registerCustomElement(tag = "steps-representation") {
-  customElement(tag, { repr: null as unknown as Repr }, StepsRepresentation);
+  customElement(tag, { repr: null as unknown as I.Repr }, StepsRepresentation);
 }
