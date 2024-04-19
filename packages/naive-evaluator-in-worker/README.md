@@ -5,18 +5,15 @@
 `evaluating.worker.ts`:
 
 ```typescript
-import { asScope, evaluate, execute, parse } from "@dicexp/naive-evaluator";
+import { startWorkerServer } from "@dicexp/naive-evaluator-in-worker";
+
+import { asScope, Evaluator } from "@dicexp/naive-evaluator";
 import { functionScope, operatorScope } from "@dicexp/naive-evaluator-builtins";
-import { startWorkerServer } from "@dicexp/naive-evaluator-in-worker/internal";
 
-const scopes = {
-  "standard": asScope([operatorScope, functionScope]),
-};
+// 将 “运算符作用域” 与 “函数作用域” 合并为一个作用域
+const topLevelScope = asScope([operatorScope, functionScope]);
 
-export type Scopes = typeof scopes;
-
-const dicexp = { parse, execute, evaluate };
-startWorkerServer(dicexp, scopes);
+startWorkerServer((opts) => (new Evaluator(opts)), topLevelScope);
 ```
 
 `main.ts`:
