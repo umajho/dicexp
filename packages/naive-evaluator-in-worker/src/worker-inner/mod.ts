@@ -1,22 +1,20 @@
-import {
-  Evaluator,
-  NewEvaluatorOptions,
-} from "@dicexp/naive-evaluator/internal";
+import { NewEvaluatorOptions } from "@dicexp/naive-evaluator/internal";
 
 import type { Scope } from "@dicexp/naive-evaluator-runtime/scopes";
 
 import { Server } from "./server";
 import { InitialMessageFromWorker, MessageToWorker } from "./types";
 import { makeSendableError } from "./utils";
+import { NaiveEvaluator } from "./internal-types";
 
 export async function startWorkerServer(
-  evaluatorMaker_: ((opts: NewEvaluatorOptions) => Evaluator) | string,
+  evaluatorMaker_: ((opts: NewEvaluatorOptions) => NaiveEvaluator) | string,
   topLevelScope_: Scope | string,
 ) {
   const evaluatorMaker = await (async () => {
     if (typeof evaluatorMaker_ === "string") {
       return (await import(/* @vite-ignore */ evaluatorMaker_))
-        .default as (opts: NewEvaluatorOptions) => Evaluator;
+        .default as (opts: NewEvaluatorOptions) => NaiveEvaluator;
     } else {
       return evaluatorMaker_;
     }

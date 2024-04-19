@@ -1,9 +1,8 @@
 import { Unreachable } from "@dicexp/errors";
 import type * as I from "@dicexp/interface";
 
-import type { Evaluator } from "@dicexp/naive-evaluator/internal";
-
 import { Server } from "./server";
+import { NaiveEvaluator } from "./internal-types";
 
 export class SamplingHandler {
   private readonly result: I.SamplingResult = { samples: 0, counts: {} };
@@ -12,7 +11,7 @@ export class SamplingHandler {
   private shouldStop: boolean | Error | I.RuntimeError = false;
 
   constructor(
-    evaluator: Evaluator,
+    evaluator: NaiveEvaluator,
     private readonly id: string,
     code: string,
     opts: I.EvaluationGenerationOptions,

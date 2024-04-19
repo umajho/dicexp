@@ -2,7 +2,6 @@ import type * as I from "@dicexp/interface";
 
 import {
   EvaluationResult,
-  Evaluator,
   NewEvaluatorOptions,
 } from "@dicexp/naive-evaluator/internal";
 
@@ -17,6 +16,7 @@ import {
   WorkerInit,
 } from "./types";
 import { makeSendableError } from "./utils";
+import { NaiveEvaluator } from "./internal-types";
 
 declare function postMessage(msg: MessageFromServer): void;
 
@@ -27,7 +27,7 @@ export class Server {
 
   constructor(
     public readonly init: WorkerInit,
-    private evaluatorMaker: (opts: NewEvaluatorOptions) => Evaluator,
+    private evaluatorMaker: (opts: NewEvaluatorOptions) => NaiveEvaluator,
     readonly topLevelScope: Scope,
   ) {
     this.pulser = new Pulser(
@@ -130,7 +130,7 @@ export class Server {
 }
 
 function handleEvaluateSingle(
-  evaluator: Evaluator,
+  evaluator: NaiveEvaluator,
   id: string,
   code: string,
   opts: I.EvaluationOptions,
