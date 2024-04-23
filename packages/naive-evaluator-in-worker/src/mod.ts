@@ -4,5 +4,3 @@ export type {
 } from "./worker_manager";
 
 export { startWorkerServer } from "./worker-inner/mod";
-
-export { createWorkerByImportURLs } from "./create-worker";

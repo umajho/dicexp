@@ -3,7 +3,6 @@ import * as path from "node:path";
 import { BuildOptions } from "esbuild";
 import { Options as TSUPOptions } from "tsup";
 
-import esbuildPluginInlineWorkerViteStyle from "./esbuild-plugin-inline-worker-vite-style";
 import { getRelativeOutDir } from "./utils";
 
 export interface Entry {
@@ -84,7 +83,6 @@ export function generateTSUPOptions(opts: GenerateTSUPOptionsOptions) {
       external: entry.external ?? opts.external,
       minify: "terser",
       clean: true,
-      esbuildPlugins: [esbuildPluginInlineWorkerViteStyle(buildOpts)],
     };
   });
 }
