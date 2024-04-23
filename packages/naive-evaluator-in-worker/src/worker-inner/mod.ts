@@ -7,6 +7,8 @@ import { InitialMessageFromWorker, MessageToWorker } from "./types";
 import { makeSendableError } from "./utils";
 import { NaiveEvaluator } from "./internal-types";
 
+let hasAddedMessageListener = false;
+
 export async function startWorkerServer(
   evaluatorMaker_: ((opts: NewEvaluatorOptions) => NaiveEvaluator) | string,
   topLevelScope_: Scope | string,
@@ -30,10 +32,14 @@ export async function startWorkerServer(
 
   let server: Server | null = null;
 
-  if (onmessage) {
-    console.error("onmessage 已被占用，");
+  if (hasAddedMessageListener) {
+    console.error(
+      "试图多次通过 `startWorkerServer` 添加消息监听器，将忽略本次添加",
+    );
+    return;
   }
-  onmessage = (ev) => {
+  hasAddedMessageListener = true;
+  addEventListener("message", (ev) => {
     const msg = ev.data as MessageToWorker;
     if (msg[0] === "initialize") {
       if (server) {
@@ -50,7 +56,7 @@ export async function startWorkerServer(
       return;
     }
     server.handle(msg);
-  };
+  });
 
   postMessage(["loaded"]);
 }
