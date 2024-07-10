@@ -33,11 +33,11 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@dicexp/build-utils": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/interface": "workspace:*",
     "@dicexp/naive-evaluator": "workspace:*",
     "@dicexp/naive-evaluator-runtime": "workspace:*",
+    "@rolludejo/internal-build-utils": "^0.1.2",
     "@types/node": "^20.8.6",
     "esbuild": "^0.18.20",
     "terser": "^5.21.0",

@@ -6,7 +6,7 @@ import {
   CommonOptions,
   generatePackageJSON,
   generateTSUPOptions,
-} from "./node_modules/@dicexp/build-utils/lib";
+} from "@rolludejo/internal-build-utils";
 
 import oldPackageJSON from "./package.json";
 
