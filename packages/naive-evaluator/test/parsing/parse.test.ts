@@ -271,9 +271,10 @@ describe("标识符", () => {
         String.raw`\(@x -> 1)`,
         String.raw`\(_x -> 1)`,
       ]);
+      theyAreOk([String.raw`\($x -> 1)`]);
     });
     it("参数名可以是 `_`", () => {
-      theyAreOk([String.raw`\($x -> 1)`]);
+      theyAreOk([String.raw`\(_ -> 1)`]);
     });
   });
 
