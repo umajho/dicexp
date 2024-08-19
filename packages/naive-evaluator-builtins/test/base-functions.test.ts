@@ -14,7 +14,7 @@ describe("base/functions", () => {
       const tester = makeTester({ topLevelScope });
       describe("正确使用时", () => {
         tester.theyAreOk([
-          [String.raw`10d6 |> reroll \($x -> $x <= 5)`, 60],
+          [String.raw`10d6 |> reroll |$x| $x <= 5`, 60],
         ]);
       });
     });
@@ -29,8 +29,8 @@ describe("base/functions", () => {
       const tester = makeTester({ topLevelScope });
       describe("正确使用时", () => {
         tester.theyAreOk([
-          [String.raw`count([], \(_ -> true))`, 0],
-          [String.raw`count([1, 2, 3], \($x -> $x >= 2))`, 2],
+          [String.raw`count([], |_| true)`, 0],
+          [String.raw`count([1, 2, 3], |$x| $x >= 2)`, 2],
         ]);
       });
     });
@@ -118,8 +118,8 @@ describe("base/functions", () => {
       const tester = makeTester({ topLevelScope });
       describe("正确使用时", () => {
         tester.theyAreOk([
-          [String.raw`map([], \(-> 0))`, []],
-          [String.raw`map([1, 2, 3], \($x -> $x * $x))`, [1, 4, 9]],
+          [String.raw`map([], || 0)`, []],
+          [String.raw`map([1, 2, 3], |$x| $x * $x)`, [1, 4, 9]],
         ]);
       });
     });
@@ -132,8 +132,8 @@ describe("base/functions", () => {
     const tester = makeTester({ topLevelScope });
     describe("正确使用时", () => {
       tester.theyAreOk([
-        [String.raw`filter([], \(-> 0))`, []],
-        [String.raw`filter([1, -2, 3, -4], \($x -> $x >= 0))`, [1, 3]],
+        [String.raw`filter([], || 0)`, []],
+        [String.raw`filter([1, -2, 3, -4], |$x| $x >= 0)`, [1, 3]],
       ]);
     });
   });
@@ -181,11 +181,11 @@ describe("base/functions", () => {
     describe("正确使用时", () => {
       tester.theyAreOk([
         [
-          String.raw`zipWith([1, 2, 3], [4, 5, 6], \($a, $b -> $a * $b))`,
+          String.raw`zipWith([1, 2, 3], [4, 5, 6], |$a, $b| $a * $b)`,
           [4, 10, 18],
         ],
-        [String.raw`zipWith([1, 2, 3], [4], \($a, $b -> $a * $b))`, [4]],
-        [String.raw`zipWith([1], [4, 5, 6], \($a, $b -> $a * $b))`, [4]],
+        [String.raw`zipWith([1, 2, 3], [4], |$a, $b| $a * $b)`, [4]],
+        [String.raw`zipWith([1], [4, 5, 6], |$a, $b| $a * $b)`, [4]],
       ]);
     });
   });

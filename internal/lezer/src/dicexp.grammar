@@ -90,7 +90,7 @@ List {
 }
 
 Closure {
-  "\\" OpenParen ParameterListBody { commaSeparated<idUserDefined | idIgnore> } "->" expression CloseParen
+  "|" ParameterListBody { commaSeparated<idUserDefined | idIgnore> } "|" expression
 }
 
 @skip {} {

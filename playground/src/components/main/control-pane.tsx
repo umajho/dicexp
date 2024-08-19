@@ -105,7 +105,7 @@ export const ControlPane: Component = () => {
           <For each={examples}>
             {(example) => (
               <option value={example.code}>
-                {example.label} | {example.code}
+                {example.label} § {example.code}
               </option>
             )}
           </For>

@@ -19,6 +19,6 @@ export const dicexpHighlight: NodePropSource = styleTags({
   //
 
   // TODO:
-  // \(->) &/
+  // `|…|…`, `&…/…`
   // , .
 });

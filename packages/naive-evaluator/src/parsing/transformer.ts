@@ -122,10 +122,10 @@ export class Transformer {
         return ["ok", list(items)];
       }
       case "Closure": {
-        const paramList = Transformer._getChildren(children[1]!);
+        const paramList = Transformer._getChildren(children[0]!);
         const identifiers = paramList.map((p) => this._getRaw(p));
 
-        const bodyResult = this._transform(children[2]!);
+        const bodyResult = this._transform(children[1]!);
         if (bodyResult[0] === "error") return bodyResult;
         const body = bodyResult[1];
 

@@ -173,28 +173,28 @@ describe("值", () => {
     describe("闭包", () => {
       describe("可以用", () => {
         tester.theyAreOk<I.JSValue>([
-          [String.raw`[2, 3, 5, 7] |> filter(\($x -> $x >= 5))`, [5, 7]],
-          [String.raw`[2, 3, 5, 7] |> filter \($x -> $x >= 5)`, [5, 7]],
-          [String.raw`\($a, $b -> $a + $b).(1, 2)`, 3],
-          [String.raw`append(filter([10], \(_ -> false)), 100) |> head`, 100],
-          [String.raw`append(filter([10], \(_ -> true)), 100) |> head`, 10],
+          [String.raw`[2, 3, 5, 7] |> filter(|$x| $x >= 5)`, [5, 7]],
+          [String.raw`[2, 3, 5, 7] |> filter (|$x| $x >= 5)`, [5, 7]],
+          [String.raw`(|$a, $b| $a + $b).(1, 2)`, 3],
+          [String.raw`append(filter([10], |_| false), 100) |> head`, 100],
+          [String.raw`append(filter([10], |_| true), 100) |> head`, 10],
           [
             String
-              .raw`\($f, $n, $l -> append(filter([\( -> $l)], \(_ -> $n == 100)), \( -> $f.($f, $n+1, append($l, $n)))) |> head |> \($f -> $f.()).()) |> \($f -> $f.($f, 0, [])).()`,
+              .raw`(|$f, $n, $l| append(filter([|| $l], |_| $n == 100), || $f.($f, $n+1, append($l, $n))) |> head |> (|$f| $f.()).()) |> (|$f| $f.($f, 0, [])).()`,
             Array(100).fill(null).map((_, i) => i), // 0..<100
           ],
           // 等到惰性求值时：
           // [
           //   String
-          //     .raw`\($f, $n, $l -> append(filter([$l], \(_ -> $n == 100)), $f.($f, $n+1, append($l, $n))) |> head) |> \($f -> $f.($f, 0, []))`,
+          //     .raw`(|$f, $n, $l| append(filter([$l], |_| $n == 100), $f.($f, $n+1, append($l, $n))) |> head) |> (|$f| $f.($f, 0, []))`,
           //   Array(100).fill(null).map((_, i) => i), // 0..<100
           // ],
         ]);
       });
       describe("在参数数量不匹配时报错", () => {
         const table: [string, number, number][] = [
-          [String.raw`\($x -> $x).()`, 1, 0],
-          [String.raw`\( -> 1).(42)`, 0, 1],
+          [String.raw`(|$x| $x).()`, 1, 0],
+          [String.raw`(|| 1).(42)`, 0, 1],
         ];
         for (const [i, [code, expected, actual]] of table.entries()) {
           it(`case ${i + 1}: ${code}`, () => {
@@ -207,20 +207,20 @@ describe("值", () => {
       });
       it("不能有重复的参数名", () => {
         tester.assertExecutionRuntimeError(
-          String.raw`\($foo, $bar, $foo -> 0).(1, 2, 3)`,
+          String.raw`(|$foo, $bar, $foo| 0).(1, 2, 3)`,
           createRuntimeError.duplicateClosureParameterNames("$foo"),
         );
       });
       it("内外同名参数不算重复", () => {
         tester.assertExecutionOk(
-          String.raw`\($x -> $x |> \($x -> $x).()).(1)`,
+          String.raw`(|$x| $x |> (|$x| $x).()).(1)`,
           1,
         );
       });
       describe("无视名为 `_` 的参数", () => {
         it("重复出现多次也没问题", () => {
           tester.assertExecutionOk(
-            String.raw`\(_, $x, _ -> $x).(1, 2, 3)`,
+            String.raw`(|_, $x, _| $x).(1, 2, 3)`,
             2,
           );
         });
@@ -261,13 +261,13 @@ describe("语义", () => {
     `sum([${SUPER_BIG_DIE}])`, // 内部用 flattenListAll 求列表元素值
     `sort([${SUPER_BIG_DIE}])`, // 内部用 unwrapListOneOf 求列表元素值
     `append([], ${SUPER_BIG_DIE})`, // 不破坏列表元素惰性
-    String.raw`\(-> ${SUPER_BIG_DIE}).()`,
+    String.raw`(|| ${SUPER_BIG_DIE}).()`,
   ];
 
   describe("具名的变量其值固定", () => {
     const longListOfXs = "[" + Array(1000).fill("$x").join(", ") + "]";
     const table = exps
-      .map((exp) => String.raw`${exp} |> \($x -> ${longListOfXs}).()`);
+      .map((exp) => String.raw`${exp} |> (|$x| ${longListOfXs}).()`);
 
     for (const [i, code] of table.entries()) {
       it(`case ${i + 1}`, () => {
@@ -282,9 +282,9 @@ describe("语义", () => {
       // 来自 bench 中的最后一个例子
       // TODO: 最小复现
       const yCombinator = String
-        .raw`\($fn -> \($f -> $fn.(\($x -> $f.($f).($x)))).(\($f -> $fn.(\($x -> $f.($f).($x))))))`;
+        .raw`(|$fn| (|$f| $fn.((|$x| $f.($f).($x)))).((|$f| $fn.((|$x| $f.($f).($x))))))`;
       const code = String
-        .raw`\($Y, $g -> $Y.($g).([0, []])).(${yCombinator}, \($f -> \($nl -> if(($nl|>at(0)) == 100, $nl|>at(1), $f.([($nl|>at(0))+1, append(($nl|>at(1)), $nl|>at(0))])))))`;
+        .raw`(|$Y, $g| $Y.($g).([0, []])).(${yCombinator}, (|$f| (|$nl| if(($nl|>at(0)) == 100, $nl|>at(1), $f.([($nl|>at(0))+1, append(($nl|>at(1)), $nl|>at(0))])))))`;
     });
   });
 
@@ -292,7 +292,7 @@ describe("语义", () => {
     const table = exps.map((exp) => `1000#${exp}`);
     table.push(...[
       // 闭包内部的参数具名，但调用闭包并非具名
-      String.raw`1000#\($x->$x).(${SUPER_BIG_DIE})`,
+      String.raw`1000#(|$x|$x).(${SUPER_BIG_DIE})`,
     ]);
 
     for (const [i, code] of table.entries()) {
@@ -311,9 +311,9 @@ describe("从管道的测试那里移过来的", () => {
     ["[2, 3, 1] |> sort", [1, 2, 3]],
     ["[2, 3, 1] |> sort()", [1, 2, 3]],
     ["[2, 3, 1] |> append(4)", [2, 3, 1, 4]],
-    [String.raw`[2, 3, 1] |> map \($x -> $x**2)`, [4, 9, 1]],
-    [String.raw`10 |> \($x -> $x*2).()`, 20],
-    [String.raw`10 |> \($x, $y -> $x*2).(20)`, 20],
+    [String.raw`[2, 3, 1] |> map (|$x| $x**2)`, [4, 9, 1]],
+    [String.raw`10 |> (|$x| $x*2).()`, 20],
+    [String.raw`10 |> (|$x, $y| $x*2).(20)`, 20],
     ["10 |> &-/1.()", -10],
     ["10 |> &-/2.(20)", -10],
   ] as [string, I.JSValue][]);
@@ -384,7 +384,7 @@ describe("限制", () => {
 
         it("超时后的下一次调用函数才会触发", () => {
           testerS.assertExecutionRuntimeError(
-            String.raw`sleep(20) and \(->true).()`,
+            String.raw`sleep(20) and (|| true).()`,
             "越过外加限制「运行时间」（允许 10 毫秒）",
             opts,
           );

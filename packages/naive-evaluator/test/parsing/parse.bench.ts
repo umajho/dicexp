@@ -12,10 +12,10 @@ const codes: string[] = [
   "[1, 2, 3]",
   "sum([1, 2, 3])",
   "3#d10 |> sort",
-  String.raw`3d10 |> map \($x -> $x*2)`,
+  String.raw`3d10 |> map (|$x| $x*2)`,
   "explode(3d10, 8)",
-  String.raw`explode(3d10, \($x-> $x>= 8))`,
-  String.raw`3d10 |> explode \($x -> $x>=8)`,
+  String.raw`explode(3d10, (|$x|$x>= 8))`,
+  String.raw`3d10 |> explode (|$x| $x>=8)`,
   "3#d10 |> map(&-/1)",
 ];
 

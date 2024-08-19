@@ -20,8 +20,8 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     },
     returnValue: { type: { description: "与序列在隐式转换后的类型相同" } },
     examples: [
-      String.raw`reroll(10d10, \($x -> $x <= 5))`,
-      String.raw`reroll(10#d10, \($x -> $x <= 5))`,
+      String.raw`reroll(10d10, |$x| $x <= 5)`,
+      String.raw`reroll(10#d10, |$x| $x <= 5)`,
     ],
   },
   "explode/2": {
@@ -38,8 +38,8 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     },
     returnValue: { type: { description: "与序列在隐式转换后的类型相同" } },
     examples: [
-      String.raw`explode(10d10, \($x -> $x > 5))`,
-      String.raw`explode(10#d10, \($x -> $x > 5))`,
+      String.raw`explode(10d10, |$x| $x > 5)`,
+      String.raw`explode(10#d10, |$x| $x > 5)`,
     ],
   },
 
@@ -52,7 +52,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     },
     description: { brief: "有条件计数列表" },
     examples: [
-      String.raw`count([2, 4, 6], \($x -> $x<5))`,
+      String.raw`count([2, 4, 6], |$x| $x<5)`,
     ],
   },
   // ...
@@ -146,7 +146,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       further: "返回元素由先前对应元素经过操作变换后的新列表。",
     },
     examples: [
-      String.raw`map([1, 2, 3], \($x -> $x**2))`,
+      String.raw`map([1, 2, 3], |$x| $x**2)`,
       String.raw`map([1, 2, 3], &-/1)`,
     ],
   },
@@ -162,7 +162,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
       further: "返回由通过过滤的元素组成的新列表。",
     },
     examples: [
-      String.raw`filter([2, 4, 6], \($x -> $x<5))`,
+      String.raw`filter([2, 4, 6], |$x| $x<5)`,
     ],
   },
   // ...
@@ -225,7 +225,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     },
     examples: [
       String.raw`zipWith([1, 2, 3], [4, 5, 6], &*/2)`,
-      String.raw`zipWith([1, 2, 3], [4, 5, 6], \($a, $b -> $a#$b))`,
+      String.raw`zipWith([1, 2, 3], [4, 5, 6], |$a, $b| $a#$b)`,
     ],
   },
   // 控制流

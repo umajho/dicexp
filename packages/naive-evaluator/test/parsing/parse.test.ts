@@ -25,11 +25,11 @@ describe("空白", () => {
 
     for (
       const closureTestCode of [
-        String.raw`foo \( $bar , $baz -> $qux )`,
-        String.raw`foo\($bar,$baz->$qux)`,
+        "foo ( | $bar , $baz | $qux )",
+        "foo(|$bar,$baz|$qux)",
       ]
     ) {
-      const closurePart = closureTestCode.slice(closureTestCode.indexOf("\\"));
+      const closurePart = /\((.*?)\)/.exec(closureTestCode)![1].trim();
       const expected = regularCall("function", "foo", [
         closure(["$bar", "$baz"], "$qux", closurePart),
       ]);
@@ -44,8 +44,8 @@ describe("全角/半角", () => {
   describe("全角/半角符号不影响解析", () => {
     const table: [string, string][] = [
       [
-        "foo（1＋1） ／／ bar ＼（＿ －＞ 1）",
-        String.raw`foo(1+1) // bar \(_ -> 1)`,
+        "foo（1＋1） ／／ bar （｜ ｜ 1）",
+        String.raw`foo(1+1) // bar (| | 1)`,
       ],
     ];
     theyAreOk(table.map(([a, b]) => [a, mustParse(b)]));
@@ -267,20 +267,20 @@ describe("标识符", () => {
   describe("闭包参数列表", () => {
     it("除了 `_` 外，参数名必须以 `$` 开头", () => {
       theyAreBad([
-        String.raw`\(x -> 1)`,
-        String.raw`\(@x -> 1)`,
-        String.raw`\(_x -> 1)`,
+        String.raw`|x| 1`,
+        String.raw`|@x| 1`,
+        String.raw`|_x| 1`,
       ]);
-      theyAreOk([String.raw`\($x -> 1)`]);
+      theyAreOk([String.raw`|$x| 1`]);
     });
     it("参数名可以是 `_`", () => {
-      theyAreOk([String.raw`\(_ -> 1)`]);
+      theyAreOk([String.raw`|_| 1`]);
     });
   });
 
   describe("Unicode", () => {
     theyAreOk([
-      String.raw`\($参数 -> 函数($参数)).(甲#乙d丙)`,
+      String.raw`(|$参数| 函数($参数)).(甲#乙d丙)`,
     ]);
   });
 });
@@ -317,14 +317,14 @@ describe("管道运算符", () => {
     ["[2, 3, 1] |> append(4)", "append([2, 3, 1], 4)"],
     // 闭包简写
     [
-      String.raw`[2, 3, 1] |> map \($x -> $x**2)`,
-      String.raw`map([2, 3, 1], \($x -> $x**2))`,
+      String.raw`[2, 3, 1] |> map (|$x| $x**2)`,
+      String.raw`map([2, 3, 1], (|$x| $x**2))`,
     ],
     // 值调用
-    [String.raw`10 |> \($x -> $x*2).()`, String.raw`\($x -> $x*2).(10)`],
+    [String.raw`10 |> (|$x| $x*2).()`, String.raw`(|$x| $x*2).(10)`],
     [
-      String.raw`10 |> \($x, $y -> $x*2).(20)`,
-      String.raw`\($x, $y -> $x*2).(10, 20)`,
+      String.raw`10 |> (|$x, $y| $x*2).(20)`,
+      String.raw`(|$x, $y| $x*2).(10, 20)`,
     ],
     // 捕获
     ["10 |> &-/1.()", "&-/1.(10)"],
