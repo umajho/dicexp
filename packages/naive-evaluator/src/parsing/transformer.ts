@@ -11,6 +11,7 @@ import {
 } from "@dicexp/nodes";
 import { negateInteger, parseBoolean, parseInteger } from "./utils";
 import { createParseError, ParseError, Range } from "./parse_error";
+import { Unreachable } from "@dicexp/errors";
 
 export class Transformer {
   constructor(
@@ -107,9 +108,12 @@ export class Transformer {
           if (argListResult[0] === "error") return argListResult;
           argList = argListResult[1];
         } else { // Closure
-          const argResult = this._transform(argPart);
-          if (argResult[0] === "error") return argResult;
-          argList = [argResult[1]];
+          // 由于与管道运算符之间的交互（优先级）存在问题，目前此分支对应语法暂
+          // 时被移除了，未来可能会恢复。
+          throw new Unreachable();
+          // const argResult = this._transform(argPart);
+          // if (argResult[0] === "error") return argResult;
+          // argList = [argResult[1]];
         }
         return ["ok", regularCall("function", name, argList)];
       }

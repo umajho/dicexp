@@ -14,7 +14,7 @@ describe("base/functions", () => {
       const tester = makeTester({ topLevelScope });
       describe("正确使用时", () => {
         tester.theyAreOk([
-          [String.raw`10d6 |> reroll |$x| $x <= 5`, 60],
+          [String.raw`10d6 |> reroll(|$x| $x <= 5)`, 60],
         ]);
       });
     });
