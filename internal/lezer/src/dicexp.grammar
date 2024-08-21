@@ -22,9 +22,9 @@
   or @left
 }
 
-expression {
-  BinaryExpression |
-  UnaryExpression |
+expressionWithoutPipe_<expression> {
+  BinaryExpressionWithoutPipe<expression> |
+  UnaryExpression<expression> |
   Grouping |
   RegularCall |
   List |
@@ -34,7 +34,16 @@ expression {
   literal
 }
 
-BinaryExpression {
+expressionWithoutPipe {
+  expressionWithoutPipe_<expressionWithoutPipe>
+}
+
+expression {
+  expressionWithoutPipe_<expression> ~expr |
+  BinaryExpressionPipe
+}
+
+BinaryExpressionWithoutPipe<expression> {
   aroundDiceRoll !diceRoll binaryOperatorDiceRoll aroundDiceRoll |
   
   expression !call BinaryOperator<"."> ArgumentList |
@@ -44,11 +53,14 @@ BinaryExpression {
   expression !plus BinaryOperator<"+" | "-"> expression |
   expression !rangeRoll BinaryOperator<"~"> expression |
   expression !repeat BinaryOperator<"#"> expression |
-  expression !pipe BinaryOperator<"|>"> expression |
   expression !compare BinaryOperator<$[<>] "="?> expression |
   expression !equal BinaryOperator<"==" | "!="> expression |
   expression !and @specialize[@name=BinaryOperator]<idBuiltin, "and"> expression |
   expression !or @specialize[@name=BinaryOperator]<idBuiltin, "or"> expression
+}
+
+BinaryExpressionPipe {
+  expression !pipe BinaryOperator<"|>"> expression
 }
 
 aroundDiceRoll[@dynamicPrecedence=1] {
@@ -60,7 +72,7 @@ binaryOperatorDiceRoll {
   BinaryOperator { keywordD /*| keywordDRemainder*/ }
 }
 
-UnaryExpression {
+UnaryExpression<expression> {
   !diceRollUnary unaryOperatorDiceRoll aroundDiceRoll |
 
   !not @specialize[@name=UnaryOperator]<idBuiltin, "not"> expression |
@@ -78,7 +90,7 @@ Grouping {
 }
 
 RegularCall {
-  FunctionName { idBuiltin } ArgumentList
+  FunctionName { idBuiltin } (ArgumentList | Closure)
 }
 
 ArgumentList {
@@ -89,8 +101,9 @@ List {
   OpenSBracket ItemListBody { commaSeparated<expression> } CloseSBracket
 }
 
-Closure {
-  "|" ParameterListBody { commaSeparated<idUserDefined | idIgnore> } "|" expression
+Closure[@dynamicPrecedence=1] {
+  "|" ParameterListBody { commaSeparated<idUserDefined | idIgnore> } "|"
+  expressionWithoutPipe ~expr
 }
 
 @skip {} {
