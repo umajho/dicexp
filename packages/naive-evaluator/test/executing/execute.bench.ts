@@ -87,13 +87,10 @@ describe("各种表达式", () => {
     const randomSource = new RandomSourceWrapper(prng_xorshift7(42));
 
     bench(`${code}`, () => {
-      let result: ExecutionResult;
-      try {
-        if (parseResult[0] === "error") throw new Unreachable();
-        result = execute(parseResult[1], { topLevelScope, randomSource });
-      } catch (e) {
-        throw new Error(`${code}: unknown error during executing: ${e}`);
-      }
+      let result: ExecutionResult = execute(parseResult[1], {
+        topLevelScope,
+        randomSource,
+      });
       if (result[0] === "error") {
         throw new Error(`${code}: runtime error: ${result[2].message}`);
       }
