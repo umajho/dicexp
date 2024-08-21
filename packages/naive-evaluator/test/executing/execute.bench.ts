@@ -38,7 +38,7 @@ describe("各种表达式", () => {
 
     // 0..<99
     String
-      .raw`(|$f, $n, $l| append(filter([(|| $l)], (|_| $n == 100)), (|| $f.($f, $n+1, append($l, $n)))) |> head |> (|$f| $f.()).()) |> (|$f| $f.($f, 0, [])).()`,
+      .raw`|$f, $n, $l| (append(filter([(|| $l)], (|_| $n == 100)), (|| $f.($f, $n+1, append($l, $n)))) |> head |> (|$f| $f.()).()) |> (|$f| $f.($f, 0, [])).()`,
     ...[ // FIXME: 重新实现 `if/*`
       // String
       //   .raw`(|$f, $n, $l| if($n == 100, $l, $f.($f, $n+1, append($l, $n)))) |> (|$f| $f.($f, 0, [])).()`,
