@@ -7,8 +7,8 @@ export const examples = [
   { label: "通常函数的调用（管道+无参括号省略）", code: "10#d100 |> sort" },
   { label: "数组", code: "sum([1, 2, 3])" },
   { label: "匿名函数作为参数", code: "map(3#d10, |$x| -$x)" },
-  { label: "匿名函数作为参数（捕获）", code: "map(3#d10, &-/1)" },
   { label: "匿名函数作为参数（块式）", code: "map(3#d10) |$x| -$x" },
+  { label: "匿名函数作为参数（捕获）", code: "map(3#d10, &-/1)" },
   { label: "匿名函数作为参数（管道）", code: "3#d10 |> map(|$x| -$x)" },
   { label: "匿名函数作为参数（管道+块式）", code: "3#d10 |> map() |$x| -$x" },
   {
@@ -18,5 +18,6 @@ export const examples = [
   { label: "匿名函数的调用", code: "(|$a, $b| $a ** $b).(2, 3)" },
   { label: "匿名函数的调用（管道）", code: "2 |> (|$a, $b| $a ** $b).(3)" },
   { label: "匿名函数的调用（嵌套）", code: "(|$f| $f.(3)).(|$b| 2 ** $b)" },
-  { label: "综合", code: "10#d100 |> filter (|$x| $x >= 50) |> sum" },
+  { label: "综合·1", code: "10#d100 |> filter (|$x| $x >= 50) |> sum" },
+  { label: "综合·1（简写）", code: "10#d100 |> filter |$x| $x >= 50 |> sum" },
 ];
