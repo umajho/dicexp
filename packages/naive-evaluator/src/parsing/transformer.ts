@@ -115,6 +115,12 @@ export class Transformer {
           const argListResult = this._getArgumentListItems(argPart);
           if (argListResult[0] === "error") return argListResult;
           argList = argListResult[1];
+
+          if (children[2]) {
+            const argClosureResult = this._transform(children[2]);
+            if (argClosureResult[0] === "error") return argClosureResult;
+            argList.push(argClosureResult[1]);
+          }
         } else { // Closure
           const argResult = this._transform(argPart);
           if (argResult[0] === "error") return argResult;

@@ -90,7 +90,7 @@ Grouping {
 }
 
 RegularCall {
-  FunctionName { idBuiltin } (ArgumentList | Closure)
+  FunctionName { idBuiltin } (ArgumentList Closure? | Closure)
 }
 
 ArgumentList {
