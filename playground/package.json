@@ -36,7 +36,7 @@
     "@dicexp/l10n": "workspace:*",
     "@dicexp/naive-evaluator": "workspace:*",
     "@dicexp/solid-components": "workspace:*",
-    "@rolludejo/web-internal": "^0.1.0",
+    "@rolludejo/internal-web-shared": "^0.4.0",
     "@rotext/solid-components": "^0.3.0",
     "@solid-primitives/media": "^2.2.5",
     "codemirror": "^6.0.1",
