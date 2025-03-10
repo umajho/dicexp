@@ -310,8 +310,8 @@ importers:
         specifier: ^0.4.0
         version: 0.4.0(solid-js@1.8.3)
       '@rotext/solid-components':
-        specifier: ^0.3.0
-        version: 0.3.0(@rolludejo/web-internal@0.1.0(solid-js@1.8.3))(solid-element@1.8.0(solid-js@1.8.3))(solid-icons@1.0.12(solid-js@1.8.3))(solid-js@1.8.3)
+        specifier: ^0.5.0
+        version: 0.5.0(@rolludejo/internal-web-shared@0.4.0(solid-js@1.8.3))(ankor@0.1.1(@rolludejo/web-internal@0.1.0(solid-js@1.8.3))(solid-element@1.8.0(solid-js@1.8.3))(solid-icons@1.0.12(solid-js@1.8.3))(solid-js@1.8.3))(solid-element@1.8.0(solid-js@1.8.3))(solid-icons@1.0.12(solid-js@1.8.3))(solid-js@1.8.3)
       '@solid-primitives/media':
         specifier: ^2.2.5
         version: 2.2.5(solid-js@1.8.3)
@@ -1111,17 +1111,19 @@ packages:
   '@rolludejo/web-internal@0.1.0':
     resolution: {integrity: sha512-RcCCv9UAb+gJmO2HRh1XbGpLRhhlQzG5BIVGYF2fTzGAIUC/dLU0FfGLQB4YSqoB0yoIk9FT/HuC8K6cBJk+dA==}
     engines: {node: '>=18', pnpm: '>=8.6.0'}
+    deprecated: renamed as @rolludejo/internal-web-shared
     peerDependencies:
       solid-js: ^1.8.1
 
-  '@rotext/solid-components@0.3.0':
-    resolution: {integrity: sha512-hsF8SvPepo6XYyC5mMvzzyFeTiwiZFD0VgB4WlxxWztYb6cSPSq/8mBupF75XKcIzf4arRT28X7qLBNnrtU8RA==}
+  '@rotext/solid-components@0.5.0':
+    resolution: {integrity: sha512-Ap9EudHmGHA4UveVuv5NQa/aCiTZMjoPSpnmNEyF58h+RX0rus/ICRRJFOU4w7GRprJqotnfSjw2jg4jdsNRrw==}
     engines: {node: '>=18', pnpm: '>=8.6.0'}
     peerDependencies:
-      '@rolludejo/web-internal': ^0.1.0
-      solid-element: ^1.8.0
-      solid-icons: ^1.0.11
-      solid-js: ^1.8.1
+      '@rolludejo/internal-web-shared': ^0.4.0
+      ankor: 0.1.1
+      solid-element: ^1.9.1
+      solid-icons: ^1.1.0
+      solid-js: ^1.9.3
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -1397,6 +1399,15 @@ packages:
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
+
+  ankor@0.1.1:
+    resolution: {integrity: sha512-9CF3RfanbPior4rybRddl442mK5NNTNunXfTb7cQzuNHUZouKd7RxuZAUeCRgmvcLS3NYVyOucGcB05lwTr4TA==}
+    engines: {node: '>=18', pnpm: '>=8.6.0'}
+    peerDependencies:
+      '@rolludejo/web-internal': ^0.3.0
+      solid-element: ^1.8.1
+      solid-icons: ^1.0.11
+      solid-js: ^1.8.18
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -3860,9 +3871,10 @@ snapshots:
     dependencies:
       solid-js: 1.8.3
 
-  '@rotext/solid-components@0.3.0(@rolludejo/web-internal@0.1.0(solid-js@1.8.3))(solid-element@1.8.0(solid-js@1.8.3))(solid-icons@1.0.12(solid-js@1.8.3))(solid-js@1.8.3)':
+  '@rotext/solid-components@0.5.0(@rolludejo/internal-web-shared@0.4.0(solid-js@1.8.3))(ankor@0.1.1(@rolludejo/web-internal@0.1.0(solid-js@1.8.3))(solid-element@1.8.0(solid-js@1.8.3))(solid-icons@1.0.12(solid-js@1.8.3))(solid-js@1.8.3))(solid-element@1.8.0(solid-js@1.8.3))(solid-icons@1.0.12(solid-js@1.8.3))(solid-js@1.8.3)':
     dependencies:
-      '@rolludejo/web-internal': 0.1.0(solid-js@1.8.3)
+      '@rolludejo/internal-web-shared': 0.4.0(solid-js@1.8.3)
+      ankor: 0.1.1(@rolludejo/web-internal@0.1.0(solid-js@1.8.3))(solid-element@1.8.0(solid-js@1.8.3))(solid-icons@1.0.12(solid-js@1.8.3))(solid-js@1.8.3)
       solid-element: 1.8.0(solid-js@1.8.3)
       solid-icons: 1.0.12(solid-js@1.8.3)
       solid-js: 1.8.3
@@ -4238,6 +4250,13 @@ snapshots:
       debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
+
+  ankor@0.1.1(@rolludejo/web-internal@0.1.0(solid-js@1.8.3))(solid-element@1.8.0(solid-js@1.8.3))(solid-icons@1.0.12(solid-js@1.8.3))(solid-js@1.8.3):
+    dependencies:
+      '@rolludejo/web-internal': 0.1.0(solid-js@1.8.3)
+      solid-element: 1.8.0(solid-js@1.8.3)
+      solid-icons: 1.0.12(solid-js@1.8.3)
+      solid-js: 1.8.3
 
   ansi-regex@5.0.1: {}
 
