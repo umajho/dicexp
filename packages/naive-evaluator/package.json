@@ -27,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/umajho/dicexp/"
+    "url": "git+https://github.com/umajho/dicexp.git"
   },
   "keywords": [
     "dicexp"
