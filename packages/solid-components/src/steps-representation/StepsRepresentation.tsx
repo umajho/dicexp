@@ -67,7 +67,7 @@ export const StepsRepresentation: Component<Properties> = (props) => {
 };
 
 function createRootStyle(colorScheme: ColorScheme) {
-  // `px-[3px] mx-[1px] rounded`。
+  // `px-[3px] mx-[1px] rounded-sm`。
   // TODO: 让 `font-family` 的值贴近 tailwind 提供的？
   const stylesForSlotBase = `.slot {
 padding-left: 3px;
