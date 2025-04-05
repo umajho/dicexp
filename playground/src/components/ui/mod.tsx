@@ -68,7 +68,7 @@ export const Tabs: Component<{ children: JSX.Element; class?: string }> = (
   props,
 ) => {
   return (
-    <div class={`tabs ${props.class ?? ""}`}>
+    <div class={`tabs tabs-border ${props.class ?? ""}`}>
       {props.children}
     </div>
   );
@@ -78,7 +78,7 @@ export const Tab: Component<
   {
     children: JSX.Element;
     isActive?: boolean;
-    onClick?: JSX.EventHandlerUnion<HTMLDivElement, MouseEvent>;
+    onClick?: JSX.EventHandlerUnion<HTMLButtonElement, MouseEvent>;
     size?: "lg" | "sm";
   }
 > = (
@@ -87,12 +87,12 @@ export const Tab: Component<
   const size = (): "tab-lg" | "tab-sm" | "" =>
     props.size ? `tab-${props.size}` : "";
   return (
-    <div
-      class={`tab ${props.isActive ? "tab-active" : ""} tab-bordered ${size()}`}
+    <button
+      class={`tab ${props.isActive ? "tab-active" : ""} ${size()}`}
       onClick={props.onClick}
     >
       {props.children}
-    </div>
+    </button>
   );
 };
 
@@ -272,7 +272,7 @@ export const OptionalNumberInput: Component<
       <div class="flex flex-col h-full justify-center">
         <input
           type="number"
-          class="input input-sm input-bordered"
+          class="input input-sm"
           value={props.number}
           onInput={(ev) => props.setNumber(Number(ev.target.value))}
           disabled={!props.enabled}
