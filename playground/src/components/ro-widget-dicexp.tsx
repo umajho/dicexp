@@ -15,18 +15,21 @@ import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-compo
 import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
 import { Loading } from "./ui/mod";
 
+import { styleProvider as styleProviderForPreflight } from "../styles/preflight";
+import { styleProvider as styleProviderForTailwind } from "../styles/tailwind";
+
 const BACKGROUND_COLOR = new ComputedColor(0x1f, 0x1f, 0x1f, null);
 
 registerCustomElementForStepsRepresentation("steps-representation");
 registerCustomElementForAnkorWidgetDicexp("dicexp-result", {
-  baseStyleProviders: [], // TODO!!!
+  baseStyleProviders: [styleProviderForPreflight, styleProviderForTailwind],
   backgroundColor: BACKGROUND_COLOR,
   ErrorAlert,
   Loading,
   tagNameForStepsRepresentation: "steps-representation",
 });
 registerCustomElementForAnkorWidgetDicexp("dicexp-example", {
-  baseStyleProviders: [], // TODO!!!
+  baseStyleProviders: [styleProviderForPreflight, styleProviderForTailwind],
   backgroundColor: BACKGROUND_COLOR,
   evaluatorProvider: defaultEvaluatorProvider,
   ErrorAlert,
