@@ -6,6 +6,8 @@ import {
   registerCustomElementForAnkorWidgetDicexp,
 } from "@rotext/solid-components";
 
+import { ComputedColor } from "@rolludejo/internal-web-shared";
+
 import type * as I from "@dicexp/interface";
 
 import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-components/internal";
@@ -13,7 +15,7 @@ import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-compo
 import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
 import { Loading } from "./ui/mod";
 
-const BACKGROUND_COLOR = [0x1f, 0x1f, 0x1f, null];
+const BACKGROUND_COLOR = new ComputedColor(0x1f, 0x1f, 0x1f, null);
 
 registerCustomElementForStepsRepresentation("steps-representation");
 registerCustomElementForAnkorWidgetDicexp("dicexp-result", {
