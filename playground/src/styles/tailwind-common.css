@@ -1,0 +1,11 @@
+:root {
+    --font-sans: "Arial", "Noto Sans Mono CJK SC";
+    --font-serif: "Times New Roman", "ChillKai";
+    --font-mono: "Noto Sans Mono CJK SC";
+}
+
+@theme {
+    --font-sans: "Arial", "Noto Sans Mono CJK SC";
+    --font-serif: "Times New Roman", "ChillKai";
+    --font-mono: "Noto Sans Mono CJK SC";
+}

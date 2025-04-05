@@ -238,7 +238,7 @@ const BarChartForSamplingResult: Component<{
       <Portal>
         <div
           ref={tooltipEl}
-          class="absolute hidden bg-white text-black border-2 z-10 rounded opacity-60 p-[3px]"
+          class="absolute hidden bg-white text-black border-2 z-10 rounded-sm opacity-60 p-[3px]"
         >
           {tooltipText()}
         </div>

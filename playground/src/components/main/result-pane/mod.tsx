@@ -3,17 +3,14 @@ import {
   createMemo,
   createSignal,
   For,
+  JSX,
   Match,
-  onMount,
   Show,
   Switch,
 } from "solid-js";
 
-import {
-  DicexpEvaluation,
-  ElementLayoutChangeObserver,
-  registerRoWidgetOwner,
-} from "@rotext/solid-components";
+import { DicexpEvaluation } from "@rotext/solid-components";
+import * as Ankor from "ankor";
 
 import type * as I from "@dicexp/interface";
 
@@ -27,7 +24,7 @@ import { Button, Card, Loading } from "../../ui/mod";
 import * as store from "../../../stores/store";
 import { ResultRecord, SamplingReportForPlayground } from "../../../types";
 
-import { DicexpResult, WIDGET_OWNER_CLASS } from "../../ro-widget-dicexp";
+import { DicexpResult } from "../../ro-widget-dicexp";
 import { Dynamic, Portal } from "solid-js/web";
 import { ErrorAlert } from "../ui";
 import { SamplingResultCard } from "./result-card-for-sampling";
@@ -38,126 +35,128 @@ export const ResultPane: Component<
   props,
 ) => {
   let widgetOwnerEl!: HTMLDivElement,
-    widgetAnchorEl!: HTMLDivElement,
     resultHeadEl!: HTMLDivElement;
 
   const [isHeadResultOnly, setIsHeadResultOnly] = createSignal(false);
-
-  onMount(() => {
-    registerRoWidgetOwner(widgetOwnerEl, {
-      widgetAnchorElement: widgetAnchorEl,
-      level: 1,
-      layoutChangeObserver: //
-        new ElementLayoutChangeObserver(widgetOwnerEl, { resize: true }),
-    });
-  });
 
   const isAnySamplingRunning = createMemo(() =>
     props.records()
       .some((r) => r.type === "sampling" && isSamplingRunning(r.report()))
   );
 
+  const widgetOwnerData = createMemo(() =>
+    JSON.stringify(
+      { level: 1 } satisfies Ankor.WidgetOwnerRaw,
+    )
+  );
+
   return (
     <Card
       ref={widgetOwnerEl}
-      class={`min-w-[100vw] sm:min-w-[80vw] max-w-[100vw] ${WIDGET_OWNER_CLASS} ${
-        props.class ?? ""
-      }`}
+      class={`min-w-[100vw] sm:min-w-[80vw] max-w-[100vw] ${props.class ?? ""}`}
       bodyClass="py-6 px-4 sm:px-6 gap-0"
     >
-      <div class="flex justify-between items-center">
-        <div class="text-xl">结果（{props.records().length}）</div>
-        <div class="flex gap-4">
-          {/* 折叠 */}
-          <Button
-            icon={
-              <Dynamic
-                component={isHeadResultOnly() ? VsChevronUp : VsChevronDown}
-                size={24}
-              />
-            }
-            size="sm"
-            shape="square"
-            hasOutline={true}
-            onClick={() => setIsHeadResultOnly(!isHeadResultOnly())}
-          />
-          {/* 清空 */}
-          <Button
-            icon={<VsClearAll size={24} />}
-            size="sm"
-            shape="square"
-            hasOutline={true}
-            disabled={isAnySamplingRunning()}
-            onClick={() => store.clearResult()}
-          />
+      <div
+        class={Ankor.WIDGET_OWNER_CLASS}
+        data-ankor-widget-owner={widgetOwnerData()}
+      >
+        <div class="flex justify-between items-center">
+          <div class="text-xl">结果（{props.records().length}）</div>
+          <div class="flex gap-4">
+            {/* 折叠 */}
+            <Button
+              icon={
+                <Dynamic
+                  component={isHeadResultOnly() ? VsChevronUp : VsChevronDown}
+                  size={24}
+                />
+              }
+              size="sm"
+              shape="square"
+              hasOutline={true}
+              onClick={() => setIsHeadResultOnly(!isHeadResultOnly())}
+            />
+            {/* 清空 */}
+            <Button
+              icon={<VsClearAll size={24} />}
+              size="sm"
+              shape="square"
+              hasOutline={true}
+              disabled={isAnySamplingRunning()}
+              onClick={() => store.clearResult()}
+            />
+          </div>
         </div>
-      </div>
 
-      <div ref={widgetAnchorEl} class="relative z-10" />
-      <div class="flex flex-col gap-4">
-        <Show when={props.records().length}>
-          <div ref={resultHeadEl} class="pt-2" />
-          <Show when={isHeadResultOnly() && props.records().length > 1}>
+        <div class={`${Ankor.ANCHOR_CLASS} relative z-10`} />
+        <div class={`${Ankor.CONTENT_CLASS} flex flex-col gap-4`}>
+          <Show when={props.records().length}>
+            <div ref={resultHeadEl} class="pt-2" />
+            <Show when={isHeadResultOnly() && props.records().length > 1}>
+              <div
+                class="flex justify-center items-center"
+                onClick={() => setIsHeadResultOnly(false)}
+              >
+                <span class="text-sm text-gray-300 cursor-pointer select-none underline">
+                  {`已隐藏 ${props.records().length - 1} 条先前的结果`}
+                </span>
+              </div>
+            </Show>
             <div
-              class="flex justify-center items-center"
-              onClick={() => setIsHeadResultOnly(false)}
+              class="flex flex-col-reverse gap-4"
+              style={{ display: isHeadResultOnly() ? "none" : undefined }}
             >
-              <span class="text-sm text-gray-300 cursor-pointer select-none underline">
-                {`已隐藏 ${props.records().length - 1} 条先前的结果`}
-              </span>
+              <For each={props.records()}>
+                {(record, i) => {
+                  const isHead = () => i() === props.records().length - 1;
+                  const block = (
+                    <Switch>
+                      <Match when={record.type === "single"}>
+                        {(() => {
+                          const props = record as //
+                          Extract<ResultRecord, { type: "single" }>;
+                          return <SingleResultBlock i={i()} {...props} />;
+                        })()}
+                      </Match>
+                      <Match when={record.type === "sampling"}>
+                        {(() => {
+                          const { report, date } = record as //
+                          Extract<ResultRecord, { type: "sampling" }>;
+                          const props = { report, date };
+                          return <SamplingResultBlock i={i()} {...props} />;
+                        })()}
+                      </Match>
+                      <Match when={record.type === "error"}>
+                        {(() => {
+                          const { error, date } = record as //
+                          Extract<ResultRecord, { type: "error" }>;
+                          const props = { error, date };
+                          return <ErrorResultBlock i={i()} {...props} />;
+                        })()}
+                      </Match>
+                      <Match when={true}>
+                        Unreachable!
+                      </Match>
+                    </Switch>
+                  );
+                  return (
+                    <Dynamic
+                      component={isHead()
+                        ? Portal
+                        : (({ children }) => <>{children}
+                        </>) satisfies Component<
+                          { children: JSX.Element }
+                        >}
+                      mount={isHead() ? resultHeadEl : undefined}
+                    >
+                      {block}
+                    </Dynamic>
+                  );
+                }}
+              </For>
             </div>
           </Show>
-          <div
-            class="flex flex-col-reverse gap-4"
-            style={{ display: isHeadResultOnly() ? "none" : undefined }}
-          >
-            <For each={props.records()}>
-              {(record, i) => {
-                const isHead = () => i() === props.records().length - 1;
-                const block = (
-                  <Switch>
-                    <Match when={record.type === "single"}>
-                      {(() => {
-                        const props = record as //
-                        Extract<ResultRecord, { type: "single" }>;
-                        return <SingleResultBlock i={i()} {...props} />;
-                      })()}
-                    </Match>
-                    <Match when={record.type === "sampling"}>
-                      {(() => {
-                        const { report, date } = record as //
-                        Extract<ResultRecord, { type: "sampling" }>;
-                        const props = { report, date };
-                        return <SamplingResultBlock i={i()} {...props} />;
-                      })()}
-                    </Match>
-                    <Match when={record.type === "error"}>
-                      {(() => {
-                        const { error, date } = record as //
-                        Extract<ResultRecord, { type: "error" }>;
-                        const props = { error, date };
-                        return <ErrorResultBlock i={i()} {...props} />;
-                      })()}
-                    </Match>
-                    <Match when={true}>
-                      Unreachable!
-                    </Match>
-                  </Switch>
-                );
-                return (
-                  <Dynamic
-                    component={isHead()
-                      ? Portal
-                      : ({ children }) => <>{children}</>}
-                    mount={isHead() ? resultHeadEl : undefined}
-                  >
-                    {block}
-                  </Dynamic>
-                );
-              }}
-            </For>
-          </div>
-        </Show>
+        </div>
       </div>
     </Card>
   );

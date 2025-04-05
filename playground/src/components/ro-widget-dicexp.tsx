@@ -1,11 +1,12 @@
 import { Component, Show } from "solid-js";
 
 import {
+  AnkorWidgetDicexpProperties,
   ErrorAlert,
-  getDefaultDicexpStyleProviders,
-  registerCustomElementForRoWidgetDicexp,
-  RoWidgetDicexpProperties,
+  registerCustomElementForAnkorWidgetDicexp,
 } from "@rotext/solid-components";
+
+import { ComputedColor } from "@rolludejo/internal-web-shared";
 
 import type * as I from "@dicexp/interface";
 
@@ -14,25 +15,24 @@ import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-compo
 import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
 import { Loading } from "./ui/mod";
 
-export const WIDGET_OWNER_CLASS = "widget-owner";
+import { styleProvider as styleProviderForPreflight } from "../styles/preflight";
+import { styleProvider as styleProviderForTailwind } from "../styles/tailwind";
 
-const BACKGROUND_COLOR = [0x1f, 0x1f, 0x1f, null];
+const BACKGROUND_COLOR = new ComputedColor(0x1f, 0x1f, 0x1f, null);
 
 registerCustomElementForStepsRepresentation("steps-representation");
-registerCustomElementForRoWidgetDicexp("dicexp-result", {
-  styleProviders: getDefaultDicexpStyleProviders(),
+registerCustomElementForAnkorWidgetDicexp("dicexp-result", {
+  baseStyleProviders: [styleProviderForPreflight, styleProviderForTailwind],
   backgroundColor: BACKGROUND_COLOR,
-  widgetOwnerClass: WIDGET_OWNER_CLASS,
-  ErrorAlert: ErrorAlert,
+  ErrorAlert,
   Loading,
   tagNameForStepsRepresentation: "steps-representation",
 });
-registerCustomElementForRoWidgetDicexp("dicexp-example", {
-  styleProviders: getDefaultDicexpStyleProviders(),
+registerCustomElementForAnkorWidgetDicexp("dicexp-example", {
+  baseStyleProviders: [styleProviderForPreflight, styleProviderForTailwind],
   backgroundColor: BACKGROUND_COLOR,
-  widgetOwnerClass: WIDGET_OWNER_CLASS,
   evaluatorProvider: defaultEvaluatorProvider,
-  ErrorAlert: ErrorAlert,
+  ErrorAlert,
   Loading,
   tagNameForStepsRepresentation: "steps-representation",
 });
@@ -41,8 +41,8 @@ declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
       "steps-representation": { repr: I.Repr };
-      "dicexp-result": RoWidgetDicexpProperties;
-      "dicexp-example": Omit<RoWidgetDicexpProperties, "evaluation">;
+      "dicexp-result": AnkorWidgetDicexpProperties;
+      "dicexp-example": Omit<AnkorWidgetDicexpProperties, "evaluation">;
     }
   }
 }
@@ -51,7 +51,7 @@ declare module "solid-js" {
 //   return <steps-representation {...props}></steps-representation>;
 // };
 
-export const DicexpResult: Component<RoWidgetDicexpProperties> = (props) => {
+export const DicexpResult: Component<AnkorWidgetDicexpProperties> = (props) => {
   return (
     <Show when={props.evaluation}>
       <dicexp-result {...props} />

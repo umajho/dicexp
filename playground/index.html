@@ -1,15 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <title>Dicexp Playground</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+<html lang="en" data-theme="dark">
 
-    <script src="/src/index.tsx" type="module"></script>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <!-- 让 Dark Reader 扩展不要激活。网站本身就是深色的，Dark Reader 的额外处理还
+      会导致部分功能（挂件）不再运作。 -->
+  <meta name="darkreader-lock" />
+  <title>Dicexp Playground</title>
+
+  <!--
+      思源黑体等宽（Noto Sans Mono）
+      LICENSE: https://github.com/notofonts/noto-cjk/blob/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/LICENSE
+      see: https://fonts.zeoseven.com/items/186/
+    -->
+  <link rel="preload" href="https://static.zeoseven.com/zsft/186/main/result.css" as="style"
+    onload="this.rel='stylesheet'" crossorigin />
+  <!--
+      寒蝉正楷体（"ChillKai"）
+      repo: https://github.com/Warren2060/Chillkai
+      LICENSE: https://github.com/Warren2060/Chillkai/blob/ab172bd33249136db70e177e8a22d3ae721652dd/LICENSE
+      see: https://fonts.zeoseven.com/items/5/
+    -->
+  <link rel="preload" href="https://static.zeoseven.com/zsft/5/main/result.css" as="style"
+    onload="this.rel='stylesheet'" crossorigin />
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+
+  <script src="/src/index.tsx" type="module"></script>
+</body>
+
 </html>

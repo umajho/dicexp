@@ -6,17 +6,13 @@ import {
   For,
   Index,
   on,
-  onMount,
   Show,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import { render } from "solid-js/web";
 import { createBreakpoints } from "@solid-primitives/media";
 
-import {
-  ElementLayoutChangeObserver,
-  registerRoWidgetOwner,
-} from "@rotext/solid-components";
+import * as Ankor from "ankor";
 
 import type * as I from "@dicexp/interface";
 import { localizeValueType } from "@dicexp/l10n";
@@ -26,7 +22,6 @@ import { Badge, Button, Card, Input, Join, Tab, Tabs } from "../ui/mod";
 import { ShowKeepAlive } from "../utils";
 
 import { scopes, totalRegularFunctions } from "../../stores/scope-info";
-import { WIDGET_OWNER_CLASS } from "../ro-widget-dicexp";
 import FixedMasonry from "../FixedMasonry";
 
 const gettingStartUrl =
@@ -254,17 +249,13 @@ export const FunctionCardMasonry: Component<{
 export const FunctionCard: Component<{
   doc: I.RegularFunctionDocumentation;
 }> = (props) => {
-  let widgetOwnerEl!: HTMLDivElement,
-    widgetAnchorEl!: HTMLDivElement;
+  let widgetOwnerEl!: HTMLDivElement;
 
-  onMount(() => {
-    registerRoWidgetOwner(widgetOwnerEl, {
-      widgetAnchorElement: widgetAnchorEl,
-      level: 1,
-      layoutChangeObserver: //
-        new ElementLayoutChangeObserver(widgetOwnerEl, { resize: true }),
-    });
-  });
+  const widgetOwnerData = createMemo(() =>
+    JSON.stringify(
+      { level: 1 } satisfies Ankor.WidgetOwnerRaw,
+    )
+  );
 
   return (
     <Card
@@ -288,107 +279,116 @@ export const FunctionCard: Component<{
           </div>
         </div>
       }
-      class={`${WIDGET_OWNER_CLASS} bg-base-200`}
+      class={`bg-base-200`}
     >
-      <div ref={widgetAnchorEl} class="relative z-10" />
-      <div class="flex justify-center w-full font-bold">
-        {props.doc.description.brief}
-      </div>
-      <dl>
-        <Show when={props.doc.aliases}>
-          {(aliases) => (
-            <>
-              <dt>别名</dt>
-              <dd>
-                <Index each={aliases()}>
-                  {(alias, i) => (
-                    <>
-                      <code>{alias()}/{props.doc.parameters.length}</code>
-                      <Show when={i < aliases().length - 1}>、</Show>
-                    </>
-                  )}
-                </Index>
-              </dd>
-            </>
-          )}
-        </Show>
-
-        <dt>参数</dt>
-        <dd>
+      <div
+        class={Ankor.WIDGET_OWNER_CLASS}
+        data-ankor-widget-owner={widgetOwnerData()}
+      >
+        <div class={`${Ankor.ANCHOR_CLASS} relative z-10`} />
+        <div class={Ankor.CONTENT_CLASS}>
+          <div class="flex justify-center w-full font-bold">
+            {props.doc.description.brief}
+          </div>
           <dl>
-            <For each={props.doc.parameters}>
-              {(p, i) => (
+            <Show when={props.doc.aliases}>
+              {(aliases) => (
                 <>
-                  <dt>
-                    <code>
-                      {`${i()}`}
-                      <span class="text-xs">
-                        {`(${p.label})`}
-                      </span>
-                      {": "}
-                    </code>
-                    <code>
-                      <TypeNameBadgeList
-                        typeNames={getPossibleTypeDisplayNameList(p.type)}
-                      />
-                    </code>
-                  </dt>
+                  <dt>别名</dt>
                   <dd>
-                    {p.description}
+                    <Index each={aliases()}>
+                      {(alias, i) => (
+                        <>
+                          <code>{alias()}/{props.doc.parameters.length}</code>
+                          <Show when={i < aliases().length - 1}>、</Show>
+                        </>
+                      )}
+                    </Index>
                   </dd>
                 </>
               )}
-            </For>
-          </dl>
-        </dd>
+            </Show>
 
-        <dt>返回值类型</dt>
-        <dd>
-          <code>
-            {(() => {
-              const returnValueType = props.doc.returnValue.type;
-              if (typeof returnValueType === "string") {
-                return (
-                  <TypeNameBadgeList
-                    typeNames={getPossibleTypeDisplayNameList(returnValueType)}
-                  />
-                );
-              } else {
-                return (
-                  <>
-                    动态{returnValueType.lazy && "（惰性）"}：
-                    {returnValueType.description}
-                  </>
-                );
-              }
-            })()}
-          </code>
-        </dd>
+            <dt>参数</dt>
+            <dd>
+              <dl>
+                <For each={props.doc.parameters}>
+                  {(p, i) => (
+                    <>
+                      <dt>
+                        <code>
+                          {`${i()}`}
+                          <span class="text-xs">
+                            {`(${p.label})`}
+                          </span>
+                          {": "}
+                        </code>
+                        <code>
+                          <TypeNameBadgeList
+                            typeNames={getPossibleTypeDisplayNameList(p.type)}
+                          />
+                        </code>
+                      </dt>
+                      <dd>
+                        {p.description}
+                      </dd>
+                    </>
+                  )}
+                </For>
+              </dl>
+            </dd>
 
-        <Show when={props.doc.description.further}>
-          {(further) => (
-            <>
-              <dt>说明</dt>
-              <dd class="whitespace-pre-line">
-                {further()}
-              </dd>
-            </>
-          )}
-        </Show>
+            <dt>返回值类型</dt>
+            <dd>
+              <code>
+                {(() => {
+                  const returnValueType = props.doc.returnValue.type;
+                  if (typeof returnValueType === "string") {
+                    return (
+                      <TypeNameBadgeList
+                        typeNames={getPossibleTypeDisplayNameList(
+                          returnValueType,
+                        )}
+                      />
+                    );
+                  } else {
+                    return (
+                      <>
+                        动态{returnValueType.lazy && "（惰性）"}：
+                        {returnValueType.description}
+                      </>
+                    );
+                  }
+                })()}
+              </code>
+            </dd>
 
-        <Show when={props.doc.examples?.length}>
-          <>
-            <dt>示例</dt>
-            <Index each={props.doc.examples!}>
-              {(example) => (
-                <dd>
-                  <dicexp-example code={example()} />
-                </dd>
+            <Show when={props.doc.description.further}>
+              {(further) => (
+                <>
+                  <dt>说明</dt>
+                  <dd class="whitespace-pre-line">
+                    {further()}
+                  </dd>
+                </>
               )}
-            </Index>
-          </>
-        </Show>
-      </dl>
+            </Show>
+
+            <Show when={props.doc.examples?.length}>
+              <>
+                <dt>示例</dt>
+                <Index each={props.doc.examples!}>
+                  {(example) => (
+                    <dd>
+                      <dicexp-example code={example()} />
+                    </dd>
+                  )}
+                </Index>
+              </>
+            </Show>
+          </dl>
+        </div>
+      </div>
     </Card>
   );
 };
@@ -402,7 +402,7 @@ export const TypeNameBadgeList: Component<{ typeNames: string[] }> = (
         {(name, i) => (
           <>
             {(i() !== 0) && "或"}
-            <Badge outline={true}>{name}</Badge>
+            <Badge outline={true} size="sm" class="border-white">{name}</Badge>
           </>
         )}
       </For>

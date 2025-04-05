@@ -6,7 +6,7 @@ import { Main } from "./components/main/mod";
 const App: Component = () => {
   return (
     <div class="app-container min-h-screen bg-base-300">
-      <nav class="sticky top-0 z-10 w-full p-2">
+      <nav class="sticky top-0 z-10 w-full p-1 !pb-2 xl:p-2">
         <NavBar />
       </nav>
       <div class="h-4 sm:h-10" />

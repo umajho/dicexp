@@ -33,7 +33,8 @@ export const Badge: Component<
     children: JSX.Element;
     type?: "neutral" | "success" | "ghost";
     outline?: boolean;
-    size?: "lg";
+    size?: "lg" | "sm";
+    class?: string;
     onClick?: () => void;
   }
 > = (
@@ -45,7 +46,7 @@ export const Badge: Component<
     | "badge-success"
     | "badge-ghost" => props.type ? `badge-${props.type}` : "";
   const outlineClass = () => props.outline ? "badge-outline" : "";
-  const sizeType = (): "" | `badge-lg` =>
+  const sizeType = (): "" | "badge-lg" | "badge-sm" =>
     props.size ? `badge-${props.size}` : "";
 
   return (
@@ -56,6 +57,7 @@ export const Badge: Component<
         outlineClass(),
         sizeType(),
         props.onClick ? "cursor-pointer select-none" : undefined,
+        props.class ?? "",
       ].join(" ")}
       onClick={props.onClick}
     >
@@ -68,7 +70,7 @@ export const Tabs: Component<{ children: JSX.Element; class?: string }> = (
   props,
 ) => {
   return (
-    <div class={`tabs ${props.class ?? ""}`}>
+    <div class={`tabs tabs-border ${props.class ?? ""}`}>
       {props.children}
     </div>
   );
@@ -78,7 +80,7 @@ export const Tab: Component<
   {
     children: JSX.Element;
     isActive?: boolean;
-    onClick?: JSX.EventHandlerUnion<HTMLDivElement, MouseEvent>;
+    onClick?: JSX.EventHandlerUnion<HTMLButtonElement, MouseEvent>;
     size?: "lg" | "sm";
   }
 > = (
@@ -87,12 +89,12 @@ export const Tab: Component<
   const size = (): "tab-lg" | "tab-sm" | "" =>
     props.size ? `tab-${props.size}` : "";
   return (
-    <div
-      class={`tab ${props.isActive ? "tab-active" : ""} tab-bordered ${size()}`}
+    <button
+      class={`tab ${props.isActive ? "tab-active" : ""} ${size()}`}
       onClick={props.onClick}
     >
       {props.children}
-    </div>
+    </button>
   );
 };
 
@@ -138,7 +140,7 @@ export const Dropdown: Component<
       <ul
         ref={ulEl}
         tabindex="0"
-        class={`dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box ${
+        class={`dropdown-content z-[1] menu p-2 shadow-sm bg-base-100 rounded-box ${
           props.contentClass ?? ""
         }`}
       >
@@ -272,7 +274,7 @@ export const OptionalNumberInput: Component<
       <div class="flex flex-col h-full justify-center">
         <input
           type="number"
-          class="input input-sm input-bordered"
+          class="input input-sm"
           value={props.number}
           onInput={(ev) => props.setNumber(Number(ev.target.value))}
           disabled={!props.enabled}
