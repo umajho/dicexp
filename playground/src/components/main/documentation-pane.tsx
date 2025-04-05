@@ -402,7 +402,7 @@ export const TypeNameBadgeList: Component<{ typeNames: string[] }> = (
         {(name, i) => (
           <>
             {(i() !== 0) && "或"}
-            <Badge outline={true}>{name}</Badge>
+            <Badge outline={true} size="sm" class="border-white">{name}</Badge>
           </>
         )}
       </For>

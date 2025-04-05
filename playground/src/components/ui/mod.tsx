@@ -33,7 +33,8 @@ export const Badge: Component<
     children: JSX.Element;
     type?: "neutral" | "success" | "ghost";
     outline?: boolean;
-    size?: "lg";
+    size?: "lg" | "sm";
+    class?: string;
     onClick?: () => void;
   }
 > = (
@@ -45,7 +46,7 @@ export const Badge: Component<
     | "badge-success"
     | "badge-ghost" => props.type ? `badge-${props.type}` : "";
   const outlineClass = () => props.outline ? "badge-outline" : "";
-  const sizeType = (): "" | `badge-lg` =>
+  const sizeType = (): "" | "badge-lg" | "badge-sm" =>
     props.size ? `badge-${props.size}` : "";
 
   return (
@@ -56,6 +57,7 @@ export const Badge: Component<
         outlineClass(),
         sizeType(),
         props.onClick ? "cursor-pointer select-none" : undefined,
+        props.class ?? "",
       ].join(" ")}
       onClick={props.onClick}
     >
