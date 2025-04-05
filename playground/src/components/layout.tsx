@@ -5,6 +5,9 @@ import {
   HiSolidChevronDown,
 } from "solid-icons/hi";
 
+import "../styles/preflight";
+import "../styles/tailwind";
+
 export const NavBar: Component = () => {
   return (
     <div class="navbar bg-base-100 shadow-xl rounded-box">
