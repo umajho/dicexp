@@ -8,11 +8,7 @@ import {
   Show,
   Switch,
 } from "solid-js";
-
-import { DicexpEvaluation } from "@rotext/solid-components";
-import * as Ankor from "ankor";
-
-import type * as I from "@dicexp/interface";
+import { Dynamic, Portal } from "solid-js/web";
 
 import {
   VsChevronDown,
@@ -20,12 +16,16 @@ import {
   VsClearAll,
   VsClose,
 } from "solid-icons/vs";
+
+import * as Ankor from "ankor";
+import { DicexpEvaluation } from "@rotext/solid-components";
+
+import type * as I from "@dicexp/interface";
+
 import { Button, Card, Loading } from "../../ui/mod";
 import * as store from "../../../stores/store";
 import { ResultRecord, SamplingReportForPlayground } from "../../../types";
-
 import { DicexpResult } from "../../../custom-elements/dicexp";
-import { Dynamic, Portal } from "solid-js/web";
 import { ErrorAlert } from "../ui";
 import { SamplingResultCard } from "./result-card-for-sampling";
 
