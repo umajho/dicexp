@@ -13,7 +13,7 @@ import type * as I from "@dicexp/interface";
 import { registerCustomElementForStepsRepresentation } from "@dicexp/solid-components/internal";
 
 import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
-import { Loading } from "./ui/mod";
+import { Loading } from "../components/ui/mod";
 
 import { styleProvider as styleProviderForPreflight } from "../styles/preflight";
 import { styleProvider as styleProviderForTailwind } from "../styles/tailwind";

@@ -24,7 +24,7 @@ import { Button, Card, Loading } from "../../ui/mod";
 import * as store from "../../../stores/store";
 import { ResultRecord, SamplingReportForPlayground } from "../../../types";
 
-import { DicexpResult } from "../../ro-widget-dicexp";
+import { DicexpResult } from "../../../custom-elements/dicexp";
 import { Dynamic, Portal } from "solid-js/web";
 import { ErrorAlert } from "../ui";
 import { SamplingResultCard } from "./result-card-for-sampling";
