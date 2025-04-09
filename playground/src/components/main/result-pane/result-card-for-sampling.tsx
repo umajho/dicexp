@@ -27,7 +27,10 @@ const numberFormat = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 3,
 });
 
-export const SamplingResultCard: Component<{ report: I.SamplingReport }> = (
+export const SamplingResultCard: Component<{
+  code: string;
+  report: I.SamplingReport;
+}> = (
   props,
 ) => {
   const [statis, setStatis] = createSignal<I.SamplingStatistic | null>(null),
@@ -96,6 +99,10 @@ export const SamplingResultCard: Component<{ report: I.SamplingReport }> = (
           showsStack={errorDisplayInfo()!.showsStack}
         />
       </Show>
+
+      <p class="card-title">
+        <code>{props.code}</code>
+      </p>
 
       {/* 条形图 */}
       <Show when={(result()?.samples ?? 0) > 0}>
