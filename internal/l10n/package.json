@@ -1,5 +1,4 @@
 {
-  "packageManager": "pnpm@8.10.0",
   "name": "@dicexp/l10n",
   "version": "0.0.0",
   "main": "lib.ts",
