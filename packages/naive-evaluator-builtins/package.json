@@ -44,11 +44,11 @@
     "@dicexp/naive-evaluator": "workspace:*",
     "@dicexp/naive-evaluator-runtime": "workspace:*",
     "@dicexp/test-utils-for-executing": "workspace:*",
-    "@rolludejo/internal-build-utils": "^0.1.2",
-    "@types/node": "^20.8.6",
-    "esbuild": "^0.18.20",
-    "terser": "^5.21.0",
-    "tsup": "^7.1.0",
-    "vitest": "^0.34.2"
+    "@rolludejo/internal-build-utils": "catalog:",
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "terser": "catalog:",
+    "tsup": "catalog:",
+    "vitest": "catalog:"
   }
 }

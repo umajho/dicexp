@@ -51,16 +51,16 @@
   },
   "devDependencies": {
     "@dicexp/interface": "workspace:*",
-    "concurrently": "^8.2.0",
-    "esbuild": "^0.18.15",
-    "esbuild-plugin-solid": "^0.5.0",
-    "jsdom": "^22.1.0",
-    "solid-js": "^1.8.3",
-    "tsup": "^7.1.0",
-    "tsup-preset-solid": "^2.0.1",
-    "vite": "^4.4.6",
-    "vite-plugin-solid": "^2.7.0",
-    "vitest": "^0.33.0"
+    "concurrently": "catalog:",
+    "esbuild": "catalog:",
+    "esbuild-plugin-solid": "catalog:",
+    "jsdom": "catalog:",
+    "solid-js": "catalog:",
+    "tsup": "catalog:",
+    "tsup-preset-solid": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-solid": "catalog:",
+    "vitest": "catalog:"
   },
   "keywords": [
     "solid"

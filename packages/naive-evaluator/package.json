@@ -49,21 +49,21 @@
     "@lezer/lr": "^1.3.13"
   },
   "devDependencies": {
-    "@dicexp/naive-evaluator-builtins": "workspace:*",
     "@dicexp/errors": "workspace:*",
     "@dicexp/interface": "workspace:*",
     "@dicexp/lezer": "workspace:*",
-    "@dicexp/nodes": "workspace:*",
+    "@dicexp/naive-evaluator-builtins": "workspace:*",
     "@dicexp/naive-evaluator-runtime": "workspace:*",
+    "@dicexp/nodes": "workspace:*",
     "@dicexp/test-utils-for-executing": "workspace:*",
-    "@lezer/common": "^1.1.0",
-    "@rolludejo/internal-build-utils": "^0.1.2",
-    "@types/node": "^20.8.6",
-    "@vitest/ui": "^0.34.2",
-    "esbuild": "^0.18.20",
-    "esm-seedrandom": "^3.0.5",
-    "terser": "^5.21.0",
-    "tsup": "^7.1.0",
-    "vitest": "^0.34.2"
+    "@lezer/common": "catalog:",
+    "@rolludejo/internal-build-utils": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/ui": "catalog:",
+    "esbuild": "catalog:",
+    "esm-seedrandom": "catalog:",
+    "terser": "catalog:",
+    "tsup": "catalog:",
+    "vitest": "catalog:"
   }
 }
