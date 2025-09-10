@@ -265,7 +265,7 @@ describe("标识符", () => {
   });
 
   describe("闭包参数列表", () => {
-    it("除了 `_` 外，参数名必须以 `$` 开头", () => {
+    describe("除了 `_` 外，参数名必须以 `$` 开头", () => {
       theyAreBad([
         String.raw`|x| 1`,
         String.raw`|@x| 1`,
@@ -273,7 +273,7 @@ describe("标识符", () => {
       ]);
       theyAreOk([String.raw`|$x| 1`]);
     });
-    it("参数名可以是 `_`", () => {
+    describe("参数名可以是 `_`", () => {
       theyAreOk([String.raw`|_| 1`]);
     });
   });
