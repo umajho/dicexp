@@ -138,3 +138,111 @@ function summarize(result: I.EvaluationResult): unknown {
   }
   return [result[0], result[1], String(result[2])];
 }
+
+/** The parse-error message; fails the test for any other outcome. */
+function parseErrorMessage(result: I.EvaluationResult): string {
+  expect(result[0], JSON.stringify(result)).toBe("error");
+  if (result[0] !== "error") throw new Error("unreachable");
+  expect(result[1]).toBe("parse");
+  if (result[1] !== "parse") throw new Error("unreachable");
+  return result[2].message;
+}
+
+/**
+ * Parse-error spans and their rendering (compat.md #10).
+ *
+ * naive renders Lezer `⚠` ranges as raw 0-based from/to columns with the
+ * excerpt starting one char before the span (`parse_error.ts`
+ * `generalGrammar`); at end-of-input its `⚠` is the empty range at the
+ * input end, so the excerpt shows the last character (trailing whitespace
+ * included). nova's locale uses the same convention on its own spans, so
+ * the messages match exactly wherever the underlying failure is the same.
+ */
+describe(
+  "differential: parse errors",
+  () => {
+    /** Same failure: the full message must match naive's exactly. */
+    const PARITY: string[] = [
+      // truncated at EOF — the ⚠ is the empty range at the input end and
+      // the excerpt shows the last character
+      "1+", "d", "3#", "map(", "d(", "|$x|", "1~", "&", "2 |>", "1 **",
+      "1 //", "3 d ", "1 .", "|$x| $x +", "1 d", "[1, 2", "not", "-", "+",
+      "~", "1 + 2 +", "1+  ", "   ", "", "&sum/", "&d/", "d100 # ", "1~2~",
+      "head([1]) |> ", "1 # ", "true and", "1 and", "1 or",
+      // full-width source — excerpts show the half-width-normalized text
+      "１＋", "１＋１＋",
+      // mid-input junk: nova's offending-token span coincides with naive's ⚠
+      "1+2)", "1 1", "true true", "1?", ")", "1 ;", "&/",
+    ];
+
+    /**
+     * Same failure, but naive reports every `⚠` range while nova reports
+     * one parse error at a time (compat.md #10): nova's message must equal
+     * naive's message up through the first `⚠` range.
+     */
+    const ONE_AT_A_TIME: string[] = [
+      "[1,", "(", "(((", "(|", "(|$x", "(|$x,", "(|$x|", "foo(1,", "sum([1,",
+    ];
+
+    /**
+     * Deliberate divergences (compat.md #10): nova's span is the offending
+     * token; naive's Lezer recovery places its `⚠`s elsewhere (empty ⚠ at
+     * the operand-expectation position, or an empty ⚠ with no excerpt).
+     * Both sides are pinned: if they ever coincide, the carve-out should
+     * be removed.
+     */
+    const DIVERGENT: [code: string, novaMsg: string, naiveMsg: string][] = [
+      [
+        "d-",
+        "以下位置的语法有误：\n\t自列 1 至列 2：d-",
+        "以下位置的语法有误：\n\t自列 1 至列 1：d\n\t自列 2 至列 2：-",
+      ],
+      [
+        "d+",
+        "以下位置的语法有误：\n\t自列 1 至列 2：d+",
+        "以下位置的语法有误：\n\t自列 1 至列 1：d\n\t自列 2 至列 2：+",
+      ],
+      [
+        "]",
+        "以下位置的语法有误：\n\t自列 0 至列 1：]",
+        "以下位置的语法有误：\n\t自列 0 至列 0：",
+      ],
+      [
+        "((1+)",
+        "以下位置的语法有误：\n\t自列 4 至列 5：+)",
+        "以下位置的语法有误：\n\t自列 4 至列 4：+\n\t自列 5 至列 5：)\n\t自列 5 至列 5：)",
+      ],
+    ];
+
+    it("reproduces naive's exact message", () => {
+      for (const code of PARITY) {
+        const [n, v] = runBoth(code, 0);
+        expect(parseErrorMessage(v), JSON.stringify(code)).toBe(
+          parseErrorMessage(n),
+        );
+      }
+    });
+
+    it("reports one error at a time: its message is naive's first ⚠ range", () => {
+      for (const code of ONE_AT_A_TIME) {
+        const [n, v] = runBoth(code, 0);
+        const naiveMsg = parseErrorMessage(n);
+        const novaMsg = parseErrorMessage(v);
+        expect(naiveMsg.startsWith(novaMsg + "\n\t"), JSON.stringify(code))
+          .toBe(true);
+      }
+    });
+
+    it("pins the deliberate span divergences (compat.md #10)", () => {
+      for (const [code, novaMsg, naiveMsg] of DIVERGENT) {
+        const [n, v] = runBoth(code, 0);
+        expect(parseErrorMessage(v), `nova ${JSON.stringify(code)}`).toBe(
+          novaMsg,
+        );
+        expect(parseErrorMessage(n), `naive ${JSON.stringify(code)}`).toBe(
+          naiveMsg,
+        );
+      }
+    });
+  },
+);

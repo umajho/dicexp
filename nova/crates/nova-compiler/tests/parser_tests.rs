@@ -553,6 +553,56 @@ fn spans_are_char_indices() {
 }
 
 #[test]
+fn eof_syntax_error_spans() {
+    // EOF-triggered syntax errors carry the empty span at the end-of-input
+    // position (in chars, i.e. past trailing whitespace) — the same range
+    // naive's Lezer ⚠ occupies at EOF. The zh locale renders it with
+    // naive's convention (`自列 len 至列 len` + preceding-char excerpt), so
+    // these spans are part of the observable message parity.
+    for (src, span) in [
+        ("", (0, 0)),
+        ("1+", (2, 2)),
+        ("d", (1, 1)),
+        ("3#", (2, 2)),
+        ("map(", (4, 4)),
+        ("[1,", (3, 3)),
+        ("d(", (2, 2)),
+        ("|$x|", (4, 4)),
+        ("1~", (2, 2)),
+        ("&", (1, 1)),
+        ("(", (1, 1)),
+        ("2 |>", (4, 4)),
+        ("1 **", (4, 4)),
+        ("not", (3, 3)), // EOF position, not the token start
+        ("1+  ", (4, 4)), // past trailing whitespace
+        ("１＋", (2, 2)), // normalized-source coords (1:1 per char)
+    ] {
+        let es = bad(src);
+        assert_eq!(es[0].key, error_key::PARSE_SYNTAX_ERROR, "for {src:?}");
+        assert_eq!(es[0].span, span, "for {src:?}");
+    }
+}
+
+#[test]
+fn mid_input_syntax_error_spans() {
+    // Mid-input errors carry the offending token's span — nova's own
+    // convention (compat.md #10: naive's Lezer recovery ⚠s are skip-regions
+    // that only sometimes coincide with the offending token).
+    for (src, span) in [
+        ("d-", (1, 2)), // `-` cannot start a dice operand
+        ("1+2)", (3, 4)), // trailing junk after a complete expression
+        ("1 1", (2, 3)),
+        ("1?", (1, 2)),
+        ("1 ;", (2, 3)),
+        ("&/", (1, 2)),
+    ] {
+        let es = bad(src);
+        assert_eq!(es[0].key, error_key::PARSE_SYNTAX_ERROR, "for {src:?}");
+        assert_eq!(es[0].span, span, "for {src:?}");
+    }
+}
+
+#[test]
 fn grouping_is_transparent() {
     eq("(((1)))", "1");
     eq("(d4)", "(call/operator d 4)");

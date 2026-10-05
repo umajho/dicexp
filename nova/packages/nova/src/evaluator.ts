@@ -123,8 +123,22 @@ function toParseError(
   if (!first) return { message: "语法错误" };
   return {
     message: localizeZh(first, {
-      source,
+      // The compiler tokenized the half-width-normalized source (spans are
+      // char indices into it, 1:1 per char with the original), and naive's
+      // parse-error excerpts show the normalized text — normalize here too.
+      source: toHalfWidth(source),
       span: { start: first.start, end: first.end },
     }),
   };
+}
+
+/**
+ * naive's `convertTextToHalfWidth` (`parsing/utils.ts`; same mapping as the
+ * compiler-side `to_half_width`): U+FF01..=U+FF5E → ASCII, 1:1 per char.
+ */
+function toHalfWidth(source: string): string {
+  return source.replace(
+    /[！-～]/g,
+    (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0),
+  );
 }

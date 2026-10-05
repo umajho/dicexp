@@ -145,9 +145,14 @@ export function localizeZh(err: DecodedError, ctx: LocalizeContext = {}): string
     // --- parse errors ---
     case 2000: {
       if (ctx.source !== undefined && ctx.span) {
+        // naive's exact convention (parse_error.ts `generalGrammar` renders
+        // raw 0-based Lezer ⚠ from/to positions): the columns shown are the
+        // span bounds themselves and the excerpt starts one char before the
+        // span. At EOF the span is the empty range at the input end (as
+        // naive's ⚠ is), so the excerpt shows the last character.
         const { start, end } = ctx.span;
-        const slice = ctx.source.slice(start, end);
-        return `以下位置的语法有误：\n\t自列 ${start + 1} 至列 ${end}：${slice}`;
+        const slice = ctx.source.slice(start - 1, end);
+        return `以下位置的语法有误：\n\t自列 ${start} 至列 ${end}：${slice}`;
       }
       return "语法错误";
     }

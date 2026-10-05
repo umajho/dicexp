@@ -78,8 +78,24 @@ must be mirrored by divergence tags in the shared test suites
     - Astral identifiers: naive's UTF-16-code-unit tokenizer can never lex
       astral `ID_Start` characters; nova is char-based and accepts them.
     - Parse errors are reported one at a time (with a span); naive collected
-      all `⚠` ranges into a single message. (Semantic/compile errors are all
-      collected, as in naive.)
+      all `⚠` ranges into a single message (for inputs where Lezer emits
+      several — e.g. `(((` — nova's message equals naive's message up through
+      the first range). (Semantic/compile errors are all collected, as in
+      naive.)
+    - Parse-error spans are rendered with naive's exact `⚠`-range format
+      (`自列 from 至列 to：excerpt`, the excerpt starting one char before the
+      span, columns being the raw 0-based span bounds). At end-of-input the
+      span is the empty range at the input end — exactly where naive's `⚠`
+      sits — so the message shows the last character (trailing whitespace
+      included): full parity, including empty and full-width sources
+      (excerpts show the half-width-normalized text). Mid-input, nova's span
+      is the offending *token*; naive's Lezer recovery `⚠`s are skip-regions
+      that only sometimes coincide with it (when they do — e.g. `1 1`,
+      `1+2)` — the messages match exactly). Where they differ, nova's span is
+      kept because naive's is a recovery artifact (`d-`/`d+` → empty `⚠`
+      where the operand was expected, `]` → an empty `⚠` with no excerpt,
+      `((1+)` → three empty `⚠`s). Both sides are pinned in
+      `test/differential.test.ts`.
 
 ## Naive quirks deliberately replicated (for now)
 
