@@ -39,9 +39,12 @@ primary divergence oracle — extend it whenever semantics change.
    programs at compile time. Same for `unknownRegularFunction`,
    `duplicateClosureParameterNames`.
 
-4. **`sum([])` → `0`, `product([])` → `1`.**
-   Fixes the upstream FIXME (issue #18): naive's behavior on empty lists was
-   undefined-as-spec.
+4. ~~**`sum([])` → `0`, `product([])` → `1`.**~~ **Withdrawn (v0.4).**
+   Recorded on the assumption that naive's empty-list behavior was
+   undefined-as-spec; empirically naive's seeded reduce already returns
+   `0`/`1`, so there is no divergence — nova simply matches. The rows
+   live in the differential suite's PROGRAMS as sentinels. (Number kept:
+   suite divergence tags reference it.)
 
 5. **Duplicate error reporting is deduplicated.**
    naive had a known low-priority bug where some errors (e.g. from `a.()`)
@@ -143,6 +146,10 @@ Flagged during the port as candidates to fix in **both** implementations
   `limitationExceeded` for ±(2^53−1) overflow.
 - Same seed ⇒ same dice stream as naive (exact xorshift7 port), enabling
   replay-by-seed and seeded differential testing.
+- `a~b` is a uniform die draw per pull (an infinite stream like `d`), not
+  a static range: reroll/transformer pulls past the nominal end keep
+  drawing. (Easy to misread as a fixed range — pinned in differential
+  tests.)
 - `**` is **left**-associative (`2 ** 3 ** 2` = 64), following Elixir
   (dicexp's stated style reference), where `**` is explicitly
   left-associative. This is intentional, not a bug — do not "fix" it to the

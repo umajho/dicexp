@@ -5,8 +5,12 @@
  * Constraints on every preset:
  * (a) evaluates to an INTEGER — the worker sampling channel only histograms
  *     integer results (booleans/lists abort sampling);
- * (b) stays on the naive/nova-compatible subset — no `reroll`/`explode`
- *     (stubbed in nova, nova/docs/compat.md TODO list);
+ * (b) naive/nova must agree seed-by-seed (the histogram overlay depends on
+ *     it). That rules out raw `any?`/`all?` over `#`-lists (nova v0.4
+ *     short-circuits element forcing, compat.md #1, shifting the RNG
+ *     stream) — pre-force elements with `map` when `any?` is needed.
+ *     `reroll`/`explode` (landed in nova v0.4) agree exactly and may be
+ *     used.
  * (c) per-sample evaluation stays well under the worker heartbeat timeout
  *     (~5 s), because one sample evaluation blocks the worker's event loop.
  *
@@ -46,9 +50,24 @@ export const benchmarkPresets: BenchmarkPreset[] = [
     defaultSampleCount: 100_000,
   },
   {
-    label: "100#any?(3#(d100<=5))",
-    code: String.raw`100#any?(3#(d100<=5)) |> count (|$x| not $x)`,
+    // `map` pre-forces every die in BOTH implementations, so the `any?`
+    // short-circuit (nova, compat.md #1) consumes no extra RNG and the
+    // seed-by-seed results agree. (The previous form
+    // `100#any?(3#(d100<=5))` diverged: nova's short-circuit skipped the
+    // remaining draws of a group once a `true` appeared.)
+    label: "100#any?(map(3#d100, …)) 计假数",
+    code: String.raw`100#any?(map(3#d100, |$x| $x <= 5)) |> count (|$x| not $x)`,
     defaultSampleCount: 3_000,
+  },
+  {
+    label: "重掷：100#(10d6 |> reroll(≤2)) 求和",
+    code: String.raw`100#(10d6 |> reroll(|$x| $x <= 2)) |> sum`,
+    defaultSampleCount: 10_000,
+  },
+  {
+    label: "爆炸：100#(3d6 |> explode(=6)) 求和",
+    code: String.raw`100#(3d6 |> explode(|$x| $x == 6)) |> sum`,
+    defaultSampleCount: 20_000,
   },
   {
     label: "大排序：1000#d100 |> sort |> sum",
