@@ -76,7 +76,7 @@ export class EvaluatingWorkerManager
     this.client.terminate();
   }
 
-  keepSampling(code: string, opts: I.EvaluationGenerationOptions) {
+  keepSampling(code: string, opts: I.RemoteSamplingOptions) {
     if (!this.client) {
       throw new Error("管理器下的客户端尚未初始化");
     }

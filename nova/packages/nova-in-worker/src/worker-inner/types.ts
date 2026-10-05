@@ -15,7 +15,7 @@ export type MessageToServer =
     id: string,
     code: string,
     newEvaluatorOpts: NewEvaluatorOptionsForWorker,
-    opts: I.EvaluationGenerationOptions,
+    opts: I.RemoteSamplingOptions,
   ]
   | [type: "sample_stop", id: string];
 

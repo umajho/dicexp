@@ -40,7 +40,7 @@ export interface EvaluatingWorkerClientEvaluationOptions {
 
 export interface EvaluatingWorkerClientSamplingOptions {
   newEvaluator: NewEvaluatorOptionsForWorker;
-  evaluationGeneration: I.EvaluationGenerationOptions;
+  evaluationGeneration: I.RemoteSamplingOptions;
 }
 
 export class EvaluatingWorkerClient {
