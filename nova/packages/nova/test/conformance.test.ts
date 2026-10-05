@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type * as I from "@dicexp/interface";
 import { EvaluationTester } from "@dicexp/test-utils-for-executing";

@@ -16,7 +16,9 @@
         "types": "./dist/lib.d.ts",
         "default": "./dist/lib.js"
       }
-    }
+    },
+    "./wasm/*": "./wasm/*",
+    "./internal": "./internal.ts"
   },
   "repository": {
     "type": "git",
