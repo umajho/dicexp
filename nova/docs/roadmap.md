@@ -19,7 +19,7 @@ legacy/reference implementation.
 |---------|-------|--------|
 | v0.1 | first working version | ✅ done |
 | v0.2 | **nova in the playground** | ✅ code-complete (deploy is the owner's call) |
-| v0.3 | playground benchmark mode | |
+| v0.3 | playground benchmark mode | ✅ code-complete (deploy is the owner's call) |
 | v0.4 | language-complete core | |
 | v0.5 | limits & robustness | |
 | v0.6 | performance & size | |
@@ -78,6 +78,17 @@ needed.
 
 **Exit:** benchmark mode deployed; first comparison numbers documented.
 
+**Done (2026-10-06, code-complete; deploy is the owner's call).** Decisions
+taken: **sequential** runs (naive first, then nova) — concurrent workers
+would compete for CPU and skew the in-worker `Date.now` timing (resolves
+the v0.2 open nuance); exact-N runs via a new `sampling.maxSamples`
+protocol option so both sides cover exactly seeds 0..N−1 and agreement is
+exact histogram equality. Numbers and analysis:
+[`benchmarks.md`](./benchmarks.md) — headline: nova 0.52× naive on trivial
+programs (per-sample instantiation dominates; instance reuse is the v0.6
+lever), 3.4–12.8× faster on evaluation-heavy ones; zero histogram
+disagreements across all 9 presets.
+
 ## v0.4 — Language-complete core
 
 No stubs left in the shipped builtins; conformance becomes suite-shaped.
@@ -132,8 +143,10 @@ run shows no unexplained divergences.
 - Size pass: `wasm-opt` in the build recipe, allocator/codegen review,
   documented **size budget** (initial targets: compiler ≤ 100 KB,
   builtins ≤ 50 KB after wasm-opt, before brotli; adjust to measurements).
-- If v0.3's numbers showed cross-instance call overhead matters, evaluate
-  moving the static-linking milestone forward.
+- Static linking stays deferred (v1.1+): v0.3's numbers resolved the
+  cross-instance-call-overhead question — nova wins 3.4–12.8× on
+  evaluation-heavy programs *with* the hop in place. The trivial-program
+  gap is instantiation overhead instead (see the instance-reuse bullet).
 
 **Exit:** benchmark numbers and measured sizes recorded in `nova/docs/`;
 budget met or variance justified.
