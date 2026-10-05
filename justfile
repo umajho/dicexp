@@ -17,6 +17,7 @@ test-nova: build-nova-wasm test-nova-rust
 
 build-nova-ts:
 	cd nova/packages/nova && pnpm run build
+	cd nova/packages/nova-in-worker && pnpm run build
 
 build-nova: build-nova-wasm test-nova-rust test-nova build-nova-ts
 
