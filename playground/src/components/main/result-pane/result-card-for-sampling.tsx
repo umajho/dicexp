@@ -30,6 +30,7 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 export const SamplingResultCard: Component<{
   code: string;
   report: I.SamplingReport;
+  environment?: [string, string];
 }> = (
   props,
 ) => {
@@ -103,6 +104,13 @@ export const SamplingResultCard: Component<{
       <p class="card-title">
         <code>{props.code}</code>
       </p>
+
+      {/* 求值器（与单次结果中组件展示的 `求值器=…` 一致） */}
+      <Show when={props.environment}>
+        <div class="text-xs text-slate-500">
+          <span class="font-mono">求值器={props.environment![0]}</span>
+        </div>
+      </Show>
 
       {/* 条形图 */}
       <Show when={(result()?.samples ?? 0) > 0}>

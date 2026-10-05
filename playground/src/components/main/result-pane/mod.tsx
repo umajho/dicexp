@@ -124,9 +124,10 @@ export const ResultPane: Component<
                       </Match>
                       <Match when={record.type === "sampling"}>
                         {(() => {
-                          const { code, report, date } = record as //
-                          Extract<ResultRecord, { type: "sampling" }>;
-                          const props = { code, report, date };
+                          const { code, report, date, environment } =
+                            record as //
+                            Extract<ResultRecord, { type: "sampling" }>;
+                          const props = { code, report, date, environment };
                           return <SamplingResultBlock i={i()} {...props} />;
                         })()}
                       </Match>
@@ -253,6 +254,7 @@ const SamplingResultBlock: Component<{
   code: string;
   report: () => SamplingReportForPlayground;
   date: Date;
+  environment?: NonNullable<DicexpEvaluation["environment"]>;
 }> = (
   props,
 ) => {
@@ -284,6 +286,7 @@ const SamplingResultBlock: Component<{
           <SamplingResultCard
             code={props.code}
             report={props.report() as I.SamplingReport}
+            environment={props.environment}
           />
         </Show>
       </h2>
