@@ -32,7 +32,6 @@ import createDicexpBenchmark, {
 } from "../../hooks/dicexp-benchmark";
 import * as store from "../../stores/store";
 import { benchmarkPresets } from "../../stores/benchmark-presets";
-import { BenchmarkOutcomeView } from "./result-pane/result-card-for-benchmark";
 
 const LazyDicexpEditor = lazy(() => import("./dicexp-editor"));
 
@@ -44,9 +43,9 @@ export const BenchmarkPane: Component = () => {
 
   // Every completed benchmark run (a finished or cancelled one — the hook's
   // outcome signal only changes identity when a run ends) lands in the
-  // result pane as a keepable record; the tab also keeps showing the latest
-  // outcome inline below. Same push pattern as control-pane.tsx for
-  // evaluation results.
+  // result pane as a keepable record. The tab itself shows only the live
+  // progress (the record card carries the outcome — no duplication).
+  // Same push pattern as control-pane.tsx for evaluation results.
   createEffect(on([bench.outcome], () => {
     const outcome = bench.outcome();
     if (!outcome) return;
@@ -164,9 +163,12 @@ export const BenchmarkPane: Component = () => {
         </div>
       </Show>
 
-      {/* 结果汇总表 */}
-      <Show when={bench.outcome()}>
-        {(outcome) => <BenchmarkOutcomeView outcome={outcome()} />}
+      {/* The outcome is NOT shown here — it lives in the record card pushed
+          to the result pane below (owner's call: no duplication). */}
+      <Show when={bench.status() === "done"}>
+        <div class="text-xs text-gray-400 select-none">
+          结果已记录到下方「结果」区。
+        </div>
       </Show>
     </>
   );
