@@ -15,11 +15,13 @@
 
 ### Where we are
 
-- Branch `nova`, ~36 local commits ahead of `main`, nothing pushed. v0.3 is
+- Branch `nova`, ~38 local commits ahead of `main`, nothing pushed. v0.3 is
   **code-complete** (deploy is the owner's call, same as v0.2): benchmark
-  panel (preset select, N input, sequential naive→nova runs, live progress,
-  outcome table with 加速比 and exact-histogram 结果一致性) between the
-  control and result panes. First numbers: `nova/docs/benchmarks.md` —
+  mode is a third tab (基准) alongside 单次/抽样 in the control pane (owner
+  nitpick — it started as a separate card); the naive/nova selector and the
+  example select hide in benchmark mode (they don't apply), and tab labels
+  carry no parentheticals (horizontal space). The benchmark editor keeps
+  its OWN doc signal — presets must not clobber the autosaved main doc. First numbers: `nova/docs/benchmarks.md` —
   nova 0.52× naive on `d6` (instantiation-dominated), 3.4–12.8× faster on
   evaluation-heavy presets, **zero histogram disagreements** across all 9
   presets. v0.6's static-linking question is resolved by them (stays
