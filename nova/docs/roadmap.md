@@ -118,6 +118,14 @@ run shows no unexplained divergences.
   CI-style conditions and records into `nova/docs/`); target **≥10× naive**
   on evaluation-heavy programs with compile+instantiate overhead documented
   for small expressions.
+- **Program-instance reuse on the sampling path**: `makeEvaluationGenerator`
+  already compiles once, but re-instantiates the program module per sample
+  (measured in v0.2's playground smoke test: nova ≈235k vs naive ≈390k
+  samples/s on `d6`, where per-sample instantiation dominates trivial
+  programs). Reusing one instance across samples looks safe — const-pool
+  globals are re-initialized by `__main`'s prologue, table segments are
+  identical per program, and `reset()` already rewinds the heap — verify
+  and implement.
 - Const-pool hoisting (runtime "execute consts once"; plan §3.4/§8).
 - Size pass: `wasm-opt` in the build recipe, allocator/codegen review,
   documented **size budget** (initial targets: compiler ≤ 100 KB,
