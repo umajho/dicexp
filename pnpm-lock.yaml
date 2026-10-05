@@ -207,6 +207,9 @@ importers:
       '@dicexp/naive-evaluator-runtime':
         specifier: workspace:*
         version: link:../naive-evaluator-runtime
+      '@dicexp/nodes':
+        specifier: workspace:*
+        version: link:../nodes
       assertion-error:
         specifier: '*'
         version: 2.0.1

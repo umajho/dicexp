@@ -11,6 +11,7 @@
     "@dicexp/errors": "workspace:*",
     "@dicexp/interface": "workspace:*",
     "@dicexp/naive-evaluator-runtime": "workspace:*",
+    "@dicexp/nodes": "workspace:*",
     "assertion-error": "*",
     "vitest": "^0.34.2"
   }

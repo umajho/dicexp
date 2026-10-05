@@ -248,3 +248,10 @@ function deepEqual<T>(actual: T, expected: T, message?: string): boolean {
   }
   return true;
 }
+
+/**
+ * Shared, implementation-agnostic semantic suites (plan.md §9): naive's
+ * semantic test tables as factories, with per-impl divergence tagging.
+ * See `./suites/mod.ts`.
+ */
+export * from "./suites/mod";
