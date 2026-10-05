@@ -23,10 +23,11 @@ legacy/reference implementation.
 | v0.4 | language-complete core | |
 | v0.5 | limits & robustness | |
 | v0.6 | performance & size | |
-| v0.7 | hardening (release candidate) | |
+| v0.7 | builtin completeness: implementation & docs | |
+| v0.8 | **repr / step display** | |
+| v0.9 | hardening (release candidate) | |
 | v1.0 | published default | |
-| v1.1 | **repr / step display** | |
-| v1.2+ | linking, externals, language growth | |
+| v1.1+ | linking, externals, language growth | |
 
 ---
 
@@ -82,7 +83,7 @@ No stubs left in the shipped builtins; conformance becomes suite-shaped.
 
 - Implement `reroll`/`explode` (sequence transformers; nominal/actual length
   semantics; drop display-only fragment decorations — repr concern, see
-  v1.1). Remove the `UNIMPLEMENTED` stub.
+  v0.8). Remove the `UNIMPLEMENTED` stub.
 - Decide & implement short-circuit element forcing for `any?` (and `all?`
   when it lands), per #13's comment; record the decision in `compat.md`.
 - **Shared-suite extraction** (plan §9): move naive's semantic test tables
@@ -136,12 +137,73 @@ run shows no unexplained divergences.
 **Exit:** benchmark numbers and measured sizes recorded in `nova/docs/`;
 budget met or variance justified.
 
-## v0.7 — Hardening (release candidate)
+## v0.7 — Builtin completeness: implementation & docs
+
+nova becomes self-sufficient for the playground's language surface: every
+builtin intended for 1.0 exists in nova, and the playground's builtin
+documentation/completion is sourced from nova itself instead of naive's
+static metadata.
+
+- **Implement the missing builtins intended for 1.0.** The intended set is
+  issue #18's tables ("默认作用域中的通常函数的实现进展记录"); the ❌/部分
+  entries include: `abs`, `count/1` (length), `has?`, `min`, `max`, `all?`,
+  `sort/2` (closure comparator), `reverse`, `concat`, `prepend`,
+  `at/3` (with default), `duplicate`, `flatten`, `flattenAll`, `flatMap`,
+  `foldl`, `foldr`, `unfold`, `iterate`, `last`, `init`, `take`,
+  `takeWhile`, `drop`, `dropWhile`, and `if/*` (note: #18's
+  `if(a, b, else: c)` shape depends on labeled arguments, #17 — decide the
+  positional-vs-labeled shape when implementing). Also in scope: the
+  partial entries' missing halves where they are 1.0-worthy (`all?`/`any?`
+  short-circuit per v0.4's decision; comparison operators accepting
+  booleans, as `sort/1` already does). Explicitly NOT in scope: `inspect`
+  (abandoned in #18), the range-operator forms of `reroll`/`explode`
+  (low-priority, depend on #8), `d%` (being considered for removal in #18).
+  Anything else deliberately NOT making 1.0 moves to v1.1+ explicitly, with
+  the reason recorded here.
+- **Builtin metadata codegen from the Rust source of truth** (issues
+  #5/#18/#21): extract the builtin declarations and their `#[doc]`
+  comments from `crates/nova-builtins` at build time (a small extractor —
+  e.g. parsing `#[doc]` attributes — emitting a JSON/TS metadata module),
+  and switch the playground's documentation pane and editor completion
+  from naive's static metadata to nova's generated metadata. naive's
+  metadata stays for naive itself.
+
+**Exit:** the playground's docs/completion no longer read naive's builtin
+metadata; every builtin intended for 1.0 is implemented and covered by the
+shared/differential suites.
+
+## v0.8 — repr / step display
+
+The "at least until here" goal — pulled before 1.0: nova does not become
+the default without step display.
+
+- **Trace hooks** in builtins (feature-gated, zero-cost when off — batch
+  mode requirement, #21): call-enter/exit/force events carrying value-handle
+  identities. Event-based by design (TCO-safe — never stack-derived).
+- Repr reconstruction: JS-side builder consuming the event buffer, emitting
+  the existing `I.Repr` tree so `@dicexp/solid-components` works unchanged.
+- Sequence fragment decorations revived **in the trace layer** (reroll
+  discard markers 🔄/⚡️/✨, nominal/actual boundaries) — evaluation proper
+  stays decoration-free.
+- Playground: step display works under nova; the "steps unavailable" notice
+  added in v0.2 is removed.
+- Trace buffer policy for long runs (cap + replay-by-seed for full detail,
+  per #1's established strategy).
+
+**Exit:** step-display parity for representative programs (operators, HOFs,
+closures, `reroll`/`explode`, error paths); per-builtin *custom* step
+rendering explicitly deferred.
+
+## v0.9 — Hardening (release candidate)
 
 - Differential fuzzing v2: grammar-aware generator (closures, pipes,
   captures, dice, errors), seeded, with a divergence triage workflow.
 - Error-key coverage audit: every key has a zh locale entry, a test, and a
   `compat.md` cross-reference where divergent.
+- **Repr parity audit**: `I.Repr` consumers (solid-components) expect
+  naive's exact tree shapes — audit per node kind, and verify the v0.8
+  trace events carry enough structure (callee identity, arg positions,
+  sequence fragments) to rebuild them.
 - Docs: `@dicexp/nova` README (usage, assets, sync-vs-async creation),
   naive→nova migration notes, playground behavior differences.
 - API freeze review: `I.Evaluator` conformance, `NovaAssets`, localization
@@ -158,27 +220,7 @@ budget met or variance justified.
   implementation; naive enters maintenance mode.
 - `compat.md` frozen for 1.0.
 
-## v1.1 — repr / step display
-
-The "at least until here" goal.
-
-- **Trace hooks** in builtins (feature-gated, zero-cost when off — batch
-  mode requirement, #21): call-enter/exit/force events carrying value-handle
-  identities. Event-based by design (TCO-safe — never stack-derived).
-- Repr reconstruction: JS-side builder consuming the event buffer, emitting
-  the existing `I.Repr` tree so `@dicexp/solid-components` works unchanged.
-- Sequence fragment decorations revived **in the trace layer** (reroll
-  discard markers 🔄/⚡️/✨, nominal/actual boundaries) — evaluation proper
-  stays decoration-free.
-- Playground: step display works under nova; the v0.4 notice is removed.
-- Trace buffer policy for long runs (cap + replay-by-seed for full detail,
-  per #1's established strategy).
-
-**Exit:** step-display parity for representative programs (operators, HOFs,
-closures, `reroll`/`explode`, error paths); per-builtin *custom* step
-rendering explicitly deferred.
-
-## v1.2+ — Beyond
+## v1.1+ — Beyond
 
 Roughly prioritized, each its own small design doc when picked up:
 
@@ -188,20 +230,19 @@ Roughly prioritized, each its own small design doc when picked up:
 - External variables (#7): compile-time extraction pass + host lookup
   import; playground/rojo integration.
 - Feature flags (#24): closures-off language subset; steps-off switch
-  (formalizes v1.1's trace gating).
+  (formalizes v0.8's trace gating).
 - Language growth (nova-first or both-implementations, decide per feature):
   labeled/keyword args (#17), range literals (#8), Unicode operator aliases
-  (#21), `keepHighest/keepLowest` & friends (#18), strings-as-labels, maps,
-  tuples.
+  (#21), strings-as-labels, maps, tuples.
 - WASM tail-call proposal (`return_call_indirect`) as a trampoline
   replacement once support is universal — invisible optimization.
 
 ## Risks & open questions
 
 - **repr fidelity**: `I.Repr` consumers (solid-components) expect naive's
-  exact tree shapes; v1.1 needs a parity audit per node kind, and trace
-  events must carry enough structure (callee identity, arg positions,
-  sequence fragments) to rebuild them.
+  exact tree shapes; v0.9's hardening includes a parity audit per node kind,
+  and v0.8's trace events must carry enough structure (callee identity, arg
+  positions, sequence fragments) to rebuild them.
 - **Cross-instance call overhead** (program↔builtins): assumed acceptable;
   the playground benchmark mode (v0.3) provides the numbers that decide
   whether static linking jumps the queue.
