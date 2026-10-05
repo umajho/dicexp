@@ -88,8 +88,9 @@ mechanical ports, doc drafts.
   the workspace's OpenCode config, **not** by the routing ladder below —
   if it maps to a top-tier model (e.g. a 1M-context one), the ladder's
   "cheapest that reliably does the job" rule still applies: use `explore`
-  only when the breadth genuinely justifies it, or check with the owner
-  first. (2026-10: here `explore` mapped to KIMI K3 1M — overkill for a
+  only when the breadth genuinely justifies its backing model; otherwise
+  delegate the mapping to a workhorse-tier `general` agent instead.
+  (2026-10: here `explore` mapped to KIMI K3 1M — overkill for a
   four-package integration map.)
 - After a subagent's work lands, integrate and verify yourself; delegate
   follow-up fixes the same way.
