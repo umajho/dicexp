@@ -64,7 +64,7 @@ describe("conformance", () => {
       ["+(3)", 3],
       ["1 + 2 * 3", 7],
       ["(1 + 2) * 3", 9],
-      ["2 ** 3 ** 2", 64], // left-associative
+      ["2 ** 3 ** 2", 64], // left-associative, following Elixir (intentional)
     ] as [string, I.JSValue][]);
 
     it("respects the safe-integer limitation", () => {

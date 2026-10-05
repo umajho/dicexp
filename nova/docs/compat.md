@@ -105,6 +105,10 @@ Flagged during the port as candidates to fix in **both** implementations
   `limitationExceeded` for ±(2^53−1) overflow.
 - Same seed ⇒ same dice stream as naive (exact xorshift7 port), enabling
   replay-by-seed and seeded differential testing.
+- `**` is **left**-associative (`2 ** 3 ** 2` = 64), following Elixir
+  (dicexp's stated style reference), where `**` is explicitly
+  left-associative. This is intentional, not a bug — do not "fix" it to the
+  Python convention.
 
 ## TODO / deferred (tracked here until their own docs exist)
 
