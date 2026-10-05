@@ -6,9 +6,10 @@
 >
 > **Lifecycle (per AGENTS.md §Handoff):** this is a *rolling* notebook, not
 > an archive. New dated sections go on top; keep at most current + previous
-> sections (prune the rest); anything still true after an iteration must
-> graduate to the durable docs; delete obsolete entries outright; keep the
-> whole file ≤ ~150 lines.
+> sections (prune the rest); durable knowledge graduates to the proper docs
+> opportunistically — significant entries may persist across iterations
+> while useful (the size cap, not a timer, is the forcing function); delete
+> obsolete entries outright; keep the whole file ≤ ~150 lines.
 
 ## 2026-10-06 — after v0.2 (nova in the playground, code-complete)
 

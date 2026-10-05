@@ -58,9 +58,12 @@ after `AGENTS.md`, then maintains it:
 
 - **Prune**: keep at most the current + previous iteration's sections —
   delete the older one after absorbing anything still relevant.
-- **Graduate**: anything still true beyond one iteration must be promoted
-  to the durable doc it belongs to (`plan.md`, `compat.md`, `roadmap.md`,
-  `AGENTS.md`, code comments) and removed from the handoff.
+- **Graduate opportunistically, not on a deadline**: durable knowledge
+  *should* eventually move to the doc it belongs to (`plan.md`,
+  `compat.md`, `roadmap.md`, `AGENTS.md`, code comments) — but significant
+  entries may live in the handoff across several iterations while they
+  remain useful there. The size cap, not a timer, is the forcing
+  function. When an entry does graduate, remove it from the handoff.
 - **Relevance test**: keep an entry only if not knowing it would cost the
   next lead ≥15 minutes. Fixed bugs, landed features, and answered
   questions are deleted, not struck through.
