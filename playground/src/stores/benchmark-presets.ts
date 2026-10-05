@@ -48,7 +48,7 @@ export const benchmarkPresets: BenchmarkPreset[] = [
   {
     label: "100#any?(3#(d100<=5))",
     code: String.raw`100#any?(3#(d100<=5)) |> count (|$x| not $x)`,
-    defaultSampleCount: 10_000,
+    defaultSampleCount: 3_000,
   },
   {
     label: "大排序：1000#d100 |> sort |> sum",
@@ -62,7 +62,7 @@ export const benchmarkPresets: BenchmarkPreset[] = [
     label: "自递归构造列表 0..<99 再求和",
     code: String
       .raw`(|$f, $n, $l| (append(filter([(|| $l)], (|_| $n == 100)), (|| $f.($f, $n+1, append($l, $n)))) |> head |> (|$f| $f.()).()) |> (|$f| $f.($f, 0, [])).()) |> sum`,
-    defaultSampleCount: 2_000,
+    defaultSampleCount: 1_000,
   },
   {
     // Y-combinator summing 0..10 (= 55), with the filter/append/head-based
@@ -71,6 +71,6 @@ export const benchmarkPresets: BenchmarkPreset[] = [
     label: "Y 组合子求和 0..10",
     code: String
       .raw`(|$if| (|$Y, $g| $Y.($g).(10)).((|$fn| (|$f| $fn.((|$x| $f.($f).($x)))).((|$f| $fn.((|$x| $f.($f).($x)))))), (|$f| (|$n| $if.($n == 0, (|| 0), (|| $n + $f.($n-1))))))).((|$cond, $t, $f| head(append(filter([$t], (|_| $cond)), $f)).()))`,
-    defaultSampleCount: 500,
+    defaultSampleCount: 5_000,
   },
 ];

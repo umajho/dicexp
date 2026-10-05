@@ -1,6 +1,7 @@
 import { Component } from "solid-js";
 
 import { ControlPane } from "./control-pane";
+import { BenchmarkPane } from "./benchmark-pane";
 import * as store from "../../stores/store";
 import { ResultPane } from "./result-pane/mod";
 
@@ -10,6 +11,8 @@ export const Main: Component = () => {
   return (
     <main class="flex flex-col items-center gap-4 sm:gap-8">
       <ControlPane />
+
+      <BenchmarkPane />
 
       <ResultPane class="z-0" records={store.records} />
 
