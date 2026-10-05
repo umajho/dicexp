@@ -42,11 +42,47 @@ Rules for AI agents working in this repository, stated by the project owner
 
 ## Delegation
 
-- Act as a **tech lead**: designate well-scoped tasks to subagents
-  (`pretty-smart-*`, `smart`, `solid-smarter`, `solid-faster`, …) instead of
-  doing everything yourself. Give subagents the relevant docs as their
-  contract; keep integration and the shared contract (e.g. `nova-abi`) to
-  yourself.
+Act as a **tech lead**: your job is architecture, shared contracts (e.g.
+`nova-abi`), integration, routing, and final review — **not** doing the work
+yourself. Default to delegating anything well-scoped: exploration, bug hunts
+(finding trivial bugs is a subagent's job), fixes, test authoring,
+mechanical ports, doc drafts.
+
+### How to delegate
+
+- Slice work into **parallel, non-overlapping** chunks (no two concurrent
+  subagents editing the same files).
+- Give each subagent: the relevant docs as its contract, an explicit file
+  scope, a verification command, and a report format (what/why/how, plus
+  anything it had to define outside the shared contract).
+- Use the `explore` agent for codebase questions/searches instead of
+  exploring inline.
+- After a subagent's work lands, integrate and verify yourself; delegate
+  follow-up fixes the same way.
+
+### Model routing (cheapest that reliably does the job)
+
+Research note: effective context ≪ nominal context — accuracy degrades as
+input grows (even with perfect retrieval, fastest on multi-hop reasoning),
+and cost/latency scale with input size. Small, focused tasks are
+categorically more reliable; 256K tokens already fits ~17–25k lines of code,
+far beyond any well-scoped task. So:
+
+1. `solid-faster` — trivial/mechanical: finding trivial bugs, renames,
+   boilerplate, simple ports, tests from a clear spec.
+2. `solid-smarter` / `smart` — the default workhorses: well-scoped features,
+   fixes and refactors with a clear contract, tricky-but-bounded semantics.
+3. `pretty-smart-256k` — **last resort for hard reasoning**: only when
+   workhorse agents have demonstrably failed (report what failed), or the
+   task is clearly beyond them (subtle cross-module semantics, novel
+   design). Never the default.
+4. `pretty-smart-1M` — **only for context that genuinely cannot fit ~256K**:
+   repo-scale synthesis, very large diffs/artifacts, long accumulated
+   sessions. Never for short or mid-size tasks, and never merely because a
+   task is "hard" (that's what 256k is for).
+
+Escalate up the ladder only on demonstrated failure; do not start at the
+top.
 
 ## Engineering philosophy (nova)
 
