@@ -389,3 +389,16 @@ future value kinds (strings/maps/tuples — kind byte has room).
 - Naive packages' main entries point at unbuilt `dist/`; tests and
   consumers import their `/internal` entries (TS sources) instead.
   `just build-lezer` is required before naive's evaluator can parse.
+- Playground browser smoke tests (desktop browser tools): drive via
+  `browser.evaluate` with async in-page `setTimeout` polling (the harness
+  runtime has no timers; the page does). CodeMirror: focus `.cm-content`,
+  then `document.execCommand('selectAll')` + `insertText`, then wait
+  ~300 ms before clicking anything that captures the doc (the Solid
+  signal lags). In page-side string literals write `\\n` for newlines (a
+  raw newline is a SyntaxError). ankor result widgets render in shadow
+  DOM — pierce with a TreeWalker collecting `shadowRoot`s. Buttons are
+  real `<button>`s: sampling-stop `停止`, terminate `终止`, benchmark
+  `开始测试` / `取消`.
+- vitest's `describe.skipIf`/`it.skipIf` (and `todoIf`) are chained-only:
+  `it.skipIf(cond)(name, fn)`. The direct 3-arg form
+  `it.skipIf(cond, name, fn)` *silently registers nothing*.

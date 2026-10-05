@@ -108,6 +108,25 @@ No stubs left in the shipped builtins; conformance becomes suite-shaped.
 **Exit:** the full naive test corpus runs against nova with only tagged
 divergences; `UNIMPLEMENTED` key is gone from the codebase.
 
+**Done (2026-10-06).** `reroll`/`explode` implemented as a new transformer
+sequence source replicating naive's debt-counter bookkeeping exactly
+(signed remain, per-output is_last, sources infinite past nominal, `$sum`
+flag mirrored, explode extras appended after base outputs, the
+explode-reports-as-reroll quirk kept); display-only fragment decorations
+dropped (v0.9 concern). `UNIMPLEMENTED` (key 41) removed from abi,
+builtins, and the zh locale. `any?/1` short-circuits element forcing per
+#13's comment (recorded in compat #1; `all?` will mirror in v0.7).
+Shared-suite extraction landed: naive's four semantic tables live in
+`internal/test-utils-for-executing/suites/` with divergence tags
+mirroring compat.md; nova runs the full 429-row corpus (423 passed |
+3 skipped soft-timeout | 3 todo) with zero untagged failures. compat #4
+(sum/product of []) withdrawn — naive already returned 0/1. Differential
+suite 146 → 221 (reroll/explode parity, Ended semantics, error messages,
+naive-crash carve-outs). Benchmark presets audited: the any? preset was
+replaced (short-circuit shifts RNG — agreement rule: pre-force with
+`map`), reroll/explode presets added; all 11 presets agree on seeds 0–19.
+Numbers: 121 Rust + 733 JS tests (3 skipped, 3 todo) green.
+
 ## v0.5 — Limits & robustness
 
 - `__checkpoint` emission at call boundaries in compiled code + inside
