@@ -40,6 +40,19 @@ Rules for AI agents working in this repository, stated by the project owner
 - Leave deferred work as **obvious TODOs in docs** (see the "TODO / deferred"
   section of `nova/docs/compat.md`).
 
+## Shell & process hygiene
+
+- **Never run long-lived processes in the foreground** (dev servers,
+  `http-server`, watchers, REPLs) — a foreground server blocks the whole
+  session indefinitely. Run them as background tasks (the shell tool's
+  background mode), and kill them when done (e.g. by port:
+  `lsof -ti:3000 | xargs kill`).
+- Before starting a server on a fixed port, check the port is free
+  (`lsof -ti:PORT`) — a previous session's server may still be alive.
+- Give foreground commands a finite timeout; for legitimately long work
+  (builds, test suites) prefer background + completion notification over a
+  blocking wait, and don't poll — you'll be notified when they finish.
+
 ## Handoff between sessions (standard procedure)
 
 Knowledge handoff happens through `nova/docs/handoff.md`, a **rolling
