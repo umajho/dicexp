@@ -52,6 +52,36 @@ must be mirrored by divergence tags in the shared test suites
    nova is selected. Will be retrofitted later as event-trace-based repr
    (hooks are zero-cost when disabled).
 
+9. **Crash/bug fixes in edge cases.**
+   - `any?` on nested lists: naive's `flattenListAll` silently drops elements
+     (indexing bug); nova flattens correctly (iterative DFS).
+   - `map`/`zipWith` after an element errors: naive leaves leaky
+     `valueBoxUnevaluated` boxes in trailing slots (forcing them reported
+     `未求值（实现细节泄漏）`); nova fills trailing slots with the same error
+     handle. Evaluation/RNG order up to the first error is unchanged.
+   - `sum`/`product` accumulate in i128 with a final range check. Ultra-edge
+     divergence: `product([max, max, max, 0])` underflows to `0` in naive's
+     f64 math, while nova (exact math) reports the unrepresentable
+     intermediate with `LIMITATION_EXCEEDED_MAX_SAFE_INTEGER`.
+   - `sequence$sum` sums are accumulated in i128 and range-checked; naive
+     summed dice streams with unchecked doubles (silent garbage beyond 2⁵³).
+   - `d/2` with `n < 0` and `#` with a negative count both *crash* naive
+     (`new Array(neg)` RangeError); nova returns `0` / the empty list,
+     extending the existing `n = 0` / `count = 0` rules.
+   - `~` ranges spanning more than 2⁵³ values made naive's RNG throw
+     `Unimplemented`; nova handles them with the same u64 rejection math.
+
+## Naive quirks deliberately replicated (for now)
+
+Flagged during the port as candidates to fix in **both** implementations
+(they are quirks, not semantics; kept for differential parity):
+
+- `d/1` and `d/2` range errors render the left operand as a hardcoded `1`
+  (`d 0` errors with `操作 “1 d 0” 非法：…`) — naive quirk.
+- The `**` negative-exponent error does not parenthesize a negative base.
+- `explode/2` reports closure-return-type errors as if from `reroll/2`
+  (moot while `explode` is stubbed).
+
 ## Behavior preserved (non-exhaustive)
 
 - Laziness: lazy list elements, lazy `$lazy` args, `at`/`head` returning

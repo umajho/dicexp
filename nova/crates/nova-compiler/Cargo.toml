@@ -12,3 +12,6 @@ crate-type = ["rlib", "cdylib"]
 dicexp-nova-abi = { path = "../nova-abi" }
 wasm-encoder = "0.261"
 unicode-ident = "1"
+
+[dev-dependencies]
+wasmparser = "0.261"

@@ -114,6 +114,25 @@ export function localizeZh(err: DecodedError, ctx: LocalizeContext = {}): string
       return "内存不足：已达上限";
     case 41:
       return `功能 ${strOf(err, 0)} 尚未实现`;
+    case 42:
+      return `操作 “${strOf(err, 0)}” 非法：两侧操作数的类型不相同`;
+    case 43:
+      return `访问列表越界：列表大小为 ${intOf(err, 0)}，` +
+        `提供的索引为 ${intOf(err, 1)}`;
+    case 44:
+      return "列表为空";
+    case 45:
+      return "传入的列表存在非「数字」项";
+    case 46:
+      return "传入的列表存在非「布尔」项";
+    case 47:
+      return "传入的列表不支持排序";
+    case 48:
+      return `作为第 ${intOf(err, 0)} 个参数传入通常函数 ${strOf(err, 1)} ` +
+        `的返回值类型与期待不符：` +
+        `期待「${typeName(valueTypeOf(err, 2))}」，实际「${typeName(valueTypeOf(err, 3))}」。`;
+    case 49:
+      return `反复次数期待「整数」，实际类型为「${typeName(valueTypeOf(err, 0))}」`;
 
     // --- compile-time semantic errors ---
     case 1000:

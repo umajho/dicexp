@@ -141,6 +141,22 @@ pub mod error_key {
     pub const MEMORY_LIMIT_EXCEEDED: u32 = 40;
     /// params: [string name] — temporary stub for not-yet-implemented builtins
     pub const UNIMPLEMENTED: u32 = 41;
+    /// params: [string rendered_operation] (`==` / `!=` with different operand types)
+    pub const ILLEGAL_OPERATION_LR_TYPE_MISMATCH: u32 = 42;
+    /// params: [int list_len, int index]
+    pub const AT_INDEX_OUT_OF_BOUNDS: u32 = 43;
+    /// params: [] (head/tail of an empty list)
+    pub const EMPTY_LIST: u32 = 44;
+    /// params: [] (sum/product)
+    pub const LIST_HAS_NON_INTEGER_ITEM: u32 = 45;
+    /// params: [] (any?)
+    pub const LIST_HAS_NON_BOOLEAN_ITEM: u32 = 46;
+    /// params: [] (sort)
+    pub const LIST_NOT_SORTABLE: u32 = 47;
+    /// params: [int position, string name, valtype expected, valtype actual]
+    pub const CLOSURE_RETURN_TYPE_MISMATCH: u32 = 48;
+    /// params: [valtype actual] (`#` count)
+    pub const REPEAT_COUNT_TYPE_MISMATCH: u32 = 49;
 
     // --- compile-time semantic errors (compiler) ---
     /// params: [string name]
