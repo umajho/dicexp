@@ -101,16 +101,18 @@ mechanical ports, doc drafts.
 - For narrow lookups (line numbers, small snippets), prefer inline
   `grep`/`read` — cheaper and faster than a round trip. For broad codebase
   mapping, delegate.
-- **Always pass an explicit `model` when spawning a subagent.** Agent-type
-  defaults come from the workspace's OpenCode config, **not** from the
-  routing ladder below, and they may be top-tier models — choosing
-  `general` instead of `explore` does **not** make the run cheaper.
-  (2026-10: here *both* `explore` and `general` default to KIMI K3 — K3 1M
-  was overkill for a four-package integration map, and later the same K3
-  default was hit again by spawning `general` without a `model` pin for a
-  bounded read-and-report exploration. Pick the tier from the ladder and
-  set `model` explicitly every time; leave it unset only when a top-tier
-  model is genuinely justified and said so in the prompt.)
+- **Route via the tier-named agent types.** The routing ladder below names
+  agent types (`solid-faster`, `solid-smarter`, `smart`,
+  `pretty-smart-256k`, `pretty-smart-1M`) whose backing models are
+  pre-configured to their tier — pick the tier and pass it as `agent`.
+  Beware `general` and `explore`: their defaults come from the workspace's
+  OpenCode config, **not** the ladder, and here *both* default to KIMI K3
+  (top-tier) — choosing `general` instead of `explore` does **not** make a
+  run cheaper. Use them only when their specialized behavior is genuinely
+  needed, and then pin `model` explicitly to a ladder tier. (2026-10: K3
+  1M via `explore` was overkill for a four-package integration map; the
+  same K3 default was hit again via an unpinned `general` spawn for a
+  bounded read-and-report exploration.)
 - Workers never touch git (no add/commit/push); integration commits are
   the lead's job.
 - After a subagent's work lands, integrate and verify yourself; delegate
@@ -138,9 +140,10 @@ far beyond any well-scoped task. So:
    task is "hard" (that's what 256k is for).
 
 Escalate up the ladder only on demonstrated failure; do not start at the
-top. Apply the ladder by setting the subagent's `model` parameter
-explicitly on **every** spawn — agent-type defaults bypass it (see
-§How to delegate).
+top. Apply the ladder by passing the tier's name as the subagent's `agent`
+(e.g. `agent: "smart"`) — those agent types carry the right backing model.
+Avoid `general`/`explore` unless their specialization is required; their
+config defaults bypass the ladder (see §How to delegate).
 
 ## Engineering philosophy (nova)
 
