@@ -139,6 +139,8 @@ pub mod error_key {
     pub const ILLEGAL_OPERATION_RANGE_UPPER_BOUND: u32 = 34;
     /// params: []
     pub const MEMORY_LIMIT_EXCEEDED: u32 = 40;
+    /// params: [string name] — temporary stub for not-yet-implemented builtins
+    pub const UNIMPLEMENTED: u32 = 41;
 
     // --- compile-time semantic errors (compiler) ---
     /// params: [string name]
@@ -153,8 +155,10 @@ pub mod error_key {
     pub const PARSE_SYNTAX_ERROR: u32 = 2000;
     /// params: [] (found `/`; dicexp only has integer division `//`)
     pub const PARSE_SLASH_SUGGEST_DIV: u32 = 2001;
-    /// params: [] (reserved; integer literal out of the safe range)
+    /// params: [string literal] (integer literal out of the safe range)
     pub const PARSE_INTEGER_LITERAL_TOO_LARGE: u32 = 2002;
+    /// params: [] (pipe target cannot receive arguments)
+    pub const PARSE_BAD_PIPE_TARGET: u32 = 2003;
 }
 
 // ---------------------------------------------------------------------------

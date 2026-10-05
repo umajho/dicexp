@@ -137,6 +137,8 @@ export function localizeZh(err: DecodedError, ctx: LocalizeContext = {}): string
     case 2002:
       return `整数字面量 ${strOf(err, 0)} 在整数的安全范围` +
         `（-9007199254740991 至 9007199254740991）之外`;
+    case 2003:
+      return "管道运算符右侧无法传入参数";
     default:
       return `未知错误（内部实现泄漏，错误键 ${err.key}）`;
   }
