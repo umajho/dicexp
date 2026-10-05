@@ -92,6 +92,8 @@ mechanical ports, doc drafts.
   delegate the mapping to a workhorse-tier `general` agent instead.
   (2026-10: here `explore` mapped to KIMI K3 1M — overkill for a
   four-package integration map.)
+- Workers never touch git (no add/commit/push); integration commits are
+  the lead's job.
 - After a subagent's work lands, integrate and verify yourself; delegate
   follow-up fixes the same way.
 

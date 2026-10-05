@@ -18,7 +18,7 @@ legacy/reference implementation.
 | version | theme | status |
 |---------|-------|--------|
 | v0.1 | first working version | ✅ done |
-| v0.2 | **nova in the playground** | |
+| v0.2 | **nova in the playground** | ✅ code-complete (deploy is the owner's call) |
 | v0.3 | playground benchmark mode | |
 | v0.4 | language-complete core | |
 | v0.5 | limits & robustness | |

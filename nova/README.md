@@ -21,3 +21,11 @@ just build-nova        # cargo build both crates to wasm32, stage .wasm assets
 just build-nova-ts     # build the TS wrapper
 just test-nova         # run nova tests
 ```
+
+## Development tips
+
+- `cargo run -p dicexp-nova-compiler --example dump` prints the pseudo-WAT
+  of an emitted program module — the codegen debugging tool.
+- `nova-builtins` has a native `testutil` feature with a mock-body registry
+  for testing closure calls off-wasm (its `env.call_closure` import is
+  `cfg`-gated with a thread-local mock).

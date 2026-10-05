@@ -166,6 +166,11 @@ no JS in the loop.
 | `seed`        | `(i32 seed) -> ()` | seed RNG (per evaluation) |
 | `reset`       | `() -> ()` | rewind heap; called by JS before each evaluation |
 | `finalize`    | `(i64 root) -> i32` | deep-force root; writes result buffer; 0 ok, 1 error |
+
+`reset` rewinds the heap **only** — it does not re-seed the RNG; the JS
+wrapper re-seeds per evaluation via `seed` (same seed ⇒ same stream as
+naive). At the WASM↔JS boundary, `i64` maps to `BigInt` (value handles,
+`finalize`'s argument) and `i32` to `number`.
 | `result_ptr` / `result_len` | `() -> i32` | result buffer location |
 | `version`     | `() -> i32` | ABI/builtins version |
 
@@ -368,3 +373,18 @@ future value kinds (strings/maps/tuples — kind byte has room).
   exact RNG port.
 - **Lexer differential tests**: Unicode-identifier edge cases vs naive.
 - **Benchmarks**: port `execute.bench.ts` workloads.
+
+### 9.1 Harness gotchas (learned the hard way)
+
+- `test-utils-for-executing`'s error paths only execute when a test
+  *fails*, so latent bugs hide there — suspect the harness first when
+  failures look weird. (v0.1 hit two: `assertion-error` v2's dropped
+  default export — the repo pins `"assertion-error": "*"` as a peer — and
+  chai's bundled AssertionError class ≠ the package's, so `instanceof`
+  fails.)
+- `tester.theyAreOk(...)` calls `it()` internally → call it at **describe
+  level**, and construct the evaluator **synchronously at module level**
+  (`createEvaluatorSync`); async creation in `beforeAll` is too late.
+- Naive packages' main entries point at unbuilt `dist/`; tests and
+  consumers import their `/internal` entries (TS sources) instead.
+  `just build-lezer` is required before naive's evaluator can parse.
