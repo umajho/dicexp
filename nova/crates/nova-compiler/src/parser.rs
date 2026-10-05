@@ -121,7 +121,7 @@ impl Parser {
     // ------------------------------------------------------------------
 
     fn parse_top(&mut self) -> Result<Node, CompileError> {
-        let node = self.parse_expr(0)?;
+        let node = self.parse_expr(0, false)?;
         if self.peek_kind() != TokKind::Eof {
             return Err(self.syntax_err());
         }
@@ -132,8 +132,12 @@ impl Parser {
     // precedence-climbing expression parser
     // ------------------------------------------------------------------
 
-    fn parse_expr(&mut self, min_bp: u8) -> Result<PNode, CompileError> {
-        let mut left = self.parse_prefix()?;
+    /// `no_pipe` excludes the pipe operator from the infix loop, used for
+    /// closure bodies (grammar: `expressionWithoutPipe`). Note that this is
+    /// NOT a precedence level: `expressionWithoutPipe` still includes
+    /// operators *looser* than `|>` (compare/equal/and/or).
+    fn parse_expr(&mut self, min_bp: u8, no_pipe: bool) -> Result<PNode, CompileError> {
+        let mut left = self.parse_prefix(no_pipe)?;
         loop {
             // dicexp 仅支持整除 “//”: a bare `/` anywhere in an expression
             // gets the friendly error.
@@ -142,10 +146,10 @@ impl Parser {
                 return Err(self.err_at(error_key::PARSE_SLASH_SUGGEST_DIV, span));
             }
             let Some(op) = self.infix_op() else { break };
-            if op.bp < min_bp {
+            if op.bp < min_bp || (no_pipe && op.kind == InfixKind::Pipe) {
                 break;
             }
-            left = self.parse_infix(left, op)?;
+            left = self.parse_infix(left, op, no_pipe)?;
         }
         Ok(left)
     }
@@ -181,7 +185,7 @@ impl Parser {
         Some(InfixOp { bp, kind })
     }
 
-    fn parse_infix(&mut self, left: PNode, op: InfixOp) -> Result<PNode, CompileError> {
+    fn parse_infix(&mut self, left: PNode, op: InfixOp, no_pipe: bool) -> Result<PNode, CompileError> {
         let start = left.node.span().0;
         match op.kind {
             InfixKind::Dice => {
@@ -221,7 +225,7 @@ impl Parser {
             InfixKind::Repeat => {
                 // expression !repeat BinaryOperator<"#"> expression
                 self.advance();
-                let right = self.parse_expr(op.bp + 1)?;
+                let right = self.parse_expr(op.bp + 1, no_pipe)?;
                 let end = right.node.span().1;
                 Ok(PNode {
                     node: Node::Repetition {
@@ -235,11 +239,11 @@ impl Parser {
             InfixKind::Pipe => {
                 // expression !pipe BinaryOperator<"|>"> expression
                 self.advance();
-                self.desugar_pipe(left, start)
+                self.desugar_pipe(left, start, no_pipe)
             }
             InfixKind::Binary(name) => {
                 let op_tok = self.advance();
-                let right = self.parse_expr(op.bp + 1)?;
+                let right = self.parse_expr(op.bp + 1, no_pipe)?;
                 let end = right.node.span().1;
                 Ok(PNode {
                     node: Node::RegularCall {
@@ -258,8 +262,8 @@ impl Parser {
     /// transformer.ts `_transformPipeExpression`:
     /// `a |> f(b,c)` → `f(a,b,c)`, `a |> f` → `f(a)`,
     /// `a |> closure.()` → value call with `a` prepended.
-    fn desugar_pipe(&mut self, left: PNode, start: u32) -> Result<PNode, CompileError> {
-        let right = self.parse_expr(bp::PIPE + 1)?;
+    fn desugar_pipe(&mut self, left: PNode, start: u32, no_pipe: bool) -> Result<PNode, CompileError> {
+        let right = self.parse_expr(bp::PIPE + 1, no_pipe)?;
         let end = right.node.span().1;
         match right.node {
             Node::Variable(name, name_span) => Ok(PNode {
@@ -320,7 +324,7 @@ impl Parser {
     // prefix position
     // ------------------------------------------------------------------
 
-    fn parse_prefix(&mut self) -> Result<PNode, CompileError> {
+    fn parse_prefix(&mut self, no_pipe: bool) -> Result<PNode, CompileError> {
         let t = self.peek();
         match t.kind {
             TokKind::Int => {
@@ -352,7 +356,7 @@ impl Parser {
             TokKind::Plus | TokKind::Minus => {
                 self.advance();
                 let name = if t.kind == TokKind::Plus { "+" } else { "-" };
-                let operand = self.parse_expr(bp::PREFIX_NOT_NEG)?;
+                let operand = self.parse_expr(bp::PREFIX_NOT_NEG, no_pipe)?;
                 let end = operand.node.span().1;
                 Ok(PNode {
                     node: Node::RegularCall {
@@ -367,7 +371,7 @@ impl Parser {
             }
             TokKind::Tilde => {
                 self.advance();
-                let operand = self.parse_expr(bp::PREFIX_RANGE)?;
+                let operand = self.parse_expr(bp::PREFIX_RANGE, no_pipe)?;
                 let end = operand.node.span().1;
                 Ok(PNode {
                     node: Node::RegularCall {
@@ -385,7 +389,7 @@ impl Parser {
                 match text.as_str() {
                     "not" => {
                         self.advance();
-                        let operand = self.parse_expr(bp::PREFIX_NOT_NEG)?;
+                        let operand = self.parse_expr(bp::PREFIX_NOT_NEG, no_pipe)?;
                         let end = operand.node.span().1;
                         Ok(PNode {
                             node: Node::RegularCall {
@@ -432,7 +436,7 @@ impl Parser {
             }
             TokKind::OpenParen => {
                 self.advance();
-                let inner = self.parse_expr(0)?;
+                let inner = self.parse_expr(0, false)?;
                 if self.peek_kind() != TokKind::CloseParen {
                     return Err(self.syntax_err());
                 }
@@ -497,7 +501,7 @@ impl Parser {
             return Ok((args, end));
         }
         loop {
-            let arg = self.parse_expr(0)?;
+            let arg = self.parse_expr(0, false)?;
             args.push(arg.node);
             match self.peek_kind() {
                 TokKind::Comma => {
@@ -524,7 +528,7 @@ impl Parser {
             });
         }
         loop {
-            let item = self.parse_expr(0)?;
+            let item = self.parse_expr(0, false)?;
             items.push(item.node);
             match self.peek_kind() {
                 TokKind::Comma => {
@@ -573,7 +577,7 @@ impl Parser {
             return Err(self.syntax_err());
         }
         self.advance();
-        let body = self.parse_expr(bp::REPEAT)?; // expressionWithoutPipe
+        let body = self.parse_expr(0, true)?; // expressionWithoutPipe
         let end = body.node.span().1;
         Ok(PNode {
             node: Node::Value(
@@ -666,7 +670,7 @@ impl Parser {
             }
             TokKind::OpenParen => {
                 self.advance();
-                let inner = self.parse_expr(0)?;
+                let inner = self.parse_expr(0, false)?;
                 if self.peek_kind() != TokKind::CloseParen {
                     return Err(self.syntax_err());
                 }
@@ -704,6 +708,7 @@ struct InfixOp {
     kind: InfixKind,
 }
 
+#[derive(PartialEq, Eq)]
 enum InfixKind {
     Dice,
     Call,

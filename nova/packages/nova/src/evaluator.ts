@@ -15,6 +15,14 @@ export async function createEvaluator(
   return new NovaEvaluator(machine);
 }
 
+/**
+ * Synchronous creation — only usable where synchronous WASM compilation is
+ * allowed (Node, workers; NOT browsers' main thread for large modules).
+ */
+export function createEvaluatorSync(assets: NovaAssets): I.Evaluator {
+  return new NovaEvaluator(Machine.createSync(assets));
+}
+
 class NovaEvaluator implements I.Evaluator {
   constructor(private readonly machine: Machine) {}
 

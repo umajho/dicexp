@@ -71,6 +71,16 @@ must be mirrored by divergence tags in the shared test suites
    - `~` ranges spanning more than 2⁵³ values made naive's RNG throw
      `Unimplemented`; nova handles them with the same u64 rejection math.
 
+10. **Parse-level fixes.**
+    - Comparison captures: naive *rejects* `&</2`, `&<=/2`, `&>/2`, `&>=/2`,
+      `&==/2` at parse time (a Lezer tokenization quirk — the grammar text
+      lists them). nova accepts them.
+    - Astral identifiers: naive's UTF-16-code-unit tokenizer can never lex
+      astral `ID_Start` characters; nova is char-based and accepts them.
+    - Parse errors are reported one at a time (with a span); naive collected
+      all `⚠` ranges into a single message. (Semantic/compile errors are all
+      collected, as in naive.)
+
 ## Naive quirks deliberately replicated (for now)
 
 Flagged during the port as candidates to fix in **both** implementations
@@ -98,11 +108,18 @@ Flagged during the port as candidates to fix in **both** implementations
 
 ## TODO / deferred (tracked here until their own docs exist)
 
+Status after the first working version (value-complete minus the stubs
+below; 230 JS-side tests incl. naive-vs-nova seeded differential, 110 Rust
+tests):
+
+- `reroll`/`explode` — stubbed (`UNIMPLEMENTED` error key 41).
 - repr (see #8 above) — trace hooks reserved; playground integration pending.
-- `reroll`/`explode` — may land after the first working version.
 - Soft timeout (`__checkpoint` + host `now()`); designed for future fuel
   (call-count) limits and chunked expensive ops (issue #3).
 - Const-pool hoisting (runtime "execute consts once" — plan §3.4/§8).
+  Not in the first working version; mechanism reserved (program-global thunk
+  handles). Note: value calls with argc > 64 already allocate arg frames via
+  `env_new` instead of using the scratch buffer.
 - External variables `@x`/`@@x`/`@_x`: parsed; compile-time extraction pass
   deferred (issue #7).
 - Feature flags (closures off; steps off) (issue #24).
@@ -111,3 +128,6 @@ Flagged during the port as candidates to fix in **both** implementations
 - Labeled/keyword arguments (issue #17) — ABI reservation noted in plan.
 - Finer-grained closure capture sets; wasm-opt size pass; static linking /
   tree-shaking of builtins.
+- Shared-suite extraction (plan §9): conformance/differential suites
+  currently live in `nova/packages/nova/test/`; extracting naive's own
+  tables into per-impl-tagged shared suites is still to do.

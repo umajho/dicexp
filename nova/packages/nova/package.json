@@ -35,6 +35,9 @@
   },
   "devDependencies": {
     "@dicexp/interface": "workspace:*",
+    "@dicexp/naive-evaluator": "workspace:*",
+    "@dicexp/naive-evaluator-builtins": "workspace:*",
+    "@dicexp/naive-evaluator-runtime": "workspace:*",
     "@dicexp/test-utils-for-executing": "workspace:*",
     "@types/node": "catalog:",
     "tsup": "catalog:",

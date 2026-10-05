@@ -471,6 +471,46 @@ fn closure_body_excludes_pipe() {
     );
 }
 
+#[test]
+fn closure_body_includes_operators_looser_than_pipe() {
+    // expressionWithoutPipe still includes compare/equal/and/or (which are
+    // LOOSER than |>): they belong to the closure body, not outside it.
+    eq("|$x| $x > 1", "(closure |$x| (call/operator > $x 1))");
+    eq("|$x| $x % 2 == 0", "(closure |$x| (call/operator == (call/operator % $x 2) 0))");
+    eq("|$x| $x and true", "(closure |$x| (call/operator and $x true))");
+    eq("|$x| $x or false", "(closure |$x| (call/operator or $x false))");
+    eq("|$x| $x # 2", "(closure |$x| (repetition $x 2))");
+    eq("map([1,2,3], |$x| $x > 1)", "(call/function map (list 1 2 3) (closure |$x| (call/operator > $x 1)))");
+    // but a pipe still terminates the body — even in operand position
+    // (verified against naive: `expressionWithoutPipe` is parameterized
+    // recursively, so pipes are excluded at every level inside the body)
+    eq(
+        "map([1], |$x| $x) |> sum",
+        "(call/piped sum (call/function map (list 1) (closure |$x| $x)))",
+    );
+    eq(
+        "f |$x| $x > 1 |> g",
+        "(call/piped g (call/function f (closure |$x| (call/operator > $x 1))))",
+    );
+    eq(
+        "f |$x| $x and 1 |> g",
+        "(call/piped g (call/function f (closure |$x| (call/operator and $x 1))))",
+    );
+    eq(
+        "|$x| $x == 1 |> g",
+        "(call/piped g (closure |$x| (call/operator == $x 1)))",
+    );
+    // …while a grouping re-enables pipes inside the body
+    eq(
+        "|$x| $x > (1 |> g)",
+        "(closure |$x| (call/operator > $x (call/piped g 1)))",
+    );
+    eq(
+        "|$x| f($x |> g)",
+        "(closure |$x| (call/function f (call/piped g $x)))",
+    );
+}
+
 // ---------------------------------------------------------------------------
 // repetition
 // ---------------------------------------------------------------------------

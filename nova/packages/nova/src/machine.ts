@@ -67,7 +67,28 @@ export class Machine {
       toModule(assets.builtins),
       toModule(assets.shim),
     ]);
+    return Machine.fromModules(compilerModule, builtinsModule, shimModule);
+  }
 
+  /**
+   * Synchronous creation — only usable where synchronous WASM compilation is
+   * allowed (Node, workers; NOT browsers' main thread for large modules).
+   */
+  static createSync(assets: NovaAssets): Machine {
+    const toModuleSync = (asset: BufferSource | WebAssembly.Module) =>
+      asset instanceof WebAssembly.Module ? asset : new WebAssembly.Module(asset);
+    return Machine.fromModules(
+      toModuleSync(assets.compiler),
+      toModuleSync(assets.builtins),
+      toModuleSync(assets.shim),
+    );
+  }
+
+  private static fromModules(
+    compilerModule: WebAssembly.Module,
+    builtinsModule: WebAssembly.Module,
+    shimModule: WebAssembly.Module,
+  ): Machine {
     const table = new WebAssembly.Table({ element: "anyfunc", initial: 1024 });
 
     const shim = new WebAssembly.Instance(shimModule, { env: { table } });
@@ -132,7 +153,8 @@ export class Machine {
 
     const instance = new WebAssembly.Instance(program, {
       env: { memory: this.builtins.memory, table: this.table },
-      nova_rt: this.builtins.exports as WebAssembly.ModuleImports,
+      // NOTE: `this.builtins` is already the instance's exports object.
+      nova_rt: this.builtins as unknown as WebAssembly.ModuleImports,
     });
 
     const root = (instance.exports["__main"] as () => bigint)();

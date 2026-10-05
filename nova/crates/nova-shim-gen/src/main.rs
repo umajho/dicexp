@@ -12,10 +12,9 @@
 //! ```wat
 //! (module
 //!   (type $clo (func (param i32 i32 i32) (result i64)))
+//!   (type $shim (func (param i32 i32 i32 i32) (result i64)))
 //!   (import "env" "table" (table 0 funcref))
-//!   (func (export "call_closure")
-//!         (param $fnidx i32) (param $env i32) (param $args i32) (param $argc i32)
-//!         (result i64)
+//!   (func (export "call_closure") (type $shim)
 //!     local.get $env
 //!     local.get $args
 //!     local.get $argc
@@ -34,8 +33,15 @@ fn main() {
     let mut module = Module::new();
 
     let mut types = TypeSection::new();
+    // Type 0: `$clo`, the type of all compiled closure/thunk bodies
+    // (used by the `call_indirect` below).
     types.ty().function(
         [ValType::I32, ValType::I32, ValType::I32],
+        [ValType::I64],
+    );
+    // Type 1: the shim's own exported function type (fnidx first).
+    types.ty().function(
+        [ValType::I32, ValType::I32, ValType::I32, ValType::I32],
         [ValType::I64],
     );
     module.section(&types);
@@ -55,7 +61,7 @@ fn main() {
     module.section(&imports);
 
     let mut funcs = FunctionSection::new();
-    funcs.function(0);
+    funcs.function(1); // the exported function has type 1 ($shim)
     module.section(&funcs);
 
     let mut exports = ExportSection::new();
