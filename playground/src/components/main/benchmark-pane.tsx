@@ -19,6 +19,7 @@ import {
   For,
   lazy,
   Match,
+  on,
   Show,
   Suspense,
   Switch,
@@ -27,10 +28,11 @@ import {
 import { Button, Skeleton } from "../ui/mod";
 
 import createDicexpBenchmark, {
-  type BenchmarkOutcome,
   type BenchmarkRunState,
 } from "../../hooks/dicexp-benchmark";
+import * as store from "../../stores/store";
 import { benchmarkPresets } from "../../stores/benchmark-presets";
+import { BenchmarkOutcomeView } from "./result-pane/result-card-for-benchmark";
 
 const LazyDicexpEditor = lazy(() => import("./dicexp-editor"));
 
@@ -39,6 +41,22 @@ export const BenchmarkPane: Component = () => {
   const [sampleCount, setSampleCount] = createSignal(10_000);
 
   const bench = createDicexpBenchmark({ code: doc, sampleCount });
+
+  // Every completed benchmark run (a finished or cancelled one — the hook's
+  // outcome signal only changes identity when a run ends) lands in the
+  // result pane as a keepable record; the tab also keeps showing the latest
+  // outcome inline below. Same push pattern as control-pane.tsx for
+  // evaluation results.
+  createEffect(on([bench.outcome], () => {
+    const outcome = bench.outcome();
+    if (!outcome) return;
+    store.pushRecord({
+      type: "benchmark",
+      code: outcome.code,
+      outcome,
+      date: new Date(),
+    });
+  }));
 
   // Same reset-to-placeholder pattern as the example select in
   // control-pane.tsx: after applying a preset, snap the select back to the
@@ -148,7 +166,7 @@ export const BenchmarkPane: Component = () => {
 
       {/* 结果汇总表 */}
       <Show when={bench.outcome()}>
-        {(outcome) => <OutcomeView outcome={outcome()} />}
+        {(outcome) => <BenchmarkOutcomeView outcome={outcome()} />}
       </Show>
     </>
   );
@@ -194,121 +212,4 @@ function phaseText(run: BenchmarkRunState): string {
     case "error":
       return "出错";
   }
-}
-
-const OutcomeView: Component<{ outcome: BenchmarkOutcome }> = (props) => {
-  const runs = () => props.outcome.runs;
-
-  return (
-    <div class="flex flex-col gap-2 text-sm">
-      <table class="table table-zebra table-sm">
-        <thead>
-          <tr>
-            <th />
-            <For each={runs()}>
-              {(run) => <th>{run.implementation}</th>}
-            </For>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th>样本数</th>
-            <For each={runs()}>
-              {(run) => <td>{samplesCell(run, props.outcome.targetSamples)}</td>}
-            </For>
-          </tr>
-          <tr>
-            <th>总耗时（毫秒）</th>
-            <For each={runs()}>
-              {(run) => <td>{elapsedCell(run)}</td>}
-            </For>
-          </tr>
-          <tr>
-            <th>平均每样本（微秒）</th>
-            <For each={runs()}>
-              {(run) => <td>{microsCell(run)}</td>}
-            </For>
-          </tr>
-          <tr>
-            <th>吞吐（样本/秒）</th>
-            <For each={runs()}>
-              {(run) => <td>{throughputCell(run)}</td>}
-            </For>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="flex flex-col gap-1">
-        <Show when={speedupText(props.outcome)}>
-          {(speedup) => (
-            <div>
-              加速比：<span>{speedup()}</span>
-            </div>
-          )}
-        </Show>
-        <div class="flex items-baseline gap-2">
-          <span>结果一致性：</span>
-          <Switch>
-            <Match when={props.outcome.agreement === true}>
-              <span class="text-success">✓ 结果一致（直方图完全相同）</span>
-            </Match>
-            <Match when={props.outcome.agreement === false}>
-              <span class="text-error">✗ 结果不一致！</span>
-            </Match>
-            <Match when={true}>
-              <span class="text-gray-400">— 无法比较（运行未完成或出错）</span>
-            </Match>
-          </Switch>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-function speedupText(outcome: BenchmarkOutcome): string | null {
-  const speedup = outcome.speedup;
-  return speedup === null ? null : `${speedup.toFixed(2)}×`;
-}
-
-function formatElapsedMs(ms: number): string {
-  const rounded = Math.round(ms);
-  if (rounded < 1000) return String(rounded);
-  return `${rounded}（${(ms / 1000).toFixed(1)} 秒）`;
-}
-
-function noData() {
-  // Fresh element on every call (a shared JSX node can't be mounted twice).
-  return <span class="text-gray-400">—</span>;
-}
-
-function samplesCell(run: BenchmarkRunState, targetSamples: number) {
-  if (run.phase === "error") return noData();
-  const final = run.final;
-  if (!final) return noData();
-  if (final.samples >= targetSamples) return <>{final.samples}</>;
-  return (
-    <>
-      {final.samples}
-      <span class="text-gray-400">（已取消，仅部分样本）</span>
-    </>
-  );
-}
-
-function elapsedCell(run: BenchmarkRunState) {
-  if (run.phase === "error") return noData();
-  const final = run.final;
-  if (!final) return noData();
-  return formatElapsedMs(final.elapsedMs);
-}
-
-function microsCell(run: BenchmarkRunState) {
-  const final = run.final;
-  if (run.phase === "error" || !final || final.samples <= 0) return noData();
-  return <>{(final.elapsedMs * 1000 / final.samples).toFixed(2)}</>;
-}
-
-function throughputCell(run: BenchmarkRunState) {
-  const final = run.final;
-  if (run.phase === "error" || !final || final.samples < 1) return noData();
-  return <>{String(Math.round(final.samples / (final.elapsedMs / 1000)))}</>;
 }

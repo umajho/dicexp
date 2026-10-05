@@ -25,6 +25,7 @@ import type * as I from "@dicexp/interface";
 import { Button, Card, Loading } from "../../ui/mod";
 import * as store from "../../../stores/store";
 import {
+  BenchmarkOutcome,
   Implementation,
   ResultRecord,
   SamplingReportForPlayground,
@@ -32,6 +33,7 @@ import {
 import { DicexpResult } from "../../../custom-elements/dicexp";
 import { ErrorAlert } from "../ui";
 import { SamplingResultCard } from "./result-card-for-sampling";
+import { BenchmarkResultCard } from "./result-card-for-benchmark";
 
 export const ResultPane: Component<
   { class?: string; records: () => ResultRecord[] }
@@ -137,6 +139,14 @@ export const ResultPane: Component<
                           Extract<ResultRecord, { type: "error" }>;
                           const props = { error, date };
                           return <ErrorResultBlock i={i()} {...props} />;
+                        })()}
+                      </Match>
+                      <Match when={record.type === "benchmark"}>
+                        {(() => {
+                          const { code, outcome, date } = record as //
+                          Extract<ResultRecord, { type: "benchmark" }>;
+                          const props = { code, outcome, date };
+                          return <BenchmarkResultBlock i={i()} {...props} />;
                         })()}
                       </Match>
                       <Match when={true}>
@@ -321,6 +331,36 @@ const ErrorResultBlock: Component<{
         </div>
         <ErrorAlert error={props.error} showsStack={true} />
       </h2>
+    </div>
+  );
+};
+
+const BenchmarkResultBlock: Component<{
+  i: number;
+  code: string;
+  outcome: BenchmarkOutcome;
+  date: Date;
+}> = (
+  props,
+) => {
+  return (
+    <div class="flex flex-col gap-2">
+      <h2 class="text-xl font-semibold border-b border-gray-500 w-full">
+        <div class="inline-flex flex-wrap gap-2 items-center">
+          <Button
+            icon={<VsClose size={18} />}
+            size="xs"
+            shape="square"
+            hasOutline={true}
+            onClick={() => store.clear(props.i)}
+          />
+          <span>基准</span>
+          <span>{dateToString(props.date)}</span>
+        </div>
+      </h2>
+      {/* The outcome of one run is immutable (a starting run replaces it),
+          so no reactive signaling is needed inside the card. */}
+      <BenchmarkResultCard code={props.code} outcome={props.outcome} />
     </div>
   );
 };

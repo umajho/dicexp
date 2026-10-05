@@ -9,6 +9,10 @@
  *
  * This file defines the PUBLIC CONTRACT consumed by
  * `../components/main/benchmark-pane.tsx`. Keep the exported API stable.
+ * (The benchmark data types — `BenchmarkRunFinal`, `BenchmarkRunState`,
+ * `BenchmarkOutcome` — live in `../types`, which `ResultRecord`'s
+ * `benchmark` variant carries; they are re-exported below so that the
+ * API of this file, and its consumers, stay unchanged.)
  *
  * Driving notes (see the sibling `dicexp-evaluator.ts` hook and
  * `I.RemoteSamplerClient`): `manager.keepSampling(code,
@@ -25,54 +29,22 @@ import { createStore } from "solid-js/store";
 
 import type * as I from "@dicexp/interface";
 
-import type { Implementation } from "../types";
+import type {
+  BenchmarkOutcome,
+  BenchmarkRunState,
+  Implementation,
+} from "../types";
+export type { BenchmarkOutcome, BenchmarkRunFinal, BenchmarkRunState } from "../types";
 import {
   defaultEvaluatorProvider,
   novaEvaluatorProvider,
 } from "../stores/evaluator-provider";
-
-/** Final, worker-measured stats of one implementation's run. */
-export interface BenchmarkRunFinal {
-  /** Samples actually collected (equals the target unless cancelled/errored). */
-  samples: number;
-  /**
-   * Wall time measured inside the worker (sampling start → stop), which
-   * includes the one-time parse/compile of the sampling session.
-   */
-  elapsedMs: number;
-  /** Exact result histogram over the sampled seeds (integer results only). */
-  counts: Record<number, number>;
-}
-
-export interface BenchmarkRunState {
-  implementation: Implementation;
-  phase: "pending" | "running" | "done" | "error";
-  /** Live progress while running (from the worker's interval reports). */
-  samplesDone: number;
-  elapsedMs: number;
-  final: BenchmarkRunFinal | null;
-  error: Error | null;
-}
 
 export type BenchmarkStatus =
   | "idle" // never started (or reset by starting again)
   | "preparing" // worker managers loading (first start only)
   | "running" // at least one run ahead of us
   | "done"; // finished, cancelled, or errored — see `outcome`
-
-export interface BenchmarkOutcome {
-  code: string;
-  targetSamples: number;
-  /** Final snapshot of both runs (naive first, then nova). */
-  runs: BenchmarkRunState[];
-  /**
-   * Exact histogram equality between the two runs; `null` when not
-   * comparable (a run errored, or was cancelled short of the target).
-   */
-  agreement: boolean | null;
-  /** nova throughput / naive throughput; `null` unless both completed. */
-  speedup: number | null;
-}
 
 /**
  * The surface of a worker manager this hook relies on; both the naive and
