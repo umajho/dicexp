@@ -11,8 +11,6 @@ use crate::values;
 
 /// Error keys missing from `nova-abi` (upstream candidates).
 pub(crate) mod extra_key {
-    /// params: [string name] — builtin not implemented yet (reroll/2, explode/2).
-    pub const UNIMPLEMENTED: u32 = 41;
     /// params: [string rendered_operation] — `==`/`!=` with operands of
     /// different types (naive: 操作 “==” 非法：两侧操作数的类型不相同).
     pub const ILLEGAL_OPERATION_LR_TYPE_MISMATCH: u32 = 42;
@@ -240,13 +238,6 @@ pub(crate) fn illegal_lr_type_mismatch(op_eq: bool) -> u64 {
 // ---------------------------------------------------------------------------
 // extra-key constructors
 // ---------------------------------------------------------------------------
-
-pub(crate) fn unimplemented(name: &str) -> u64 {
-    match values::string_new(name.as_bytes()) {
-        Some(s) => values::error_new(extra_key::UNIMPLEMENTED, &[(STR, s as u64)]),
-        None => memory_limit(),
-    }
-}
 
 pub(crate) fn at_index_out_of_bounds(list_len: i64, index: i64) -> u64 {
     values::error_new(

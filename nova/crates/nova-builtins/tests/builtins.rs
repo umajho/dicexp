@@ -502,24 +502,296 @@ fn negative_repeat_count_returns_empty_list_deviation() {
     assert_eq!(tu::list_len_of(v), 0);
 }
 
+// --- reroll / explode (sequence transformers) ----------------------------------
+
 #[test]
-fn reroll_and_explode_are_stubbed() {
+fn reroll_and_explode_arg_errors_keep_precedence() {
     setup();
     tu::rng_seed(0);
     let c = closure_new(const_body(tu::boolean(true)), 0, 1);
 
-    let e = bf_reroll_2(op_d_1(tu::int(6)), c);
-    assert_eq!(err_key(e), 41); // UNIMPLEMENTED
-    assert_eq!(tu::string_param_of(e, 0), "reroll/2");
-
-    let e = bf_explode_2(op_d_1(tu::int(6)), c);
-    assert_eq!(err_key(e), 41);
-    assert_eq!(tu::string_param_of(e, 0), "explode/2");
-
-    // Eager params are still checked first (naive-consistent precedence).
+    // Eager params are still forced + type-checked first (naive-consistent
+    // precedence): arg 1 must unwrap to a sequence (sequence or
+    // sequence$sum — mask 0b110000).
     let e = bf_reroll_2(tu::int(1), c);
+    assert_eq!(err_key(e), 21); // CALL_ARGUMENT_TYPE_MISMATCH
+    assert_eq!(err_params(e), vec![(0, 1), (3, 0b110000), (2, 0)]);
+    let e = bf_explode_2(tu::int(1), c);
     assert_eq!(err_key(e), 21);
     assert_eq!(err_params(e), vec![(0, 1), (3, 0b110000), (2, 0)]);
+    // A list is not a sequence either.
+    let e = bf_reroll_2(list_of(&[]), c);
+    assert_eq!(err_key(e), 21);
+    assert_eq!(err_params(e), vec![(0, 1), (3, 0b110000), (2, 2)]);
+
+    // Arg 2 must be a callable.
+    let e = bf_reroll_2(op_d_1(tu::int(6)), tu::int(1));
+    assert_eq!(err_key(e), 21);
+    assert_eq!(err_params(e), vec![(0, 2), (3, 0b1000), (2, 0)]);
+    let e = bf_explode_2(op_d_1(tu::int(6)), tu::boolean(true));
+    assert_eq!(err_key(e), 21);
+    assert_eq!(err_params(e), vec![(0, 2), (3, 0b1000), (2, 1)]);
+}
+
+#[test]
+fn reroll_until_six_is_deterministic() {
+    setup();
+    // `10d6 |> reroll(|$x| $x <= 5)`: only 6s survive, so the sum is 60 for
+    // ANY seed — each reroll pulls the dice source PAST its nominal end of
+    // 10 (the dice arm keeps drawing, is_last=false beyond).
+    for seed in [0, 1, 42, 7] {
+        setup();
+        tu::rng_seed(seed);
+        let pred = closure_new(
+            register_body(|_, _, args, _| op_le_2(tu::read_arg_slot(args, 0), tu::int(5))),
+            0,
+            1,
+        );
+        let t = bf_reroll_2(op_d_2(tu::int(10), tu::int(6)), pred);
+        // $sum flag propagates from the source: the result casts to its sum.
+        assert_eq!(op_add_2(t, tu::int(0)), tu::int(60), "seed {seed}");
+    }
+}
+
+#[test]
+fn reroll_on_repeat_source_keeps_nominal_length() {
+    setup();
+    tu::rng_seed(0);
+    // `3#d6 |> reroll(|$x| $x <= 3)`: rerolled items are replaced by later
+    // pulls (the repeat arm creates body thunks forever, past its nominal
+    // end) — exactly 3 outputs are produced.
+    let d6 = closure_new(register_body(|_, _, _, _| op_d_1(tu::int(6))), 0, 0);
+    let src = repeat(tu::int(3), d6);
+    let pred = closure_new(
+        register_body(|_, _, args, _| op_le_2(tu::read_arg_slot(args, 0), tu::int(3))),
+        0,
+        1,
+    );
+    let t = bf_reroll_2(src, pred);
+    assert_eq!(tu::kind_of(t), 8); // SEQUENCE (plain flag propagates)
+    // Plain flag propagates too: casting under an integer spec type-errors
+    // (a plain sequence casts to a LIST, which is not an integer).
+    let e = op_add_2(t, tu::int(0));
+    assert_eq!(err_key(e), 21);
+    assert_eq!(err_params(e), vec![(0, 1), (3, 0b1), (2, 2)]);
+
+    // seed 0 fixture: the `#` elements are themselves d6 sums; the
+    // predicate's integer comparison casts each to a roll (memoized). Rolls
+    // 4, 3, 5, 1, 6 → base 4 kept, 3 rerolled, 5 kept (the source's nominal
+    // last), then 1 rerolled (beyond the source's nominal end) and 6 kept
+    // as the replacement: the outputs sum to [4, 5, 6].
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(0)), tu::int(0)), tu::int(4));
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(1)), tu::int(0)), tu::int(5));
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(2)), tu::int(0)), tu::int(6));
+    // Exactly the nominal 3 outputs.
+    let e = bf_at_2(t, tu::int(3));
+    assert_eq!(err_key(e), 43); // AT_INDEX_OUT_OF_BOUNDS
+    assert_eq!(int_err_params(e), vec![3, 3]);
+}
+
+#[test]
+fn explode_appends_extras_after_base_outputs() {
+    setup();
+    tu::rng_seed(42);
+    // `3#d6 |> explode(|$x| $x == 6)`: base outputs then the owed
+    // explosions strictly AFTER them (draw order 6, 6, 2, 1, 5).
+    let d6 = closure_new(register_body(|_, _, _, _| op_d_1(tu::int(6))), 0, 0);
+    let src = repeat(tu::int(3), d6);
+    let pred = closure_new(
+        register_body(|_, _, args, _| op_eq_2(tu::read_arg_slot(args, 0), tu::int(6))),
+        0,
+        1,
+    );
+    let t = bf_explode_2(src, pred);
+    // Each output element is a d6 sum; the rolls (drawn in stream order)
+    // were 6, 6, 2 then the owed explosions 1, 5 — extras strictly AFTER
+    // the base outputs.
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(0)), tu::int(0)), tu::int(6));
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(1)), tu::int(0)), tu::int(6));
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(2)), tu::int(0)), tu::int(2));
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(3)), tu::int(0)), tu::int(1));
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(4)), tu::int(0)), tu::int(5));
+    // Exactly 5 outputs (3 base + 2 explosions): the 5th is the last.
+    let e = bf_at_2(t, tu::int(5));
+    assert_eq!(err_key(e), 43); // AT_INDEX_OUT_OF_BOUNDS
+    assert_eq!(int_err_params(e), vec![5, 5]);
+}
+
+#[test]
+fn explode_reexplodes_and_keeps_sum_flag() {
+    setup();
+    tu::rng_seed(42);
+    // `1d6 |> explode(|$x| $x == 6)`: the 6 explodes, the extra 6 explodes
+    // AGAIN, the next extra (2) stops: [6, 6, 2]. The $sum flag propagates
+    // from the dice source: the result sums (14), it is not a list.
+    let pred = closure_new(
+        register_body(|_, _, args, _| op_eq_2(tu::read_arg_slot(args, 0), tu::int(6))),
+        0,
+        1,
+    );
+    let t = bf_explode_2(op_d_1(tu::int(6)), pred);
+    assert_eq!(op_add_2(t, tu::int(0)), tu::int(14));
+}
+
+#[test]
+fn chained_transformers_pull_past_last_marked_output() {
+    setup();
+    tu::rng_seed(42);
+    // `3#d6 |> explode(==6) |> reroll(==1)`: the inner stream is
+    // [6, 6, 2, 1, 5] (is_last at index 4); the outer rejects the 1 and
+    // pulls the inner PAST its last-marked output to replace it.
+    let d6 = closure_new(register_body(|_, _, _, _| op_d_1(tu::int(6))), 0, 0);
+    let src = repeat(tu::int(3), d6);
+    let explode_pred = closure_new(
+        register_body(|_, _, args, _| op_eq_2(tu::read_arg_slot(args, 0), tu::int(6))),
+        0,
+        1,
+    );
+    let inner = bf_explode_2(src, explode_pred);
+    let reroll_pred = closure_new(
+        register_body(|_, _, args, _| op_eq_2(tu::read_arg_slot(args, 0), tu::int(1))),
+        0,
+        1,
+    );
+    let outer = bf_reroll_2(inner, reroll_pred);
+    // seed 42 fixture: rolls 6, 6, 2, 1, 5, 1, 1, 3 (each output element is
+    // a d6 sum) → inner outputs sum to [6, 6, 2, 1, 5] (is_last at 4); the
+    // outer rejects the 1, keeps the 5 (the inner's last-marked output —
+    // base tracking stops there), then rejects two further 1s pulled from
+    // BEYOND the inner's last-marked output before accepting the 3 (debt
+    // paid → is_last): [6, 6, 2, 5, 3].
+    assert_eq!(op_add_2(bf_at_2(outer, tu::int(0)), tu::int(0)), tu::int(6));
+    assert_eq!(op_add_2(bf_at_2(outer, tu::int(1)), tu::int(0)), tu::int(6));
+    assert_eq!(op_add_2(bf_at_2(outer, tu::int(2)), tu::int(0)), tu::int(2));
+    assert_eq!(op_add_2(bf_at_2(outer, tu::int(3)), tu::int(0)), tu::int(5));
+    assert_eq!(op_add_2(bf_at_2(outer, tu::int(4)), tu::int(0)), tu::int(3));
+    // Exactly 5 outputs (the inner's nominal — 3 base + 2 explosions).
+    let e = bf_at_2(outer, tu::int(5));
+    assert_eq!(err_key(e), 43);
+    assert_eq!(int_err_params(e), vec![5, 5]);
+}
+
+#[test]
+fn explode_closure_type_mismatch_reports_reroll_quirk() {
+    setup();
+    tu::rng_seed(0);
+    // A non-boolean closure result is a terminal key-48 error — reported
+    // as if from reroll/2 FOR BOTH builtins (naive quirk kept; compat.md).
+    let d6 = closure_new(register_body(|_, _, _, _| op_d_1(tu::int(6))), 0, 0);
+    let src = repeat(tu::int(3), d6);
+    let bad = closure_new(const_body(tu::int(1)), 0, 1);
+    for t in [bf_reroll_2(src, bad), bf_explode_2(src, bad)] {
+        let e = force(bf_at_2(t, tu::int(0)));
+        assert_eq!(err_key(e), 48); // CLOSURE_RETURN_TYPE_MISMATCH
+        let params = err_params(e);
+        assert_eq!(params[0], (0, 2)); // position (1-based)
+        assert_eq!(tu::string_param_of(e, 1), "reroll/2"); // the quirk
+        assert_eq!(params[2], (2, 1)); // expected boolean
+        assert_eq!(params[3], (2, 0)); // actual integer
+        // Terminal: the error output IS the last; nothing else is produced.
+        let e = bf_at_2(t, tu::int(1));
+        assert_eq!(err_key(e), 43);
+        assert_eq!(int_err_params(e), vec![1, 1]);
+    }
+    // The item was passed UNFORCED and the constant body never forced it:
+    // no RNG consumed (the next draw is still the first fixture roll).
+    assert_eq!(tu::rng_integer(1, 6), 4);
+}
+
+#[test]
+fn terminal_error_truncates_future_outputs() {
+    setup();
+    tu::rng_seed(0);
+    static CALLS: AtomicUsize = AtomicUsize::new(0);
+    CALLS.store(0, Ordering::SeqCst);
+    // The closure errors on its 2nd call: outputs after the error position
+    // are never produced (the 3rd roll is never drawn).
+    let body = register_body(|_, _, args, _| {
+        let n = CALLS.fetch_add(1, Ordering::SeqCst);
+        let item = force(tu::read_arg_slot(args, 0)); // draws the roll
+        if n == 1 {
+            op_div_2(tu::int(1), tu::int(0))
+        } else {
+            op_eq_2(item, tu::int(6))
+        }
+    });
+    let d6 = closure_new(register_body(|_, _, _, _| op_d_1(tu::int(6))), 0, 0);
+    let t = bf_explode_2(repeat(tu::int(3), d6), closure_new(body, 0, 1));
+    // seed 0 rolls: 4, … → output 0 is an element summing to 4; output 1 is
+    // the terminal error (marked last).
+    assert_eq!(op_add_2(bf_at_2(t, tu::int(0)), tu::int(0)), tu::int(4));
+    let e = force(bf_at_2(t, tu::int(1)));
+    assert_eq!(err_key(e), 30);
+    assert_eq!(CALLS.load(Ordering::SeqCst), 2, "production stops at the error");
+    let e = bf_at_2(t, tu::int(2));
+    assert_eq!(err_key(e), 43);
+    assert_eq!(int_err_params(e), vec![2, 2]);
+    // The 2nd roll was never CAST (the error fired before the comparison):
+    // the next rng draw is still the 2nd fixture roll.
+    assert_eq!(tu::rng_integer(1, 6), 3);
+}
+
+#[test]
+fn closure_error_propagates_as_terminal_output() {
+    setup();
+    static CALLS: AtomicUsize = AtomicUsize::new(0);
+    CALLS.store(0, Ordering::SeqCst);
+    let d6 = closure_new(register_body(|_, _, _, _| op_d_1(tu::int(6))), 0, 0);
+    let erring = closure_new(error_body(&CALLS), 0, 1);
+
+    // The closure's error handle becomes the FIRST output, marked last.
+    let t = bf_explode_2(repeat(tu::int(3), d6), erring);
+    let e = force(bf_at_2(t, tu::int(0)));
+    assert_eq!(err_key(e), 30);
+    assert_eq!(CALLS.load(Ordering::SeqCst), 1);
+    let e = bf_at_2(t, tu::int(1));
+    assert_eq!(err_key(e), 43);
+    assert_eq!(int_err_params(e), vec![1, 1]);
+
+    // [DEVIATION] on the $sum side: naive CRASHES (uncaught) when a
+    // bad-closure sequence$sum is summed at top level; nova reports the
+    // closure error cleanly instead (see compat.md).
+    let t2 = bf_reroll_2(op_d_2(tu::int(3), tu::int(6)), erring);
+    assert_eq!(err_key(op_add_2(t2, tu::int(0))), 30);
+    assert_eq!(CALLS.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn any_short_circuits_element_forcing() {
+    setup();
+    static CALLS: AtomicUsize = AtomicUsize::new(0);
+    CALLS.store(0, Ordering::SeqCst);
+    // `true` first: the erroring element is never forced.
+    let erring = thunk_new(error_body(&CALLS), 0);
+    assert_eq!(bf_any_1(list_of(&[tu::boolean(true), erring])), tu::boolean(true));
+    assert_eq!(CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(tu::thunk_state_of(erring), 0, "element must stay unevaluated");
+
+    // Nested: the true sits inside a nested list; later siblings unforced.
+    let erring2 = thunk_new(error_body(&CALLS), 0);
+    let nested =
+        list_of(&[list_of(&[tu::boolean(false), tu::boolean(true)]), erring2]);
+    assert_eq!(bf_any_1(nested), tu::boolean(true));
+    assert_eq!(CALLS.load(Ordering::SeqCst), 0);
+
+    // Short-circuit also skips implicit casts: a dice stream behind the
+    // true is never summed (no RNG consumed).
+    tu::rng_seed(0);
+    let seq = op_d_2(tu::int(3), tu::int(6));
+    assert_eq!(
+        bf_any_1(list_of(&[tu::boolean(true), seq])),
+        tu::boolean(true)
+    );
+    assert_eq!(tu::rng_integer(1, 6), 4, "no RNG consumed");
+
+    // No true: everything is forced, result false.
+    assert_eq!(
+        bf_any_1(list_of(&[tu::boolean(false), tu::boolean(false)])),
+        tu::boolean(false)
+    );
+    // Elements actually reached still type-check (no cast of non-booleans).
+    let e = bf_any_1(list_of(&[tu::boolean(false), tu::int(1)]));
+    assert_eq!(err_key(e), 46); // LIST_HAS_NON_BOOLEAN_ITEM
 }
 
 #[test]

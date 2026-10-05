@@ -12,12 +12,12 @@
 //! - [`errors`]: structured error constructors; defines the error keys that
 //!   `nova-abi` is missing (upstream candidates; see crate report).
 //! - [`rng`]: exact port of naive's xorshift7 + unbiased `integer()`.
-//! - [`seq`]: sequence streams (per-position memoized pull-streams) and the
-//!   implicit casts (`sequence$sum` → sum, `sequence` → list).
+//! - [`seq`]: sequence streams (dice-sum, repeat, reroll/explode
+//!   transformer; per-position memoized pull-streams) and the implicit casts
+//!   (`sequence$sum` → sum, `sequence` → list).
 //! - [`runtime`]: ABI runtime exports (`thunk_new`, `force`, `call_callable`,
 //!   `repeat`, `reset`, `seed`, …) incl. the iterative force trampoline.
-//! - [`builtins`]: all 36 builtins (`reroll`/`explode` stubbed) + capture
-//!   dispatch by ABI id.
+//! - [`builtins`]: all 36 builtins + capture dispatch by ABI id.
 //! - [`finalize`]: deep-force + result wire encoding (ABI §3.6).
 
 #[doc(hidden)]

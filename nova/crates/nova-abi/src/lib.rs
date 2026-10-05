@@ -139,8 +139,9 @@ pub mod error_key {
     pub const ILLEGAL_OPERATION_RANGE_UPPER_BOUND: u32 = 34;
     /// params: []
     pub const MEMORY_LIMIT_EXCEEDED: u32 = 40;
-    /// params: [string name] — temporary stub for not-yet-implemented builtins
-    pub const UNIMPLEMENTED: u32 = 41;
+    // 41 is retired: it was the temporary stub key for builtins before they
+    // were implemented (`reroll/2`, `explode/2`; removed in v0.4). Keys are
+    // ABI-stable — never reassign this id.
     /// params: [string rendered_operation] (`==` / `!=` with different operand types)
     pub const ILLEGAL_OPERATION_LR_TYPE_MISMATCH: u32 = 42;
     /// params: [int list_len, int index]

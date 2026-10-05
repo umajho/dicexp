@@ -1,9 +1,10 @@
-//! All 36 builtins from the ABI table (`reroll`/`explode` are stubs).
+//! All 36 builtins from the ABI table.
 //!
 //! Semantics are ported from naive
 //! (`packages/naive-evaluator-builtins/src/base/{operators,functions}`),
 //! honoring the deliberate divergences in `nova/docs/compat.md`:
-//! short-circuiting `and`/`or`, i64 `//`/`%`, `sum([]) = 0`, `product([]) = 1`.
+//! short-circuiting `and`/`or` (and `any?` element forcing), i64 `//`/`%`,
+//! `sum([]) = 0`, `product([]) = 1`.
 //!
 //! Each builtin receives value handles (usually unevaluated thunks) and
 //! forces per its param spec; all return a value or ERROR handle (u64).
@@ -292,27 +293,34 @@ pub(crate) fn op_range_2_impl(a: u64, b: u64) -> u64 {
 }
 
 // ---------------------------------------------------------------------------
-// functions — dice (stubs)
+// functions — dice (sequence transformers; the streams live in seq.rs)
 // ---------------------------------------------------------------------------
 
-fn unimplemented_stub(a: u64, b: u64, name: &str) -> u64 {
-    // Eager params still forced + type-checked (naive-consistent error
-    // precedence), then the stub error.
-    if let Err(e) = unwrap_arg(a, mask::SEQUENCE_ANY, 1) {
-        return e;
-    }
-    if let Err(e) = unwrap_callable(b, 2) {
-        return e;
-    }
-    errors::unimplemented(name)
+/// `reroll/2` / `explode/2`: both params eager — arg 1 must unwrap to a
+/// sequence (existing key-21 type errors fire before anything else), arg 2
+/// to a callable. The result is a NEW transformer sequence wrapping the
+/// source; its `sequence$sum` flag mirrors the source's, so `10d6 |>
+/// reroll(…)` still sums at the top level and `3#d6 |> …` casts to a list.
+/// No arity-1 forms. Construction pulls nothing (laziness preserved).
+fn transformer_2(a: u64, b: u64, is_explode: bool) -> u64 {
+    let src = match unwrap_arg(a, mask::SEQUENCE_ANY, 1) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let callable = match unwrap_callable(b, 2) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let is_sum = values::seq_is_sum_ptr(values::value_to_heap_ptr(src));
+    seq::new_transformer(is_sum, src, callable, is_explode)
 }
 
 pub(crate) fn bf_reroll_2_impl(a: u64, b: u64) -> u64 {
-    unimplemented_stub(a, b, "reroll/2")
+    transformer_2(a, b, false)
 }
 
 pub(crate) fn bf_explode_2_impl(a: u64, b: u64) -> u64 {
-    unimplemented_stub(a, b, "explode/2")
+    transformer_2(a, b, true)
 }
 
 // ---------------------------------------------------------------------------
@@ -428,7 +436,10 @@ pub(crate) fn bf_product_1_impl(a: u64) -> u64 {
 
 /// `any?`: naive flattens nested lists (`flattenListAll`). [DEVIATION] nova
 /// fixes naive's flatten bug (elements after a nested list overwrite earlier
-/// flattened values), so no element is lost.
+/// flattened values), so no element is lost. [DEVIATION] element forcing
+/// short-circuits at the first `true` — remaining elements are never forced
+/// (mirrors the `and`/`or` short-circuit, compat.md #1; naive forced every
+/// element). Elements actually reached still type-check as booleans.
 pub(crate) fn bf_any_1_impl(a: u64) -> u64 {
     let list = match unwrap_list(a, 1) {
         Ok(p) => p,
@@ -439,7 +450,6 @@ pub(crate) fn bf_any_1_impl(a: u64) -> u64 {
     if let Err(e) = push_list_elems_reversed(&mut stack, list) {
         return e;
     }
-    let mut any = false;
     while let Some(h) = stack.pop() {
         let v = force_impl(h);
         if is_error_handle(v) {
@@ -451,7 +461,13 @@ pub(crate) fn bf_any_1_impl(a: u64) -> u64 {
             Err(e) => return e,
         };
         match value_tag(v) {
-            TAG_BOOLEAN => any = any || value_to_boolean(v),
+            TAG_BOOLEAN => {
+                if value_to_boolean(v) {
+                    // Short-circuit ([DEVIATION], see header): remaining
+                    // elements are never forced.
+                    return bool_result(true);
+                }
+            }
             TAG_HEAP if heap_kind(v) == Some(abi::kind::LIST) => {
                 if let Err(e) = push_list_elems_reversed(&mut stack, value_to_heap_ptr(v)) {
                     return e;
@@ -460,7 +476,7 @@ pub(crate) fn bf_any_1_impl(a: u64) -> u64 {
             _ => return errors::list_has_non_boolean_item(),
         }
     }
-    bool_result(any)
+    bool_result(false)
 }
 
 fn push_list_elems_reversed(stack: &mut mem::Stack, list: u32) -> Result<(), u64> {

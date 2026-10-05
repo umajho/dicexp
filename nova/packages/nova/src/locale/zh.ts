@@ -112,8 +112,6 @@ export function localizeZh(err: DecodedError, ctx: LocalizeContext = {}): string
         `范围上界（${intOf(err, 2)}）不能小于 ${intOf(err, 1)}`;
     case 40:
       return "内存不足：已达上限";
-    case 41:
-      return `功能 ${strOf(err, 0)} 尚未实现`;
     case 42:
       return `操作 “${strOf(err, 0)}” 非法：两侧操作数的类型不相同`;
     case 43:
