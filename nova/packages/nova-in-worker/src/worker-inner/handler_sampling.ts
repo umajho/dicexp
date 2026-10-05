@@ -117,6 +117,7 @@ export class SamplingHandler {
           throw new Unreachable();
         }
         this.markSamplingToStop(stepResult.value[2]);
+        break; // terminal error returned — do NOT fall through to value checks
       }
 
       const value = stepResult.value[1];
