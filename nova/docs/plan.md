@@ -309,6 +309,12 @@ itself; the *worker entry* imports URLs via vite's explicit `?url` suffix:
 import compilerUrl from "@dicexp/nova/wasm/nova-compiler.wasm?url";
 ```
 
+(One wrinkle: vite inlines assets below its 4 KB `assetsInlineLimit` as
+base64 data URLs even with `?url`. The compiler/builtins modules are far
+above that, but the ~82-byte shim is not — the playground imports it as
+`?url&no-inline` so all three modules are emitted as hashed assets.
+Fetching a data URL would also work; emitting is cleaner.)
+
 The bytes are fetched and the modules compiled/instantiated **inside the
 Web Worker** (async `createEvaluator` path — main-thread sync-compile
 limits never apply). Rationale: no base64 inlining (no ~33% size bloat, no
