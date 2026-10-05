@@ -1,9 +1,14 @@
 # nova — Lead's handoff notebook
 
 > Tacit knowledge for the next session/iteration that doesn't belong in the
-> architecture docs. **Read this after** `AGENTS.md`, `docs/roadmap.md`,
-> `docs/plan.md`, `docs/compat.md`. Append a dated section per iteration;
-> prune entries that become obsolete.
+> architecture docs. **Read this after** `AGENTS.md`, before
+> `docs/roadmap.md` / `docs/plan.md` / `docs/compat.md`.
+>
+> **Lifecycle (per AGENTS.md §Handoff):** this is a *rolling* notebook, not
+> an archive. New dated sections go on top; keep at most current + previous
+> sections (prune the rest); anything still true after an iteration must
+> graduate to the durable docs; delete obsolete entries outright; keep the
+> whole file ≤ ~150 lines.
 
 ## 2026-10 — after v0.1 (first working version)
 

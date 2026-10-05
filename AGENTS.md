@@ -40,6 +40,33 @@ Rules for AI agents working in this repository, stated by the project owner
 - Leave deferred work as **obvious TODOs in docs** (see the "TODO / deferred"
   section of `nova/docs/compat.md`).
 
+## Handoff between sessions (standard procedure)
+
+Knowledge handoff happens through `nova/docs/handoff.md`, a **rolling
+notebook** — not an archive. Divergences and design decisions are recorded
+in the durable docs *as they happen*; the handoff is only for transient
+knowledge.
+
+**At the end of each iteration** (milestone done / before a fresh session),
+the lead writes a new dated section at the top of `handoff.md` with:
+current state (branch, commits, test layers), integration gotchas that cost
+time *this iteration*, delegation playbooks that worked/failed, open
+nuances for the owner, environment notes.
+
+**At the start of each iteration**, the new lead reads the handoff right
+after `AGENTS.md`, then maintains it:
+
+- **Prune**: keep at most the current + previous iteration's sections —
+  delete the older one after absorbing anything still relevant.
+- **Graduate**: anything still true beyond one iteration must be promoted
+  to the durable doc it belongs to (`plan.md`, `compat.md`, `roadmap.md`,
+  `AGENTS.md`, code comments) and removed from the handoff.
+- **Relevance test**: keep an entry only if not knowing it would cost the
+  next lead ≥15 minutes. Fixed bugs, landed features, and answered
+  questions are deleted, not struck through.
+- **Size cap**: the file stays ≤ ~150 lines; exceeding it means entries
+  should have graduated.
+
 ## Delegation
 
 Act as a **tech lead**: your job is architecture, shared contracts (e.g.
