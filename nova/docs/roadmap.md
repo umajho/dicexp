@@ -23,9 +23,10 @@ legacy/reference implementation.
 | v0.4 | language-complete core | |
 | v0.5 | limits & robustness | |
 | v0.6 | performance & size | |
-| v0.7 | builtin completeness: implementation & docs | |
-| v0.8 | **repr / step display** | |
-| v0.9 | hardening (release candidate) | |
+| v0.7 | builtin completeness: implementation | |
+| v0.8 | builtin docs sourced from nova | |
+| v0.9 | **repr / step display** | |
+| v0.10 | hardening (release candidate) | |
 | v1.0 | published default | |
 | v1.1+ | linking, externals, language growth | |
 
@@ -83,7 +84,7 @@ No stubs left in the shipped builtins; conformance becomes suite-shaped.
 
 - Implement `reroll`/`explode` (sequence transformers; nominal/actual length
   semantics; drop display-only fragment decorations — repr concern, see
-  v0.8). Remove the `UNIMPLEMENTED` stub.
+  v0.9). Remove the `UNIMPLEMENTED` stub.
 - Decide & implement short-circuit element forcing for `any?` (and `all?`
   when it lands), per #13's comment; record the decision in `compat.md`.
 - **Shared-suite extraction** (plan §9): move naive's semantic test tables
@@ -137,12 +138,9 @@ run shows no unexplained divergences.
 **Exit:** benchmark numbers and measured sizes recorded in `nova/docs/`;
 budget met or variance justified.
 
-## v0.7 — Builtin completeness: implementation & docs
+## v0.7 — Builtin completeness: implementation
 
-nova becomes self-sufficient for the playground's language surface: every
-builtin intended for 1.0 exists in nova, and the playground's builtin
-documentation/completion is sourced from nova itself instead of naive's
-static metadata.
+Every builtin intended for 1.0 exists in nova.
 
 - **Implement the missing builtins intended for 1.0.** The intended set is
   issue #18's tables ("默认作用域中的通常函数的实现进展记录"); the ❌/部分
@@ -160,6 +158,15 @@ static metadata.
   (low-priority, depend on #8), `d%` (being considered for removal in #18).
   Anything else deliberately NOT making 1.0 moves to v1.1+ explicitly, with
   the reason recorded here.
+
+**Exit:** every builtin intended for 1.0 is implemented and covered by the
+shared/differential suites.
+
+## v0.8 — Builtin docs sourced from nova
+
+The playground's builtin documentation/completion is sourced from nova
+itself instead of naive's static metadata.
+
 - **Builtin metadata codegen from the Rust source of truth** (issues
   #5/#18/#21): extract the builtin declarations and their `#[doc]`
   comments from `crates/nova-builtins` at build time (a small extractor —
@@ -169,10 +176,10 @@ static metadata.
   metadata stays for naive itself.
 
 **Exit:** the playground's docs/completion no longer read naive's builtin
-metadata; every builtin intended for 1.0 is implemented and covered by the
-shared/differential suites.
+metadata; the generated metadata covers every builtin shipped at this
+point.
 
-## v0.8 — repr / step display
+## v0.9 — repr / step display
 
 The "at least until here" goal — pulled before 1.0: nova does not become
 the default without step display.
@@ -194,14 +201,14 @@ the default without step display.
 closures, `reroll`/`explode`, error paths); per-builtin *custom* step
 rendering explicitly deferred.
 
-## v0.9 — Hardening (release candidate)
+## v0.10 — Hardening (release candidate)
 
 - Differential fuzzing v2: grammar-aware generator (closures, pipes,
   captures, dice, errors), seeded, with a divergence triage workflow.
 - Error-key coverage audit: every key has a zh locale entry, a test, and a
   `compat.md` cross-reference where divergent.
 - **Repr parity audit**: `I.Repr` consumers (solid-components) expect
-  naive's exact tree shapes — audit per node kind, and verify the v0.8
+  naive's exact tree shapes — audit per node kind, and verify the v0.9
   trace events carry enough structure (callee identity, arg positions,
   sequence fragments) to rebuild them.
 - Docs: `@dicexp/nova` README (usage, assets, sync-vs-async creation),
@@ -230,7 +237,7 @@ Roughly prioritized, each its own small design doc when picked up:
 - External variables (#7): compile-time extraction pass + host lookup
   import; playground/rojo integration.
 - Feature flags (#24): closures-off language subset; steps-off switch
-  (formalizes v0.8's trace gating).
+  (formalizes v0.9's trace gating).
 - Language growth (nova-first or both-implementations, decide per feature):
   labeled/keyword args (#17), range literals (#8), Unicode operator aliases
   (#21), strings-as-labels, maps, tuples.
@@ -240,9 +247,9 @@ Roughly prioritized, each its own small design doc when picked up:
 ## Risks & open questions
 
 - **repr fidelity**: `I.Repr` consumers (solid-components) expect naive's
-  exact tree shapes; v0.9's hardening includes a parity audit per node kind,
-  and v0.8's trace events must carry enough structure (callee identity, arg
-  positions, sequence fragments) to rebuild them.
+  exact tree shapes; v0.10's hardening includes a parity audit per node
+  kind, and v0.9's trace events must carry enough structure (callee
+  identity, arg positions, sequence fragments) to rebuild them.
 - **Cross-instance call overhead** (program↔builtins): assumed acceptable;
   the playground benchmark mode (v0.3) provides the numbers that decide
   whether static linking jumps the queue.

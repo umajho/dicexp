@@ -139,7 +139,7 @@ tests):
 
 - `reroll`/`explode` — stubbed (`UNIMPLEMENTED` error key 41); roadmap v0.4.
 - repr (see #8 above) — trace hooks reserved; playground integration pending;
-  roadmap v0.8 (pre-1.0).
+  roadmap v0.9 (pre-1.0).
 - Soft timeout (`__checkpoint` + host `now()`); designed for future fuel
   (call-count) limits and chunked expensive ops (issue #3).
 - Const-pool hoisting (runtime "execute consts once" — plan §3.4/§8).
@@ -151,9 +151,9 @@ tests):
 - Feature flags (closures off; steps off) (issue #24).
 - Builtin metadata codegen from Rust source of truth (issues #5/#18/#21);
   v1 playground reuses naive's static metadata for docs/completion.
-  Roadmap v0.7 switches docs/completion to nova-sourced metadata (e.g. via
-  `#[doc]`-attribute extraction from `crates/nova-builtins`) and implements
-  the remaining intended builtins (issue #18's tables).
+  Roadmap v0.7 implements the remaining intended builtins (issue #18's
+  tables); roadmap v0.8 switches docs/completion to nova-sourced metadata
+  (e.g. via `#[doc]`-attribute extraction from `crates/nova-builtins`).
 - Labeled/keyword arguments (issue #17) — ABI reservation noted in plan.
 - Finer-grained closure capture sets; wasm-opt size pass; static linking /
   tree-shaking of builtins.

@@ -65,7 +65,7 @@ dicexp source ──► nova-compiler.wasm ──► program.wasm ──imports�
   sequences, RNG, error objects, and all builtin implementations.
 - **Closures live in a shared `WebAssembly.Table`** created by JS and imported
   by both modules; builtins call compiled closures via `call_indirect`.
-- **repr (step display) is deferred to v0.8** (pre-1.0; see
+- **repr (step display) is deferred to v0.9** (pre-1.0; see
   [`docs/roadmap.md`](./docs/roadmap.md)), but builtins code routes
   call paths through no-op trace hook points so repr can be retrofitted
   (event-based, not stack-based — required for TCO compatibility). The
