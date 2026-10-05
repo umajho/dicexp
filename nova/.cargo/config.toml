@@ -1,0 +1,4 @@
+# Hard memory limit for the builtins module (engine-enforced).
+# 256 MiB = 4096 WASM pages. Also applied to the compiler module; fine.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--max-memory=268435456"]

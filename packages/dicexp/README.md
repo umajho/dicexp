@@ -34,3 +34,4 @@ Dicexp 是一门用于模拟投掷骰子的领域特定语言。由于这门语�
 - `packages`：会发布在 npm 上的库，除主版本 `0` 之外，保证大版本内公开 API
   的兼容性。
 - `playground`：一个简单的单网页应用，提供最基本的 dicexp 使用体验。
+- `nova`：基于 WASM 的编译器实现（开发中），见 [nova/README.md](./nova/README.md)。

@@ -1,0 +1,12 @@
+[package]
+name = "dicexp-nova-builtins"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "The dicexp-nova builtins library and runtime, precompiled to WASM"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+dicexp-nova-abi = { path = "../nova-abi" }

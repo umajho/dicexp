@@ -1,0 +1,9 @@
+[package]
+name = "dicexp-nova-abi"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "ABI specification shared by the dicexp-nova compiler and builtins"
+
+[lib]
+crate-type = ["rlib"]

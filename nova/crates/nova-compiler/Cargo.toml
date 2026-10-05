@@ -1,0 +1,14 @@
+[package]
+name = "dicexp-nova-compiler"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "The dicexp-nova compiler: dicexp source to WASM"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+dicexp-nova-abi = { path = "../nova-abi" }
+wasm-encoder = "0.261"
+unicode-ident = "1"

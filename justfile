@@ -1,5 +1,26 @@
 test-all: test-solid-components test-naive-evaluator-all
 
+# --- nova ---
+
+build-nova-wasm:
+	cd nova && cargo build --release --target wasm32-unknown-unknown -p dicexp-nova-compiler -p dicexp-nova-builtins
+	mkdir -p nova/packages/nova/wasm
+	cp nova/target/wasm32-unknown-unknown/release/dicexp_nova_compiler.wasm nova/packages/nova/wasm/nova-compiler.wasm
+	cp nova/target/wasm32-unknown-unknown/release/dicexp_nova_builtins.wasm nova/packages/nova/wasm/nova-builtins.wasm
+	cd nova && cargo run --release -p dicexp-nova-shim-gen > packages/nova/wasm/nova-shim.wasm
+
+test-nova-rust:
+	cd nova && cargo test
+
+test-nova: build-nova-wasm test-nova-rust
+	cd nova/packages/nova && pnpm run test
+
+build-nova-ts:
+	cd nova/packages/nova && pnpm run build
+
+build-nova: build-nova-wasm test-nova-rust test-nova build-nova-ts
+
+
 publish-interface:
 	cd packages/interface && pnpm publish --access public
 
