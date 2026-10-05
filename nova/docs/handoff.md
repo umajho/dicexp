@@ -10,87 +10,80 @@
 > graduate to the durable docs; delete obsolete entries outright; keep the
 > whole file ≤ ~150 lines.
 
-## 2026-10 — after v0.1 (first working version)
+## 2026-10-06 — after v0.2 (nova in the playground, code-complete)
 
 ### Where we are
 
-- Branch `nova`, 10 local commits ahead of `main`, nothing pushed (pushing
-  is the owner's call — see AGENTS.md).
-- Test layers (all green): Rust unit tests (`cd nova && cargo test`, 110) →
-  JS conformance + naive-vs-nova differential (`just test-nova`, 230).
-  **The differential suite is the primary divergence oracle** — extend it
-  whenever semantics change.
-- `nova/packages/nova/wasm/*.wasm` are gitignored build artifacts — they go
-  **stale silently** when crates change. Always `just build-nova-wasm`
-  before JS tests, and after any crate edit.
-- Any new deliberate divergence needs three things together: a `compat.md`
-  entry, a zh locale entry (`nova/packages/nova/src/locale/zh.ts`), and a
-  test (conformance and/or a differential-suite carve-out).
+- Branch `nova`, 20 local commits ahead of `main`, nothing pushed. v0.2 is
+  **code-complete** (deploy is the owner's call): `@dicexp/nova-in-worker`
+  mirrors naive's worker package; the playground has a naive/nova selector
+  (naive default, not persisted), a "steps unavailable under nova" notice,
+  and the vite wasm-asset strategy documented in `plan.md` §7.1.
+- Test layers (all green): 112 Rust (`cd nova && cargo test`) → 233 JS
+  (`just test-nova`) → naive regression (`just test-naive-evaluator-all`)
+  → playground type-check + `vite build` → interactive browser smoke test
+  of both implementations (single, sampling, parse error, notice).
 
-### Integration gotchas (things that cost real time)
+### Integration gotchas (cost real time this iteration)
 
-- **Suspect the test harness before the code.** `test-utils-for-executing`'s
-  error paths only execute when a test *fails*, so latent bugs hide there
-  (we hit two: `assertion-error` v2 dropped its default export — the repo
-  pins `"assertion-error": "*"` as a peer; and chai's bundled AssertionError
-  class ≠ the package's, so `instanceof` fails — both fixed, but check there
-  first when failures look weird).
-- `tester.theyAreOk(...)` calls `it()` internally → call it at **describe
-  level**, and construct the evaluator **synchronously at module level**
-  (`createEvaluatorSync`) — async creation in `beforeAll` is too late.
-- naive packages' main entries point at unbuilt `dist/`; for tests import
-  their `/internal` entries (TS sources). `just build-lezer` is required
-  before naive's evaluator can parse (generates `dicexp.grammar.out`).
-- WASM↔JS boundary: `i64` maps to `BigInt` (value handles, `finalize`'s
-  argument). `i32` maps to `number`.
-- Sync `new WebAssembly.Module()` is limited to small modules on browser
-  main threads — `createEvaluatorSync` is Node/worker-only by design; the
-  playground worker must use async creation or accept the limit.
-- `this.builtins` in `machine.ts` **is** the exports object (passing
-  `.exports` again cost us a confusing "module is not an object or function"
-  instantiation error — only programs importing `nova_rt` hit it, literals
-  didn't).
+- **Playground type-check was red at HEAD twice over** (Repr-nullable
+  `representation` vs `DicexpEvaluation.repr`; naive-in-worker root-import
+  needing built dists) — both fixed. Hermeticity check for the future:
+  `rm -rf` naive dists, then type-check.
+- vite inlines assets < 4 KB as data URLs even with `?url` — the 82-byte
+  shim needs `?url&no-inline` (graduated to plan §7.1).
+- **nova-in-worker init-failure gap**: if wasm fetch/compile fails at
+  `initialize`, `readinessWatcher(true)` never fires — the playground shows
+  a forever-loading spinner (error only in console). Same structure as
+  naive, but naive's init never fails. Robustness item for v0.5.
+- Worker manager/client/sampling logic has **no package-level tests**
+  (mirrors naive); verification is playground integration + browser smoke.
+- Mid-roll implementation switch: terminate/stop act on the *currently
+  selected* manager, not the rolling one (switch back to stop). Accepted
+  minor UX edge.
+- `evaluatorInfo` in `@dicexp/nova` hardcodes the version (no
+  `resolveJsonModule`) — keep in sync with package.json on bumps.
 
-### Subagent playbooks that worked
+### Browser smoke-test playbook (reusable for v0.3's benchmark mode)
 
-- Docs-as-contract worked end to end: both crates were built concurrently by
-  subagents whose only shared reference was `nova-abi` + `plan.md`, and
-  their layouts matched. Keep the ABI doc precise; it's worth the time.
-- Tell implementation subagents to **verify beyond their own crate** (the
-  compiler agent ran its own Node end-to-end probe and caught the shim-gen
-  type bug). Also: forbid git mutations for workers; integration commits
-  are the lead's job.
-- Give each subagent an explicit "report items you defined outside the
-  shared contract" requirement — that's how the error keys 42–49 got
-  upstreamed cleanly.
-- Routing per AGENTS.md's ladder — the two big crates went to
-  `pretty-smart`; that was appropriate for greenfield ABI-fresh
-  implementation, but v0.2+ is mostly mirror/integration work: start at the
-  workhorse tiers.
+- Drive via `browser.evaluate` with async in-page `setTimeout` polling
+  (the harness runtime has no timers; the page does).
+- CodeMirror: focus `.cm-content`, then `document.execCommand('selectAll')`
+  + `insertText`.
+- ankor result widgets render in **shadow DOM** — plain `textContent` sees
+  only headers; pierce with a TreeWalker collecting `shadowRoot`s.
+- Playground buttons are real `<button>`s now (were `<div class="btn">`);
+  sampling-stop text is `停止`, terminate `终止`.
 
-### Open nuances to raise with the owner between iterations
+### Subagent playbooks
 
-- Playground selector: default stays naive until 1.0 (roadmap), but should
-  the choice persist (localStorage) across sessions?
-- Benchmark mode (v0.3): run the two implementations sequentially (fair
-  timing) or concurrently (wall-clock, contention)? Leaning sequential.
-- `any?` short-circuit decision is scheduled in v0.4 (#13's comment) —
-  confirm with owner then, it's a visible semantic change.
-- Whether to eventually pin `assertion-error` in the workspace root (the
-  `"*"` peer range is what let v2 break the import shape).
+- Workhorse tiers sufficed for ALL of v0.2 (solid-smarter: package surface;
+  smart: worker port, playground wiring, parser-span fix) — no escalation
+  needed. The ladder held.
+- Battery-first worked for the message-parity bug: the agent built a
+  scratch naive-vs-nova differential harness over 57 malformed inputs
+  *before* touching code, which exposed that the spans were right and the
+  locale rendering wrong. Good pattern for parity bugs.
+- A harness restart killed a background subagent mid-work; resuming via
+  `sessionID` + "continue" worked seamlessly (its scratch file was on disk).
 
-### Environment & tooling notes
+### Performance notes
 
-- This machine has **no `wasm-opt`/`wasmtime`** — size pass is v0.6;
-  install only inside the working dir if needed earlier (npm `binaryen`
-  package ships `wasm-opt`).
-- `nova/crates/nova-compiler/examples/dump.rs` prints pseudo-WAT of emitted
-  program modules — the codegen debugging tool (`cargo run -p
-  dicexp-nova-compiler --example dump`).
-- `nova-builtins` has a native `testutil` + mock-body registry for testing
-  closure calls natively; its `env.call_closure` import is `cfg`-gated with
-  a thread-local mock off-wasm.
-- Builtins memory: 256 MiB hard cap via linker `--max-memory`
-  (`nova/.cargo/config.toml`); allocation failure is a structured error,
-  never a trap. `reset()` rewinds the bump allocator but **not** the RNG —
-  always re-seed per evaluation (the JS wrapper does).
+- Sampling `d6`: nova ≈235k samples/s vs naive ≈390k/s. Program compile is
+  once per session; per-sample **instantiation** dominates trivial
+  programs. v0.3 benchmark workloads should be evaluation-heavy;
+  instance-reuse idea recorded in roadmap v0.6.
+
+### Open nuances for the owner (carried, still open)
+
+- Playground selector: persist across sessions? (currently not, deliberate)
+- v0.3 benchmark mode: sequential (leaning) vs concurrent runs.
+- v0.4: `any?` short-circuit decision (#13's comment).
+- Whether to pin `assertion-error` in the workspace root (see plan §9.1).
+
+### Environment notes
+
+- Still no `wasm-opt`/`wasmtime` on this machine (v0.6 concern; npm
+  `binaryen` ships wasm-opt if needed earlier).
+- Desktop browser tools (`browser.evaluate` & co.) are available and
+  proven for playground smoke tests — use them instead of eyeballing builds.

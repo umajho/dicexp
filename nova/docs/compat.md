@@ -7,7 +7,12 @@ replicated ("`naive` was the de-facto standard; `nova` will be the new one").
 
 This file is the authoritative list of **deliberate divergences**. Each entry
 must be mirrored by divergence tags in the shared test suites
-(`internal/test-utils-for-executing` / shared semantic suites).
+(`internal/test-utils-for-executing` / shared semantic suites). Any new
+deliberate divergence needs **three things together**: a `compat.md` entry,
+a zh locale entry (`nova/packages/nova/src/locale/zh.ts`) where the
+divergence is user-visible in messages, and a test (conformance and/or a
+differential-suite carve-out). The seeded differential suite is the
+primary divergence oracle — extend it whenever semantics change.
 
 ## Deliberate divergences
 
