@@ -150,11 +150,12 @@ Flagged during the port as candidates to fix in **both** implementations
 
 ## TODO / deferred (tracked here until their own docs exist)
 
-Status after the first working version (value-complete minus the stubs
-below; 230 JS-side tests incl. naive-vs-nova seeded differential, 110 Rust
-tests):
+Status after v0.4 (language-complete core): `reroll`/`explode` are
+implemented (no stubs remain) and naive's semantic corpus runs against
+both implementations from shared tagged factories
+(`internal/test-utils-for-executing/suites/` — consumed by naive's own
+test files and by `nova/packages/nova/test/shared-suites.test.ts`).
 
-- `reroll`/`explode` — stubbed (`UNIMPLEMENTED` error key 41); roadmap v0.4.
 - repr (see #8 above) — trace hooks reserved; playground integration pending;
   roadmap v0.9 (pre-1.0).
 - Soft timeout (`__checkpoint` + host `now()`); designed for future fuel
@@ -174,6 +175,3 @@ tests):
 - Labeled/keyword arguments (issue #17) — ABI reservation noted in plan.
 - Finer-grained closure capture sets; wasm-opt size pass; static linking /
   tree-shaking of builtins.
-- Shared-suite extraction (plan §9): conformance/differential suites
-  currently live in `nova/packages/nova/test/`; extracting naive's own
-  tables into per-impl-tagged shared suites is still to do.
