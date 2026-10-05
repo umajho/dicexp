@@ -4,6 +4,8 @@
 > compiler-based dicexp implementation, and records design decisions.
 > Deviations discovered during implementation are marked with `[DEVIATION]` and
 > explained in `compat.md` or in a "Deviations" subsection here.
+> **For the release roadmap see [`roadmap.md`](./roadmap.md)** — §8 below is
+> the original milestone sketch, superseded by it.
 
 ## 0. TL;DR
 
