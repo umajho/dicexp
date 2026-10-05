@@ -8,6 +8,9 @@
  * All benchmark logic lives in `../../hooks/dicexp-benchmark.ts` (its public
  * contract is consumed here, not reimplemented); preset workloads come from
  * `../../stores/benchmark-presets.ts`.
+ *
+ * Rendered inside the ControlPane card (as the content of the 基准 tab),
+ * not as a standalone card.
  */
 import {
   Component,
@@ -21,7 +24,7 @@ import {
   Switch,
 } from "solid-js";
 
-import { Button, Card, Skeleton } from "../ui/mod";
+import { Button, Skeleton } from "../ui/mod";
 
 import createDicexpBenchmark, {
   type BenchmarkOutcome,
@@ -60,16 +63,10 @@ export const BenchmarkPane: Component = () => {
   }
 
   return (
-    <Card
-      class="min-w-full sm:min-w-[40rem]"
-      bodyClass="flex flex-col gap-4 pt-4 pb-8 px-4 sm:px-8"
-    >
-      {/* 标题与说明 */}
-      <div class="flex flex-col gap-1">
-        <div class="text-lg font-bold">基准测试（naive vs nova）</div>
-        <div class="text-xs text-gray-400 select-none">
-          两个实现顺序运行（naive 先、nova 后）以保证计时公平；耗时包含每次抽样会话的一次性编译/解析开销；仅支持整数结果的表达式（抽样通道限制）。
-        </div>
+    <>
+      {/* 说明 */}
+      <div class="text-xs text-gray-400 select-none">
+        两个实现顺序运行（naive 先、nova 后）以保证计时公平；耗时包含每次抽样会话的一次性编译/解析开销；仅支持整数结果的表达式（抽样通道限制）。
       </div>
 
       {/* 表达式输入 */}
@@ -153,7 +150,7 @@ export const BenchmarkPane: Component = () => {
       <Show when={bench.outcome()}>
         {(outcome) => <OutcomeView outcome={outcome()} />}
       </Show>
-    </Card>
+    </>
   );
 };
 
