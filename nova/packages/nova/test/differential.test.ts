@@ -73,7 +73,8 @@ const PROGRAMS: string[] = [
   "sum(100#d6)",
   "d1_000_000",
   "2 * d6 + d4",
-  "100#any?(3#(d100 <= 5))",
+  // NOTE: `100#any?(3#(d100 <= 5))` moved to the deliberate-divergence
+  // section below (any? short-circuits in nova — compat.md #1).
   // runtime errors (same message expected)
   "1 // 0",
   "5 % 0",
@@ -138,6 +139,80 @@ function summarize(result: I.EvaluationResult): unknown {
   }
   return [result[0], result[1], String(result[2])];
 }
+
+/**
+ * Deliberate evaluation divergences (compat.md #1 — `any?` short-circuits
+ * element forcing in nova; naive forced every element):
+ *
+ * - error precedence: nova never forces elements past the first `true`,
+ *   so erroring/non-boolean trailing elements go unnoticed;
+ * - RNG consumption: skipping the remaining elements skips their dice
+ *   draws, shifting every subsequent roll (a single `any?` result itself
+ *   still agrees — the boolean is the same; only the stream position
+ *   differs).
+ *
+ * Both sides are pinned exactly per seed. If a pinned pair ever becomes
+ * equal, the divergence is gone and the row should move back to PROGRAMS.
+ */
+describe(
+  "differential: deliberate divergences",
+  () => {
+    /** Seed-independent rows: [code, naive, nova]. */
+    const DIVERGENT_STABLE: [code: string, naive: unknown, nova: unknown][] =
+      [
+        [
+          "any?([true, 1 // 0 > 0])",
+          ["error", "runtime", "操作 “1 // 0” 非法：除数不能为零"],
+          ["ok", true],
+        ],
+        [
+          "any?([true, 5])",
+          ["error", "runtime", "传入的列表存在非「布尔」项"],
+          ["ok", true],
+        ],
+      ];
+
+    /** RNG-shift rows: [code, [seed, naive, nova][]]. */
+    const DIVERGENT_RNG: [
+      code: string,
+      perSeed: [seed: number, naive: unknown, nova: unknown][],
+    ][] = [
+      [
+        // The `any?` result itself agrees on every seed; the following
+        // `d100` diverges exactly when the short-circuit skipped draws
+        // (seed 1: first die already satisfies the predicate — naive still
+        // forced all three). Seeds 0/42 have all-false groups → no skip →
+        // full agreement.
+        "[any?(3#(d100 <= 5)), d100]",
+        [
+          [0, ["ok", [false, 81]], ["ok", [false, 81]]],
+          [1, ["ok", [true, 90]], ["ok", [true, 84]]],
+          [42, ["ok", [false, 47]], ["ok", [false, 47]]],
+        ],
+      ],
+    ];
+
+    for (const [code, naiveExpected, novaExpected] of DIVERGENT_STABLE) {
+      it(`\`${code}\` diverges as documented (compat.md #1)`, () => {
+        const [n, v] = runBoth(code, 0);
+        expect(summarize(n), "naive").toEqual(naiveExpected);
+        expect(summarize(v), "nova").toEqual(novaExpected);
+      });
+    }
+
+    for (const [code, perSeed] of DIVERGENT_RNG) {
+      describe(`\`${code}\` (compat.md #1)`, () => {
+        for (const [seed, naiveExpected, novaExpected] of perSeed) {
+          it(`seed ${seed}`, () => {
+            const [n, v] = runBoth(code, seed);
+            expect(summarize(n), "naive").toEqual(naiveExpected);
+            expect(summarize(v), "nova").toEqual(novaExpected);
+          });
+        }
+      });
+    }
+  },
+);
 
 /** The parse-error message; fails the test for any other outcome. */
 function parseErrorMessage(result: I.EvaluationResult): string {

@@ -19,7 +19,14 @@ primary divergence oracle — extend it whenever semantics change.
 1. **`and`/`or` short-circuit** (closes #13).
    Implemented as builtins with a `$lazy` second parameter: the RHS is only
    forced when the LHS demands it. naive forced both sides eagerly.
-   `any?`/`all?` will short-circuit element forcing when added.
+   **`any?/1` also short-circuits element forcing** (per #13's comment:
+   "`any?/1`、`all?/1` 也许也应该短路。"): the flatten-DFS stops at the
+   first `true` element and remaining elements are never forced. naive
+   forced every element. Observable consequences, beyond RNG consumption
+   by unforced dice: `any?([true, 1 // 0 > 0])` is `true` in nova but a
+   division error in naive, and `any?([true, 5])` is `true` in nova but a
+   non-boolean-element error in naive. `all?/1` will mirror this when it
+   lands (roadmap v0.7).
 
 2. **`//` and `%` use proper 64-bit semantics.**
    naive computed them via JS `| 0`, silently truncating operands to 32 bits
@@ -75,6 +82,15 @@ primary divergence oracle — extend it whenever semantics change.
      extending the existing `n = 0` / `count = 0` rules.
    - `~` ranges spanning more than 2⁵³ values made naive's RNG throw
      `Unimplemented`; nova handles them with the same u64 rejection math.
+   - `reroll`/`explode` with a closure that errors or returns a
+     non-boolean, over a `sequence$sum` source whose result is summed
+     (top level or via `sum`): naive *crashes* with an uncaught
+     `ReferenceError` (the sum-cast feeds an error box into
+     `badFinalResult`, whose localization hits an undeclared variable in
+     `internal/l10n/lib.ts`); nova reports the underlying error cleanly
+     (`CLOSURE_RETURN_TYPE_MISMATCH`, still named `reroll/2` for both —
+     see the quirk below). Differential-suite carve-out: those programs
+     are pinned nova-only.
 
 10. **Parse-level fixes.**
     - Comparison captures: naive *rejects* `&</2`, `&<=/2`, `&>/2`, `&>=/2`,
@@ -111,7 +127,8 @@ Flagged during the port as candidates to fix in **both** implementations
   (`d 0` errors with `操作 “1 d 0” 非法：…`) — naive quirk.
 - The `**` negative-exponent error does not parenthesize a negative base.
 - `explode/2` reports closure-return-type errors as if from `reroll/2`
-  (moot while `explode` is stubbed).
+  (confirmed live in naive; replicated in nova's `CLOSURE_RETURN_TYPE_MISMATCH`
+  params for both builtins).
 
 ## Behavior preserved (non-exhaustive)
 
