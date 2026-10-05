@@ -82,8 +82,15 @@ mechanical ports, doc drafts.
 - Give each subagent: the relevant docs as its contract, an explicit file
   scope, a verification command, and a report format (what/why/how, plus
   anything it had to define outside the shared contract).
-- Use the `explore` agent for codebase questions/searches instead of
-  exploring inline.
+- For narrow lookups (line numbers, small snippets), prefer inline
+  `grep`/`read` — cheaper and faster than a round trip. For broad codebase
+  mapping, delegate. Note: the `explore` agent's backing model is set by
+  the workspace's OpenCode config, **not** by the routing ladder below —
+  if it maps to a top-tier model (e.g. a 1M-context one), the ladder's
+  "cheapest that reliably does the job" rule still applies: use `explore`
+  only when the breadth genuinely justifies it, or check with the owner
+  first. (2026-10: here `explore` mapped to KIMI K3 1M — overkill for a
+  four-package integration map.)
 - After a subagent's work lands, integrate and verify yourself; delegate
   follow-up fixes the same way.
 
