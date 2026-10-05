@@ -21,7 +21,11 @@
   nitpick — it started as a separate card); the naive/nova selector and the
   example select hide in benchmark mode (they don't apply), and tab labels
   carry no parentheticals (horizontal space). The benchmark editor keeps
-  its OWN doc signal — presets must not clobber the autosaved main doc. First numbers: `nova/docs/benchmarks.md` —
+  its OWN doc signal — presets must not clobber the autosaved main doc.
+  Completed/cancelled runs also push a keepable/removable 基准 record card
+  into the result pane (shared `BenchmarkOutcomeView` between tab and card;
+  the Benchmark* types live in `types.ts`, re-exported by the hook).
+  First numbers: `nova/docs/benchmarks.md` —
   nova 0.52× naive on `d6` (instantiation-dominated), 3.4–12.8× faster on
   evaluation-heavy presets, **zero histogram disagreements** across all 9
   presets. v0.6's static-linking question is resolved by them (stays
