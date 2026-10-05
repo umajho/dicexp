@@ -18,11 +18,12 @@ legacy/reference implementation.
 | version | theme | status |
 |---------|-------|--------|
 | v0.1 | first working version | ✅ done |
-| v0.2 | language-complete core | |
-| v0.3 | limits & robustness | |
-| v0.4 | **nova in the playground** | |
-| v0.5 | performance & size | |
-| v0.6 | hardening (release candidate) | |
+| v0.2 | **nova in the playground** | |
+| v0.3 | playground benchmark mode | |
+| v0.4 | language-complete core | |
+| v0.5 | limits & robustness | |
+| v0.6 | performance & size | |
+| v0.7 | hardening (release candidate) | |
 | v1.0 | published default | |
 | v1.1 | **repr / step display** | |
 | v1.2+ | linking, externals, language growth | |
@@ -35,7 +36,47 @@ Full pipeline (parser → codegen → program.wasm → builtins.wasm) with 36
 builtins (`reroll`/`explode` stubbed), exact-RNG seeded differential testing,
 230 JS + 110 Rust tests.
 
-## v0.2 — Language-complete core
+## v0.2 — nova in the playground
+
+The user-visible milestone, pulled forward: interacting with nova early is
+worth tolerating clearly-labeled stubs (`reroll`/`explode` report
+`尚未实现` until v0.4) and the absence of soft timeout (the worker manager's
+**hard** timeout — terminate & recreate — is the guard, as it is for naive;
+the WASM memory cap is already engine-enforced).
+
+- `@dicexp/nova-in-worker`: mirror `naive-evaluator-in-worker` (worker
+  server, manager with heartbeat + hard-timeout terminate/recreate,
+  sampling channel); surface the WASM memory cap as the hard memory limit.
+- Playground: implementation selector (naive / nova) in the UI; single-roll
+  and sampling paths honor the selection; step display shows an explicit
+  "steps unavailable under nova" notice instead of the repr tree;
+  docs/completion keep consuming naive's static builtin metadata.
+- WASM asset strategy for vite (`.wasm` URL assets; instantiation inside the
+  worker; async `createEvaluator` path — main-thread sync compile limits do
+  not apply in workers, but keep the async API the default anyway).
+
+**Exit:** deployed playground offers both implementations; every interaction
+(evaluate, sampling, error display, unavailable-steps notice) works under
+both.
+
+## v0.3 — Playground benchmark mode
+
+Users compare the two implementations directly in the playground — and we
+get real perf numbers early enough to re-prioritize performance work if
+needed.
+
+- New benchmark panel: input expression (plus preset workloads ported from
+  `execute.bench.ts`, e.g. Y-combinator, `100#any?(3#(d100<=5))`, big
+  sorts), run it on **both** implementations over N seeds via the existing
+  worker sampling channels (sequential runs for fair timing).
+- Report per-implementation total/avg time and throughput, **and result
+  agreement** — the mode doubles as an interactive differential checker.
+- Numbers recorded into `nova/docs/` as the first published comparison;
+  feeds the v0.6 decision on whether static linking jumps the queue.
+
+**Exit:** benchmark mode deployed; first comparison numbers documented.
+
+## v0.4 — Language-complete core
 
 No stubs left in the shipped builtins; conformance becomes suite-shaped.
 
@@ -54,7 +95,7 @@ No stubs left in the shipped builtins; conformance becomes suite-shaped.
 **Exit:** the full naive test corpus runs against nova with only tagged
 divergences; `UNIMPLEMENTED` key is gone from the codebase.
 
-## v0.3 — Limits & robustness
+## v0.5 — Limits & robustness
 
 - `__checkpoint` emission at call boundaries in compiled code + inside
   builtins; soft timeout via a host `env.now()` import, reproducing naive's
@@ -70,44 +111,24 @@ divergences; `UNIMPLEMENTED` key is gone from the codebase.
 **Exit:** timeout tests green; Y-combinator test green; a 10k-program fuzz
 run shows no unexplained divergences.
 
-## v0.4 — nova in the playground
+## v0.6 — Performance & size
 
-The user-visible milestone.
-
-- `@dicexp/nova-in-worker`: mirror `naive-evaluator-in-worker` (worker
-  server, manager with heartbeat + hard-timeout terminate/recreate); surface
-  the WASM memory cap as the hard memory limit.
-- Playground: implementation selector (naive / nova) in the UI; single-roll
-  and sampling paths honor the selection; step display shows an explicit
-  "steps unavailable under nova" notice instead of the repr tree;
-  docs/completion keep consuming naive's static builtin metadata.
-- WASM asset strategy for vite (`.wasm` URL assets; instantiation inside the
-  worker; async `createEvaluator` path — main-thread sync compile limits do
-  not apply in workers, but keep the async API the default anyway).
-- Sanity benchmark: nova ≥ naive on representative playground workloads
-  (full benchmark suite is v0.5).
-
-**Exit:** deployed playground offers both implementations; every interaction
-(evaluate, sampling, error display, unavailable-steps notice) works under
-both.
-
-## v0.5 — Performance & size
-
-- Port `execute.bench.ts` workloads into a naive-vs-nova benchmark suite;
-  target **≥10× naive** on evaluation-heavy programs (Y-combinator,
-  `100#any?(3#(d100<=5))`, big sorts) with compile+instantiate overhead
-  documented for small expressions.
+- Port `execute.bench.ts` workloads into a naive-vs-nova benchmark suite
+  (distinct from the interactive playground mode of v0.3 — this one runs in
+  CI-style conditions and records into `nova/docs/`); target **≥10× naive**
+  on evaluation-heavy programs with compile+instantiate overhead documented
+  for small expressions.
 - Const-pool hoisting (runtime "execute consts once"; plan §3.4/§8).
 - Size pass: `wasm-opt` in the build recipe, allocator/codegen review,
   documented **size budget** (initial targets: compiler ≤ 100 KB,
   builtins ≤ 50 KB after wasm-opt, before brotli; adjust to measurements).
-- If profiling shows cross-instance call overhead matters, evaluate moving
-  the static-linking milestone forward.
+- If v0.3's numbers showed cross-instance call overhead matters, evaluate
+  moving the static-linking milestone forward.
 
 **Exit:** benchmark numbers and measured sizes recorded in `nova/docs/`;
 budget met or variance justified.
 
-## v0.6 — Hardening (release candidate)
+## v0.7 — Hardening (release candidate)
 
 - Differential fuzzing v2: grammar-aware generator (closures, pipes,
   captures, dice, errors), seeded, with a divergence triage workflow.
@@ -174,7 +195,12 @@ Roughly prioritized, each its own small design doc when picked up:
   events must carry enough structure (callee identity, arg positions,
   sequence fragments) to rebuild them.
 - **Cross-instance call overhead** (program↔builtins): assumed acceptable;
-  v0.5 benchmarks decide whether static linking jumps the queue.
+  the playground benchmark mode (v0.3) provides the numbers that decide
+  whether static linking jumps the queue.
+- **Early playground exposure** (v0.2): `reroll`/`explode` stubs and the
+  missing soft timeout are visible to users before v0.4/v0.5 — mitigated by
+  clear `尚未实现` error messages, the worker hard timeout, and naive
+  remaining the playground default until v1.0.
 - **Bump-allocator churn** from growing sequences (realloc-style growth
   leaks until reset): fine for short evaluations; watch worst-case memory
   in fuzzing/benchmarks; mitigate with pooling if it bites.
