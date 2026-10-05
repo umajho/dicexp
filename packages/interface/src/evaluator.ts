@@ -54,7 +54,10 @@ export type EvaluationGenerator = Generator<
 export type JSValue = number | boolean | JSValue[];
 
 export interface ExecutionAppendix {
-  representation: Repr;
+  /**
+   * 步骤展现。`nova` 目前不提供（返回 `null`）。
+   */
+  representation: Repr | null;
   statistics: ExecutionStatistics;
 }
 
