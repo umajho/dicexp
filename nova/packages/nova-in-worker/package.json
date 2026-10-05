@@ -1,0 +1,41 @@
+{
+  "name": "@dicexp/nova-in-worker",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "module": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/lib.d.ts",
+        "default": "./dist/lib.js"
+      }
+    },
+    "./internal": "./internal.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/umajho/dicexp.git"
+  },
+  "keywords": [
+    "dicexp"
+  ],
+  "author": "Umaĵo",
+  "license": "MIT",
+  "homepage": "https://github.com/umajho/dicexp/tree/main/nova/packages/nova-in-worker#readme",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@dicexp/errors": "workspace:*",
+    "@dicexp/interface": "workspace:*",
+    "@types/node": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:"
+  }
+}
