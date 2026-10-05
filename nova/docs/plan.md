@@ -32,7 +32,10 @@ nova/
     nova/                     # @dicexp/nova: TS wrapper implementing
                               # @dicexp/interface's Evaluator; ships the two
                               # .wasm assets; localizes errors.
-    nova-in-worker/           # (later) @dicexp/nova-in-worker
+    nova-in-worker/           # @dicexp/nova-in-worker: worker server +
+                              # manager (heartbeat, hard-timeout terminate/
+                              # recreate, sampling channel), mirroring
+                              # @dicexp/naive-evaluator-in-worker
   docs/
     plan.md                   # this file
     compat.md                 # deliberate divergences from naive + TODO list
@@ -40,7 +43,7 @@ nova/
 
 External touch points: `pnpm-workspace.yaml` (adds `nova/packages/*`), root
 `justfile` (`build-nova*` recipes), root README (folder structure), playground
-(implementation selector — later milestone).
+(implementation selector — added in v0.2, see §7.1).
 
 ## 2. Architecture overview
 
@@ -294,6 +297,36 @@ Targets the **current** Lezer grammar behavior:
   or stub decided at playground-integration time (documented in compat.md).
 - Locale: default zh table reproducing naive's messages incl. type display
   names; keys from `nova-abi`.
+
+### 7.1 WASM asset strategy for vite (decided in v0.2)
+
+The three `.wasm` artifacts ship inside `@dicexp/nova/wasm/` (gitignored,
+produced by `just build-nova-wasm`) and are exposed through the package
+exports map (`"./wasm/*"`). Consumers do **not** get bytes from the package
+itself; the *worker entry* imports URLs via vite's explicit `?url` suffix:
+
+```ts
+import compilerUrl from "@dicexp/nova/wasm/nova-compiler.wasm?url";
+```
+
+The bytes are fetched and the modules compiled/instantiated **inside the
+Web Worker** (async `createEvaluator` path — main-thread sync-compile
+limits never apply). Rationale: no base64 inlining (no ~33% size bloat, no
+main-thread parse cost), dev and build use the same mechanism (vite emits
+hashed asset URLs in build, serves from disk in dev), and the playground's
+main bundle never carries the WASM. Like naive's wrapper, the playground
+consumes `@dicexp/nova/internal` (raw TS sources), so no `tsup` pre-build
+is needed for playground dev — but `just build-nova-wasm` must have run
+(playground's `just prepare` does this).
+
+`@dicexp/nova-in-worker` mirrors `@dicexp/naive-evaluator-in-worker`'s
+protocol (handshake, heartbeat, hard-timeout terminate/recreate, sampling
+channel). Deliberate deviations from naive's worker: the evaluator is
+created **once** at `initialize` (the maker may be async — WASM fetching)
+and reused for all requests (safe: reset + re-seed per evaluation); no
+`topLevelScope` (builtins are linked, not scoped); the dead
+`update_evaluator_options` message type is dropped; evaluator options are
+an empty reserved struct (nova's RNG is built in).
 
 ## 8. Milestones
 
