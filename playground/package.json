@@ -6,6 +6,7 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
+    "type-check": "just type-check",
     "build": "just build",
     "serve": "just serve"
   },
@@ -34,6 +35,8 @@
     "@dicexp/naive-evaluator": "workspace:*",
     "@dicexp/naive-evaluator-builtins": "workspace:*",
     "@dicexp/naive-evaluator-in-worker": "workspace:*",
+    "@dicexp/nova": "workspace:*",
+    "@dicexp/nova-in-worker": "workspace:*",
     "@dicexp/solid-components": "workspace:*",
     "@rolludejo/internal-web-shared": "catalog:",
     "@rotext/solid-components": "catalog:",

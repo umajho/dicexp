@@ -3,6 +3,8 @@ import { DicexpEvaluation } from "@rotext/solid-components";
 
 export type SamplingReportForPlayground = I.SamplingReport | "preparing";
 
+export type Implementation = "naive" | "nova";
+
 export type ResultRecord =
   & (
     | { type: "single"; code: string; result: I.EvaluationResult }
@@ -16,4 +18,5 @@ export type ResultRecord =
   & {
     date: Date;
     environment?: NonNullable<DicexpEvaluation["environment"]>;
+    implementation: Implementation;
   };

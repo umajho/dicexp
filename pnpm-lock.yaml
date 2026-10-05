@@ -474,6 +474,12 @@ importers:
       '@dicexp/naive-evaluator-in-worker':
         specifier: workspace:*
         version: link:../packages/naive-evaluator-in-worker
+      '@dicexp/nova':
+        specifier: workspace:*
+        version: link:../nova/packages/nova
+      '@dicexp/nova-in-worker':
+        specifier: workspace:*
+        version: link:../nova/packages/nova-in-worker
       '@dicexp/solid-components':
         specifier: workspace:*
         version: link:../packages/solid-components

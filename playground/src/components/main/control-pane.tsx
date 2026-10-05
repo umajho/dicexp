@@ -23,6 +23,7 @@ import {
 
 import * as store from "../../stores/store";
 import { examples } from "../../stores/examples";
+import { Implementation } from "../../types";
 import createDicexpEvaluator, {
   AllKindsOfnRestrictions,
 } from "../../hooks/dicexp-evaluator";
@@ -31,6 +32,13 @@ const LazyDicexpEditor = lazy(() => import("./dicexp-editor"));
 
 export const ControlPane: Component = () => {
   const [mode, setMode] = createSignal<"single" | "sampling">("single");
+
+  // Deliberately NOT persisted: every session starts on the default
+  // implementation (naive) until nova becomes the default (see
+  // `nova/docs/roadmap.md` §v1.0).
+  const [implementation, setImplementation] = createSignal<Implementation>(
+    "naive",
+  );
 
   const [exampleSelectValue, setExampleSelectValue] = createSignal<string>("");
   createEffect(() => {
@@ -51,6 +59,7 @@ export const ControlPane: Component = () => {
     seed,
     isSeedFrozen,
     restrictions,
+    implementation,
   });
   const rollingMode = () => {
     const theStatus = evaluator.status();
@@ -76,7 +85,7 @@ export const ControlPane: Component = () => {
       bodyClass={"flex flex-col gap-4 pt-4 pb-8 px-4 sm:px-8"}
     >
       {/* 标签页和示例选择 */}
-      <div class="flex items-center">
+      <div class="flex flex-wrap items-center gap-2">
         {/* 选择模式用的标签页 */}
         <Tabs class="flex-1">
           <Tab
@@ -92,6 +101,24 @@ export const ControlPane: Component = () => {
             size="lg"
           >
             <span class="font-bold">抽样</span>
+          </Tab>
+        </Tabs>
+
+        {/* 选择实现（求值器）用的标签页；不持久化，默认 naive */}
+        <Tabs>
+          <Tab
+            isActive={implementation() === "naive"}
+            onClick={() => setImplementation("naive")}
+            size="sm"
+          >
+            naive（默认）
+          </Tab>
+          <Tab
+            isActive={implementation() === "nova"}
+            onClick={() => setImplementation("nova")}
+            size="sm"
+          >
+            <span title="实验性实现">nova</span>
           </Tab>
         </Tabs>
 
@@ -178,6 +205,16 @@ export const ControlPane: Component = () => {
         >
           {restrictionsText()}
         </LabelButton>
+        {/* Nova caveats (nova/docs/compat.md #8): soft timeout is not
+            implemented yet and step display is unavailable. */}
+        <Show when={implementation() === "nova"}>
+          <span
+            class="text-xs text-gray-400 select-none"
+            title="软性超时与步骤展示暂未在 nova 实现中提供，将在后续版本加入。"
+          >
+            （nova 下软性超时与步骤展示暂不可用）
+          </span>
+        </Show>
         <RestrictionsModal
           mode={mode()}
           setRestrictions={setRestrictions}

@@ -1,17 +1,25 @@
-import { createSignal } from "solid-js";
+import { createComputed, createSignal } from "solid-js";
 
 import { DicexpEvaluation } from "@rotext/solid-components";
 
 import { Unreachable } from "@dicexp/errors";
 import type * as I from "@dicexp/interface";
+
 import {
-  EvaluatingWorkerManager,
-} from "@dicexp/naive-evaluator-in-worker/internal";
+  evaluatorInfo,
+  novaEvaluatorInfo,
+  scopesInfo,
+} from "../workers/evaluation-worker-info";
 
-import { evaluatorInfo, scopesInfo } from "../workers/evaluation-worker-info";
-
-import { ResultRecord, SamplingReportForPlayground } from "../types";
-import { defaultEvaluatorProvider } from "../stores/evaluator-provider";
+import {
+  Implementation,
+  ResultRecord,
+  SamplingReportForPlayground,
+} from "../types";
+import {
+  defaultEvaluatorProvider,
+  novaEvaluatorProvider,
+} from "../stores/evaluator-provider";
 
 export type Status = {
   type: "loading"; // worker manager 尚未完成加载
@@ -29,6 +37,19 @@ export interface AllKindsOfnRestrictions {
   local: I.RemoteEvaluationLocalRestrictions;
 }
 
+/**
+ * The surface of a worker manager this hook relies on; both the naive and
+ * the nova managers provide it (they implement `I.RemoteEvaluatorClient`
+ * and `I.RemoteSamplerClient`, plus the terminate/stop controls).
+ */
+type AnyEvaluatingWorkerManager =
+  & I.RemoteEvaluatorClient
+  & I.RemoteSamplerClient
+  & {
+    terminateClient: () => void;
+    stopSampling: () => void;
+  };
+
 export default function createDicexpEvaluator(
   code: () => string,
   opts: {
@@ -36,19 +57,53 @@ export default function createDicexpEvaluator(
     seed: () => number;
     isSeedFrozen: () => boolean;
     restrictions: () => AllKindsOfnRestrictions | null;
+    implementation: () => Implementation;
   },
 ) {
   const [loading, setLoading] = createSignal(true);
-  const [workerManager, setWorkerManager] = createSignal<
-    EvaluatingWorkerManager | null
-  >(null);
-  (async () => {
-    setWorkerManager(
-      await defaultEvaluatorProvider.default({
-        readinessWatcher: (ready) => setLoading(!ready),
-      }),
-    );
-  })();
+
+  // One worker manager per implementation, created lazily at the
+  // implementation's first selection and kept alive afterwards (switching
+  // back reuses the existing manager). Readiness is tracked per
+  // implementation too.
+  const managers = new Map<Implementation, AnyEvaluatingWorkerManager>();
+  const managerCreationStarted = new Set<Implementation>();
+  const isReady: Record<Implementation, boolean> = {
+    naive: false,
+    nova: false,
+  };
+
+  function ensureManager(implementation: Implementation) {
+    if (managerCreationStarted.has(implementation)) return;
+    managerCreationStarted.add(implementation);
+
+    const provider = implementation === "naive"
+      ? defaultEvaluatorProvider
+      : novaEvaluatorProvider;
+    void (async () => {
+      managers.set(
+        implementation,
+        await provider.default({
+          readinessWatcher: (ready) => {
+            isReady[implementation] = ready;
+            // `loading` reflects the readiness of the CURRENTLY selected
+            // implementation.
+            if (opts.implementation() === implementation) {
+              setLoading(!ready);
+            }
+          },
+        }),
+      );
+    })();
+  }
+
+  createComputed(() => {
+    const implementation = opts.implementation();
+    ensureManager(implementation);
+    // Switching to a never-used implementation keeps `loading` true until
+    // its worker is ready; switching back to a ready one clears it.
+    setLoading(!isReady[implementation]);
+  });
 
   const isCodeValid = () => {
     if (code().trim() === "") return false;
@@ -72,18 +127,31 @@ export default function createDicexpEvaluator(
 
   async function roll() {
     if (status().type !== "ready") return;
-    setResult(null);
-    setIsRolling(opts.mode()!);
 
-    const code_ = code(),
+    // Like `code_`: the implementation (and its manager) are captured at
+    // roll time — switching implementations mid-roll does not reroute the
+    // in-flight evaluation.
+    const implementation = opts.implementation(),
+      code_ = code(),
       seed = opts.seed(),
       restrictions = opts.restrictions() ?? undefined;
+    const manager = managers.get(implementation);
+    if (!manager) return; // caught mid-(re)initialization; not reachable in practice
     const date = new Date();
     // TODO: 更合理的方式是借由 manager 从 worker 中获取。
-    const environment: NonNullable<DicexpEvaluation["environment"]> = [
-      evaluatorInfo.nameWithVersion,
-      JSON.stringify({ r: seed, s: scopesInfo.version }),
-    ];
+    const environment: NonNullable<DicexpEvaluation["environment"]> =
+      implementation === "naive"
+        ? [
+          evaluatorInfo.nameWithVersion,
+          JSON.stringify({ r: seed, s: scopesInfo.version }),
+        ]
+        : [
+          novaEvaluatorInfo.nameWithVersion,
+          JSON.stringify({ r: seed }),
+        ];
+
+    setResult(null);
+    setIsRolling(opts.mode()!);
 
     switch (opts.mode()) {
       case "single": {
@@ -103,16 +171,29 @@ export default function createDicexpEvaluator(
                 : {}),
             },
           };
-          const result = await workerManager()!.evaluateRemote(
+          const result = await manager.evaluateRemote(
             code_,
             evalOpts,
           );
-          setResult({ type: "single", code: code_, result, date, environment });
+          setResult({
+            type: "single",
+            code: code_,
+            result,
+            date,
+            environment,
+            implementation,
+          });
         } catch (e) {
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult({ type: "error", error: e as Error, date, environment });
+          setResult({
+            type: "error",
+            error: e as Error,
+            date,
+            environment,
+            implementation,
+          });
         }
         break;
       }
@@ -120,10 +201,17 @@ export default function createDicexpEvaluator(
         try {
           const evalOpts: I.EvaluationGenerationOptions = {};
           const code = code_;
-          const g = workerManager()!.keepSampling(code, evalOpts);
+          const g = manager.keepSampling(code, evalOpts);
           const [report, setReport] = //
             createSignal<SamplingReportForPlayground>("preparing");
-          setResult({ type: "sampling", code, report, date, environment });
+          setResult({
+            type: "sampling",
+            code,
+            report,
+            date,
+            environment,
+            implementation,
+          });
           while (true) {
             const yielded = await g.next();
             setReport(yielded.value);
@@ -133,7 +221,13 @@ export default function createDicexpEvaluator(
           if (!(e instanceof Error)) {
             e = new Error(`未知抛出：${e}`);
           }
-          setResult({ type: "error", error: e as Error, date, environment });
+          setResult({
+            type: "error",
+            error: e as Error,
+            date,
+            environment,
+            implementation,
+          });
         }
         break;
       }
@@ -143,12 +237,14 @@ export default function createDicexpEvaluator(
     setIsRolling(false);
   }
 
+  // Terminate and stop act on the manager of the implementation selected at
+  // the time of the call (which may differ from a rolling evaluation's).
   function terminate() {
-    workerManager()!.terminateClient();
+    managers.get(opts.implementation())?.terminateClient();
   }
 
   function stopSampling() {
-    workerManager()!.stopSampling();
+    managers.get(opts.implementation())?.stopSampling();
   }
 
   return { status, roll, result, terminate, stopSampling };
