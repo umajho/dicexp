@@ -100,14 +100,17 @@ mechanical ports, doc drafts.
   anything it had to define outside the shared contract).
 - For narrow lookups (line numbers, small snippets), prefer inline
   `grep`/`read` — cheaper and faster than a round trip. For broad codebase
-  mapping, delegate. Note: the `explore` agent's backing model is set by
-  the workspace's OpenCode config, **not** by the routing ladder below —
-  if it maps to a top-tier model (e.g. a 1M-context one), the ladder's
-  "cheapest that reliably does the job" rule still applies: use `explore`
-  only when the breadth genuinely justifies its backing model; otherwise
-  delegate the mapping to a workhorse-tier `general` agent instead.
-  (2026-10: here `explore` mapped to KIMI K3 1M — overkill for a
-  four-package integration map.)
+  mapping, delegate.
+- **Always pass an explicit `model` when spawning a subagent.** Agent-type
+  defaults come from the workspace's OpenCode config, **not** from the
+  routing ladder below, and they may be top-tier models — choosing
+  `general` instead of `explore` does **not** make the run cheaper.
+  (2026-10: here *both* `explore` and `general` default to KIMI K3 — K3 1M
+  was overkill for a four-package integration map, and later the same K3
+  default was hit again by spawning `general` without a `model` pin for a
+  bounded read-and-report exploration. Pick the tier from the ladder and
+  set `model` explicitly every time; leave it unset only when a top-tier
+  model is genuinely justified and said so in the prompt.)
 - Workers never touch git (no add/commit/push); integration commits are
   the lead's job.
 - After a subagent's work lands, integrate and verify yourself; delegate
@@ -135,7 +138,9 @@ far beyond any well-scoped task. So:
    task is "hard" (that's what 256k is for).
 
 Escalate up the ladder only on demonstrated failure; do not start at the
-top.
+top. Apply the ladder by setting the subagent's `model` parameter
+explicitly on **every** spawn — agent-type defaults bypass it (see
+§How to delegate).
 
 ## Engineering philosophy (nova)
 
