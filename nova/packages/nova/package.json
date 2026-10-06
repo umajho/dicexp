@@ -33,6 +33,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "test": "vitest --dir=test --run",
+    "bench": "vitest --dir=bench --run",
     "build": "tsup"
   },
   "devDependencies": {
