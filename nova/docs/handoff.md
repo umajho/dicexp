@@ -55,7 +55,7 @@
 ### Subagent playbooks
 
 - Contract-first parallelization worked again: lead wrote the checkpoint
-  ABI (nova-abi + plan §3.9), then three `smart` agents in parallel
+  ABI (nova-abi + plan §3.9), then three `x-smart` agents in parallel
   (mechanism / worker-init fix / fuzzer), one follow-up for suite rows. No
   escalation needed.
 - **Resume-session BROKE this iteration**: the subagent sessionID was
@@ -142,9 +142,10 @@
 
 ### Subagent playbooks
 
-- Tier-named agents per updated AGENTS.md: `smart` ×2 (Rust transformers +
-  any?; suite extraction two phases), `solid-smarter` ×1 (differential +
-  preset empirical pinning). No escalation needed.
+- `x-*` tiers per updated AGENTS.md: `x-smart` ×2 (GLM 5.3; Rust
+  transformers + any?; suite extraction two phases), `x-flash-capable` ×1
+  (GLM 5.3 Flash; differential + preset empirical pinning). No escalation
+  needed.
 - **Resume-session for multi-phase work**: phase 2 ran in the same session
   that had written the suite API — warm context, zero re-explanation.
 - **Scratch-probe pattern**: the differential agent used self-headed
@@ -163,7 +164,8 @@
 
 - Still no `wasm-opt`/`wasmtime` (v0.6 concern; npm `binaryen` ships
   wasm-opt if needed earlier).
-- Model routing: pass the tier name as `agent` (AGENTS.md §Delegation);
-  `general`/`explore` default to KIMI K3 here. Look up model IDs with the
-  models tool when needed (e.g. `opencode-go/glm-5.3`) — never guess.
+- Model routing: pass the `x-*` tier name as `agent` (AGENTS.md §Delegation);
+  `explore`/`general` are not ladder tiers and must not be spawned. Look up
+  model IDs with the models tool when needed (e.g. `opencode-go/glm-5.3`) —
+  never guess.
 

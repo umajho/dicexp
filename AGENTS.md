@@ -18,9 +18,13 @@ Rules for AI agents working in this repository, stated by the project owner
 ## Git
 
 - **Author identity** for agent commits — pattern
-  `HARNESS / AGENT (model & provider; thinking level)`, e.g.:
-  `OpenCode / build (kimi-k3 via opencode-go; thinking: max) <umajho.agents@proton.me>`
-  (email is always `umajho.agents@proton.me`).
+  `HARNESS / MODEL (provider: <provider>, thinking: <level>)`, e.g.:
+  `OpenCode / Kimi K3 - 256K (provider: OpenCode Go, thinking: max) <umajho.agents@proton.me>`
+  (email is always `umajho.agents@proton.me`). Name the **model**, not the
+  role (no `build`/`lead`).
+- **Subagent work** gets a `Co-authored-by:` trailer too — the same pattern
+  plus `subagent`, e.g.
+  `Co-authored-by: OpenCode / GLM 5.3 (subagent, provider: OpenCode Go) <umajho.agents@proton.me>`.
 - The agent is the **author** (the agent writes the code); add the owner as
   `Co-authored-by: umajho <umajho@proton.me>`.
 - The owner has GPG signing configured, which agents cannot use. Override
@@ -28,6 +32,10 @@ Rules for AI agents working in this repository, stated by the project owner
   `git -c user.name='…' -c user.email='umajho.agents@proton.me' -c commit.gpgsign=false commit …`
   — **never edit git config**.
 - Work happens on a dedicated branch (e.g. `nova`); don't commit to `main`.
+- **Session tags**: at the end of each iteration/session, tag its **final
+  commit** as `agents/sessions/nova/nova-v<version>` — e.g.
+  `agents/sessions/nova/nova-v0.5` on the last commit of the v0.5 session.
+  One tag per session, always on that session's final commit.
 
 ## Autonomy
 
@@ -64,7 +72,8 @@ knowledge.
 the lead writes a new dated section at the top of `handoff.md` with:
 current state (branch, commits, test layers), integration gotchas that cost
 time *this iteration*, delegation playbooks that worked/failed, open
-nuances for the owner, environment notes.
+nuances for the owner, environment notes — and tags that iteration's final
+commit (see §Git, "Session tags").
 
 **At the start of each iteration**, the new lead reads the handoff right
 after `AGENTS.md`, then maintains it:
@@ -105,18 +114,14 @@ mechanical ports, doc drafts.
 - For narrow lookups (line numbers, small snippets), prefer inline
   `grep`/`read` — cheaper and faster than a round trip. For broad codebase
   mapping, delegate.
-- **Route via the tier-named agent types.** The routing ladder below names
-  agent types (`solid-faster`, `solid-smarter`, `smart`,
-  `pretty-smart-256k`, `pretty-smart-1M`) whose backing models are
-  pre-configured to their tier — pick the tier and pass it as `agent`.
-  Beware `general` and `explore`: their defaults come from the workspace's
-  OpenCode config, **not** the ladder, and here *both* default to KIMI K3
-  (top-tier) — choosing `general` instead of `explore` does **not** make a
-  run cheaper. Use them only when their specialized behavior is genuinely
-  needed, and then pin `model` explicitly to a ladder tier. (2026-10: K3
-  1M via `explore` was overkill for a four-package integration map; the
-  same K3 default was hit again via an unpinned `general` spawn for a
-  bounded read-and-report exploration.)
+- **Route via the `x-*` agent types only.** The routing ladder below names
+  agent types (`x-flash-fast`, `x-flash-capable`, `x-smart`,
+  `x-last-resort-256k`) whose backing models are pre-configured to their
+  tier — pick the tier and pass it as `agent`. Spawn **only `x-`-prefixed
+  agents**: `explore`, `general`, and the legacy tier names bypass the
+  ladder (and its pricing), so do not use them. (2026-10: the workspace
+  renamed the ladder from `solid-*`/`pretty-smart-*` to `x-*`; the old
+  `pretty-smart-1M` tier is gone — KIMI K3 is 256K only.)
 - Workers never touch git (no add/commit/push); integration commits are
   the lead's job.
 - After a subagent's work lands, integrate and verify yourself; delegate
@@ -130,24 +135,21 @@ and cost/latency scale with input size. Small, focused tasks are
 categorically more reliable; 256K tokens already fits ~17–25k lines of code,
 far beyond any well-scoped task. So:
 
-1. `solid-faster` — trivial/mechanical: finding trivial bugs, renames,
-   boilerplate, simple ports, tests from a clear spec.
-2. `solid-smarter` / `smart` — the default workhorses: well-scoped features,
-   fixes and refactors with a clear contract, tricky-but-bounded semantics.
-3. `pretty-smart-256k` — **last resort for hard reasoning**: only when
-   workhorse agents have demonstrably failed (report what failed), or the
-   task is clearly beyond them (subtle cross-module semantics, novel
-   design). Never the default.
-4. `pretty-smart-1M` — **only for context that genuinely cannot fit ~256K**:
-   repo-scale synthesis, very large diffs/artifacts, long accumulated
-   sessions. Never for short or mid-size tasks, and never merely because a
-   task is "hard" (that's what 256k is for).
+1. `x-flash-fast` (DeepSeek 4.1 Flash) — trivial/mechanical: finding trivial
+   bugs, renames, boilerplate, simple ports, tests from a clear spec.
+2. `x-flash-capable` (GLM 5.3 Flash) / `x-smart` (GLM 5.3) — the default
+   workhorses: well-scoped features, fixes and refactors with a clear
+   contract, tricky-but-bounded semantics.
+3. `x-last-resort-256k` (KIMI K3, 256K) — **last resort for hard
+   reasoning**: only when workhorse agents have demonstrably failed (report
+   what failed), or the task is clearly beyond them (subtle cross-module
+   semantics, novel design). Never the default.
 
 Escalate up the ladder only on demonstrated failure; do not start at the
 top. Apply the ladder by passing the tier's name as the subagent's `agent`
-(e.g. `agent: "smart"`) — those agent types carry the right backing model.
-Avoid `general`/`explore` unless their specialization is required; their
-config defaults bypass the ladder (see §How to delegate).
+(e.g. `agent: "x-smart"`) — those agent types carry the right backing model.
+Spawn only `x-*` agents; `explore`/`general` bypass the ladder (see §How to
+delegate).
 
 ## Engineering philosophy (nova)
 
