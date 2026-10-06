@@ -135,6 +135,11 @@ const PROGRAMS: string[] = [
   // parity rows (kept as sentinels against a future divergence).
   "sum([])",
   "product([])",
+  // Non-forcing `count` over erroring elements: ok on BOTH impls for
+  // plain lists and `#` sequences (boundary sentinels for the map/zipWith
+  // error-beacon divergence below — compat.md #9).
+  "count([1 // 0, 2, 3], |$e| true)",
+  "count(2#(1 // 0), |$e| true)",
 ];
 
 const SEEDS = [0, 1, 42];
@@ -311,6 +316,55 @@ describe(
             expect(summarize(v), "nova").toEqual(novaExpected);
           });
         }
+      });
+    }
+  },
+);
+
+/**
+ * Deliberate divergence (compat.md #9 — the map/zipWith error beacon):
+ * `map`/`zipWith`'s internal break-check materializes each element's error
+ * state into naive's list error beacon, so a later consumer that NEVER
+ * forces the elements still errors in naive. naive is internally
+ * inconsistent: the same non-forcing `count` over a plain list or a `#`
+ * sequence of erroring elements returns ok in naive too (those agreeing
+ * shapes are pinned in PROGRAMS above). nova's uniform laziness matches
+ * naive's own plain-list behavior. Found by the v0.5 fuzzer.
+ */
+describe(
+  "differential: deliberate divergences (map/zipWith error beacon — compat.md #9)",
+  () => {
+    const DIVERGENT_BEACON: [code: string, naive: unknown, nova: unknown][] =
+      [
+        [
+          "count(map([0], |$d| 1 // 0), |$e| true)",
+          ["error", "runtime", "操作 “1 // 0” 非法：除数不能为零"],
+          ["ok", 1],
+        ],
+        [
+          "count(zipWith([0], [0], |$a, $b| 1 // 0), |$e| true)",
+          ["error", "runtime", "操作 “1 // 0” 非法：除数不能为零"],
+          ["ok", 1],
+        ],
+        [
+          // Both error, but with different messages: naive reports the
+          // poisoned beacon; nova's inner count returned 1, so its outer
+          // count sees an integer argument.
+          "count(count(map([0], |$d| 1 // 0), |$e| true), |$e| true)",
+          ["error", "runtime", "操作 “1 // 0” 非法：除数不能为零"],
+          [
+            "error",
+            "runtime",
+            "调用的第 1 个参数类型不匹配：期待类型「列表」与实际类型「整数」不符",
+          ],
+        ],
+      ];
+
+    for (const [code, naiveExpected, novaExpected] of DIVERGENT_BEACON) {
+      it(`\`${code}\` diverges as documented (compat.md #9)`, () => {
+        const [n, v] = runBoth(code, 0);
+        expect(summarize(n), "naive").toEqual(naiveExpected);
+        expect(summarize(v), "nova").toEqual(novaExpected);
       });
     }
   },

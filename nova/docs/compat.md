@@ -115,6 +115,15 @@ primary divergence oracle — extend it whenever semantics change.
     - List-carrying deep self-recursion: naive's machinery heap-allocates
       unboundedly and dies with an uncatchable OOM (see #6); nova runs
       the same programs in bounded stack and memory.
+    - `map`/`zipWith` poison the list's error beacon from inside: their
+      internal break-check materializes each element's error state, so a
+      later consumer that never forces the elements still errors (e.g.
+      `count(map([0], |$d| 1 // 0), |$e| true)` errors in naive, is `1`
+      in nova). naive is internally inconsistent here — over a plain
+      `[1 // 0, 2, 3]` or a `2#(1 // 0)` repetition the same
+      non-forcing `count` returns `3`/`2` in naive too. nova's uniform
+      laziness matches naive's own plain-list behavior. (Found by the
+      v0.5 fuzzer; pinned in the differential suite.)
 
 10. **Parse-level fixes.**
     - Comparison captures: naive *rejects* `&</2`, `&<=/2`, `&>/2`, `&>=/2`,
