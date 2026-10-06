@@ -165,8 +165,10 @@ no JS in the loop.
 | `call_callable` | `(i64 callable, i32 args_ptr, i32 argc) -> i64` | forces callable, checks arity, dispatches closure (call_indirect) or capture |
 | `repeat`      | `(i64 count, i64 closure) -> i64` | `#`; forces count eagerly; returns SEQUENCE |
 | `seed`        | `(i32 seed) -> ()` | seed RNG (per evaluation) |
-| `reset`       | `() -> ()` | rewind heap; called by JS before each evaluation |
+| `reset`       | `() -> ()` | rewind heap AND disarm restrictions; called by JS before each evaluation |
 | `finalize`    | `(i64 root) -> i32` | deep-force root; writes result buffer; 0 ok, 1 error |
+| `__checkpoint` | `() -> i64` | call-boundary checkpoint (§3.9): 0 = continue; non-zero = ERROR handle the call site returns as its own value |
+| `set_soft_timeout` | `(f64 deadline_epoch_ms, i32 limit_ms) -> ()` | arm the soft timeout (§3.9); `reset()` disarms |
 
 `reset` rewinds the heap **only** — it does not re-seed the RNG; the JS
 wrapper re-seeds per evaluation via `seed` (same seed ⇒ same stream as
@@ -214,10 +216,11 @@ source span `{ start: u32, end: u32 }`.
 ### 3.8 Host imports
 
 - Shim module: imports `env.table` (JS-created funcref table).
-- Builtins module: imports `env.call_closure` (from the shim, §3.3). Later:
-  `env.now() -> f64` for the soft timeout (the checkpoint mechanism is
-  designed to also carry call-count fuel and chunked-expensive-op checks —
-  see issue #3).
+- Builtins module: imports `env.call_closure` (from the shim, §3.3) and
+  `env.now() -> f64` (JS `Date.now()`; used only by the checkpoint
+  mechanism, §3.9 — never called while no restriction is armed). The
+  checkpoint channel is designed to also carry call-count fuel and
+  chunked-expensive-op checks (issue #3); see §3.9.
 - Program module: imports `env.memory`, `env.table`, `nova_rt.*`.
 
 The builtins allocator is a custom bump `#[global_allocator]` starting at the
@@ -226,6 +229,48 @@ Rust collections may churn memory on realloc — acceptable for short-lived
 evaluations; the engine-enforced max memory caps the worst case. No panics on
 wasm paths (panic = abort = trap); fallible operations return structured
 errors.
+
+### 3.9 Checkpoints & restrictions (v0.5)
+
+The checkpoint channel implements cooperative execution limits, reproducing
+naive's soft-timeout semantics (`Runtime.reporter.called`, checked on every
+interpreted call: "fires on the first call forced after the deadline").
+
+**Mechanism.** `nova_rt.__checkpoint() -> i64` returns 0 to continue, or a
+non-zero ERROR handle which the call site returns as its own value
+("errors are values" — no traps; a fired checkpoint is observationally
+identical to naive's lazy error box at the same call). While no restriction
+is armed it is a pure-WASM no-op (a thread-local flag test — no host call).
+
+**Placement (naive parity).** The compiler emits a checkpoint at every
+*call site*: regular calls (operators and builtin functions) and value
+calls. For value calls the checkpoint sits after forcing the callee and
+before `call_callable` (naive forces the callee eagerly at interpretation,
+then checkpoints when the call box is forced). `#`/repetition is **not** a
+call in naive and gets no checkpoint; thunk forcing, sequence pulls and
+builtin-internal machinery (sort comparisons, sum accumulation,
+builtin→closure invocations) get none either — naive has none there (its
+`reporter.called` fires only at interpretation-level call sites), and a
+closure *body*'s own call sites are checkpointed by the rule above in both
+implementations. Builtin-internal checkpoint insertion points (for chunked
+expensive ops) remain reserved, not active.
+
+**Soft timeout.** `nova_rt.set_soft_timeout(deadline_epoch_ms: f64,
+limit_ms: i32)` arms it (JS computes `Date.now() + ms` at evaluation
+start); `reset()` disarms. When armed, a checkpoint reads `env.now()` and,
+if strictly past the deadline (naive: `duration > timeout.ms`), returns
+`RESTRICTION_EXCEEDED_SOFT_TIMEOUT` (params: `[int ms]`). Because
+checkpoints only exist at call sites, a deadline that passes during
+checkpoint-silent work (e.g. a long builtin-internal loop) fires on the
+next call afterwards — exactly naive's semantics.
+
+**Evolution without ABI breaks (issue #3).** The same channel carries:
+fuel (a `set_fuel(max_calls)` setter arming a countdown decremented per
+checkpoint, exhaustion → a new `RESTRICTION_EXCEEDED_*` key) and chunked
+expensive ops (builtin loops calling the same internal checkpoint every K
+iterations). Both are additive — `__checkpoint`'s signature and the
+placement rule above are unchanged. naive's `statistics.calls` (call
+counting when softTimeout is set) is **not** reproduced; deferred.
 
 ## 4. Semantics model (what the compiler emits)
 

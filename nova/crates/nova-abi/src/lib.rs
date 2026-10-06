@@ -299,20 +299,35 @@ pub mod rt {
     pub const RESULT_PTR: &str = "result_ptr";
     pub const RESULT_LEN: &str = "result_len";
     pub const VERSION: &str = "version";
+    /// `() -> i64` — call-boundary checkpoint (plan §3.9): 0 = continue;
+    /// non-zero = an ERROR handle the call site must return as its own
+    /// value. Emitted by the compiler at every regular-call and value-call
+    /// site; may also be called from inside builtins (chunked expensive
+    /// ops). When no restriction is armed it is a pure-WASM no-op.
+    pub const CHECKPOINT: &str = "__checkpoint";
+    /// `(deadline_epoch_ms: f64, limit_ms: i32) -> ()` — arms the soft
+    /// timeout (plan §3.9). `reset()` disarms.
+    pub const SET_SOFT_TIMEOUT: &str = "set_soft_timeout";
 }
 
-/// The current ABI version (returned by `nova_rt.version`).
-pub const ABI_VERSION: i32 = 1;
+/// The current ABI version (returned by `nova_rt.version`). Bumped to 2 when
+/// the checkpoint channel (§3.9) added the `__checkpoint` /
+/// `set_soft_timeout` exports and the `env.now` host import.
+pub const ABI_VERSION: i32 = 2;
 
 /// Size (in i64 slots) of the scratch argument buffer for value calls.
 pub const ARGS_BUF_SLOTS: usize = 64;
 
 /// Import namespace `env` (memory + table for program modules; `call_closure`
-/// for the builtins module).
+/// and `now` for the builtins module).
 pub mod env {
     pub const MEMORY: &str = "memory";
     pub const TABLE: &str = "table";
     /// Import of the builtins module: call a compiled closure through the
     /// shared funcref table. Implemented by the shim module.
     pub const CALL_CLOSURE: &str = "call_closure";
+    /// Import of the builtins module: `() -> f64`, milliseconds since the
+    /// Unix epoch (JS `Date.now()`). Used only by the checkpoint mechanism
+    /// (plan §3.9); never called while no restriction is armed.
+    pub const NOW: &str = "now";
 }
