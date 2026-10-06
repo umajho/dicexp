@@ -94,4 +94,14 @@ export const benchmarkPresets: BenchmarkPreset[] = [
       .raw`(|$if| (|$Y, $g| $Y.($g).(10)).((|$fn| (|$f| $fn.((|$x| $f.($f).($x)))).((|$f| $fn.((|$x| $f.($f).($x)))))), (|$f| (|$n| $if.($n == 0, (|| 0), (|| $n + $f.($n-1))))))).((|$cond, $t, $f| head(append(filter([$t], (|_| $cond)), $f)).()))`,
     defaultSampleCount: 5_000,
   },
+  {
+    // v0.6 addition (NOT in the playground presets): const-pool visibility —
+    // a pure-literal list inside a `#` body. nova hoists the list into a
+    // program global allocated once per sample (plan §3.4); naive
+    // re-allocates it per iteration. Deterministic, integer result
+    // (100 × 15 = 1500), exact agreement.
+    label: "常量列表于循环体：100#([1,2,3,4,5] |> sum)",
+    code: String.raw`100#([1, 2, 3, 4, 5] |> sum) |> sum`,
+    defaultSampleCount: 20_000,
+  },
 ];
