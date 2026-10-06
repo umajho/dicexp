@@ -61,39 +61,62 @@ export default function createDicexpEvaluator(
   },
 ) {
   const [loading, setLoading] = createSignal(true);
+  const [result, setResult] = createSignal<ResultRecord | null>(null);
 
   // One worker manager per implementation, created lazily at the
   // implementation's first selection and kept alive afterwards (switching
-  // back reuses the existing manager). Readiness is tracked per
-  // implementation too.
+  // back reuses the existing manager). Init state is tracked per
+  // implementation too: "pending" (still loading) becomes "ready" — or,
+  // nova only, "init-failed" (loading is cleared; the real error is shown
+  // in the result pane, and rolls fail with the manager's remembered
+  // cause — see `onInitError` below).
+  type ManagerState = "pending" | "ready" | "init-failed";
   const managers = new Map<Implementation, AnyEvaluatingWorkerManager>();
   const managerCreationStarted = new Set<Implementation>();
-  const isReady: Record<Implementation, boolean> = {
-    naive: false,
-    nova: false,
+  const managerStates: Record<Implementation, ManagerState> = {
+    naive: "pending",
+    nova: "pending",
   };
 
   function ensureManager(implementation: Implementation) {
     if (managerCreationStarted.has(implementation)) return;
     managerCreationStarted.add(implementation);
 
-    const provider = implementation === "naive"
-      ? defaultEvaluatorProvider
-      : novaEvaluatorProvider;
+    const readinessWatcher = (ready: boolean) => {
+      managerStates[implementation] = ready ? "ready" : "pending";
+      // `loading` reflects the readiness of the CURRENTLY selected
+      // implementation.
+      if (opts.implementation() === implementation) {
+        setLoading(!ready);
+      }
+    };
+
     void (async () => {
-      managers.set(
-        implementation,
-        await provider.default({
-          readinessWatcher: (ready) => {
-            isReady[implementation] = ready;
-            // `loading` reflects the readiness of the CURRENTLY selected
-            // implementation.
+      // Nova only: its manager retries a failed init a few times and then
+      // reports the real cause through `onInitError` (the naive manager
+      // has no init-error hook, so its provider — and path — stays
+      // untouched; see `evaluator-provider.ts`).
+      const manager = implementation === "naive"
+        ? await defaultEvaluatorProvider.default({ readinessWatcher })
+        : await novaEvaluatorProvider.default({
+          readinessWatcher,
+          onInitError: (error) => {
+            managerStates[implementation] = "init-failed";
             if (opts.implementation() === implementation) {
-              setLoading(!ready);
+              setLoading(false);
             }
+            // Show the real error in the result pane right away — instead
+            // of a forever-loading spinner. Later rolls keep surfacing
+            // the same failure through the (permanently failed) manager.
+            setResult({
+              type: "error",
+              error,
+              date: new Date(),
+              implementation,
+            });
           },
-        }),
-      );
+        });
+      managers.set(implementation, manager);
     })();
   }
 
@@ -101,8 +124,10 @@ export default function createDicexpEvaluator(
     const implementation = opts.implementation();
     ensureManager(implementation);
     // Switching to a never-used implementation keeps `loading` true until
-    // its worker is ready; switching back to a ready one clears it.
-    setLoading(!isReady[implementation]);
+    // its worker is ready; switching back to a ready one clears it. An
+    // implementation whose init failed for good is no longer loading —
+    // its next roll surfaces the remembered error instead.
+    setLoading(managerStates[implementation] === "pending");
   });
 
   const isCodeValid = () => {
@@ -114,7 +139,6 @@ export default function createDicexpEvaluator(
   const [isRolling, setIsRolling] = createSignal<false | "single" | "sampling">(
     false,
   );
-  const [result, setResult] = createSignal<ResultRecord | null>(null);
 
   const status = (): Status => {
     if (loading()) return { type: "loading" };

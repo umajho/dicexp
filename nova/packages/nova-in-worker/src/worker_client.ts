@@ -149,7 +149,18 @@ export class EvaluatingWorkerClient {
 
   private _terminate(from: "internal" | "external" = "internal") {
     this.worker.terminate();
-    this.initState = ["terminated"];
+
+    // If an init is still pending, it can never settle on its own anymore
+    // (the worker is gone): reject it, so the manager's init cycle regains
+    // control and handles the failure (cleanup + retries) instead of
+    // dangling forever.
+    if (this.initState[0] === "initializing") {
+      const [, , reject] = this.initState;
+      this.initState = ["terminated"];
+      reject(new Error("Worker 客户端在初始化完成前被终结"));
+    } else {
+      this.initState = ["terminated"];
+    }
 
     let fn: ((v: ["error", "other", Error]) => void) | undefined;
     let isSampling = false;
