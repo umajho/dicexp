@@ -56,8 +56,9 @@
   shared — `SuiteContext.makeTesterFor`/`makeSleepTester` parameterize it
   (undefined for nova ⇒ soft-timeout block skips). 99 parse rows are
   `div3` (nova rejects unknown names at compile time — asserted as parse
-  errors). vitest `skipIf` chained-only — graduated to plan §9.1, along
-  with the browser smoke playbook (from the v0.2 section, now pruned).
+  errors). vitest `skipIf` chained-only — graduated to plan §9.1; the
+  browser smoke playbook graduated to the `browser-debugging` skill
+  (`.agents/skills/`).
 - **Verify "naive errors/behaves-X" assumptions empirically BEFORE writing
   them into contracts/compat** — compat #4 had to be withdrawn; the lead's
   contract also used `|_x|` (parse error; the ignored-param form is `|_|`).
