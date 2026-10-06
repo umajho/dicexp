@@ -158,6 +158,15 @@ pub mod error_key {
     pub const CLOSURE_RETURN_TYPE_MISMATCH: u32 = 48;
     /// params: [valtype actual] (`#` count)
     pub const REPEAT_COUNT_TYPE_MISMATCH: u32 = 49;
+    /// params: [] (`has?` scan hit a non-integer/non-boolean element;
+    /// zh: 传入的列表存在非「整数或布尔」项)
+    pub const LIST_HAS_NON_SCALAR_ITEM: u32 = 50;
+    /// params: [valtype actual] (unfold step returned neither `false` nor a
+    /// list; zh: 传入 unfold/2 的闭包的返回值类型与期待不符：…)
+    pub const UNFOLD_STEP_TYPE_MISMATCH: u32 = 51;
+    /// params: [int actual_len] (unfold step list had ≠ 2 elements;
+    /// zh: 传入 unfold/2 的闭包返回的列表应含两个元素，实际含 N 个。)
+    pub const UNFOLD_STEP_LIST_LENGTH_MISMATCH: u32 = 52;
 
     // --- compile-time semantic errors (compiler) ---
     /// params: [string name]
@@ -252,6 +261,32 @@ pub static BUILTINS: &[BuiltinDef] = &[
     BuiltinDef { id: 33, name: "tail",    arity: 1, import_name: "bf_tail_1",    params: &[E] },
     BuiltinDef { id: 34, name: "zip",     arity: 2, import_name: "bf_zip_2",     params: &[E, E] },
     BuiltinDef { id: 35, name: "zipWith", arity: 3, import_name: "bf_zipWith_3", params: &[E, E, E] },
+    // --- v0.7 additions (contracts: nova/docs/v0.7-contracts.md) ---
+    BuiltinDef { id: 36, name: "abs",        arity: 1, import_name: "bf_abs_1",        params: &[E] },
+    BuiltinDef { id: 37, name: "count",      arity: 1, import_name: "bf_count_1",      params: &[E] },
+    BuiltinDef { id: 38, name: "has?",       arity: 2, import_name: "bf_has_2",        params: &[E, E] },
+    BuiltinDef { id: 39, name: "min",        arity: 1, import_name: "bf_min_1",        params: &[E] },
+    BuiltinDef { id: 40, name: "max",        arity: 1, import_name: "bf_max_1",        params: &[E] },
+    BuiltinDef { id: 41, name: "all?",       arity: 1, import_name: "bf_all_1",        params: &[E] },
+    BuiltinDef { id: 42, name: "sort",       arity: 2, import_name: "bf_sort_2",       params: &[E, E] },
+    BuiltinDef { id: 43, name: "reverse",    arity: 1, import_name: "bf_reverse_1",    params: &[E] },
+    BuiltinDef { id: 44, name: "concat",     arity: 2, import_name: "bf_concat_2",     params: &[E, E] },
+    BuiltinDef { id: 45, name: "prepend",    arity: 2, import_name: "bf_prepend_2",    params: &[E, L] },
+    BuiltinDef { id: 46, name: "at",         arity: 3, import_name: "bf_at_3",         params: &[E, E, L] },
+    BuiltinDef { id: 47, name: "duplicate",  arity: 2, import_name: "bf_duplicate_2",  params: &[L, E] },
+    BuiltinDef { id: 48, name: "flatten",    arity: 2, import_name: "bf_flatten_2",    params: &[E, E] },
+    BuiltinDef { id: 49, name: "flattenAll", arity: 1, import_name: "bf_flattenAll_1", params: &[E] },
+    BuiltinDef { id: 50, name: "flatMap",    arity: 2, import_name: "bf_flatMap_2",    params: &[E, E] },
+    BuiltinDef { id: 51, name: "foldl",      arity: 3, import_name: "bf_foldl_3",      params: &[E, L, E] },
+    BuiltinDef { id: 52, name: "foldr",      arity: 3, import_name: "bf_foldr_3",      params: &[E, L, E] },
+    BuiltinDef { id: 53, name: "unfold",     arity: 2, import_name: "bf_unfold_2",     params: &[L, E] },
+    BuiltinDef { id: 54, name: "iterate",    arity: 2, import_name: "bf_iterate_2",    params: &[L, E] },
+    BuiltinDef { id: 55, name: "last",       arity: 1, import_name: "bf_last_1",       params: &[E] },
+    BuiltinDef { id: 56, name: "init",       arity: 1, import_name: "bf_init_1",       params: &[E] },
+    BuiltinDef { id: 57, name: "take",       arity: 2, import_name: "bf_take_2",       params: &[E, E] },
+    BuiltinDef { id: 58, name: "takeWhile",  arity: 2, import_name: "bf_takeWhile_2",  params: &[E, E] },
+    BuiltinDef { id: 59, name: "drop",       arity: 2, import_name: "bf_drop_2",       params: &[E, E] },
+    BuiltinDef { id: 60, name: "dropWhile",  arity: 2, import_name: "bf_dropWhile_2",  params: &[E, E] },
 ];
 
 /// Compile-time alias resolution (e.g. `^/2` → `**/2`), mirroring naive's
@@ -313,6 +348,14 @@ pub mod rt {
 /// The current ABI version (returned by `nova_rt.version`). Bumped to 2 when
 /// the checkpoint channel (§3.9) added the `__checkpoint` /
 /// `set_soft_timeout` exports and the `env.now` host import.
+///
+/// Bump discipline: the version guards the ABI *contract* (value encoding,
+/// the `nova_rt.*` runtime-function surface, the checkpoint channel).
+/// Purely additive changes — appending builtin ids/exports (v0.7 added ids
+/// 36–60 without a bump) or error keys — do NOT bump it: old program
+/// modules link unchanged against new builtins, and a new program module
+/// linked against stale builtins fails loudly at link time (missing
+/// import). Bump when the existing runtime surface changes.
 pub const ABI_VERSION: i32 = 2;
 
 /// Size (in i64 slots) of the scratch argument buffer for value calls.

@@ -1,38 +1,13 @@
 //! Structured runtime error constructors (ABI §3.7).
 //!
-//! Error keys defined in `nova-abi` are re-used as-is. Keys the ABI does not
-//! (yet) define are defined HERE and should be upstreamed to `nova-abi`
-//! (see the crate report); they continue the runtime range 1..=999.
+//! All error keys live in `nova-abi` (`error_key`); this module only holds
+//! the constructors. (The temporary `extra_key` shadow definitions were
+//! upstreamed to nova-abi; keys are ABI-stable — never reassign.)
 
 use dicexp_nova_abi as abi;
 use abi::{error_key as k, param_tag};
 
 use crate::values;
-
-/// Error keys missing from `nova-abi` (upstream candidates).
-pub(crate) mod extra_key {
-    /// params: [string rendered_operation] — `==`/`!=` with operands of
-    /// different types (naive: 操作 “==” 非法：两侧操作数的类型不相同).
-    pub const ILLEGAL_OPERATION_LR_TYPE_MISMATCH: u32 = 42;
-    /// params: [int list_length, int index] — naive: 访问列表越界：…
-    pub const AT_INDEX_OUT_OF_BOUNDS: u32 = 43;
-    /// params: [] — head/tail on an empty list (naive: 列表为空).
-    pub const EMPTY_LIST: u32 = 44;
-    /// params: [] — sum/product on a list with a non-integer item
-    /// (naive: 传入的列表存在非「数字」项).
-    pub const LIST_HAS_NON_INTEGER_ITEM: u32 = 45;
-    /// params: [] — any? on a list with a non-boolean item
-    /// (naive: 传入的列表存在非「布尔」项).
-    pub const LIST_HAS_NON_BOOLEAN_ITEM: u32 = 46;
-    /// params: [] — sort on an unsupported list (naive: 传入的列表不支持排序).
-    pub const LIST_NOT_SORTABLE: u32 = 47;
-    /// params: [int position, string name, valtype expected, valtype actual] —
-    /// naive's givenClosureReturnValueTypeMismatch (filter/count; position 2).
-    pub const CLOSURE_RETURN_TYPE_MISMATCH: u32 = 48;
-    /// params: [valtype actual] — `#` count is not an integer
-    /// (naive: 反复次数期待「整数」，实际类型为「…」).
-    pub const REPEAT_COUNT_TYPE_MISMATCH: u32 = 49;
-}
 
 const INT: u8 = param_tag::INT;
 const STR: u8 = param_tag::STRING;
@@ -236,12 +211,10 @@ fn range_upper_bound_error(rendered: &[u8], min: i64, actual: i64) -> u64 {
     }
 }
 
-/// "`==`" / "`!=`" alone (naive passes the bare operator as the operation).
-pub(crate) fn illegal_lr_type_mismatch(op_eq: bool) -> u64 {
-    rendered_to_error(
-        extra_key::ILLEGAL_OPERATION_LR_TYPE_MISMATCH,
-        if op_eq { b"==" } else { b"!=" },
-    )
+/// Bare rendered operator (naive passes the bare operator as the operation):
+/// `==`/`!=`, and (v0.7) `<`/`>`/`<=`/`>=` with operands of different types.
+pub(crate) fn illegal_lr_type_mismatch(op: &str) -> u64 {
+    rendered_to_error(k::ILLEGAL_OPERATION_LR_TYPE_MISMATCH, op.as_bytes())
 }
 
 // ---------------------------------------------------------------------------
@@ -250,29 +223,29 @@ pub(crate) fn illegal_lr_type_mismatch(op_eq: bool) -> u64 {
 
 pub(crate) fn at_index_out_of_bounds(list_len: i64, index: i64) -> u64 {
     values::error_new(
-        extra_key::AT_INDEX_OUT_OF_BOUNDS,
+        k::AT_INDEX_OUT_OF_BOUNDS,
         &[(INT, list_len as u64), (INT, index as u64)],
     )
 }
 
 pub(crate) fn empty_list() -> u64 {
-    values::error_new(extra_key::EMPTY_LIST, &[])
+    values::error_new(k::EMPTY_LIST, &[])
 }
 
 pub(crate) fn list_has_non_integer_item() -> u64 {
-    values::error_new(extra_key::LIST_HAS_NON_INTEGER_ITEM, &[])
+    values::error_new(k::LIST_HAS_NON_INTEGER_ITEM, &[])
 }
 
 pub(crate) fn list_has_non_boolean_item() -> u64 {
-    values::error_new(extra_key::LIST_HAS_NON_BOOLEAN_ITEM, &[])
+    values::error_new(k::LIST_HAS_NON_BOOLEAN_ITEM, &[])
 }
 
 pub(crate) fn list_not_sortable() -> u64 {
-    values::error_new(extra_key::LIST_NOT_SORTABLE, &[])
+    values::error_new(k::LIST_NOT_SORTABLE, &[])
 }
 
 /// naive's `givenClosureReturnValueTypeMismatch`; `position` is the 1-based
-/// position of the closure argument (always 2 in v0.1 builtins).
+/// position of the closure argument.
 pub(crate) fn closure_return_type_mismatch(
     position: u32,
     name: &str,
@@ -281,7 +254,7 @@ pub(crate) fn closure_return_type_mismatch(
 ) -> u64 {
     match values::string_new(name.as_bytes()) {
         Some(s) => values::error_new(
-            extra_key::CLOSURE_RETURN_TYPE_MISMATCH,
+            k::CLOSURE_RETURN_TYPE_MISMATCH,
             &[
                 (INT, position as u64),
                 (STR, s as u64),
@@ -294,7 +267,30 @@ pub(crate) fn closure_return_type_mismatch(
 }
 
 pub(crate) fn repeat_count_type_mismatch(actual: u8) -> u64 {
-    values::error_new(extra_key::REPEAT_COUNT_TYPE_MISMATCH, &[(VT, actual as u64)])
+    values::error_new(k::REPEAT_COUNT_TYPE_MISMATCH, &[(VT, actual as u64)])
+}
+
+// ---------------------------------------------------------------------------
+// v0.7 keys (contracts: nova/docs/v0.7-contracts.md)
+// ---------------------------------------------------------------------------
+
+/// `has?` scan hit a non-integer/non-boolean element
+/// (zh: 传入的列表存在非「整数或布尔」项).
+pub(crate) fn list_has_non_scalar_item() -> u64 {
+    values::error_new(k::LIST_HAS_NON_SCALAR_ITEM, &[])
+}
+
+/// unfold step returned neither `false` nor a list.
+pub(crate) fn unfold_step_type_mismatch(actual: u8) -> u64 {
+    values::error_new(k::UNFOLD_STEP_TYPE_MISMATCH, &[(VT, actual as u64)])
+}
+
+/// unfold step list had ≠ 2 elements.
+pub(crate) fn unfold_step_list_length_mismatch(actual_len: i64) -> u64 {
+    values::error_new(
+        k::UNFOLD_STEP_LIST_LENGTH_MISMATCH,
+        &[(INT, actual_len as u64)],
+    )
 }
 
 /// Masks used by builtin parameter specs.

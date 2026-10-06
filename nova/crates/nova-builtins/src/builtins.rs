@@ -174,7 +174,7 @@ fn eq_impl(a: u64, b: u64, is_eq: bool) -> u64 {
     };
     if value_tag(va) != value_tag(vb) {
         // naive: 操作 “==” 非法：两侧操作数的类型不相同
-        return errors::illegal_lr_type_mismatch(is_eq);
+        return errors::illegal_lr_type_mismatch(if is_eq { "==" } else { "!=" });
     }
     let same = if value_tag(va) == TAG_INTEGER {
         value_to_integer(va) == value_to_integer(vb)

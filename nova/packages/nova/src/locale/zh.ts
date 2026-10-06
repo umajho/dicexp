@@ -131,6 +131,14 @@ export function localizeZh(err: DecodedError, ctx: LocalizeContext = {}): string
         `期待「${typeName(valueTypeOf(err, 2))}」，实际「${typeName(valueTypeOf(err, 3))}」。`;
     case 49:
       return `反复次数期待「整数」，实际类型为「${typeName(valueTypeOf(err, 0))}」`;
+    case 50:
+      return "传入的列表存在非「整数或布尔」项";
+    case 51:
+      return `传入 unfold/2 的闭包的返回值类型与期待不符：` +
+        `期待「布尔」或含两个元素的列表，实际「${typeName(valueTypeOf(err, 0))}」。`;
+    case 52:
+      return `传入 unfold/2 的闭包返回的列表应含两个元素，` +
+        `实际含 ${intOf(err, 0)} 个。`;
 
     // --- compile-time semantic errors ---
     case 1000:

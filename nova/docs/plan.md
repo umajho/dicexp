@@ -193,8 +193,18 @@ handles, usually unevaluated thunks) `-> i64`. Mangle table lives in
 `op_d_2`, `op_range_1`, `op_range_2`, `bf_reroll_2`, `bf_explode_2`,
 `bf_count_2`, `bf_sum_1`, `bf_product_1`, `bf_any_1`, `bf_sort_1`,
 `bf_append_2`, `bf_at_2`, `bf_map_2`, `bf_filter_2`, `bf_head_1`, `bf_tail_1`,
-`bf_zip_2`, `bf_zipWith_3`). Each also has a numeric builtin id (for captures);
-id table in `nova-abi`.
+`bf_zip_2`, `bf_zipWith_3`; v0.7 added ids 36–60 — `bf_abs_1`, `bf_count_1`,
+`bf_has_2`, `bf_min_1`, `bf_max_1`, `bf_all_1`, `bf_sort_2`, `bf_reverse_1`,
+`bf_concat_2`, `bf_prepend_2`, `bf_at_3`, `bf_duplicate_2`, `bf_flatten_2`,
+`bf_flattenAll_1`, `bf_flatMap_2`, `bf_foldl_3`, `bf_foldr_3`, `bf_unfold_2`,
+`bf_iterate_2`, `bf_last_1`, `bf_init_1`, `bf_take_2`, `bf_takeWhile_2`,
+`bf_drop_2`, `bf_dropWhile_2`; contracts in `docs/v0.7-contracts.md`). Each
+also has a numeric builtin id (for captures); id table in `nova-abi`. Builtin
+ids/exports and error keys are **append-only and ABI-stable**: additive
+appends do not bump `ABI_VERSION` (old programs link unchanged; a new program
+against stale builtins fails loudly at link time). `ABI_VERSION` bumps only
+when the existing runtime surface changes (it did at 2 for the checkpoint
+channel, §3.9).
 
 ### 3.6 Result wire format
 
