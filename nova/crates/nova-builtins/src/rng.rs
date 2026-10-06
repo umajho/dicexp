@@ -13,9 +13,28 @@ thread_local! {
 }
 
 /// JS `>>>` (unsigned right shift) on an i32.
-#[inline]
+#[inline(always)]
 fn ushr(x: i32, k: u32) -> i32 {
     ((x as u32) >> k) as i32
+}
+
+/// One xorshift7 step, on the state in "rotated" coordinates: the state is
+/// viewed as `(a0, …, a7)` where `a_k == x[(i + k) & 7]` for the generator's
+/// current index `i`. A step reads `x[i]`, `x[i+1]`, `x[i+3]`, `x[i+4]`,
+/// `x[i+7]` — i.e. `a0, a1, a3, a4, a7` — writes the result into `x[i]`,
+/// and advances `i` by one, which in rotated coordinates is a left rotation
+/// with the new value as the tail (see `seed`). `next_i32` runs the same
+/// helper, so the discard loop and the draw path are bit-for-bit identical
+/// by construction.
+#[inline(always)]
+fn step_v(a0: i32, a1: i32, a3: i32, a4: i32, a7: i32) -> i32 {
+    let t = a0 ^ ushr(a0, 7);
+    let mut v = t ^ t.wrapping_shl(24);
+    v ^= a1 ^ ushr(a1, 10);
+    v ^= a3 ^ ushr(a3, 3);
+    v ^= a4 ^ a4.wrapping_shl(7);
+    let t2 = a7 ^ a7.wrapping_shl(13);
+    v ^ t2 ^ t2.wrapping_shl(9)
 }
 
 /// `seed(seed: i32)` — the ABI seeds with an i32, so we always take
@@ -27,15 +46,24 @@ pub(crate) fn seed(seed: i32) {
     if x.iter().all(|&v| v == 0) {
         x[7] = -1;
     }
-    X.with(|c| c.set(x));
+    // Discard an initial 256 values. The state stays in locals (wasm
+    // registers) for the whole loop — the thread-locals are touched once,
+    // at the end, instead of copying the [i32; 8] state in/out of a Cell
+    // and paying the `ensure_seeded` check on each of the 256 steps. Each
+    // step is the rotation documented on `step_v`; 256 ≡ 0 (mod 8), so
+    // afterwards the rotated view maps back onto `x` slot-for-slot with
+    // `i == 0`.
+    let mut a = (x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]);
+    for _ in 0..256 {
+        let v = step_v(a.0, a.1, a.3, a.4, a.7);
+        a = (a.1, a.2, a.3, a.4, a.5, a.6, a.7, v);
+    }
+    X.with(|c| c.set([a.0, a.1, a.2, a.3, a.4, a.5, a.6, a.7]));
     I.with(|c| c.set(0));
     SEEDED.with(|c| c.set(true));
-    // Discard an initial 256 values.
-    for _ in 0..256 {
-        next_i32();
-    }
 }
 
+#[inline(always)]
 fn ensure_seeded() {
     if !SEEDED.with(Cell::get) {
         seed(0);
@@ -43,24 +71,13 @@ fn ensure_seeded() {
 }
 
 /// `XorShift7Gen.next()` — returns the raw signed 32-bit state value.
+/// One thread-local read and one write per draw; the arithmetic is shared
+/// with `seed`'s discard loop via `step_v`.
 fn next_i32() -> i32 {
     ensure_seeded();
     let i = I.with(Cell::get);
     let mut x = X.with(Cell::get);
-
-    let mut t = x[i];
-    t ^= ushr(t, 7);
-    let mut v = t ^ t.wrapping_shl(24);
-    t = x[(i + 1) & 7];
-    v ^= t ^ ushr(t, 10);
-    t = x[(i + 3) & 7];
-    v ^= t ^ ushr(t, 3);
-    t = x[(i + 4) & 7];
-    v ^= t ^ t.wrapping_shl(7);
-    t = x[(i + 7) & 7];
-    let t2 = t ^ t.wrapping_shl(13);
-    v ^= t2 ^ t2.wrapping_shl(9);
-
+    let v = step_v(x[i], x[(i + 1) & 7], x[(i + 3) & 7], x[(i + 4) & 7], x[(i + 7) & 7]);
     x[i] = v;
     X.with(|c| c.set(x));
     I.with(|c| c.set((i + 1) & 7));
@@ -68,6 +85,7 @@ fn next_i32() -> i32 {
 }
 
 /// `RandomSource.uint32()` (`prng.int32() >>> 0`).
+#[inline(always)]
 pub(crate) fn next_u32() -> u32 {
     next_i32() as u32
 }
