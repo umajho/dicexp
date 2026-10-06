@@ -76,7 +76,119 @@ programs use plain `|`.)
   inside the timing window; at the 1M default the steady rates are
   393.5k vs 205.7k. The preset defaults are sized to amortize this.
 
-## Historical notes
+## Method (CI-style suite, v0.6 — supersedes the playground numbers for
+optimization decisions)
+
+- Suite: `nova/packages/nova/bench/` (`pnpm run bench`; knobs `BENCH_SCALE`,
+  `BENCH_ONLY`, `NOVA_COMPILER_WASM_PATH` / `NOVA_BUILTINS_WASM_PATH` for
+  compiler/builtins swaps). 12 workloads: the 11 playground presets plus one
+  const-pool visibility workload (`100#([1,2,3,4,5] |> sum) |> sum`).
+- Per workload: identical untimed warmup on both implementations, then a
+  timed window of N pulls through `makeEvaluationGenerator` (same seed range
+  on both sides), naive first, sequential. Unlike the playground method, the
+  one-time parse/compile is OUTSIDE the timed window (steady-state rates);
+  one-shot costs are measured separately (`overhead.test.ts`).
+- Every row asserts **exact value agreement** over the timed window — the
+  suite doubles as a differential checker, like the playground mode.
+- Results (JSON + markdown) land in the gitignored `bench/results/`.
+
+## 2026-10-06 — v0.6 performance & size
+
+Machine: an Apple M-series machine (darwin/arm64), Node v24.7.0,
+`BENCH_SCALE=1`. Run-to-run variance on these numbers is roughly ±5%
+(±10% on the const-pool workload); the tables below are single runs.
+
+### Baseline (v0.5 state: per-sample program instantiation, no wasm-opt)
+
+| label | samples | naive ms | naive samples/s | nova ms | nova samples/s | nova/naive |
+|---|---:|---:|---:|---:|---:|---:|
+| d6（基线） | 1000000 | 1831.9 | 545.9k/s | 4957.5 | 201.7k/s | 0.37× |
+| sum([1, 2, 3]) | 300000 | 893.0 | 335.9k/s | 1478.5 | 202.9k/s | 0.60× |
+| 闭包调用 (ǀ$a, $bǀ $a + $b).(1, 2) | 200000 | 546.4 | 366.0k/s | 1083.9 | 184.5k/s | 0.50× |
+| d10 ~ 3d8+10 | 100000 | 510.9 | 195.7k/s | 636.0 | 157.2k/s | 0.80× |
+| 模拟 if-else（filter/append/head） | 100000 | 530.0 | 188.7k/s | 637.0 | 157.0k/s | 0.83× |
+| 100#any?(map(3#d100, …)) 计假数 | 3000 | 3803.4 | 788.8/s | 779.9 | 3.8k/s | 4.88× |
+| 重掷：100#(10d6 ǀ> reroll(≤2)) 求和 | 10000 | 20555.9 | 486.5/s | 5825.2 | 1.7k/s | 3.53× |
+| 爆炸：100#(3d6 ǀ> explode(=6)) 求和 | 20000 | 13654.2 | 1.5k/s | 3917.6 | 5.1k/s | 3.49× |
+| 大排序：1000#d100 ǀ> sort ǀ> sum | 2000 | 2800.8 | 714.1/s | 847.3 | 2.4k/s | 3.31× |
+| 自递归构造列表 0..<99 再求和 | 1000 | 3154.6 | 317.0/s | 216.5 | 4.6k/s | 14.57× |
+| Y 组合子求和 0..10 | 5000 | 1156.0 | 4.3k/s | 145.7 | 34.3k/s | 7.93× |
+
+### Final (program-instance reuse + wasm-opt + const-pool hoisting)
+
+| label | samples | naive ms | naive samples/s | nova ms | nova samples/s | nova/naive |
+|---|---:|---:|---:|---:|---:|---:|
+| d6（基线） | 1000000 | 1804.8 | 554.1k/s | 2688.6 | 371.9k/s | 0.67× |
+| sum([1, 2, 3]) | 300000 | 852.0 | 352.1k/s | 774.1 | 387.5k/s | 1.10× |
+| 闭包调用 (ǀ$a, $bǀ $a + $b).(1, 2) | 200000 | 537.7 | 371.9k/s | 541.2 | 369.6k/s | 0.99× |
+| d10 ~ 3d8+10 | 100000 | 476.0 | 210.1k/s | 339.9 | 294.2k/s | 1.40× |
+| 模拟 if-else（filter/append/head） | 100000 | 486.0 | 205.7k/s | 304.9 | 328.0k/s | 1.59× |
+| 100#any?(map(3#d100, …)) 计假数 | 3000 | 3549.6 | 845.2/s | 679.8 | 4.4k/s | 5.22× |
+| 重掷：100#(10d6 ǀ> reroll(≤2)) 求和 | 10000 | 20391.8 | 490.4/s | 4867.3 | 2.1k/s | 4.19× |
+| 爆炸：100#(3d6 ǀ> explode(=6)) 求和 | 20000 | 13408.4 | 1.5k/s | 3336.5 | 6.0k/s | 4.02× |
+| 大排序：1000#d100 ǀ> sort ǀ> sum | 2000 | 2800.8 | 714.1/s | 771.4 | 2.6k/s | 3.63× |
+| 自递归构造列表 0..<99 再求和 | 1000 | 3134.7 | 319.0/s | 199.9 | 5.0k/s | 15.68× |
+| Y 组合子求和 0..10 | 5000 | 1169.4 | 4.3k/s | 106.3 | 47.1k/s | 11.00× |
+| 常量列表于循环体：100#([1,2,3,4,5] ǀ> sum) | 20000 | 4859.9 | 4.1k/s | 598.2 | 33.4k/s | 8.12× |
+
+All 12 rows agreed exactly (incl. 1M `d6` seeds).
+
+### What moved what (per-change attribution)
+
+- **Program-instance reuse** (one `WebAssembly.Instance` per sampling
+  session instead of per sample) is the trivial-program lever: `d6`
+  0.37× → 0.67× (201.7k → 371.9k samples/s), `sum([1, 2, 3])` 0.60× → 1.10×,
+  the closure call 0.50× → ~1.0×, and the naive-crossover moved below the
+  `d10 ~ 3d8+10` / if-else rows (now 1.4–1.6×). nova now beats naive on
+  everything except the two most trivial rows, which sit at 0.67–1.0×.
+- **wasm-opt** (`-O3` builtins, `-Oz` compiler) added a small
+  across-the-board improvement (in the deltas above).
+- **Const-pool hoisting** is invisible on the 11 ported presets — none
+  re-evaluates a literal list inside a loop body. Isolated by swapping the
+  compiler (same harness, pre-const-pool vs current build): the dedicated
+  workload went 548.4 → 497.1 ms for 20k samples (**+10.3% throughput**,
+  ratio 8.11× → 8.87×); `sum([1, 2, 3])` −2.9%. The final table's own run
+  shows larger variance on this workload (see header note).
+- **The ≥10× target**: met on the two heaviest evaluation-bound programs
+  (list-building recursion **15.7×**, Y-combinator **11.0×**). Mid-weight
+  programs (reroll/explode/sort/any?) sit at 3.6–5.2×, the const-list
+  workload at 8.1×.
+
+### Small-expression one-shot overhead (compile + instantiate + run)
+
+| code | calls | naive ms/call | nova ms/call | nova compile ms/call | nova run ms/call | compile+run ms/call |
+|---|---:|---:|---:|---:|---:|---:|
+| d6 | 2000 | 0.0076 | 0.0139 | 0.0055 | 0.0053 | 0.0108 |
+| sum([1, 2, 3]) | 2000 | 0.0123 | 0.0149 | 0.0098 | 0.0069 | 0.0167 |
+
+Per single-shot `evaluate` call, nova is ≈1.2–1.8× naive on trivial
+expressions: compile (≈0.006–0.010 ms) and instantiate+run (≈0.005–0.007 ms)
+each cost about half. This is the documented overhead for small expressions;
+the sampling path amortizes all of it (compile once, instantiate once).
+
+### Checkpoint-guard overhead (plan §3.9, measurement-only compiler swap)
+
+Same suite, default vs `--no-default-features` compiler (no guard emission,
+no `__checkpoint` import — measurement-only build, `just
+build-nova-wasm-nockpt`), nova timed windows:
+
+| workload | guard ON | guard OFF | delta |
+|---|---:|---:|---:|
+| Y 组合子求和 0..10 (5000 samples) | 112.6 ms | 108.4 ms | −3.7% |
+| 自递归构造列表 0..<99 再求和 (1000) | 170.7 ms | 163.7 ms | −4.1% |
+| 闭包调用 (ǀ$a, $bǀ $a + $b).(1, 2) (200000) | 552.1 ms | 549.9 ms | −0.4% (noise) |
+
+The per-call guard costs ≈4% of evaluation time on call-dense recursive
+programs and is unmeasurable on shallow ones. Material enough to record for
+future budget discussions (e.g. if fuel/chunked-ops activation adds more
+checkpoint work), nowhere near enough to reconsider the semantics — the
+placement rule (plan §3.9) is unchanged.
+
+### Sizes
+
+See [`size-budget.md`](./size-budget.md): after wasm-opt, the compiler is
+113,688 B raw / 35.3 KB brotli (adjusted budget ≤ 120 KB raw), builtins
+36,746 B raw / 13.8 KB brotli (budget ≤ 50 KB — met), shim 82 B.
 
 - v0.2 playground smoke test (2026-10, sampling `d6`, indefinite run):
   naive ≈390k samples/s, nova ≈235–240k samples/s. Per-sample program-instance

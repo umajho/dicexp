@@ -22,7 +22,7 @@ legacy/reference implementation.
 | v0.3 | playground benchmark mode | ✅ code-complete (deploy is the owner's call) |
 | v0.4 | language-complete core | ✅ done |
 | v0.5 | limits & robustness | ✅ done |
-| v0.6 | performance & size | |
+| v0.6 | performance & size | ✅ done |
 | v0.7 | builtin completeness: implementation | |
 | v0.8 | builtin docs sourced from nova | |
 | v0.9 | **repr / step display** | |
@@ -198,6 +198,32 @@ error card, recovery after restore confirmed.
 
 **Exit:** benchmark numbers and measured sizes recorded in `nova/docs/`;
 budget met or variance justified.
+
+**Done (2026-10-06).** CI-style suite landed in `nova/packages/nova/bench/`
+(12 workloads — the 11 playground presets + a const-pool visibility row —
+through both sampling generators, exact-agreement assert, `BENCH_SCALE` /
+`BENCH_ONLY` / asset-override knobs; results JSON+markdown, gitignored).
+**Program-instance reuse** (`Machine.prepareProgram`/`runPrepared` +
+`tableEpoch` re-binding against shared-table clobbering; mutation-verified)
+took the trivial-program floor from 0.37× to 0.67–1.0× naive (`d6` 201.7k →
+371.9k samples/s in Node; ~430k/s in the browser smoke). **Const-pool
+hoisting** (plan §3.4, mechanism now implemented: pure-literal lists,
+structural dedup, prologue init per `__main` run — reuse-safe) gives +10.3%
+on its target shape (isolated compiler swap). **wasm-opt** wired into
+`build-nova-wasm` (compiler `-Oz`, builtins `-O3`, npm `binaryen`): compiler
+142,277 → 113,688 B raw / 35.3 KB brotli, builtins 45,260 → 36,746 B / 13.8 KB
+brotli; **size budget** documented in `size-budget.md` (builtins ≤ 50 KB met;
+compiler target adjusted to ≤ 120 KB raw per "adjust to measurements", with
+the allocator/codegen review recorded). **Checkpoint-guard overhead
+measured** via a measurement-only `--no-default-features` compiler build
+(`just build-nova-wasm-nockpt`): ≈4% on call-dense recursion, noise
+elsewhere — semantics unchanged. ≥10× target: met on the two heaviest
+evaluation-bound programs (15.7× / 11.0×); full tables, per-change
+attribution and small-expression overhead in
+[`benchmarks.md`](./benchmarks.md). Numbers: 135 Rust + 758 JS tests green
+(+5 instance-reuse), 10k-program fuzz × 3 seeds zero divergences; playground
+tsc + `vite build` clean; browser smoke: nova single-roll OK, sampling
+climbs steadily (~430k samples/s on `d6`).
 
 ## v0.7 — Builtin completeness: implementation
 

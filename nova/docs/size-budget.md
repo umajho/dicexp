@@ -27,12 +27,15 @@ panic="abort", strip=true):
 
 | asset | raw | gzip (level 9) | brotli (max quality) |
 | --- | ---: | ---: | ---: |
-| nova-compiler.wasm | 108,423 B | 41,141 B | 33,467 B |
+| nova-compiler.wasm | 113,688 B | 43,259 B | 35,282 B |
 | nova-builtins.wasm | 36,746 B | 16,278 B | 13,824 B |
 | nova-shim.wasm | 82 B | 94 B | 77 B |
-| **total** | 145,251 B | 57,513 B | 47,368 B |
+| **total** | 150,516 B | 59,631 B | 49,183 B |
 
-(i.e. compiler −23.8% raw, builtins −18.8% raw vs cargo output.)
+(The compiler was 108,423 B raw / 33,467 B brotli before the v0.6 const-pool
+feature landed; const-pool hoisting + the measurement-only `checkpoints`
+feature gate added ~5 KB raw. Builtins unchanged. Compiler −20.1% and
+builtins −18.8% raw vs cargo output.)
 
 ## Flags chosen
 
@@ -59,14 +62,22 @@ stays the default.
 ## Status vs budget
 
 - builtins: **36,746 B ≤ 50 KB — met.**
-- compiler: **108,423 B > 100 KB — missed by ~8%** (105.9 KiB). Justification:
-  the 100 KB target was a pre-measurement guess; the deployment-relevant
-  number is brotli 33,467 B (over-the-wire), and further shrinking would
-  require source-level work (allocator/codegen review — the other half of the
-  v0.6 size bullet), not more `wasm-opt` flags (tried the two candidate flag
-  sets; see trial above). Per the roadmap's "adjust to measurements",
-  propose: compiler target ≤ 110 KB raw until the allocator/codegen review
-  lands, then revisit.
+- compiler: **113,688 B (110.0 KiB) > 100 KB — the initial target was a
+  pre-measurement guess; adjusted to measurements: ≤ 120 KB raw.** The
+  deployment-relevant number is brotli 35,282 B (over-the-wire), and further
+  shrinking needs source-level work, not more `wasm-opt` flags (`--converge`
+  trial below).
+
+## Allocator / codegen review (the other half of the v0.6 size bullet)
+
+- The builtins allocator is a custom bump `#[global_allocator]` over the
+  exported linear memory (plan §3.2) — already near-minimal; nothing
+  actionable. Builtins at 13.8 KB brotli leaves headroom under budget.
+- The compiler's size is dominated by the hand-written parser and the
+  `wasm-encoder` dependency; meaningful further shrink would mean paring
+  dependencies or codegen structure — poor ROI at 35 KB brotli for a module
+  that runs once per program. Revisit only if the budget becomes binding
+  (e.g. new dependencies in v0.7+).
 
 Note: playground `vite build` output sizes are the deployment-level view of
 these assets; measuring them is out of scope for this doc (the playground

@@ -209,9 +209,10 @@ test files and by `nova/packages/nova/test/shared-suites.test.ts`).
   the cause). naive's worker package keeps the original behavior (the init
   failure leaves the playground loading forever) — the same latent gap
   exists there but naive has no async init to fail in practice.
-- Const-pool hoisting (runtime "execute consts once" — plan §3.4/§8).
-  Not in the first working version; mechanism reserved (program-global thunk
-  handles). Note: value calls with argc > 64 already allocate arg frames via
+- ~~Const-pool hoisting (runtime "execute consts once" — plan §3.4/§8).~~
+  **Done (v0.6)** — see plan §3.4: pure-literal lists hoist to program
+  globals initialized in `__main`'s prologue, structural dedup program-wide.
+  Note: value calls with argc > 64 already allocate arg frames via
   `env_new` instead of using the scratch buffer.
 - External variables `@x`/`@@x`/`@_x`: parsed; compile-time extraction pass
   deferred (issue #7).
@@ -222,5 +223,7 @@ test files and by `nova/packages/nova/test/shared-suites.test.ts`).
   tables); roadmap v0.8 switches docs/completion to nova-sourced metadata
   (e.g. via `#[doc]`-attribute extraction from `crates/nova-builtins`).
 - Labeled/keyword arguments (issue #17) — ABI reservation noted in plan.
-- Finer-grained closure capture sets; wasm-opt size pass; static linking /
-  tree-shaking of builtins.
+- Finer-grained closure capture sets; static linking /
+  tree-shaking of builtins (deferred to v1.1+). ~~wasm-opt size pass~~
+  **Done (v0.6)** — `just build-nova-wasm` runs wasm-opt; budget and numbers
+  in `nova/docs/size-budget.md`.

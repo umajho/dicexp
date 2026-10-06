@@ -145,9 +145,16 @@ no JS in the loop.
   import list is the tree-shaking story).
 - Exports: `__main() -> i64` (returns the root value handle).
 - One WASM function per thunk body / closure body, placed in the table.
-- Const pool: one mutable i64 global per hoisted constant; `__main`'s prologue
-  initializes each with `nova_rt_thunk_new(fnidx, 0)`. (Const hoisting is
-  implemented in a later iteration; mechanism reserved. See §8.)
+- Const pool (implemented in v0.6): one mutable i64 global per *distinct*
+  hoistable constant — literal lists whose elements are recursively pure
+  literals (integers, booleans, nested such lists) — deduplicated
+  structurally program-wide (nested lists intern as their own entries,
+  inner-first). `__main`'s prologue (re)allocates each constant at the top
+  of every run (LIST_NEW + element stores; no thunks involved) and every
+  occurrence compiles to a `global.get`. Safe because lists are never
+  mutated after construction (audit: every `list_set` site in nova-builtins
+  writes into a freshly allocated object), and because the prologue's
+  re-initialization keeps single-instance reuse (§7) correct.
 - No data section except for strings embedded in error paths (v0.1: none —
   compile errors carry identifiers via params from the compiler side instead).
 
@@ -343,7 +350,14 @@ Targets the **current** Lezer grammar behavior:
 - `evaluate(code, opts)`: compile → instantiate → seed → run → finalize →
   decode → localize. Result mapped to `I.EvaluationResult`; parse and compile
   errors become `["error", "parse", …]`.
-- `makeEvaluationGenerator`: seeds 0, 1, 2, …
+- `makeEvaluationGenerator`: seeds 0, 1, 2, … — and (v0.6) instantiates the
+  program module **once** (`prepareProgram`), re-running that instance per
+  sample (`runPrepared`). Correct because program modules carry no cross-run
+  state (const-pool globals are re-initialized by `__main`'s prologue each
+  run, §3.4) and because a `tableEpoch` counter re-instantiates a prepared
+  program whenever another program has since been linked into the shared
+  table (active element segments overwrite slots, §3.3) — interleaved
+  `evaluate`/generator use stays safe.
 - `ExecutionAppendix.representation`: repr unavailable — interface extension
   or stub decided at playground-integration time (documented in compat.md).
 - Locale: default zh table reproducing naive's messages incl. type display
@@ -401,10 +415,11 @@ an empty reserved struct (nova's RNG is built in).
    (`__checkpoint` + `env.now`).
 9. Benchmarks vs naive; playground selector + repr-unavailable UI; worker
    package.
-10. Const-pool hoisting (§3.4), finer capture sets, binary-size pass
-    (wasm-opt), static-linking/tree-shaking evaluation.
+10. ~~Const-pool hoisting (§3.4)~~ ✓ v0.6, finer capture sets, binary-size pass
+    (wasm-opt ✓ v0.6 — see `size-budget.md`), static-linking/tree-shaking
+    evaluation (deferred to v1.1+ — v0.3/v0.6 numbers resolved the question).
 
-Deferred with mechanism reserved: const-pool hoisting, trace hooks (repr),
+Deferred with mechanism reserved: trace hooks (repr),
 fuel-based limits, labeled/keyword args (ABI reservation — issue #17),
 external-variable static extraction (issue #7), feature flags (issue #24),
 future value kinds (strings/maps/tuples — kind byte has room).
@@ -441,3 +456,10 @@ future value kinds (strings/maps/tuples — kind byte has room).
 - vitest's `describe.skipIf`/`it.skipIf` (and `todoIf`) are chained-only:
   `it.skipIf(cond)(name, fn)`. The direct 3-arg form
   `it.skipIf(cond, name, fn)` *silently registers nothing*.
+- Shared-suite mechanics (`internal/test-utils-for-executing/suites/`):
+  nova's `parse` is a classification over `evaluate()` (`["error","parse"]`
+  vs not); scope injection can't be shared — `SuiteContext.makeTesterFor` /
+  `makeSleepTester` parameterize it (undefined for nova ⇒ only the sleep/1
+  rows skip). The 99 `div3` parse rows assert nova's compile-time
+  unknown-name rejection AS parse errors. Divergence tags mirror
+  `compat.md` mechanically.
