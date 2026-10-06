@@ -205,8 +205,13 @@ through both sampling generators, exact-agreement assert, `BENCH_SCALE` /
 `BENCH_ONLY` / asset-override knobs; results JSON+markdown, gitignored).
 **Program-instance reuse** (`Machine.prepareProgram`/`runPrepared` +
 `tableEpoch` re-binding against shared-table clobbering; mutation-verified)
-took the trivial-program floor from 0.37× to 0.67–1.0× naive (`d6` 201.7k →
-371.9k samples/s in Node; ~430k/s in the browser smoke). **Const-pool
+plus a profiled **RNG-seeding fix** (the 256-step xorshift7 discard copied
+state per step — 2.15 µs → 0.51 µs, stream bit-identical) took the
+trivial-program floor from 0.37× naive to **every benchmark row beating
+naive** (worst row `d6` 1.81× = 996k samples/s in Node; heavy rows
+1.8–15.0×). Profiling refuted the crossing-fusion and checkpoint-gating
+hypotheses first (guard = 12 ns of a 2.7 µs sample) — see benchmarks.md's
+"Second round" for the decomposition. **Const-pool
 hoisting** (plan §3.4, mechanism now implemented: pure-literal lists,
 structural dedup, prologue init per `__main` run — reuse-safe) gives +10.3%
 on its target shape (isolated compiler swap). **wasm-opt** wired into

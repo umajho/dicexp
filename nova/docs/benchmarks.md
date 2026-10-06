@@ -114,7 +114,7 @@ Machine: an Apple M-series machine (darwin/arm64), Node v24.7.0,
 | 自递归构造列表 0..<99 再求和 | 1000 | 3154.6 | 317.0/s | 216.5 | 4.6k/s | 14.57× |
 | Y 组合子求和 0..10 | 5000 | 1156.0 | 4.3k/s | 145.7 | 34.3k/s | 7.93× |
 
-### Final (program-instance reuse + wasm-opt + const-pool hoisting)
+### Midpoint (program-instance reuse + wasm-opt + const pool)
 
 | label | samples | naive ms | naive samples/s | nova ms | nova samples/s | nova/naive |
 |---|---:|---:|---:|---:|---:|---:|
@@ -133,38 +133,90 @@ Machine: an Apple M-series machine (darwin/arm64), Node v24.7.0,
 
 All 12 rows agreed exactly (incl. 1M `d6` seeds).
 
+### Final (+ RNG seeding fix — every row faster than naive)
+
+| label | samples | naive ms | naive samples/s | nova ms | nova samples/s | nova/naive |
+|---|---:|---:|---:|---:|---:|---:|
+| d6（基线） | 1000000 | 1813.5 | 551.4k/s | 1003.8 | 996.2k/s | 1.81× |
+| sum([1, 2, 3]) | 300000 | 846.4 | 354.4k/s | 271.6 | 1104.6k/s | 3.12× |
+| 闭包调用 (ǀ$a, $bǀ $a + $b).(1, 2) | 200000 | 537.1 | 372.4k/s | 199.0 | 1004.9k/s | 2.70× |
+| d10 ~ 3d8+10 | 100000 | 478.6 | 208.9k/s | 170.7 | 585.9k/s | 2.80× |
+| 模拟 if-else（filter/append/head） | 100000 | 484.8 | 206.3k/s | 141.0 | 709.3k/s | 3.44× |
+| 100#any?(map(3#d100, …)) 计假数 | 3000 | 3542.1 | 846.9/s | 747.0 | 4.0k/s | 4.74× |
+| 重掷：100#(10d6 ǀ> reroll(≤2)) 求和 | 10000 | 21092.5 | 474.1/s | 5126.1 | 2.0k/s | 4.11× |
+| 爆炸：100#(3d6 ǀ> explode(=6)) 求和 | 20000 | 13257.8 | 1.5k/s | 3565.3 | 5.6k/s | 3.72× |
+| 大排序：1000#d100 ǀ> sort ǀ> sum | 2000 | 2738.7 | 730.3/s | 776.9 | 2.6k/s | 3.53× |
+| 自递归构造列表 0..<99 再求和 | 1000 | 3082.1 | 324.5/s | 205.3 | 4.9k/s | 15.01× |
+| Y 组合子求和 0..10 | 5000 | 1162.8 | 4.3k/s | 104.5 | 47.9k/s | 11.13× |
+| 常量列表于循环体：100#([1,2,3,4,5] ǀ> sum) | 20000 | 4817.5 | 4.2k/s | 564.5 | 35.4k/s | 8.53× |
+
+All 12 rows agreed exactly (incl. 1M `d6` seeds), and **every row beats
+naive — the worst row (`d6`) is 1.81×.**
+
 ### What moved what (per-change attribution)
 
 - **Program-instance reuse** (one `WebAssembly.Instance` per sampling
-  session instead of per sample) is the trivial-program lever: `d6`
-  0.37× → 0.67× (201.7k → 371.9k samples/s), `sum([1, 2, 3])` 0.60× → 1.10×,
-  the closure call 0.50× → ~1.0×, and the naive-crossover moved below the
-  `d10 ~ 3d8+10` / if-else rows (now 1.4–1.6×). nova now beats naive on
-  everything except the two most trivial rows, which sit at 0.67–1.0×.
+  session instead of per sample) was the first trivial-program lever:
+  `d6` 0.37× → 0.67× (201.7k → 371.9k samples/s), `sum([1, 2, 3])`
+  0.60× → 1.10×, the closure call 0.50× → ~1.0×.
 - **wasm-opt** (`-O3` builtins, `-Oz` compiler) added a small
   across-the-board improvement (in the deltas above).
 - **Const-pool hoisting** is invisible on the 11 ported presets — none
   re-evaluates a literal list inside a loop body. Isolated by swapping the
   compiler (same harness, pre-const-pool vs current build): the dedicated
   workload went 548.4 → 497.1 ms for 20k samples (**+10.3% throughput**,
-  ratio 8.11× → 8.87×); `sum([1, 2, 3])` −2.9%. The final table's own run
-  shows larger variance on this workload (see header note).
+  ratio 8.11× → 8.87×); `sum([1, 2, 3])` −2.9%.
+- **RNG seeding fix** (the second round, below): lifted every trivial row
+  again — `d6` 0.67× → 1.81×, `sum` 1.10× → 3.12×, closure call
+  0.99× → 2.70×, the `d10 ~ 3d8+10` / if-else rows 1.4–1.6× → 2.8–3.4×.
 - **The ≥10× target**: met on the two heaviest evaluation-bound programs
-  (list-building recursion **15.7×**, Y-combinator **11.0×**). Mid-weight
-  programs (reroll/explode/sort/any?) sit at 3.6–5.2×, the const-list
-  workload at 8.1×.
+  (list-building recursion **15.0×**, Y-combinator **11.1×**). Everything
+  else sits between 1.8× and 8.5×.
+
+### Second round: the trivial-program gap was RNG seeding, not what anyone guessed
+
+The midpoint table still had two rows at/below parity (`d6` 0.67×, closure
+call 0.99×); the bar was set that nova must beat naive on EVERY row. A
+ns/sample profiling decomposition of the per-sample path (`reset` / `seed`
+/ `__main` / `finalize` / decode / generator glue, on `d6`, the closure
+call, and `42` as the zero-work control) refuted both working hypotheses:
+
+- **JS↔WASM crossings**: ~1.1 ns each (`version()` floor; `__main` on `42`
+  = 6.6–8.4 ns incl. the BigInt return). Fusing the 4 crossings/sample
+  would save only tens of ns of glue — not the ~830 ns gap.
+- **The checkpoint guard**: −12 ns on `d6` with the nockpt compiler
+  (≤0.5%; the `42` control moved −0.5 ns). Gating/removing it would buy
+  nothing on these rows and would cost a compat divergence on
+  `ExecutionRestrictions` — rejected on data; semantics stay.
+
+The actual culprit was **`builtins.seed()` — ~85% of every trivial
+sample** (2.15–2.31 µs): the 256-step xorshift7 discard loop copied the
+`[i32; 8]` state in/out of a `Cell` and paid thread-local accesses on
+*every step* (~6 out-of-line calls + 64 B of copies per step at
+opt-level="z"), running 3.6× slower than naive's *identical* algorithm in
+JIT'd JS (645 ns, construction + discard + 1 draw). The fix keeps the
+state in 8 scalar locals for the whole discard (rotated view; one shared
+`step_v` helper makes discard ≡ draw bit-for-bit by construction;
+256 ≡ 0 (mod 8) so the view maps back slot-for-slot): **505.8 ns**
+(4.25× faster, beating naive's 645 ns), stream unchanged (fixture oracles
++ full JS suites + 10k-program fuzz × 3 seeds). Post-fix, nova's non-seed
+fixed per-sample cost (~480 ns) also undercuts naive's RNG construction
+alone — and naive additionally pays repr tracking per sample, which nova
+has not (yet) had to match (v0.9).
 
 ### Small-expression one-shot overhead (compile + instantiate + run)
 
 | code | calls | naive ms/call | nova ms/call | nova compile ms/call | nova run ms/call | compile+run ms/call |
 |---|---:|---:|---:|---:|---:|---:|
-| d6 | 2000 | 0.0076 | 0.0139 | 0.0055 | 0.0053 | 0.0108 |
-| sum([1, 2, 3]) | 2000 | 0.0123 | 0.0149 | 0.0098 | 0.0069 | 0.0167 |
+| d6 | 2000 | 0.0074 | 0.0121 | 0.0055 | 0.0028 | 0.0083 |
+| sum([1, 2, 3]) | 2000 | 0.0139 | 0.0128 | 0.0078 | 0.0054 | 0.0132 |
 
-Per single-shot `evaluate` call, nova is ≈1.2–1.8× naive on trivial
-expressions: compile (≈0.006–0.010 ms) and instantiate+run (≈0.005–0.007 ms)
-each cost about half. This is the documented overhead for small expressions;
-the sampling path amortizes all of it (compile once, instantiate once).
+Per single-shot `evaluate` call, nova is ≈0.9–1.6× naive on trivial
+expressions: compile (≈0.006–0.008 ms) dominates nova's side, while the
+instantiate+seed+run half (≈0.003–0.005 ms) is now well under naive's
+whole call. Compile-once-per-program is inherent to a compiler-based
+implementation; the sampling path amortizes all of it (compile once,
+instantiate once).
 
 ### Checkpoint-guard overhead (plan §3.9, measurement-only compiler swap)
 
@@ -189,6 +241,8 @@ placement rule (plan §3.9) is unchanged.
 See [`size-budget.md`](./size-budget.md): after wasm-opt, the compiler is
 113,688 B raw / 35.3 KB brotli (adjusted budget ≤ 120 KB raw), builtins
 36,746 B raw / 13.8 KB brotli (budget ≤ 50 KB — met), shim 82 B.
+
+## Historical notes
 
 - v0.2 playground smoke test (2026-10, sampling `d6`, indefinite run):
   naive ≈390k samples/s, nova ≈235–240k samples/s. Per-sample program-instance

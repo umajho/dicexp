@@ -29,10 +29,10 @@
   build` clean; browser smoke: nova single-roll OK, sampling ~430k
   samples/s on `d6`.
 - Headline perf (Node v24.7.0, tables + attribution in
-  `docs/benchmarks.md`): `d6` 0.37× → 0.67× naive, crossover moved below
-  `d10 ~ 3d8+10` (1.4×), heavy programs 3.6–15.7× (≥10× target met on the
-  two heaviest). Checkpoint guard ≈4% on call-dense recursion, noise
-  elsewhere. Sizes (`docs/size-budget.md`): compiler 113,688 B raw /
+  `docs/benchmarks.md`): **every bench row beats naive** (worst row `d6`
+  1.81× = 996k samples/s; heavy rows 1.8–15.0×; ≥10× target met on the two
+  heaviest). Checkpoint guard ≈4% on call-dense recursion, 12 ns (≤0.5%)
+  on `d6`. Sizes (`docs/size-budget.md`): compiler 113,688 B raw /
   35.3 KB brotli (budget ≤ 120 KB raw, adjusted), builtins 36,746 B /
   13.8 KB brotli (≤ 50 KB met).
 
@@ -74,6 +74,18 @@
 - Bench run-to-run variance ≈ ±5% (±10% on the const-pool workload):
   attribute improvements only above that bar; the const-pool's +10.3%
   needed the isolated compiler swap to be believable.
+- **Profile before optimizing — both the lead's and the owner's hypotheses
+  were wrong.** The last trivial-program gap (`d6` 0.67×) survived reuse;
+  crossings (≈1 ns each) and the checkpoint guard (12 ns/sample) were the
+  prime suspects, but a ns/sample decomposition pinned **`builtins.seed()`
+  at ~85% of every trivial sample** (per-step `Cell` copies + TLS calls
+  ×256 — 3.6× slower than naive's identical algorithm in JS). Fixed to
+  506 ns (locals + shared `step_v`; stream bit-identical) → all rows
+  ≥1.8×. Lesson: on "X is slow", first decompose ns/sample (reset / seed
+  / __main / finalize / decode / glue — the scratch-probe pattern,
+  200k-iteration tight loops, best-of-3, `42` as the zero-work control).
+  Also: `#[inline]` is ignored at opt-level="z" — use `#[inline(always)]`
+  for hot WASM helpers.
 
 ### Open nuances for the owner (carried + new)
 
