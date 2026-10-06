@@ -72,11 +72,15 @@ after `AGENTS.md`, then maintains it:
 - **Prune**: keep at most the current + previous iteration's sections —
   delete the older one after absorbing anything still relevant.
 - **Graduate opportunistically, not on a deadline**: durable knowledge
-  *should* eventually move to the doc it belongs to (`plan.md`,
-  `compat.md`, `roadmap.md`, `AGENTS.md`, code comments) — but significant
-  entries may live in the handoff across several iterations while they
-  remain useful there. The size cap, not a timer, is the forcing
-  function. When an entry does graduate, remove it from the handoff.
+  *should* eventually move to the place it belongs to (`plan.md`,
+  `compat.md`, `roadmap.md`, `AGENTS.md`, code comments — or, for
+  reusable cross-iteration procedures/playbooks, a skill at
+  `.agents/skills/<name>/SKILL.md`, e.g. `browser-debugging`) — but
+  significant entries may live in the handoff across several iterations
+  while they remain useful there. The size cap, not a timer, is the
+  forcing function. When an entry does graduate, remove it from the
+  handoff (and clean any other docs that duplicated it, leaving a
+  pointer).
 - **Relevance test**: keep an entry only if not knowing it would cost the
   next lead ≥15 minutes. Fixed bugs, landed features, and answered
   questions are deleted, not struck through.
@@ -157,6 +161,10 @@ config defaults bypass the ladder (see §How to delegate).
 ## Repo workflow conventions
 
 - Package manager: **pnpm** (workspace, catalog mode). Task runner: **just**.
+- Reusable playbooks live as skills in `.agents/skills/<name>/SKILL.md`
+  (e.g. `browser-debugging`); when a procedure gets rediscovered or
+  rebuilt across sessions, distill it into a skill and clean the docs it
+  came from.
 - Before naive-evaluator type-check/test: `just build-lezer` (generates the
   grammar parser). Before nova JS tests: `just build-nova-wasm`.
 - Rust work lives in `nova/` (cargo workspace); everything nova-related stays
