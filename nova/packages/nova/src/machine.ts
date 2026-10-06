@@ -32,6 +32,11 @@ interface BuiltinsExports {
   memory: WebAssembly.Memory;
   reset: () => void;
   seed: (seed: number) => void;
+  /**
+   * Arm the soft timeout (plan §3.9): f64 deadline (ms since the Unix epoch)
+   * + i32 limit — both map to JS `number`. `reset()` disarms.
+   */
+  set_soft_timeout: (deadlineEpochMs: number, limitMs: number) => void;
   finalize: (root: bigint) => number;
   result_ptr: () => number;
   result_len: () => number;
@@ -96,9 +101,21 @@ export class Machine {
     const builtins = new WebAssembly.Instance(builtinsModule, {
       env: {
         call_closure: shim.exports["call_closure"] as WebAssembly.ExportValue,
+        // Host clock for the checkpoint channel (plan §3.8/§3.9); never
+        // called while no restriction is armed.
+        now: () => Date.now(),
       },
     });
     const builtinsExports = builtins.exports as unknown as BuiltinsExports;
+
+    // ABI version guard (mirrors `abi::ABI_VERSION` in nova-abi): the program
+    // modules the compiler emits are only linkable against the builtins
+    // version they were built for (imports/exports drift silently otherwise).
+    if (builtinsExports.version() !== 2) {
+      throw new Error(
+        `nova builtins ABI version mismatch (expected 2, got ${builtinsExports.version()}) — stale wasm assets? run \`just build-nova-wasm\``,
+      );
+    }
 
     const compiler = new WebAssembly.Instance(compilerModule, {});
     const compilerExports = compiler.exports as unknown as CompilerExports;
@@ -142,10 +159,26 @@ export class Machine {
     };
   }
 
-  /** Runs a compiled program module with a fresh heap and the given seed. */
-  runCompiled(program: WebAssembly.Module, tableSize: number, seed: number): RunOutcome {
+  /**
+   * Runs a compiled program module with a fresh heap and the given seed.
+   * `restrictions.softTimeoutMs`, when given, arms the soft timeout
+   * (plan §3.9): checkpoints fire on the first call forced after
+   * `Date.now() + softTimeoutMs`.
+   */
+  runCompiled(
+    program: WebAssembly.Module,
+    tableSize: number,
+    seed: number,
+    restrictions?: { softTimeoutMs?: number },
+  ): RunOutcome {
     this.builtins.reset();
     this.builtins.seed(seed);
+    if (restrictions?.softTimeoutMs !== undefined) {
+      this.builtins.set_soft_timeout(
+        Date.now() + restrictions.softTimeoutMs,
+        restrictions.softTimeoutMs,
+      );
+    }
 
     if (tableSize > this.table.length) {
       this.table.grow(tableSize - this.table.length);

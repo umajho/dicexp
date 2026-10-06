@@ -43,6 +43,9 @@ class NovaEvaluator implements I.Evaluator {
         compiled.module,
         compiled.tableSize,
         opts.execution.seed,
+        // Plan §3.9: restrictions are per-evaluation (the generator interface
+        // has none — its options are an empty reserved struct).
+        { softTimeoutMs: opts.execution.restrictions?.softTimeout?.ms },
       );
       if (!outcome.ok) {
         return [

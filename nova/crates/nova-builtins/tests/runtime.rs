@@ -223,5 +223,5 @@ fn env_and_list_new_return_writable_buffers() {
 #[test]
 fn version_returns_abi_version() {
     setup();
-    assert_eq!(version(), 1);
+    assert_eq!(version(), 2);
 }

@@ -11,6 +11,8 @@
 //!   `memoryLimitExceeded` ERROR handle instead of trapping.
 //! - [`errors`]: structured error constructors; defines the error keys that
 //!   `nova-abi` is missing (upstream candidates; see crate report).
+//! - [`checkpoint`]: the call-boundary checkpoint channel + soft-timeout
+//!   state (plan §3.9) and the `env.now` host import (mock on native).
 //! - [`rng`]: exact port of naive's xorshift7 + unbiased `integer()`.
 //! - [`seq`]: sequence streams (dice-sum, repeat, reroll/explode
 //!   transformer; per-position memoized pull-streams) and the implicit casts
@@ -22,6 +24,8 @@
 
 #[doc(hidden)]
 pub mod builtins;
+#[doc(hidden)]
+pub mod checkpoint;
 #[doc(hidden)]
 pub mod errors;
 #[doc(hidden)]

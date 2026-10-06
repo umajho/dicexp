@@ -57,6 +57,15 @@ pub(crate) fn limitation_min() -> u64 {
     )
 }
 
+/// Soft-timeout checkpoint fired (plan §3.9); `limit_ms` is the configured
+/// limit. params: [int ms] (naive: 越过外加限制「运行时间」（允许 … 毫秒）).
+pub(crate) fn restriction_exceeded_soft_timeout(limit_ms: i64) -> u64 {
+    values::error_new(
+        k::RESTRICTION_EXCEEDED_SOFT_TIMEOUT,
+        &[(INT, limit_ms as u64)],
+    )
+}
+
 pub(crate) fn wrong_arity_closure(expected: u32, actual: u32) -> u64 {
     values::error_new(
         k::WRONG_ARITY_CLOSURE,

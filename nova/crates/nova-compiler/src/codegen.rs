@@ -18,14 +18,18 @@
 //! - Value calls: force the callee first, then write args into the scratch
 //!   buffer (`nova_rt.args_buf`; for argc > `ARGS_BUF_SLOTS` a fresh env is
 //!   used as the arg buffer instead), then `nova_rt.call_callable`.
+//! - Checkpoints (plan §3.9): every regular-call and value-call site is
+//!   guarded by `nova_rt.__checkpoint` — a fired checkpoint's ERROR handle
+//!   becomes the call node's own value. `#`/repetition is not a call in
+//!   naive and gets no checkpoint of its own.
 
 use std::collections::{BTreeSet, HashMap};
 
 use dicexp_nova_abi::{self as abi, find_builtin};
 use wasm_encoder::{
-    CodeSection, ConstExpr, ElementSection, Elements, EntityType, ExportKind, ExportSection,
-    Function, FunctionSection, ImportSection, Instruction, MemArg, MemoryType, Module, RefType,
-    TableType, TypeSection, ValType,
+    BlockType, CodeSection, ConstExpr, ElementSection, Elements, EntityType, ExportKind,
+    ExportSection, Function, FunctionSection, ImportSection, Instruction, MemArg, MemoryType,
+    Module, RefType, TableType, TypeSection, ValType,
 };
 
 use crate::ast::{Node, Value};
@@ -47,7 +51,7 @@ pub struct EmitResult {
 // ---------------------------------------------------------------------------
 
 /// Canonical ordering for `nova_rt` runtime-function imports (deterministic).
-const RT_ORDER: [&str; 9] = [
+const RT_ORDER: [&str; 10] = [
     abi::rt::THUNK_NEW,
     abi::rt::FORCE,
     abi::rt::CLOSURE_NEW,
@@ -57,6 +61,7 @@ const RT_ORDER: [&str; 9] = [
     abi::rt::ARGS_BUF,
     abi::rt::CALL_CALLABLE,
     abi::rt::REPEAT,
+    abi::rt::CHECKPOINT,
 ];
 
 fn rt_signature(name: &str) -> (&'static [ValType], &'static [ValType]) {
@@ -72,6 +77,7 @@ fn rt_signature(name: &str) -> (&'static [ValType], &'static [ValType]) {
         n if n == abi::rt::ARGS_BUF => (&[], &[I32]),
         n if n == abi::rt::CALL_CALLABLE => (&[I64, I32, I32], &[I64]),
         n if n == abi::rt::REPEAT => (&[I64, I64], &[I64]),
+        n if n == abi::rt::CHECKPOINT => (&[], &[I64]),
         _ => unreachable!("unknown rt import: {name}"),
     }
 }
@@ -112,6 +118,8 @@ fn collect_uses(node: &Node, uses: &mut Uses) {
             }
         },
         Node::RegularCall { name, args, .. } => {
+            // Plan §3.9: every regular call site is checkpointed.
+            uses.rt.insert(abi::rt::CHECKPOINT);
             if let Some(def) = find_builtin(name, args.len() as u32) {
                 uses.builtins.insert(def.import_name);
             }
@@ -120,6 +128,9 @@ fn collect_uses(node: &Node, uses: &mut Uses) {
             }
         }
         Node::ValueCall { variable, args, .. } => {
+            // Plan §3.9: every value call site is checkpointed (after the
+            // callee force, before the args are staged).
+            uses.rt.insert(abi::rt::CHECKPOINT);
             uses.rt.insert(abi::rt::FORCE);
             uses.rt.insert(abi::rt::CALL_CALLABLE);
             if args.len() <= abi::ARGS_BUF_SLOTS {
@@ -133,6 +144,9 @@ fn collect_uses(node: &Node, uses: &mut Uses) {
             }
         }
         Node::Repetition { count, body, .. } => {
+            // `#` is not a call in naive — no checkpoint of its own (plan
+            // §3.9); the body's own call sites still collect one via the
+            // arms above.
             uses.rt.insert(abi::rt::REPEAT);
             uses.rt.insert(abi::rt::CLOSURE_NEW); // 0-arity body closure
             uses.rt.insert(abi::rt::ENV_NEW); // its prologue
@@ -169,6 +183,10 @@ struct FnCtx {
     local_tys: Vec<ValType>,
     n_params: u32,
     env: EnvSlot,
+    /// Scratch i64 local for the checkpoint guard (plan §3.9); allocated on
+    /// demand, one per function (see `emit_checkpoint_guard` for why sharing
+    /// one is safe).
+    chk_local: Option<u32>,
     /// Lexical scope stack of closure parameter names (level 0 = top).
     scopes: Vec<Vec<String>>,
 }
@@ -257,6 +275,7 @@ pub fn emit(root: &Node) -> Result<EmitResult, String> {
         local_tys: Vec::new(),
         n_params: 0,
         env: EnvSlot::Top,
+        chk_local: None,
         scopes: vec![Vec::new()],
     };
     cg.emit_value(&mut main, root)?;
@@ -285,6 +304,7 @@ impl Codegen {
             local_tys: Vec::new(),
             n_params: 3,
             env: EnvSlot::Local(0),
+            chk_local: None,
             scopes: scopes.to_vec(),
         };
         self.emit_value(&mut ctx, node)?;
@@ -307,6 +327,7 @@ impl Codegen {
             local_tys: Vec::new(),
             n_params: 3,
             env: EnvSlot::Local(0),
+            chk_local: None,
             scopes,
         };
         // Prologue: new_env = env_new(captured_env = param0, count = arity)
@@ -337,6 +358,49 @@ impl Codegen {
     }
 
     // -- expression emission -------------------------------------------------
+
+    /// Emit the checkpoint guard (plan §3.9) around `body`, which must leave
+    /// exactly one i64 on the stack:
+    ///
+    /// ```text
+    /// call $checkpoint        // -> i64
+    /// local.tee $chk
+    /// i64.eqz
+    /// if (result i64)
+    ///   <body — leaves the call result i64>
+    /// else
+    ///   local.get $chk        // the error handle becomes this node's value
+    /// end
+    /// ```
+    ///
+    /// A fired checkpoint's ERROR handle thus becomes the call node's own
+    /// value ("errors are values" — no traps), observationally identical to
+    /// naive's lazy error box at the same call. One scratch i64 local per
+    /// function is safe: the `else` arm reads `$chk` only when the `then` arm
+    /// (whose nested calls may clobber `$chk`) was skipped.
+    fn emit_checkpoint_guard(
+        &mut self,
+        ctx: &mut FnCtx,
+        body: impl FnOnce(&mut Self, &mut FnCtx) -> Result<(), String>,
+    ) -> Result<(), String> {
+        let chk = match ctx.chk_local {
+            Some(l) => l,
+            None => {
+                let l = ctx.alloc_local(ValType::I64);
+                ctx.chk_local = Some(l);
+                l
+            }
+        };
+        ctx.instrs.push(Instruction::Call(self.rt(abi::rt::CHECKPOINT)));
+        ctx.instrs.push(Instruction::LocalTee(chk));
+        ctx.instrs.push(Instruction::I64Eqz);
+        ctx.instrs.push(Instruction::If(BlockType::Result(ValType::I64)));
+        body(self, ctx)?;
+        ctx.instrs.push(Instruction::Else);
+        ctx.instrs.push(Instruction::LocalGet(chk));
+        ctx.instrs.push(Instruction::End);
+        Ok(())
+    }
 
     /// Emit code leaving a value handle for `node` (calls are performed).
     fn emit_value(&mut self, ctx: &mut FnCtx, node: &Node) -> Result<(), String> {
@@ -394,38 +458,49 @@ impl Codegen {
                 let def = find_builtin(name, args.len() as u32).ok_or_else(|| {
                     format!("unresolved call {name}/{len} in codegen", len = args.len())
                 })?;
-                for arg in args {
-                    self.emit_lazy(ctx, arg)?;
-                }
-                ctx.instrs.push(Instruction::Call(self.builtin(def.import_name)));
+                // Checkpoint before arg creation: arg-thunk creation is
+                // forcing-free allocation, unobservable (plan §3.9).
+                self.emit_checkpoint_guard(ctx, |cg, ctx| {
+                    for arg in args {
+                        cg.emit_lazy(ctx, arg)?;
+                    }
+                    ctx.instrs.push(Instruction::Call(cg.builtin(def.import_name)));
+                    Ok(())
+                })?;
             }
             Node::ValueCall { variable, args, .. } => {
                 let f = ctx.alloc_local(ValType::I64);
                 let buf = ctx.alloc_local(ValType::I32);
-                // Force the callee FIRST (forcing may run code that clobbers
-                // the scratch args buffer).
+                // Force the callee FIRST (naive forces the callee eagerly
+                // before checkpointing; forcing may also run code that
+                // clobbers the scratch args buffer).
                 self.emit_value(ctx, variable)?;
                 ctx.instrs.push(Instruction::Call(self.rt(abi::rt::FORCE)));
                 ctx.instrs.push(Instruction::LocalSet(f));
                 let argc = args.len() as u32;
-                if args.len() <= abi::ARGS_BUF_SLOTS {
-                    ctx.instrs.push(Instruction::Call(self.rt(abi::rt::ARGS_BUF)));
-                } else {
-                    // Oversized call: use a fresh env as the arg buffer.
-                    ctx.instrs.push(Instruction::I32Const(0));
-                    ctx.instrs.push(Instruction::I32Const(argc as i32));
-                    ctx.instrs.push(Instruction::Call(self.rt(abi::rt::ENV_NEW)));
-                }
-                ctx.instrs.push(Instruction::LocalSet(buf));
-                for (i, arg) in args.iter().enumerate() {
+                // The checkpoint sits after the callee force, wrapping the
+                // args staging + dispatch (plan §3.9, naive parity).
+                self.emit_checkpoint_guard(ctx, |cg, ctx| {
+                    if args.len() <= abi::ARGS_BUF_SLOTS {
+                        ctx.instrs.push(Instruction::Call(cg.rt(abi::rt::ARGS_BUF)));
+                    } else {
+                        // Oversized call: use a fresh env as the arg buffer.
+                        ctx.instrs.push(Instruction::I32Const(0));
+                        ctx.instrs.push(Instruction::I32Const(argc as i32));
+                        ctx.instrs.push(Instruction::Call(cg.rt(abi::rt::ENV_NEW)));
+                    }
+                    ctx.instrs.push(Instruction::LocalSet(buf));
+                    for (i, arg) in args.iter().enumerate() {
+                        ctx.instrs.push(Instruction::LocalGet(buf));
+                        cg.emit_lazy(ctx, arg)?;
+                        ctx.instrs.push(Instruction::I64Store(memarg((i as u64) * 8)));
+                    }
+                    ctx.instrs.push(Instruction::LocalGet(f));
                     ctx.instrs.push(Instruction::LocalGet(buf));
-                    self.emit_lazy(ctx, arg)?;
-                    ctx.instrs.push(Instruction::I64Store(memarg((i as u64) * 8)));
-                }
-                ctx.instrs.push(Instruction::LocalGet(f));
-                ctx.instrs.push(Instruction::LocalGet(buf));
-                ctx.instrs.push(Instruction::I32Const(argc as i32));
-                ctx.instrs.push(Instruction::Call(self.rt(abi::rt::CALL_CALLABLE)));
+                    ctx.instrs.push(Instruction::I32Const(argc as i32));
+                    ctx.instrs.push(Instruction::Call(cg.rt(abi::rt::CALL_CALLABLE)));
+                    Ok(())
+                })?;
             }
             Node::Repetition { count, body, .. } => {
                 self.emit_lazy(ctx, count)?;

@@ -1,10 +1,11 @@
 //! Runtime exports (ABI §3.5): thunks and the iterative force trampoline,
-//! callable dispatch (`call_callable`), `repeat` (`#`), and the
-//! per-evaluation lifecycle functions.
+//! callable dispatch (`call_callable`), `repeat` (`#`), the per-evaluation
+//! lifecycle functions, and the checkpoint channel (§3.9).
 
 use dicexp_nova_abi as abi;
 
 use crate::builtins;
+use crate::checkpoint;
 use crate::errors;
 use crate::finalize;
 use crate::mem;
@@ -315,10 +316,27 @@ pub extern "C" fn seed(seed: i32) {
     rng::seed(seed);
 }
 
+/// Call-boundary checkpoint (plan §3.9): 0 = continue; non-zero = an ERROR
+/// handle the call site returns as its own value. Emitted by the compiler at
+/// every regular-call and value-call site. A pure no-op while no restriction
+/// is armed (`env.now` is never called).
+#[no_mangle]
+pub extern "C" fn __checkpoint() -> i64 {
+    checkpoint::checkpoint_impl() as i64
+}
+
+/// Arm the soft timeout (plan §3.9); JS computes `Date.now() + ms` at
+/// evaluation start. `reset()` disarms.
+#[no_mangle]
+pub extern "C" fn set_soft_timeout(deadline_epoch_ms: f64, limit_ms: i32) {
+    checkpoint::arm(deadline_epoch_ms, limit_ms as i64);
+}
+
 #[no_mangle]
 pub extern "C" fn reset() {
     mem::rewind();
     finalize::reset_buffer();
+    checkpoint::disarm();
 }
 
 #[no_mangle]

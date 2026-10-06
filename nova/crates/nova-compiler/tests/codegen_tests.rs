@@ -162,10 +162,11 @@ fn structure_trivial_literal() {
 
 #[test]
 fn structure_simple_call() {
-    // `1 + 2`: both args are immediates → no thunk, no table entries.
+    // `1 + 2`: both args are immediates → no thunk, no table entries. The
+    // call site itself imports the checkpoint (plan §3.9).
     let (info, table_size) = validate("1 + 2");
     assert_eq!(table_size, 0);
-    assert_eq!(fn_import_names(&info), vec!["op_add_2"]);
+    assert_eq!(fn_import_names(&info), vec![rt::CHECKPOINT, "op_add_2"]);
 }
 
 #[test]
@@ -177,7 +178,7 @@ fn structure_thunk_and_table() {
     assert_eq!(info.elem_func_count, 1);
     assert_eq!(
         fn_import_names(&info),
-        vec![rt::THUNK_NEW, rt::LIST_NEW, "op_add_2"]
+        vec![rt::THUNK_NEW, rt::LIST_NEW, rt::CHECKPOINT, "op_add_2"]
     );
 }
 
@@ -186,19 +187,27 @@ fn structure_exact_builtin_imports() {
     let (info, _) = validate("sort([3, 1 + 2]) |> head");
     assert_eq!(
         fn_import_names(&info),
-        vec![rt::THUNK_NEW, rt::LIST_NEW, "bf_head_1", "bf_sort_1", "op_add_2"]
+        vec![
+            rt::THUNK_NEW,
+            rt::LIST_NEW,
+            rt::CHECKPOINT,
+            "bf_head_1",
+            "bf_sort_1",
+            "op_add_2"
+        ]
     );
 }
 
 #[test]
 fn structure_closure() {
     // `|$x| $x + 1`: closure body in the table; imports closure_new + env_new
-    // (prologue) + op_add_2; the arg `1` is an immediate.
+    // (prologue) + op_add_2 (checkpointed as a regular call); the arg `1` is
+    // an immediate.
     let (info, table_size) = validate("|$x| $x + 1");
     assert_eq!(table_size, 1);
     assert_eq!(
         fn_import_names(&info),
-        vec![rt::CLOSURE_NEW, rt::ENV_NEW, "op_add_2"]
+        vec![rt::CLOSURE_NEW, rt::ENV_NEW, rt::CHECKPOINT, "op_add_2"]
     );
 }
 
@@ -216,6 +225,7 @@ fn structure_value_call() {
             rt::ENV_NEW,
             rt::ARGS_BUF,
             rt::CALL_CALLABLE,
+            rt::CHECKPOINT,
             "op_add_2",
         ]
     );
@@ -225,12 +235,13 @@ fn structure_value_call() {
 fn structure_repetition() {
     // `3 # d6`: count is an immediate; the body closure calls op_d_1
     // directly (its argument is an immediate), so the table holds just the
-    // repetition body closure.
+    // repetition body closure. The `d6` call site imports the checkpoint;
+    // the `#` itself does not (plan §3.9).
     let (info, table_size) = validate("3 # d6");
     assert_eq!(table_size, 1);
     assert_eq!(
         fn_import_names(&info),
-        vec![rt::CLOSURE_NEW, rt::ENV_NEW, rt::REPEAT, "op_d_1"]
+        vec![rt::CLOSURE_NEW, rt::ENV_NEW, rt::REPEAT, rt::CHECKPOINT, "op_d_1"]
     );
 }
 
@@ -245,11 +256,11 @@ fn structure_alias_resolves_to_same_import() {
     // `^` is an alias of `**`: both import op_pow_2 (imported once). The
     // nested `**` arg is a call and gets a thunk.
     let (info, _) = validate("2 ^ 3 ** 4");
-    assert_eq!(fn_import_names(&info), vec![rt::THUNK_NEW, "op_pow_2"]);
+    assert_eq!(fn_import_names(&info), vec![rt::THUNK_NEW, rt::CHECKPOINT, "op_pow_2"]);
     assert!(find_builtin("^", 2).unwrap().import_name == "op_pow_2");
     // `2 ^ 3` alone needs no thunk at all.
     let (info, _) = validate("2 ^ 3");
-    assert_eq!(fn_import_names(&info), vec!["op_pow_2"]);
+    assert_eq!(fn_import_names(&info), vec![rt::CHECKPOINT, "op_pow_2"]);
 }
 
 #[test]
@@ -281,4 +292,33 @@ fn memory_and_table_are_first_imports() {
     assert_eq!(info.memory_imports, vec![("env".to_string(), "memory".to_string(), 1)]);
     assert_eq!(info.imports[0], ("env".to_string(), "table".to_string()));
     assert_eq!(info.imports[1].0, RUNTIME_IMPORT_MODULE);
+}
+
+// ---------------------------------------------------------------------------
+// checkpoint placement (plan §3.9)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn structure_checkpoint_only_at_call_sites() {
+    // Regular calls and value calls are checkpointed; `#`/repetition is not
+    // a call in naive and gets no checkpoint of its own (its body's own call
+    // sites still do, see `structure_repetition`).
+    let (info, _) = validate("3 # 1"); // count and body are immediates
+    assert_eq!(
+        fn_import_names(&info),
+        vec![rt::CLOSURE_NEW, rt::ENV_NEW, rt::REPEAT]
+    );
+
+    // A value call is checkpointed (after the callee force).
+    let (info, _) = validate("1.(2)"); // runtime error, but compiles
+    assert!(fn_import_names(&info).contains(&rt::CHECKPOINT));
+
+    // No call sites at all → no checkpoint import (inert when unarmed).
+    for p in ["42", "true", "[1, [2]]", "&sum/1", "|$x| $x"] {
+        let (info, _) = validate(p);
+        assert!(
+            !fn_import_names(&info).contains(&rt::CHECKPOINT),
+            "{p:?} must not import the checkpoint"
+        );
+    }
 }
