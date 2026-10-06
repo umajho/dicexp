@@ -20,8 +20,8 @@ legacy/reference implementation.
 | v0.1 | first working version | ✅ done |
 | v0.2 | **nova in the playground** | ✅ code-complete (deploy is the owner's call) |
 | v0.3 | playground benchmark mode | ✅ code-complete (deploy is the owner's call) |
-| v0.4 | language-complete core | |
-| v0.5 | limits & robustness | |
+| v0.4 | language-complete core | ✅ done |
+| v0.5 | limits & robustness | ✅ done |
 | v0.6 | performance & size | |
 | v0.7 | builtin completeness: implementation | |
 | v0.8 | builtin docs sourced from nova | |
@@ -142,6 +142,35 @@ Numbers: 121 Rust + 733 JS tests (3 skipped, 3 todo) green.
 
 **Exit:** timeout tests green; Y-combinator test green; a 10k-program fuzz
 run shows no unexplained divergences.
+
+**Done (2026-10-06).** The checkpoint channel (plan §3.9) is the single
+mechanism: `nova_rt.__checkpoint()` at every regular-call and value-call
+site (compiler-emitted guard; a fired checkpoint's ERROR handle becomes the
+call's own value — no traps), armed per evaluation by
+`nova_rt.set_soft_timeout` + the `env.now` host import; naive-exact
+semantics (strict `>`; checkpoint-silent stretches — builtin loops,
+repetition of call-free bodies — never fire) and exact zh message parity.
+Placement is naive-parity by analysis: builtin-internal insertion points
+stay reserved for the (additive, ABI-stable) fuel/chunked-ops evolution.
+Shared-suite timeout rows run on BOTH impls (per-impl busy-work shapes —
+naive cannot build large flat repetition-lists at all, see compat #9); only
+the `sleep/1` rows stay naive-only. TCO verified by substitution (the
+`if/3` Y-combinator row awaits v0.7): a simulated-if Y-combinator without
+the trailing `.()` sums 1..100000 live on nova (compat #6 records why
+`.()` defeats the trampoline and why naive stays `todoFor` — fatal OOM,
+not a clean overflow). Fuzzing v1: typed-AST generator with range/distribution
+tracking and compat-cited exclusions; **180k programs × 3 eval seeds
+(540k evaluation pairs, incl. one 100k-program stress run), zero
+unexplained divergences.** The fuzzer found one real divergence — naive's
+map/zipWith error-beacon poisoning — recorded in compat #9 and pinned in
+the differential suite. Also: the nova-in-worker init-failure gap is fixed
+(bounded retry + real error surfaced in the playground instead of a
+forever spinner; naive's worker keeps the latent gap) and the ABI gained a
+version guard (`ABI_VERSION = 2`). Numbers: 129 Rust + 753 JS tests
+(2 skipped = sleep rows, 3 todo) + naive 208 / 62+4todo / 158; playground
+tsc + vite build clean; browser smoke: soft timeout fires under nova with
+the exact naive message, init failure (hidden wasm assets) surfaces a real
+error card, recovery after restore confirmed.
 
 ## v0.6 — Performance & size
 

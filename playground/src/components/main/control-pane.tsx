@@ -232,14 +232,14 @@ export const ControlPane: Component = () => {
             >
               {restrictionsText()}
             </LabelButton>
-            {/* Nova caveats (nova/docs/compat.md #8): soft timeout is not
-                implemented yet and step display is unavailable. */}
+            {/* Nova caveats (nova/docs/compat.md #8): step display is
+                unavailable (soft timeout works since v0.5). */}
             <Show when={implementation() === "nova"}>
               <span
                 class="text-xs text-gray-400 select-none"
-                title="软性超时与步骤展示暂未在 nova 实现中提供，将在后续版本加入。"
+                title="步骤展示暂未在 nova 实现中提供，将在后续版本加入。"
               >
-                （nova 下软性超时与步骤展示暂不可用）
+                （nova 下步骤展示暂不可用）
               </span>
             </Show>
             <RestrictionsModal

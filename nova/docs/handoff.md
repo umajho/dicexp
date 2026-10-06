@@ -13,6 +13,79 @@
 > while useful (the size cap, not a timer, is the forcing function); delete
 > obsolete entries outright; keep the whole file ≤ ~150 lines.
 
+## 2026-10-06 — after v0.5 (limits & robustness, DONE)
+
+### Where we are
+
+- Branch `nova`, ~55 local commits ahead of `main`, nothing pushed. **v0.5
+  is done** (all exit criteria met): checkpoint channel + soft timeout
+  (plan §3.9, `ABI_VERSION = 2` — `machine.ts` now guards it); TCO verified
+  by a substituted row; differential fuzzing v1 landed; the nova-in-worker
+  init-failure gap fixed (bounded retry + surfaced error).
+- Numbers: 129 Rust + 753 nova JS tests (2 skipped = sleep/1 rows; 3 todo:
+  the `if/3` Y-combinator + two `d` todos) + naive 208 / 62+4todo / 158;
+  playground tsc + vite build clean. Browser smoke: soft timeout fires
+  under nova with naive's exact message; init failure (hidden wasm assets)
+  shows a real error card after ~6 s of retries; recovery confirmed.
+- Fuzz: `FUZZ_SEED`/`FUZZ_PROGRAMS` env knobs; default 1000 programs ≈
+  0.3 s; 10k ≈ 2.7 s per seed. Exit run: 180k programs × 3 eval seeds
+  (incl. one 100k stress run), zero unexplained divergences. Repro triple:
+  (FUZZ_SEED, FUZZ_PROGRAMS, program index).
+
+### Integration gotchas (cost real time this iteration)
+
+- **naive cannot build large flat repetition-lists** (`300000#1 |> sum` →
+  uncaught RangeError from spread-based list construction, ~10–60k cap) —
+  now compat #9. Any future both-impl test row needing big collections must
+  use per-impl shapes (the soft-timeout busy rows do, via `forImpl`).
+- **A simulated-if with trailing `.()` defeats nova's trampoline** (branch
+  forced nested inside the value call); without it the chain is a thunk
+  chain chased by the iterative force loop. Lazy accumulators must be
+  forced per level. All in compat #6.
+- naive's failure on list-carrying self-recursion is an **uncatchable
+  fatal OOM**, not a RangeError — a live naive row would kill the vitest
+  worker process. Keep such shapes `todoFor: ["naive"]` (compat #6).
+- Soft-timeout rows are wall-clock: keep margins ≥5× (nova busy row
+  `300000#1 |> sum` ≈ 55–70 ms vs the 10 ms deadline).
+- Fuzz-triage lesson: NaN silently bypasses every comparison-based guard —
+  the generator's `genPredicate` now has an explicit `!(total > 0)` guard.
+  A hard V8 OOM (no divergence report) bisects cheaply via FUZZ_PROGRAMS on
+  the deterministic stream.
+
+### Subagent playbooks
+
+- Contract-first parallelization worked again: lead wrote the checkpoint
+  ABI (nova-abi + plan §3.9), then three `smart` agents in parallel
+  (mechanism / worker-init fix / fuzzer), one follow-up for suite rows. No
+  escalation needed.
+- **Resume-session BROKE this iteration**: the subagent sessionID was
+  truncated to `"ses"` in transit on every attempt (harness bug?). A fresh
+  session with a self-contained prompt worked fine — write prompts
+  self-contained, treat resume as opportunistic.
+- Integration-sim (real manager + fake worker, 33 checks) verified the
+  init-failure fix without browser driving; the browser smoke then
+  confirmed the real 404 path end-to-end (hidden wasm assets → vite serves
+  an HTML error page → `WebAssembly.compile` magic-word error).
+
+### Open nuances for the owner
+
+- `statistics.calls` (naive's call counting under softTimeout) not
+  reproduced — deferred, no known consumer (compat TODO).
+- Known adjacent gap (deliberately left): the worker handshake
+  (`loaded`/`initialize`) has no timeout — a worker *script* 404 still
+  hangs init forever; only failures inside `initialize` (e.g. wasm fetch)
+  are covered. Needs a handshake-timeout policy decision.
+- When `if/*` lands (v0.7): drop nova from the `if/3` Y-combinator row's
+  `todoFor`; the substitute TCO row may stay or go.
+
+### Environment notes
+
+- Dev server: if the shell tool's `background` parameter doesn't take
+  (happened repeatedly this session), `nohup npx vite --port 5199
+  --strictPort > …/vite.log 2>&1 &` works; kill by port as usual.
+- `just test-nova` rebuilds the wasm assets first; the ABI guard in
+  `machine.ts` turns stale-asset mistakes into a clear error.
+
 ## 2026-10-06 — after v0.4 (language-complete core, DONE)
 
 ### Where we are
@@ -56,11 +129,9 @@
 - Shared-suite mechanics: nova's `parse` = a classification over
   `evaluate()` (`["error","parse"]` vs not); scope injection can't be
   shared — `SuiteContext.makeTesterFor`/`makeSleepTester` parameterize it
-  (undefined for nova ⇒ soft-timeout block skips). 99 parse rows are
+  (undefined for nova ⇒ only the sleep/1 rows skip). 99 parse rows are
   `div3` (nova rejects unknown names at compile time — asserted as parse
-  errors). vitest `skipIf` chained-only — graduated to plan §9.1; the
-  browser smoke playbook graduated to the `browser-debugging` skill
-  (`.agents/skills/`).
+  errors).
 - **Verify "naive errors/behaves-X" assumptions empirically BEFORE writing
   them into contracts/compat** — compat #4 had to be withdrawn; the lead's
   contract also used `|_x|` (parse error; the ignored-param form is `|_|`).
@@ -85,16 +156,8 @@
 
 ### Open nuances for the owner (carried + new)
 
-- Y-combinator `it.todo` uses `if/3` — unrunnable on BOTH impls until
-  v0.7's `if/*`; body pre-filled, drop nova from `todoFor` then.
-  Observation: non-tail recursion at depth 1000 overflows BOTH impls
-  (naive RangeError; nova "Maximum call stack size exceeded") — v0.5's
-  TCO scope is tail chains, so this is expected.
-- v0.5 soft-timeout: naive's rows need host-injected `sleep/1` —
-  impossible for nova; new nova-side rows needed when checkpoints land.
 - Carried: playground selector persistence (still not, deliberate);
-  benchmark panel shows a speedup on cancelled runs; nova-in-worker
-  init-failure gap (forever spinner if wasm fetch fails) — v0.5.
+  benchmark panel shows a speedup on cancelled runs.
 
 ### Environment notes
 
@@ -104,48 +167,3 @@
   `general`/`explore` default to KIMI K3 here. Look up model IDs with the
   models tool when needed (e.g. `opencode-go/glm-5.3`) — never guess.
 
-## 2026-10-06 — after v0.3 (playground benchmark mode, code-complete)
-
-### Where we are
-
-- v0.3 **code-complete** (deploy is the owner's call, same as v0.2):
-  benchmark mode is a third tab (基准) alongside 单次/抽样 in the control
-  pane; the naive/nova selector and the example select hide in benchmark
-  mode; the benchmark editor keeps its OWN doc signal — presets must not
-  clobber the autosaved main doc. Completed/cancelled runs push a
-  keepable/removable 基准 record card into the result pane (shared
-  `BenchmarkOutcomeView`; Benchmark* types in `types.ts`).
-  Numbers: `nova/docs/benchmarks.md` — nova 0.52× naive on `d6`
-  (instantiation-dominated), 3.4–12.8× faster on evaluation-heavy presets,
-  **zero histogram disagreements** across all 9 presets. v0.6's
-  static-linking question is resolved by them (stays deferred; instance
-  reuse is the first perf lever).
-- Protocol option: `I.RemoteSamplingOptions { sampling?: { maxSamples } }`
-  (interface + both worker packages) — worker stops after exactly N
-  samples (seeds 0..N−1), making runs exactly comparable.
-
-### Integration gotchas (still relevant)
-
-- **Sampling channel semantics** (pinned in dicexp-benchmark.ts's header):
-  `keepSampling`'s async generator yields `["continue", …]` interval
-  reports; the FINAL stop/error report is the generator's *return* value.
-  Histograms are integer-only — non-number results error the run (this is
-  why presets are integer-valued).
-- Commit `3cbd5f9` (BOTH worker packages — pre-existing naive bug): the
-  sampling handler fell through after the generator's terminal error and
-  overwrote it with a bogus `抽样不支持求值结果 "runtime" 的类型` message.
-  If sampling ever shows a wrong/confusing error again, suspect the
-  handler first.
-- zsh: `echo ===` is a parse error (`=cmd` expansion); commit messages
-  with apostrophes/quotes — write to a temp file and `git commit -F`.
-
-### Subagent playbooks (from v0.3, still true)
-
-- Contract-first parallelization: lead writes the shared API/types files,
-  then impl and consumer agents work in parallel against them.
-- smart agent's **bonus integration-sim** pattern: bundle the real hook
-  with faithful fakes of the client in a scratch dir, drive scenarios —
-  much cheaper than browser driving for logic verification.
-- Scratch differential verification of playground presets = temp vitest in
-  `nova/packages/nova/test/` importing
-  `../../../../playground/src/stores/benchmark-presets`. Delete after.
