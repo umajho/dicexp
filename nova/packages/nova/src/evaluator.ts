@@ -5,7 +5,7 @@
 import type * as I from "@dicexp/interface";
 
 import { localizeZh } from "./locale/zh";
-import { Machine, NovaAssets } from "./machine";
+import { Machine, NovaAssets, PreparedProgram } from "./machine";
 import { DecodedCompileError } from "./protocol";
 
 export async function createEvaluator(
@@ -86,16 +86,24 @@ class NovaEvaluator implements I.Evaluator {
     }
 
     const machine = this.machine;
+    // v0.6 instance reuse (benchmarks.md): link the program into the shared
+    // table once here, then re-run the same instance per sample via
+    // `runPrepared` — per-sample instantiation dominated trivial programs.
+    // The generator below stays lazy/pull-driven; `runPrepared` re-binds the
+    // instance automatically if anything else instantiates into the shared
+    // table between two pulls (e.g. a concurrent `evaluate`).
+    let prepared: PreparedProgram;
+    try {
+      prepared = machine.prepareProgram(compiled.module, compiled.tableSize);
+    } catch (e) {
+      return ["error", "other", e instanceof Error ? e : new Error(String(e))];
+    }
     return [
       "ok",
       (function* (): I.EvaluationGenerator {
         for (let seed = 0;; seed++) {
           try {
-            const outcome = machine.runCompiled(
-              compiled.module,
-              compiled.tableSize,
-              seed,
-            );
+            const outcome = machine.runPrepared(prepared, seed);
             if (!outcome.ok) {
               return [
                 "error",

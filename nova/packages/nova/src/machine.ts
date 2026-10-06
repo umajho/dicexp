@@ -52,6 +52,31 @@ export type RunOutcome =
   | { ok: true; value: unknown }
   | { ok: false; error: DecodedError };
 
+/**
+ * A program module linked into the machine's shared table, ready for
+ * repeated `runPrepared` runs (v0.6 instance reuse, plan.md §7): the
+ * per-sample `new WebAssembly.Instance` cost dominated trivial programs
+ * (benchmarks.md: nova 0.52× naive on `d6`). Opaque handle — everything
+ * but `module`/`tableSize` is managed by the owning `Machine`.
+ */
+export class PreparedProgram {
+  /** The live instance; replaced whenever the shared table is re-bound. */
+  instance!: WebAssembly.Instance;
+  /**
+   * `tableEpoch` value recorded at this handle's last instantiation.
+   * Stale (≠ the machine's current epoch) ⇒ another program has
+   * overwritten the shared table's slots and this instance must not be
+   * called (see `Machine.runPrepared`).
+   */
+  epoch = -1;
+  constructor(
+    /** The compiled program module (re-instantiated on invalidation). */
+    readonly module: WebAssembly.Module,
+    /** Compiler-reported table size (plan.md §3.3); the table's floor. */
+    readonly tableSize: number,
+  ) {}
+}
+
 async function toModule(
   asset: BufferSource | WebAssembly.Module,
 ): Promise<WebAssembly.Module> {
@@ -60,6 +85,19 @@ async function toModule(
 }
 
 export class Machine {
+  /**
+   * Monotonic counter bumped on EVERY program instantiation into the
+   * shared table. Program modules populate slots `0..table_size` via
+   * active element segments at instantiation (plan.md §3.3), overwriting
+   * whatever a previous program put there — so only the most recently
+   * instantiated program's instance may call through the table. Each
+   * `PreparedProgram` records the epoch it was instantiated under and is
+   * re-instantiated before running whenever the epochs diverge, which
+   * keeps interleaved use (e.g. an `evaluate` of program A between two
+   * pulls of a prepared generator for program B) safe.
+   */
+  private tableEpoch = 0;
+
   private constructor(
     private readonly compiler: CompilerExports,
     private readonly builtins: BuiltinsExports,
@@ -160,17 +198,47 @@ export class Machine {
   }
 
   /**
-   * Runs a compiled program module with a fresh heap and the given seed.
-   * `restrictions.softTimeoutMs`, when given, arms the soft timeout
-   * (plan §3.9): checkpoints fire on the first call forced after
-   * `Date.now() + softTimeoutMs`.
+   * Links a compiled program module into the shared table ONCE and returns
+   * a handle for repeated `runPrepared` runs. Grows the table if needed
+   * (the program's `env.table` import demands `tableSize` slots) and bumps
+   * `tableEpoch`, invalidating every previously prepared program.
    */
-  runCompiled(
-    program: WebAssembly.Module,
+  prepareProgram(
+    module: WebAssembly.Module,
     tableSize: number,
+  ): PreparedProgram {
+    const prepared = new PreparedProgram(module, tableSize);
+    this.bindProgram(prepared);
+    return prepared;
+  }
+
+  /**
+   * Runs a prepared program with a fresh heap and the given seed — the
+   * per-run sequence of `runCompiled` minus instantiation. Re-instantiates
+   * first if the shared table was re-bound by another program since this
+   * handle's last run (the `tableEpoch` check above).
+   *
+   * Why reusing one instance across runs is safe (no cross-run state
+   * survives into the next run):
+   * - Program modules hold no mutable state of their own: today they have
+   *   no globals at all (plan.md §3.4 — the const pool is a later v0.6
+   *   item, and its design already re-initializes every global in
+   *   `__main`'s prologue, keeping reuse safe when it lands).
+   * - The heap is rewound by `reset()` (plan.md §3.2) before every run.
+   * - The RNG is re-seeded per run (`seed`), so same seed ⇒ same stream.
+   * - `reset()` also disarms the soft timeout; it is re-armed below only
+   *   when this run requests one (plan.md §3.9).
+   * - `finalize` writes a fresh result buffer per run before we decode it.
+   */
+  runPrepared(
+    prepared: PreparedProgram,
     seed: number,
     restrictions?: { softTimeoutMs?: number },
   ): RunOutcome {
+    if (prepared.epoch !== this.tableEpoch) {
+      this.bindProgram(prepared);
+    }
+
     this.builtins.reset();
     this.builtins.seed(seed);
     if (restrictions?.softTimeoutMs !== undefined) {
@@ -180,17 +248,7 @@ export class Machine {
       );
     }
 
-    if (tableSize > this.table.length) {
-      this.table.grow(tableSize - this.table.length);
-    }
-
-    const instance = new WebAssembly.Instance(program, {
-      env: { memory: this.builtins.memory, table: this.table },
-      // NOTE: `this.builtins` is already the instance's exports object.
-      nova_rt: this.builtins as unknown as WebAssembly.ModuleImports,
-    });
-
-    const root = (instance.exports["__main"] as () => bigint)();
+    const root = (prepared.instance.exports["__main"] as () => bigint)();
     const status = this.builtins.finalize(root);
     const outcome = decodeResult(
       this.builtins.memory.buffer,
@@ -203,5 +261,47 @@ export class Machine {
       );
     }
     return outcome;
+  }
+
+  /**
+   * Runs a compiled program module with a fresh heap and the given seed.
+   * `restrictions.softTimeoutMs`, when given, arms the soft timeout
+   * (plan §3.9): checkpoints fire on the first call forced after
+   * `Date.now() + softTimeoutMs`.
+   *
+   * One-shot path (no reuse): prepare + run. Instantiation order relative
+   * to reset/seed/arm is immaterial — instantiation touches only the
+   * shared table (element segments; program modules have no start
+   * function, data sections, or globals), which none of those affect.
+   */
+  runCompiled(
+    program: WebAssembly.Module,
+    tableSize: number,
+    seed: number,
+    restrictions?: { softTimeoutMs?: number },
+  ): RunOutcome {
+    return this.runPrepared(
+      this.prepareProgram(program, tableSize),
+      seed,
+      restrictions,
+    );
+  }
+
+  /**
+   * Instantiates `prepared.module` into the shared table (growing it to
+   * `tableSize` first if needed — the import's minimum demands it) and
+   * records the new epoch on the handle.
+   */
+  private bindProgram(prepared: PreparedProgram): void {
+    if (prepared.tableSize > this.table.length) {
+      this.table.grow(prepared.tableSize - this.table.length);
+    }
+    prepared.instance = new WebAssembly.Instance(prepared.module, {
+      env: { memory: this.builtins.memory, table: this.table },
+      // NOTE: `this.builtins` is already the instance's exports object.
+      nova_rt: this.builtins as unknown as WebAssembly.ModuleImports,
+    });
+    this.tableEpoch += 1;
+    prepared.epoch = this.tableEpoch;
   }
 }
