@@ -30,6 +30,20 @@ build-nova-wasm:
 	# to shrink.
 	cd nova && cargo run --release -p dicexp-nova-shim-gen > packages/nova/wasm/nova-shim.wasm
 
+# MEASUREMENT-ONLY compiler variant (not a supported shipping configuration):
+# built with `--no-default-features` (the `checkpoints` cargo feature off), so
+# it emits NO plan-§3.9 checkpoint guards and omits the `__checkpoint` import —
+# the soft timeout silently stops working. For measuring the per-call overhead
+# of the checkpoint guard; optimized with the same wasm-opt flags as
+# `build-nova-wasm` (WASM_OPT_COMPILER_FLAGS) so measurements compare
+# like-for-like.
+build-nova-wasm-nockpt:
+	cd nova && cargo build --release --target wasm32-unknown-unknown --no-default-features -p dicexp-nova-compiler
+	mkdir -p nova/packages/nova/wasm-nockpt
+	cp nova/target/wasm32-unknown-unknown/release/dicexp_nova_compiler.wasm nova/packages/nova/wasm-nockpt/nova-compiler.wasm
+	{{WASM_OPT}} {{WASM_OPT_COMPILER_FLAGS}} nova/packages/nova/wasm-nockpt/nova-compiler.wasm -o nova/packages/nova/wasm-nockpt/nova-compiler.wasm.opt
+	mv nova/packages/nova/wasm-nockpt/nova-compiler.wasm.opt nova/packages/nova/wasm-nockpt/nova-compiler.wasm
+
 nova-wasm-sizes:
 	node nova/scripts/wasm-sizes.mjs
 

@@ -18,18 +18,30 @@
 //! - Value calls: force the callee first, then write args into the scratch
 //!   buffer (`nova_rt.args_buf`; for argc > `ARGS_BUF_SLOTS` a fresh env is
 //!   used as the arg buffer instead), then `nova_rt.call_callable`.
+//! - Const pool (plan §3.4): literal lists whose elements are recursively
+//!   pure literals are hoisted — one mutable i64 global per DISTINCT
+//!   constant (structural dedup, program-wide, at every nesting level),
+//!   initialized by `__main`'s prologue and read via `global.get` at each
+//!   occurrence (see the "Const pool" section below for the safety
+//!   argument).
 //! - Checkpoints (plan §3.9): every regular-call and value-call site is
 //!   guarded by `nova_rt.__checkpoint` — a fired checkpoint's ERROR handle
 //!   becomes the call node's own value. `#`/repetition is not a call in
-//!   naive and gets no checkpoint of its own.
+//!   naive and gets no checkpoint of its own. Guards exist only under the
+//!   default `checkpoints` cargo feature: `--no-default-features` builds a
+//!   MEASUREMENT-ONLY guardless compiler (no guards, no `__checkpoint`
+//!   import; the soft timeout silently stops working — not a supported
+//!   shipping configuration).
 
 use std::collections::{BTreeSet, HashMap};
 
 use dicexp_nova_abi::{self as abi, find_builtin};
+#[cfg(feature = "checkpoints")]
+use wasm_encoder::BlockType;
 use wasm_encoder::{
-    BlockType, CodeSection, ConstExpr, ElementSection, Elements, EntityType, ExportKind,
-    ExportSection, Function, FunctionSection, ImportSection, Instruction, MemArg, MemoryType,
-    Module, RefType, TableType, TypeSection, ValType,
+    CodeSection, ConstExpr, ElementSection, Elements, EntityType, ExportKind, ExportSection,
+    Function, FunctionSection, GlobalSection, GlobalType, ImportSection, Instruction, MemArg,
+    MemoryType, Module, RefType, TableType, TypeSection, ValType,
 };
 
 use crate::ast::{Node, Value};
@@ -97,12 +109,155 @@ fn is_direct(node: &Node) -> bool {
     matches!(node, Node::Variable(..) | Node::Value(..))
 }
 
+// ---------------------------------------------------------------------------
+// Const pool (plan §3.4)
+// ---------------------------------------------------------------------------
+
+/// A recursively pure literal tree — the hoistable class (plan §3.4):
+/// Integer, Boolean, or a list of such trees. Anything else (calls,
+/// variables, closures, captures) is NOT hoistable. Top-level scalars are
+/// not hoisted either (already inline i64 consts — nothing to gain); only
+/// lists enter the pool, but their element trees are described by this type.
+/// Structural equality over the tree is the program-wide dedup key.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+enum Const {
+    Int(i64),
+    Bool(bool),
+    List(Vec<Const>),
+}
+
+/// Classify `node` as a `Const`; `None` for anything not a pure literal.
+fn classify_const(node: &Node) -> Option<Const> {
+    match node {
+        Node::Value(Value::Integer(n), _) => Some(Const::Int(*n)),
+        Node::Value(Value::Boolean(b), _) => Some(Const::Bool(*b)),
+        Node::Value(Value::List(items), _) => {
+            let mut elems = Vec::with_capacity(items.len());
+            for item in items {
+                elems.push(classify_const(item)?);
+            }
+            Some(Const::List(elems))
+        }
+        _ => None,
+    }
+}
+
+/// The program-wide const pool: one entry per DISTINCT hoistable list
+/// constant, in dependency (inner-first) order — an entry's nested-list
+/// elements are always EARLIER entries, so `__main`'s prologue can
+/// initialize globals in plain index order while referring to
+/// already-initialized child globals.
+struct ConstPool {
+    entries: Vec<Const>,
+    index: HashMap<Const, u32>,
+}
+
+impl ConstPool {
+    fn new() -> Self {
+        ConstPool { entries: Vec::new(), index: HashMap::new() }
+    }
+
+    /// Intern a hoistable list (by its element list); returns its global
+    /// index. Idempotent: structurally-identical constants dedup to one
+    /// entry — including nested lists, which are interned as their own
+    /// pool entries so equal inner lists share one global across different
+    /// outer constants.
+    fn intern_list(&mut self, elems: &[Const]) -> u32 {
+        let key = Const::List(elems.to_vec());
+        if let Some(&i) = self.index.get(&key) {
+            return i;
+        }
+        // Inner-first: intern nested lists before this one (a no-op for
+        // already-interned children), so children get smaller indices.
+        for e in elems {
+            if let Const::List(inner) = e {
+                self.intern_list(inner);
+            }
+        }
+        let i = self.entries.len() as u32;
+        self.entries.push(key.clone());
+        self.index.insert(key, i);
+        i
+    }
+
+    /// Global index of an interned constant. The `build_const_pool`
+    /// pre-pass interns every hoistable list before emission starts, and
+    /// emission classifies with the same [`classify_const`], so this always
+    /// succeeds (internal-invariant expect, same style as [`Codegen::rt`]).
+    fn index_of(&self, c: &Const) -> u32 {
+        *self.index.get(c).expect("hoisted const interned by the pre-pass")
+    }
+}
+
+/// Pre-pass: intern every hoistable list constant in the program into
+/// `pool`. Walks everywhere `collect_uses` walks. A non-hoistable list's
+/// elements are still walked — nested hoistable lists inside them hoist on
+/// their own (e.g. `[1 + 2, [3, 4]]` hoists `[3, 4]`).
+fn build_const_pool(node: &Node, pool: &mut ConstPool) {
+    match node {
+        Node::Variable(..) => {}
+        Node::Value(v, _) => match v {
+            Value::Integer(_) | Value::Boolean(_) => {}
+            Value::List(items) => {
+                if let Some(elems) =
+                    items.iter().map(classify_const).collect::<Option<Vec<_>>>()
+                {
+                    pool.intern_list(&elems);
+                    // Elements are pure literals — nothing further inside.
+                } else {
+                    for item in items {
+                        build_const_pool(item, pool);
+                    }
+                }
+            }
+            Value::Closure { body, .. } => build_const_pool(body, pool),
+            Value::Captured { .. } => {}
+        },
+        Node::RegularCall { args, .. } => {
+            for arg in args {
+                build_const_pool(arg, pool);
+            }
+        }
+        Node::ValueCall { variable, args, .. } => {
+            build_const_pool(variable, pool);
+            for arg in args {
+                build_const_pool(arg, pool);
+            }
+        }
+        Node::Repetition { count, body, .. } => {
+            build_const_pool(count, pool);
+            build_const_pool(body, pool);
+        }
+    }
+}
+
+/// The i64 handle encoding of an integer literal (abi tag 00). Shared by
+/// the inline-literal path and the const-pool prologue so both encodings
+/// stay byte-for-byte identical.
+fn int_handle(n: i64) -> i64 {
+    abi::integer_to_value(n) as i64
+}
+
+/// The i64 handle encoding of a boolean literal (abi tag 01). See
+/// [`int_handle`].
+fn bool_handle(b: bool) -> i64 {
+    abi::boolean_to_value(b) as i64
+}
+
 fn collect_uses(node: &Node, uses: &mut Uses) {
     match node {
         Node::Variable(..) => {}
         Node::Value(v, _) => match v {
             Value::Integer(_) | Value::Boolean(_) => {}
             Value::List(items) => {
+                // Note on hoisting (plan §3.4): whether this list is
+                // hoisted into the const pool or constructed inline, the
+                // walk below registers exactly LIST_NEW — hoisting merely
+                // moves the call into `__main`'s prologue (and hoisted
+                // elements are pure literals, which register nothing
+                // else). So `collect_uses` needs no pool knowledge: a
+                // program whose ONLY list is hoisted still imports
+                // LIST_NEW, and nothing new is ever registered for it.
                 uses.rt.insert(abi::rt::LIST_NEW);
                 for item in items {
                     collect_uses_lazy(item, uses);
@@ -118,7 +273,9 @@ fn collect_uses(node: &Node, uses: &mut Uses) {
             }
         },
         Node::RegularCall { name, args, .. } => {
-            // Plan §3.9: every regular call site is checkpointed.
+            // Plan §3.9: every regular call site is checkpointed (guardless
+            // in measurement-only `--no-default-features` builds).
+            #[cfg(feature = "checkpoints")]
             uses.rt.insert(abi::rt::CHECKPOINT);
             if let Some(def) = find_builtin(name, args.len() as u32) {
                 uses.builtins.insert(def.import_name);
@@ -129,7 +286,9 @@ fn collect_uses(node: &Node, uses: &mut Uses) {
         }
         Node::ValueCall { variable, args, .. } => {
             // Plan §3.9: every value call site is checkpointed (after the
-            // callee force, before the args are staged).
+            // callee force, before the args are staged); guardless in
+            // measurement-only `--no-default-features` builds.
+            #[cfg(feature = "checkpoints")]
             uses.rt.insert(abi::rt::CHECKPOINT);
             uses.rt.insert(abi::rt::FORCE);
             uses.rt.insert(abi::rt::CALL_CALLABLE);
@@ -185,7 +344,9 @@ struct FnCtx {
     env: EnvSlot,
     /// Scratch i64 local for the checkpoint guard (plan §3.9); allocated on
     /// demand, one per function (see `emit_checkpoint_guard` for why sharing
-    /// one is safe).
+    /// one is safe). Unused in measurement-only `--no-default-features`
+    /// builds (no guards are emitted there).
+    #[cfg_attr(not(feature = "checkpoints"), allow(dead_code))]
     chk_local: Option<u32>,
     /// Lexical scope stack of closure parameter names (level 0 = top).
     scopes: Vec<Vec<String>>,
@@ -241,6 +402,8 @@ struct Codegen {
     defined: Vec<DefFn>,
     /// Positions in `defined` of `$clo` functions, in table-slot order.
     table: Vec<u32>,
+    /// The interned const pool (plan §3.4); see [`ConstPool`].
+    consts: ConstPool,
 }
 
 pub fn emit(root: &Node) -> Result<EmitResult, String> {
@@ -267,7 +430,14 @@ pub fn emit(root: &Node) -> Result<EmitResult, String> {
         builtin_idx,
         defined: Vec::new(),
         table: Vec::new(),
+        consts: ConstPool::new(),
     };
+
+    // Const-pool pre-pass (plan §3.4): intern every hoistable list constant
+    // BEFORE emission — the prologue below must cover them all, and
+    // emission-time lookups (including from thunk/closure bodies) rely on
+    // completeness.
+    build_const_pool(root, &mut cg.consts);
 
     // __main: () -> i64, env = top.
     let mut main = FnCtx {
@@ -278,6 +448,8 @@ pub fn emit(root: &Node) -> Result<EmitResult, String> {
         chk_local: None,
         scopes: vec![Vec::new()],
     };
+    // Prologue first: initialize every const-pool global before any use.
+    cg.emit_const_prologue(&mut main);
     cg.emit_value(&mut main, root)?;
     main.instrs.push(Instruction::End);
     let main_pos = cg.defined.len() as u32;
@@ -357,7 +529,88 @@ impl Codegen {
         slot
     }
 
+    // -- const-pool prologue --------------------------------------------------
+
+    /// Emit `__main`'s const-pool prologue (plan §3.4): allocate every
+    /// hoisted constant and store its handle into the pool's global.
+    ///
+    /// Entries are in inner-first order (see [`ConstPool`]), so a constant's
+    /// nested-list elements `global.get` EARLIER, already-initialized
+    /// globals. Element handles are inline i64 constants / child
+    /// `global.get`s — byte-for-byte the encoding inline construction uses
+    /// (same scalar helpers, same store offsets); hoisted constants contain
+    /// no thunks.
+    ///
+    /// REUSE CONTRACT (v0.6 instance reuse, machine.ts `runPrepared`):
+    /// `__main` is invoked repeatedly on ONE instance across samples, and
+    /// `reset()` rewinds the heap between runs — the previous run's list
+    /// handles are dead memory. Re-initializing every global here, at the
+    /// top of every run and before any use, is what keeps that safe: all
+    /// compiled code (thunk bodies, closure bodies) only ever runs within
+    /// `__main`'s dynamic extent, so no code path can observe a global
+    /// outside the run that initialized it.
+    fn emit_const_prologue(&mut self, ctx: &mut FnCtx) {
+        if self.consts.entries.is_empty() {
+            return;
+        }
+        let list_new = self.rt(abi::rt::LIST_NEW);
+        // One scratch pointer local, reused across all initializations
+        // (each initialization completes before the next begins).
+        let scratch = ctx.alloc_local(ValType::I32);
+        for (i, c) in self.consts.entries.iter().enumerate() {
+            let Const::List(elems) = c else {
+                unreachable!("const-pool entries are lists by construction")
+            };
+            // list_new(len) -> raw pointer.
+            ctx.instrs.push(Instruction::I32Const(elems.len() as i32));
+            ctx.instrs.push(Instruction::Call(list_new));
+            ctx.instrs.push(Instruction::LocalSet(scratch));
+            for (j, e) in elems.iter().enumerate() {
+                ctx.instrs.push(Instruction::LocalGet(scratch));
+                match e {
+                    Const::Int(n) => {
+                        ctx.instrs.push(Instruction::I64Const(int_handle(*n)));
+                    }
+                    Const::Bool(b) => {
+                        ctx.instrs.push(Instruction::I64Const(bool_handle(*b)));
+                    }
+                    Const::List(_) => {
+                        ctx.instrs.push(Instruction::GlobalGet(self.consts.index_of(e)));
+                    }
+                }
+                ctx.instrs.push(Instruction::I64Store(memarg(layout::list_elem_offset(
+                    j as u32,
+                ))));
+            }
+            // Tag the raw pointer into a heap handle; store into the global.
+            ctx.instrs.push(Instruction::LocalGet(scratch));
+            emit_tag_heap_ptr(&mut ctx.instrs);
+            ctx.instrs.push(Instruction::GlobalSet(i as u32));
+        }
+    }
+
     // -- expression emission -------------------------------------------------
+
+    /// Emit `body` (which must leave exactly one i64 on the stack) — under
+    /// the plan-§3.9 checkpoint guard in normal builds; bare in
+    /// `--no-default-features` measurement builds (the `checkpoints` cargo
+    /// feature off: no guards are emitted and the CHECKPOINT import is
+    /// omitted entirely; the soft timeout silently stops working — a
+    /// measurement-only configuration, never for shipping).
+    fn emit_guarded(
+        &mut self,
+        ctx: &mut FnCtx,
+        body: impl FnOnce(&mut Self, &mut FnCtx) -> Result<(), String>,
+    ) -> Result<(), String> {
+        #[cfg(feature = "checkpoints")]
+        {
+            self.emit_checkpoint_guard(ctx, body)
+        }
+        #[cfg(not(feature = "checkpoints"))]
+        {
+            body(self, ctx)
+        }
+    }
 
     /// Emit the checkpoint guard (plan §3.9) around `body`, which must leave
     /// exactly one i64 on the stack:
@@ -378,6 +631,7 @@ impl Codegen {
     /// naive's lazy error box at the same call. One scratch i64 local per
     /// function is safe: the `else` arm reads `$chk` only when the `then` arm
     /// (whose nested calls may clobber `$chk`) was skipped.
+    #[cfg(feature = "checkpoints")]
     fn emit_checkpoint_guard(
         &mut self,
         ctx: &mut FnCtx,
@@ -416,27 +670,56 @@ impl Codegen {
             }
             Node::Value(v, _) => match v {
                 Value::Integer(n) => {
-                    ctx.instrs.push(Instruction::I64Const(n << 2));
+                    ctx.instrs.push(Instruction::I64Const(int_handle(*n)));
                 }
                 Value::Boolean(b) => {
-                    let v: i64 = if *b { 5 } else { 1 };
-                    ctx.instrs.push(Instruction::I64Const(v));
+                    ctx.instrs.push(Instruction::I64Const(bool_handle(*b)));
                 }
                 Value::List(items) => {
-                    let l = ctx.alloc_local(ValType::I32);
-                    ctx.instrs.push(Instruction::I32Const(items.len() as i32));
-                    ctx.instrs.push(Instruction::Call(self.rt(abi::rt::LIST_NEW)));
-                    ctx.instrs.push(Instruction::LocalSet(l));
-                    for (i, item) in items.iter().enumerate() {
+                    // Const-pool hoisting (plan §3.4): a literal list whose
+                    // elements are recursively pure literals — Integer,
+                    // Boolean, or another such list; nothing else (no calls,
+                    // variables, closures, captures) — is allocated once
+                    // per DISTINCT constant in `__main`'s prologue, and
+                    // every occurrence compiles to one `global.get`.
+                    //
+                    // Safety of sharing one heap list across occurrences:
+                    // - Immutability: lists are never mutated after
+                    //   construction — every `values::list_set` call site
+                    //   in nova-builtins (builtins.rs, seq.rs) writes into
+                    //   a list freshly allocated by `list_new[_fallible]`
+                    //   in the same function (audited 2026-10); the only
+                    //   other element writes are these compiler-emitted
+                    //   construction stores, which complete before the
+                    //   handle escapes.
+                    // - Eagerness unchanged: literal lists are `is_direct`
+                    //   values (constructed eagerly, never thunked), so a
+                    //   pre-allocated global handle is observationally
+                    //   identical.
+                    // - Thunk memoization unaffected: hoisted constants
+                    //   contain no thunks (elements are inline scalar
+                    //   handles / child-list handles, exactly as inline
+                    //   construction encodes them).
+                    if let Some(elems) = items.iter().map(classify_const).collect::<Option<Vec<_>>>()
+                    {
+                        let g = self.consts.index_of(&Const::List(elems));
+                        ctx.instrs.push(Instruction::GlobalGet(g));
+                    } else {
+                        let l = ctx.alloc_local(ValType::I32);
+                        ctx.instrs.push(Instruction::I32Const(items.len() as i32));
+                        ctx.instrs.push(Instruction::Call(self.rt(abi::rt::LIST_NEW)));
+                        ctx.instrs.push(Instruction::LocalSet(l));
+                        for (i, item) in items.iter().enumerate() {
+                            ctx.instrs.push(Instruction::LocalGet(l));
+                            self.emit_lazy(ctx, item)?;
+                            ctx.instrs.push(Instruction::I64Store(memarg(
+                                layout::list_elem_offset(i as u32),
+                            )));
+                        }
+                        // list_new returns a raw pointer; tag it into a handle.
                         ctx.instrs.push(Instruction::LocalGet(l));
-                        self.emit_lazy(ctx, item)?;
-                        ctx.instrs.push(Instruction::I64Store(memarg(
-                            layout::list_elem_offset(i as u32),
-                        )));
+                        emit_tag_heap_ptr(&mut ctx.instrs);
                     }
-                    // list_new returns a raw pointer; tag it into a handle.
-                    ctx.instrs.push(Instruction::LocalGet(l));
-                    emit_tag_heap_ptr(&mut ctx.instrs);
                 }
                 Value::Closure { params, body } => {
                     let slot = self.emit_closure_fn(params, body, &ctx.scopes)?;
@@ -460,7 +743,7 @@ impl Codegen {
                 })?;
                 // Checkpoint before arg creation: arg-thunk creation is
                 // forcing-free allocation, unobservable (plan §3.9).
-                self.emit_checkpoint_guard(ctx, |cg, ctx| {
+                self.emit_guarded(ctx, |cg, ctx| {
                     for arg in args {
                         cg.emit_lazy(ctx, arg)?;
                     }
@@ -480,7 +763,7 @@ impl Codegen {
                 let argc = args.len() as u32;
                 // The checkpoint sits after the callee force, wrapping the
                 // args staging + dispatch (plan §3.9, naive parity).
-                self.emit_checkpoint_guard(ctx, |cg, ctx| {
+                self.emit_guarded(ctx, |cg, ctx| {
                     if args.len() <= abi::ARGS_BUF_SLOTS {
                         ctx.instrs.push(Instruction::Call(cg.rt(abi::rt::ARGS_BUF)));
                     } else {
@@ -602,6 +885,19 @@ impl Codegen {
             functions.function(if f.is_clo { clo_ty } else { main_ty });
         }
 
+        // --- globals (const pool, plan §3.4) ----------------------------------
+        // One mutable i64 global per hoisted constant, initialized to the
+        // null value handle (0). `__main`'s prologue re-initializes them at
+        // the start of EVERY run (see `emit_const_prologue`'s reuse
+        // contract — machine.ts's instance reuse depends on it).
+        let mut globals = GlobalSection::new();
+        for _ in &self.consts.entries {
+            globals.global(
+                GlobalType { val_type: ValType::I64, mutable: true, shared: false },
+                &ConstExpr::i64_const(0),
+            );
+        }
+
         // --- exports -----------------------------------------------------------
         let n_import_fns = (self.rt_names.len() + self.builtin_names.len()) as u32;
         let mut exports = ExportSection::new();
@@ -643,6 +939,12 @@ impl Codegen {
         module.section(&types);
         module.section(&imports);
         module.section(&functions);
+        // Globals sit between the function and export sections (canonical
+        // section order); skipped entirely when nothing is hoisted, so
+        // hoist-free programs emit byte-identical modules to before.
+        if !globals.is_empty() {
+            module.section(&globals);
+        }
         module.section(&exports);
         module.section(&elements);
         module.section(&code);

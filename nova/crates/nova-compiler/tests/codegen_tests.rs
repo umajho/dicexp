@@ -3,6 +3,7 @@
 
 use dicexp_nova_abi::{find_builtin, rt, RUNTIME_IMPORT_MODULE};
 use dicexp_nova_compiler::compile_source;
+use wasmparser::{Payload, TypeRef};
 
 struct ModuleInfo {
     imports: Vec<(String, String)>, // (module, name), functions + others
@@ -21,7 +22,6 @@ fn compile(src: &str) -> (Vec<u8>, u32) {
 }
 
 fn inspect(bytes: &[u8]) -> ModuleInfo {
-    use wasmparser::{Payload, TypeRef};
     let mut info = ModuleInfo {
         imports: Vec::new(),
         memory_imports: Vec::new(),
@@ -320,5 +320,263 @@ fn structure_checkpoint_only_at_call_sites() {
             !fn_import_names(&info).contains(&rt::CHECKPOINT),
             "{p:?} must not import the checkpoint"
         );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// const pool (plan §3.4)
+// ---------------------------------------------------------------------------
+
+/// Compile + validate, returning the module bytes (for deep inspection).
+fn compile_valid(src: &str) -> Vec<u8> {
+    let (bytes, _) = compile(src);
+    wasmparser::Validator::new()
+        .validate_all(&bytes)
+        .unwrap_or_else(|e| panic!("emitted module for {src:?} failed validation: {e}"));
+    bytes
+}
+
+/// (val type, mutability) of every global in the module.
+fn globals(bytes: &[u8]) -> Vec<(wasmparser::ValType, bool)> {
+    let mut out = Vec::new();
+    for payload in wasmparser::Parser::new(0).parse_all(bytes) {
+        if let Payload::GlobalSection(reader) = payload.expect("payload") {
+            for g in reader {
+                let g = g.expect("global");
+                out.push((g.ty.content_type, g.ty.mutable));
+            }
+        }
+    }
+    out
+}
+
+/// Function index of a runtime import, by name (function index space:
+/// only `TypeRef::Func` imports count — memory/table don't).
+fn rt_fn_index(bytes: &[u8], name: &str) -> u32 {
+    let mut idx = 0u32;
+    for payload in wasmparser::Parser::new(0).parse_all(bytes) {
+        if let Payload::ImportSection(reader) = payload.expect("payload") {
+            for imp in reader {
+                let wasmparser::Imports::Single(_, imp) = imp.expect("import") else {
+                    panic!("unexpected compact imports");
+                };
+                if let TypeRef::Func(_) = imp.ty {
+                    if imp.module == RUNTIME_IMPORT_MODULE && imp.name == name {
+                        return idx;
+                    }
+                    idx += 1;
+                }
+            }
+        }
+    }
+    panic!("function import {name} not found");
+}
+
+/// Operator sequences of all DEFINED functions, in code-section order.
+fn all_ops(bytes: &[u8]) -> Vec<Vec<wasmparser::Operator<'_>>> {
+    let mut out = Vec::new();
+    for payload in wasmparser::Parser::new(0).parse_all(bytes) {
+        if let Payload::CodeSectionEntry(body) = payload.expect("payload") {
+            let mut ops = Vec::new();
+            let mut r = body.get_operators_reader().expect("operators");
+            while !r.eof() {
+                ops.push(r.read().expect("operator"));
+            }
+            out.push(ops);
+        }
+    }
+    out
+}
+
+/// Operators of `__main` — always the LAST defined function (the codegen
+/// pushes it after every `$clo` function emitted while walking the root).
+fn main_ops(bytes: &[u8]) -> Vec<wasmparser::Operator<'_>> {
+    all_ops(bytes).pop().expect("at least one defined function")
+}
+
+fn count_global_set(ops: &[wasmparser::Operator]) -> usize {
+    ops.iter().filter(|o| matches!(o, wasmparser::Operator::GlobalSet { .. })).count()
+}
+
+fn count_global_get(ops: &[wasmparser::Operator], g: u32) -> usize {
+    ops.iter()
+        .filter(
+            |o| matches!(o, wasmparser::Operator::GlobalGet { global_index } if *global_index == g),
+        )
+        .count()
+}
+
+fn count_global_get_any(ops: &[wasmparser::Operator]) -> usize {
+    ops.iter().filter(|o| matches!(o, wasmparser::Operator::GlobalGet { .. })).count()
+}
+
+fn count_call(ops: &[wasmparser::Operator], f: u32) -> usize {
+    ops.iter()
+        .filter(|o| matches!(o, wasmparser::Operator::Call { function_index } if *function_index == f))
+        .count()
+}
+
+/// Inner-first invariant: every `global.get` in the sequence happens only
+/// after that global's `global.set` (prologue) — i.e. no code observes an
+/// uninitialized pool global.
+fn assert_init_before_use(ops: &[wasmparser::Operator]) {
+    let mut initialized = std::collections::HashSet::new();
+    for o in ops {
+        match o {
+            wasmparser::Operator::GlobalSet { global_index } => {
+                initialized.insert(*global_index);
+            }
+            wasmparser::Operator::GlobalGet { global_index } => {
+                assert!(
+                    initialized.contains(global_index),
+                    "global.get {global_index} before its prologue initialization"
+                );
+            }
+            _ => {}
+        }
+    }
+}
+
+#[test]
+fn const_pool_hoists_literal_list() {
+    // `sum([1, 2, 3])`: the list is hoisted — one mutable i64 global,
+    // initialized by a prologue in `__main`, read by a `global.get` at the
+    // (single) occurrence.
+    let bytes = compile_valid("sum([1, 2, 3])");
+    assert_eq!(globals(&bytes), vec![(wasmparser::ValType::I64, true)]);
+    let ops = main_ops(&bytes);
+    assert_eq!(count_call(&ops, rt_fn_index(&bytes, rt::LIST_NEW)), 1);
+    assert_eq!(count_global_set(&ops), 1);
+    assert_eq!(count_global_get(&ops, 0), 1); // the occurrence (no nested lists)
+    // Hoisting adds no table functions and no new imports.
+    let (_, table_size) = compile("sum([1, 2, 3])");
+    assert_eq!(table_size, 0);
+    let (info, _) = validate("sum([1, 2, 3])");
+    assert!(fn_import_names(&info).contains(&rt::LIST_NEW));
+}
+
+#[test]
+fn const_pool_dedups_structurally_identical_lists() {
+    // Two occurrences of `[1, 2]` → ONE global; the occurrences live inside
+    // the two arg thunks, so counts aggregate over all functions.
+    let bytes = compile_valid("at([1, 2], 0) + at([1, 2], 1)");
+    assert_eq!(globals(&bytes).len(), 1);
+    let all = all_ops(&bytes);
+    let gets: usize = all.iter().map(|o| count_global_get(o, 0)).sum();
+    assert_eq!(gets, 2); // one per occurrence
+    let sets: usize = all.iter().map(|o| count_global_set(o)).sum();
+    assert_eq!(sets, 1);
+    let allocations: usize =
+        all.iter().map(|o| count_call(o, rt_fn_index(&bytes, rt::LIST_NEW))).sum();
+    assert_eq!(allocations, 1); // only the prologue allocation
+}
+
+#[test]
+fn const_pool_nested_lists_inner_first() {
+    // `[[1], [2, [3]]]` → 4 globals: [1], [3], [2,[3]], [[1],[2,[3]]].
+    let bytes = compile_valid("[[1], [2, [3]]]");
+    assert_eq!(globals(&bytes), vec![(wasmparser::ValType::I64, true); 4]);
+    let ops = main_ops(&bytes);
+    assert_eq!(count_call(&ops, rt_fn_index(&bytes, rt::LIST_NEW)), 4);
+    assert_eq!(count_global_set(&ops), 4);
+    // Prologue reads of child globals: [2,[3]] reads [3]; the outer reads
+    // [1] and [2,[3]] → 3 gets, plus 1 occurrence get = 4 total in __main.
+    assert_eq!(count_global_get_any(&ops), 4);
+    assert_init_before_use(&ops);
+}
+
+#[test]
+fn const_pool_skips_non_literal_lists() {
+    // Call / closure / capture elements disqualify a list; scalars are not
+    // hoisted either (already inline i64 consts).
+    for p in ["[1 + 2]", "[|$x| $x]", "[&sum/1]", "42", "true"] {
+        assert_eq!(globals(&compile_valid(p)).len(), 0, "{p:?} must not hoist");
+    }
+    // `[1 + 2]` stays fully inline: one list_new call in __main, no sets.
+    let bytes = compile_valid("[1 + 2]");
+    let ops = main_ops(&bytes);
+    assert_eq!(count_global_set(&ops), 0);
+    assert_eq!(count_call(&ops, rt_fn_index(&bytes, rt::LIST_NEW)), 1);
+
+    // Mixed: the inner `[3, 4]` hoists, the outer list stays inline.
+    let bytes = compile_valid("[1 + 2, [3, 4]]");
+    assert_eq!(globals(&bytes).len(), 1);
+    let all = all_ops(&bytes);
+    let sets: usize = all.iter().map(|o| count_global_set(o)).sum();
+    assert_eq!(sets, 1);
+    let gets: usize = all.iter().map(|o| count_global_get(o, 0)).sum();
+    assert_eq!(gets, 1); // the outer list's element store
+    let allocations: usize =
+        all.iter().map(|o| count_call(o, rt_fn_index(&bytes, rt::LIST_NEW))).sum();
+    assert_eq!(allocations, 2); // prologue + inline outer construction
+
+    // No lists at all → no list_new import (unchanged behavior).
+    let (info, _) = validate("42");
+    assert!(!fn_import_names(&info).contains(&rt::LIST_NEW));
+}
+
+#[test]
+fn const_pool_hoists_empty_list() {
+    // `[]` hoists for uniformity — and a program whose ONLY list is hoisted
+    // still imports list_new (the prologue uses it), nothing else runtime.
+    let bytes = compile_valid("[]");
+    assert_eq!(globals(&bytes), vec![(wasmparser::ValType::I64, true)]);
+    let ops = main_ops(&bytes);
+    assert_eq!(count_call(&ops, rt_fn_index(&bytes, rt::LIST_NEW)), 1);
+    assert_eq!(count_global_set(&ops), 1);
+    assert_eq!(count_global_get_any(&ops), 1);
+    let (info, table_size) = validate("[]");
+    assert_eq!(table_size, 0);
+    assert_eq!(fn_import_names(&info), vec![rt::LIST_NEW]);
+}
+
+#[test]
+fn const_pool_occurrences_in_closure_and_repetition_bodies() {
+    // Occurrences compile to `global.get` from ANY function — the prologue
+    // in `__main` has run before any thunk/closure body can execute.
+    let bytes = compile_valid("map([1], |$x| [2])");
+    assert_eq!(globals(&bytes).len(), 2);
+    let all = all_ops(&bytes);
+    let gets: usize = all.iter().map(|o| count_global_get_any(o)).sum();
+    assert_eq!(gets, 2); // one per occurrence
+    let sets: usize = all.iter().map(|o| count_global_set(o)).sum();
+    assert_eq!(sets, 2);
+
+    let bytes = compile_valid("2 # [1, 2]");
+    assert_eq!(globals(&bytes).len(), 1);
+    let all = all_ops(&bytes);
+    let gets: usize = all.iter().map(|o| count_global_get_any(o)).sum();
+    assert_eq!(gets, 1); // occurrence in the repetition body closure
+    let sets: usize = all.iter().map(|o| count_global_set(o)).sum();
+    assert_eq!(sets, 1);
+}
+
+// ---------------------------------------------------------------------------
+// measurement-only `checkpoints = off` build (plan §3.9)
+// ---------------------------------------------------------------------------
+
+// These run only under `cargo test -p dicexp-nova-compiler
+// --no-default-features` (the configuration `just build-nova-wasm-nockpt`
+// ships): the compiler must emit NO checkpoint guards and omit the
+// CHECKPOINT import — nothing else changes.
+//
+// NOTE: the sibling structure tests above hard-assert checkpoint-ON import
+// lists and are only meaningful under the DEFAULT feature set — this
+// measurement-only configuration intentionally leaves them failing (it is
+// not a supported configuration; only the emitted wasm artifact is used).
+#[cfg(not(feature = "checkpoints"))]
+#[test]
+fn nockpts_feature_off_emits_no_checkpoint_import() {
+    for p in ["1 + 2", "1.(2)", "sum([1])", "3 # d6"] {
+        let (info, _) = validate(p);
+        let names = fn_import_names(&info);
+        assert!(!names.contains(&rt::CHECKPOINT), "{p:?} must not import the checkpoint");
+        // Everything else is unchanged: the builtins still get imported.
+        match p {
+            "1 + 2" => assert_eq!(names, vec!["op_add_2"]),
+            "sum([1])" => assert_eq!(names, vec![rt::LIST_NEW, "bf_sum_1"]),
+            "3 # d6" => assert!(names.contains(&"op_d_1")),
+            _ => {}
+        }
     }
 }
