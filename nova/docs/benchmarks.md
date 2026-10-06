@@ -204,6 +204,26 @@ fixed per-sample cost (~480 ns) also undercuts naive's RNG construction
 alone — and naive additionally pays repr tracking per sample, which nova
 has not (yet) had to match (v0.9).
 
+**Why not a batched sampling driver** (a builtins-side loop running N
+samples per JS↔WASM round trip — the obvious follow-up idea): the
+profiler's own numbers cap its value at ~10% on trivial rows and zero
+elsewhere. Of the post-fix ~1000 ns per `d6` sample, seeding is ~506 ns
+(algorithm-bound: the 256-step serial discard is the price of exact
+stream parity — no incremental seeding exists), decode ~130 ns,
+finalize ~110 ns, `__main` ~88 ns, reset ~15 ns — and the four crossings
+a driver would eliminate are ~5 ns *total*, plus maybe half the ~150 ns
+of generator glue (the rest is per-sample interface cost: yield, tuple,
+appendix, whose `timeConsumption` timestamps are per-sample by contract).
+In exchange it would add real ABI surface: a table-slot convention for
+`__main` (a second function type in the table), a multi-result buffer
+format with chunking for the unbounded generator, mid-chunk error
+semantics (which seed failed → terminal error), and a second engine for
+the sampling path to keep correct. Revisit only if a concrete whole-batch
+consumer appears (batch mode, issue #21) — then design a batch API around
+that consumer's shape, not speculatively. Remaining micro-levers if
+trivial rows ever matter again: the ~110 ns finalize (heap churn per
+call) and the ~130 ns decode reader.
+
 ### Small-expression one-shot overhead (compile + instantiate + run)
 
 | code | calls | naive ms/call | nova ms/call | nova compile ms/call | nova run ms/call | compile+run ms/call |
