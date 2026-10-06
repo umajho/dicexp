@@ -69,8 +69,9 @@ const ctx: SuiteContext = {
   // nova links its builtins (no scoping): the default tester resolves
   // every name, so every per-block scope request gets it.
   makeTesterFor: (_names) => tester,
-  // makeSleepTester stays undefined: nova's soft timeout is roadmap v0.5;
-  // the soft-timeout block skips (tag "naive-soft-timeout").
+  // makeSleepTester stays undefined: nova cannot inject a host `sleep/1`;
+  // only the sleep-based soft-timeout rows skip (tag "naive-soft-timeout")
+  // — the busy-work timeout rows run for nova since v0.5 (plan §3.9).
 };
 
 defineExecutingSuite(ctx);

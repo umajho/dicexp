@@ -45,10 +45,11 @@ export type ImplTag = "naive" | "nova";
  * Capability gaps (rows carrying them cannot (yet) run under the other
  * implementation; not compat.md divergences):
  *
- * - `"naive-soft-timeout"` — the soft-timeout rows need
- *   `I.ExecutionRestrictions.softTimeout` (nova gets soft timeout in v0.5,
- *   see `nova/docs/roadmap.md`) and, for the sleep-based rows, a
- *   host-injected `sleep/1` test function (a naive-only capability).
+ * - `"naive-soft-timeout"` — only the sleep/1-based rows are naive-only:
+ *   they need a host-injected `sleep/1` test function (a naive-only
+ *   capability, not a divergence). The other soft-timeout rows (busy-work
+ *   based) run under both implementations — nova got `softTimeout` in v0.5
+ *   (see `nova/docs/plan.md` §3.9).
  * - `"naive-only-parse-messages"` — reserved for rows comparing naive's
  *   exact parse-error messages; nova's parse-message conformance currently
  *   lives in its differential suite (compat.md §10) — pin per-impl messages
@@ -148,7 +149,7 @@ export interface SuiteContext {
    * Optional; only for implementations that can inject test-only regular
    * functions into a scope (naive). A tester whose scope resolves the
    * operators plus `sleep/1` — a function that busy-waits its integer
-   * argument (in ms). The soft-timeout block is skipped when this is
+   * argument (in ms). Only the sleep/1-based rows are skipped when this is
    * absent (tag `"naive-soft-timeout"`).
    */
   makeSleepTester?: () => EvaluationTester;

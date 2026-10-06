@@ -11,7 +11,7 @@ import {
 
 import { createRuntimeError } from "@dicexp/naive-evaluator-runtime/runtime-errors";
 
-import { itTagged, SuiteContext } from "./context";
+import { forImpl, itTagged, SuiteContext } from "./context";
 import { expectedRuntimeErrorFor, theyAreOk } from "./rows";
 
 /**
@@ -283,6 +283,10 @@ export function defineExecutingSuite(ctx: SuiteContext): void {
       // 实测（2026-10-06）：naive → 运行时错误「名为 `if/3` 的通常函数并不
       // 存在」；nova → 编译期（parse 类）错误，消息相同（compat.md §3 的
       // 时机差异的实例）。
+      //
+      // 下方「深尾调用链在有界栈内完成」替代行已用模拟 if（无需 `if/3`）
+      // 实际承担 nova 侧的 TCO 检验；等 `if/*` 落地后本行对 nova 生效（从
+      // todoFor 中去掉 nova）即可，替代行到时可保留或删除。
       itTagged(
         ctx,
         "不会致使死循环",
@@ -299,6 +303,42 @@ export function defineExecutingSuite(ctx: SuiteContext): void {
             code,
             Array(100).fill(null).map((_, i) => i), // 0..<100
           );
+        },
+      );
+
+      // compat.md §6（标签 “div6-tco”）的替代检验（v0.5，无需 `if/3`）：
+      // 用 bench 预设「Y 组合子求和 0..10」的模拟 if，但去掉其末尾的
+      // `.()`。带 `.()` 时被选中的分支会在值调用内部被嵌套强迫求值，递归
+      // 不经过弹床（实测：连 nova 也在深度达千级时 WASM 栈溢出）；去掉后
+      // head 把被选中的分支作为裸 thunk 返回，逐层递归成为由根部 force
+      // 循环迭代追逐的 thunk 链（nova 的弹床式 TCO，compat.md §6），深度
+      // 十万级亦在有界栈内完成。状态经 `[n, acc]` 对传递以保持尾位置。
+      // 条件中恒真的 `(($nl |> at(1)) >= 0)` 让 `and` 在每层都强迫求值
+      // acc（记忆化使链深恒为 1）：没有它，最后的 `at(1)` 会一次追逐整条
+      // 十万层深的惰性 acc 链（实测：nova 因此栈溢出）。两个实现都在左
+      // 侧为真时强迫求值 `and` 的右侧（compat.md §1 的分歧只在假左侧），
+      // 故此形状对两实现语义一致。
+      // naive 对 todo：此形状下 naive 的求值机器会失控分配直至耗尽堆
+      // （实测 N=10、768MB 堆即死——不可捕获的 FATAL OOM，非 compat.md §6
+      // 的 JS 栈溢出故事）。在 naive 修好之前不要从 todoFor 中去掉
+      // naive——那会杀死 vitest 的 worker，而不只是让本行失败。
+      itTagged(
+        ctx,
+        "深尾调用链在有界栈内完成（模拟 if 求和 1..100000）",
+        { todoFor: ["naive"], tags: ["div6-tco"] },
+        () => {
+          const yCombinator = String
+            .raw`(|$fn| (|$f| $fn.((|$x| $f.($f).($x)))).((|$f| $fn.((|$x| $f.($f).($x))))))`;
+          // 模拟 if：head 返回被选中的分支（裸 thunk，不强迫求值）。
+          const ifSim = String
+            .raw`(|$cond, $t, $f| head(append(filter([$t], (|_| $cond)), $f)))`;
+          // 尾递归求和 1..100000：状态为 `[n, acc]` 对。
+          const g = String
+            .raw`(|$f| (|$nl| $if.(((($nl |> at(1)) >= 0) and (($nl |> at(0)) > 100000)), ($nl |> at(1)), $f.([($nl |> at(0)) + 1, ($nl |> at(1)) + ($nl |> at(0))]))))`;
+          const code = String
+            .raw`(|$if| (|$Y, $g| $Y.($g).([1, 0])).(${yCombinator}, ${g})).(${ifSim})`;
+          // 实测（2026-10-06）：nova ~275ms ⇒ 5000050000（= 1+2+…+100000）。
+          ctx.tester.assertExecutionOk(code, 5000050000);
         },
       );
     });
@@ -369,24 +409,84 @@ export function defineExecutingSuite(ctx: SuiteContext): void {
     });
 
     describe("外加限制", () => {
-      // 标签 “naive-soft-timeout”：这些行需要 `softTimeout` 外加限制（nova
-      // 的软性超时在 v0.5 落地，见 roadmap）与（后两行）注入宿主函数
-      // `sleep/1`（仅 naive 能做到），因此整个块目前只对 naive 运行。
+      // nova 的软性超时已在 v0.5 落地（plan §3.9）：检查点只存在于调用处，
+      // 故期限在检查点静默的内置内部循环中越过时不会被触发，其后的第一
+      // 次被强迫求值的调用才触发——与 naive 的语义一致。因此本块（除依赖
+      // 注入 `sleep/1` 的行外）对两个实现都运行。
       // NOTE: vitest 的 `skipIf` 是链式的（`skipIf(cond)(name, fn)`）。
-      describe.skipIf(
-        ctx.impl !== "naive" || ctx.makeSleepTester === undefined,
-      )("软性超时", () => { // FIXME: 应该用 fake time
-          const restrictions: I.ExecutionRestrictions = {
-            softTimeout: { ms: 10 },
-          };
-          const opts: EvaluationOptionsForTest = {
-            execution: { restrictions },
-          };
-          it("未超时则无影响", () => {
-            tester.assertExecutionOk(`${1}`, undefined, opts);
+      describe("软性超时", () => { // FIXME: 应该用 fake time
+        const restrictions: I.ExecutionRestrictions = {
+          softTimeout: { ms: 10 },
+        };
+        const opts: EvaluationOptionsForTest = {
+          execution: { restrictions },
+        };
+
+        it("未超时则无影响", () => {
+          tester.assertExecutionOk(`${1}`, undefined, opts);
+        });
+
+        describe("超时则返回运行时错误", () => {
+          // 语义与实现无关（deadline 在检查点静默的内置内部工作中越过；
+          // 之后没有调用则不触发，之后的第一次被强迫求值的调用触发——
+          // 同下方 sleep 行），但忙碌工作的 形状 因实现而异（不只是时长
+          // 常数），故经 `forImpl` 分开：
+          // - nova：`300000#1 |> sum`（实测 ~55ms，≥5×10ms）。sum 的累加
+          //   循环检查点静默（plan §3.9），deadline 在其中越过，其后再无
+          //   调用。行 b 的 `> 0` 让 `and` 左侧为真：nova 的 `and` 只在左
+          //   侧为真时才强迫求值右侧（compat.md §1），而 `(|| true).()`
+          //   值调用正是期限后的第一次调用（`>` 的检查点在求值实参之前，
+          //   实测不会先触发）。
+          // - naive：`1000#(1000#true) |> any?`（实测 ~250-300ms）。naive
+          //   急切求值 any? 的每个元素（compat.md §1），全为 true 的元素
+          //   既做忙碌工作又让 `and` 左侧为真（同上的 div1 纪律）。需
+          //   `any?/1` 与 `and/2`，均不在 naive 的默认测试作用域中。不能
+          //   用 nova 的形状：naive 会把大重复序列经
+          //   `new InternalValue_List(...boxes)`（展开）转成列表而溢出
+          //   JS 栈，`300000#1 |> sum` 直接抛 RangeError。
+          forImpl(ctx, {
+            nova: () => {
+              it("超时后如果再也没有调用过函数则不会被触发", () => {
+                tester.assertExecutionOk(
+                  `[[300000#1 |> sum]]`,
+                  [[300000]],
+                  opts,
+                );
+              });
+
+              it("超时后的下一次调用函数才会触发", () => {
+                tester.assertExecutionRuntimeError(
+                  `((300000#1 |> sum) > 0) and (|| true).()`,
+                  "越过外加限制「运行时间」（允许 10 毫秒）",
+                  opts,
+                );
+              });
+            },
+            naive: () => {
+              const testerAny = ctx.makeTesterFor(["any?/1", "and/2"]);
+              it("超时后如果再也没有调用过函数则不会被触发", () => {
+                testerAny.assertExecutionOk(
+                  `[[1000#(1000#true) |> any?]]`,
+                  [[true]],
+                  opts,
+                );
+              });
+
+              it("超时后的下一次调用函数才会触发", () => {
+                testerAny.assertExecutionRuntimeError(
+                  `(1000#(1000#true) |> any?) and (|| true).()`,
+                  "越过外加限制「运行时间」（允许 10 毫秒）",
+                  opts,
+                );
+              });
+            },
           });
 
-          describe("超时则返回运行时错误", () => {
+          // 标签 “naive-soft-timeout”：注入宿主函数 `sleep/1` 只有 naive
+          // 做得到（能力差距，非分歧），故这两行仅对 naive 运行。
+          describe.skipIf(
+            ctx.impl !== "naive" || ctx.makeSleepTester === undefined,
+          )("基于 sleep/1", () => {
             // Collection runs even when the outer describe is skipped (its
             // bodies do not) — build the sleep tester without crashing
             // collection for implementations without one.
@@ -409,6 +509,7 @@ export function defineExecutingSuite(ctx: SuiteContext): void {
         });
       });
     });
+  });
 
   // TODO: 同种子下结果相同
   // TODO: 运行时错误

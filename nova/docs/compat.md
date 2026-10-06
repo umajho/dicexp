@@ -54,7 +54,19 @@ primary divergence oracle — extend it whenever semantics change.
 6. **TCO via trampolined thunk forcing** (closes #2).
    Tail call chains bounded by thunk forcing run in constant WASM stack;
    programs that overflow naive's JS stack (e.g. Y-combinator recursion)
-   terminate in nova.
+   terminate in nova. Verification notes (v0.5, shared-suite row "深尾调用链
+   在有界栈内完成"): the row uses the bench preset's *simulated* `if` but
+   without its trailing `.()` — with it, the selected branch is forced
+   *nested inside the value call*, so the recursion never reaches the
+   trampoline and even nova's WASM stack overflows at ~10³ depth; without
+   it, `head` returns the selected branch as a bare thunk and the chain is
+   chased iteratively by the root force loop. For the same reason a lazy
+   accumulator must be forced (memoized) at every level — else the final
+   force chases the whole N-deep chain at once. naive's failure mode on
+   this list-carrying shape is **unbounded heap allocation** (an
+   uncatchable fatal OOM, not a clean `RangeError`), so the row stays
+   `todoFor: ["naive"]` rather than asserting a crash — dropping the todo
+   would kill the vitest worker, not just fail the row.
 
 7. **Hard memory limit.**
    The builtins module declares a maximum page count; allocation failure
@@ -94,6 +106,15 @@ primary divergence oracle — extend it whenever semantics change.
      (`CLOSURE_RETURN_TYPE_MISMATCH`, still named `reroll/2` for both —
      see the quirk below). Differential-suite carve-out: those programs
      are pinned nova-only.
+    - Large repetition→list casts (e.g. `300000#1 |> sum`): naive builds
+      lists via argument spreading (`new InternalValue_List(...boxes)`),
+      so flat lists past ~10–60k elements overflow the JS stack (uncaught
+      `RangeError`); nova handles them (memory permitting — its own limit
+      is #7's cap). (Found by the v0.5 soft-timeout rows, which use
+      per-impl busy-work shapes because of this.)
+    - List-carrying deep self-recursion: naive's machinery heap-allocates
+      unboundedly and dies with an uncatchable OOM (see #6); nova runs
+      the same programs in bounded stack and memory.
 
 10. **Parse-level fixes.**
     - Comparison captures: naive *rejects* `&</2`, `&<=/2`, `&>/2`, `&>=/2`,
@@ -165,8 +186,20 @@ test files and by `nova/packages/nova/test/shared-suites.test.ts`).
 
 - repr (see #8 above) — trace hooks reserved; playground integration pending;
   roadmap v0.9 (pre-1.0).
-- Soft timeout (`__checkpoint` + host `now()`); designed for future fuel
-  (call-count) limits and chunked expensive ops (issue #3).
+- ~~Soft timeout (`__checkpoint` + host `now()`)~~ **Done (v0.5).** Plan
+  §3.9: checkpoints at call sites reproduce naive's semantics (fires on the
+  first call forced after the deadline; `RESTRICTION_EXCEEDED_SOFT_TIMEOUT`,
+  exact zh message parity). naive's `statistics.calls` (call counting while
+  softTimeout is set) is NOT reproduced — deferred (no known consumer).
+  Still deferred on the same channel (no ABI change needed): fuel
+  (call-count limits) and chunked expensive ops (issue #3) — the
+  builtin-internal checkpoint insertion points are reserved, not active.
+- nova-in-worker robustness divergence (tooling, not language semantics):
+  worker init failure (e.g. wasm fetch 404) is retried with bounded backoff
+  and then surfaced (real error in the result pane; later rolls reject with
+  the cause). naive's worker package keeps the original behavior (the init
+  failure leaves the playground loading forever) — the same latent gap
+  exists there but naive has no async init to fail in practice.
 - Const-pool hoisting (runtime "execute consts once" — plan §3.4/§8).
   Not in the first working version; mechanism reserved (program-global thunk
   handles). Note: value calls with argc > 64 already allocate arg frames via
