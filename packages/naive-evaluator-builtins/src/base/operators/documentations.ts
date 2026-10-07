@@ -71,11 +71,12 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     groups: ["比较"],
     parameters: {
       "a": "第一个值",
-      "b": "第二个值",
+      "b": "第二个值，类型与第一个值相同",
     },
     description: { brief: "小于" },
     examples: [
       "1<2",
+      "false<true",
     ],
   },
   ">/2": {
@@ -83,11 +84,12 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     groups: ["比较"],
     parameters: {
       "a": "第一个值",
-      "b": "第二个值",
+      "b": "第二个值，类型与第一个值相同",
     },
     description: { brief: "大于" },
     examples: [
       "2>1",
+      "true>false",
     ],
   },
   "<=/2": {
@@ -95,11 +97,12 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     groups: ["比较"],
     parameters: {
       "a": "第一个值",
-      "b": "第二个值",
+      "b": "第二个值，类型与第一个值相同",
     },
     description: { brief: "小于或等于" },
     examples: [
       "1<=1",
+      "false<=true",
     ],
   },
   ">=/2": {
@@ -107,11 +110,12 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
     groups: ["比较"],
     parameters: {
       "a": "第一个值",
-      "b": "第二个值",
+      "b": "第二个值，类型与第一个值相同",
     },
     description: { brief: "大于或等于" },
     examples: [
       "1>=1",
+      "true>=false",
     ],
   },
 

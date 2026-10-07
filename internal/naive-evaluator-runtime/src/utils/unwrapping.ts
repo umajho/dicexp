@@ -104,7 +104,7 @@ export function flattenListAll(
 
   const values: Value[] = [];
 
-  for (const [i, elem] of list.entries()) {
+  for (const elem of list) {
     const unwrapResult = unwrapValueNoLazy(spec, elem);
     if (unwrapResult[0] === "error") return "error";
     if (unwrapResult[0] === "error_indirect") return unwrapResult;
@@ -120,7 +120,7 @@ export function flattenListAll(
 
       values.push(...subResult[1]);
     } else {
-      values[i] = unwrappedElem;
+      values.push(unwrappedElem);
     }
   }
 

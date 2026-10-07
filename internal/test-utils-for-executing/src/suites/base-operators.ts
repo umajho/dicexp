@@ -179,10 +179,14 @@ export function defineBaseOperatorsSuite(ctx: SuiteContext): void {
           }
         });
 
-        binaryOperatorOnlyAcceptsNumbers(ctx, tester, "<");
-        binaryOperatorOnlyAcceptsNumbers(ctx, tester, ">");
-        binaryOperatorOnlyAcceptsNumbers(ctx, tester, "<=");
-        binaryOperatorOnlyAcceptsNumbers(ctx, tester, ">=");
+        // v0.7：`<`/`>`/`<=`/`>=` 也接受布尔值（两侧须同类型），
+        // 不再适用 “只能用于数字” 的用例组。
+        comparisonOperatorsAcceptIntegersAndBooleans(ctx, tester, [
+          "<",
+          ">",
+          "<=",
+          ">=",
+        ]);
       });
     });
     describe("~/2, ~/1", () => {
@@ -467,6 +471,73 @@ export function binaryOperatorOnlyAcceptsNumbers(
 ): void {
   describe("只能用于数字", () => {
     binaryOperatorOnlyAccepts(ctx, tester, op, "integer", cases, opts);
+  });
+}
+
+/**
+ * v0.7 comparison operators (`<` `>` `<=` `>=`): both operands must be
+ * integers or booleans, and both sides must be of the same type (the
+ * `==`/`!=` rule).
+ */
+export function comparisonOperatorsAcceptIntegersAndBooleans(
+  ctx: SuiteContext,
+  tester: EvaluationTester,
+  ops: readonly string[],
+  opts?: EvaluationOptionsForTest,
+): void {
+  describe("只能用于类型相同的整数或布尔", () => {
+    describe("布尔之间也可以比较", () => {
+      const rows: [string, boolean][] = [
+        [String.raw`false < true`, true],
+        [String.raw`true < false`, false],
+        [String.raw`false <= true`, true],
+        [String.raw`true <= false`, false],
+        [String.raw`true > false`, true],
+        [String.raw`false > true`, false],
+        [String.raw`true >= false`, true],
+        [String.raw`false >= true`, false],
+        [String.raw`true <= true`, true],
+        [String.raw`true >= true`, true],
+        [String.raw`false < false`, false],
+        [String.raw`false >= false`, true],
+      ];
+      theyAreOk(ctx, tester, rows, opts);
+    });
+
+    describe("整数与布尔之间不能相互比较", () => {
+      for (const op of ops) {
+        for (const [l, r] of [["1", "true"], ["true", "1"]] as const) {
+          const code = `(${l})${op}(${r})`;
+          it(`${code} => RuntimeError_IllegalOperation`, () => {
+            tester.assertExecutionRuntimeError(
+              code,
+              `操作 “${op}” 非法：两侧操作数的类型不相同`,
+              opts,
+            );
+          });
+        }
+      }
+    });
+
+    describe("不能用于整数或布尔以外的值", () => {
+      for (const op of ops) {
+        const code = `([1])${op}(1)`;
+        it(`${code} => RuntimeError_CallArgumentTypeMismatch`, () => {
+          tester.assertExecutionRuntimeError(
+            code,
+            expectedRuntimeErrorFor(
+              ctx.impl,
+              createRuntimeError.callArgumentTypeMismatch(
+                1,
+                new Set<ValueTypeName>(["integer", "boolean"]),
+                "list",
+              ),
+            ),
+            opts,
+          );
+        });
+      }
+    });
   });
 }
 
