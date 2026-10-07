@@ -262,6 +262,21 @@ See [`size-budget.md`](./size-budget.md): after wasm-opt, the compiler is
 113,688 B raw / 35.3 KB brotli (adjusted budget ≤ 120 KB raw), builtins
 36,746 B raw / 13.8 KB brotli (budget ≤ 50 KB — met), shim 82 B.
 
+## 2026-10-08 — v0.7 regression check (builtin completeness)
+
+The v0.7 batch (25 new builtins incl. three new sequence-source kinds, a
+`force_impl` sentinel arm for `foldr`, comparison-op rework) touched the
+shared runtime paths, so the CI suite was re-run at HEAD (78 s, 14/14).
+**No regression**: worst row `d6` 1.81× (identical to v0.6's floor),
+heavy rows 3.1–16.0× (v0.6: 1.8–15.0×; all deltas within the ±5–10%
+run-to-run band). Full table: `bench/results/latest.md` (gitignored;
+regenerate with `cd nova/packages/nova && pnpm run bench`).
+
+Also this iteration: the bench's mkdir lock now self-heals after hard
+kills (pid file + 10 s stale grace + 10-min live-wait deadline in
+`bench/support.ts`) — a stale `.lock` previously spun silently for 30
+minutes, hanging a run with zero output.
+
 ## Historical notes
 
 - v0.2 playground smoke test (2026-10, sampling `d6`, indefinite run):

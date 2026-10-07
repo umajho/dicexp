@@ -269,6 +269,38 @@ Every builtin intended for 1.0 exists in nova.
 **Exit:** every builtin intended for 1.0 is implemented in both
 implementations and covered by the shared/differential suites.
 
+**Done (2026-10-08).** All 25 builtins landed in BOTH implementations per
+[`v0.7-contracts.md`](./v0.7-contracts.md) (semantics were new in both, so
+they are contract-DEFINED; judgment calls flagged there for the owner:
+`has?/2` strict-scalar rule, `min`/`max` int-only, Elixir-style boolean
+comparator for `sort/2`, pinned `duplicate/2`, `unfold/2`'s
+`false | [elem, seed]` protocol, strict-per-pull streams,
+`take`/`drop`-on-sequences as the iterate/unfold consumers).
+Comparison operators accept booleans in both impls. naive's
+`flattenListAll` indexing bug was fixed in naive (compat #9 bullet 1
+retired); a fuzzer-found REAL naive bug — `foldr` forcing closure bodies
+right-to-left at chain-construction time (naive's `_call` eager `.get()`
+quirk) — was fixed by lazy-wrapping foldr's deferred calls, and the
+contract now pins outer-in body order. New error keys 50–52 (+ zh
+locale); ABI additive-only, `ABI_VERSION` stays 2 (discipline recorded in
+plan §3.5). Nova side: three new sequence-source kinds (iterate/unfold/
+drop), a `SENTINEL_FOLDR_FNIDX` deferred-call arm in `force_impl`,
+hand-rolled stable merge sorts for `sort/2` in BOTH impls (V8 TimSort
+isn't stable for boolean ≤ comparators; Rust `sort_by` over a raw slice
+would be UB against the reallocating emulated heap). Coverage: +160
+shared-suite tests (both impls), differential 230 → 664, fuzzer extended
+(≥1 new builtin in 40.9% of programs; ~8 master seeds × 10k × 3 eval
+seeds green) — which also fixed a pre-existing generator off-by-one that
+had been silently dropping outermost pipe-chain calls since v0.5.
+Numbers: nova 1364 JS (+2 skipped sleep rows, 3 todo: the `if/3` row +
+two `d` todos) + 178 Rust; naive 208 / 62+4todo / 408. Bench regression
+check green (worst row `d6` 1.81×, unchanged); sizes within budget
+(builtins 45,500/50,000 B raw — ~4.5 KB headroom left, watch v0.9 trace
+hooks); bench lock hardened against hard kills. Playground: tsc +
+`vite build` clean; browser smoke — nova and naive both evaluate
+`take(iterate(1, |$x| $x + 1), 5) |> sum` → 15, docs pane shows the new
+builtins (naive metadata flows).
+
 ## v0.8 — Builtin docs sourced from nova
 
 The playground's builtin documentation/completion is sourced from nova
