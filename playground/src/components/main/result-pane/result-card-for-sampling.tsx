@@ -30,6 +30,7 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 export const SamplingResultCard: Component<{
   code: string;
   report: I.SamplingReport;
+  environment?: [string, string];
 }> = (
   props,
 ) => {
@@ -135,35 +136,42 @@ export const SamplingResultCard: Component<{
         </div>
       </Show>
 
-      {/* 统计 */}
-      <Show when={statis()}>
-        <div class="flex flex-col text-xs text-slate-500">
-          <Show when={statisText()!.samples}>
-            <div>
-              <span class="font-mono">样本：{statisText()!.samples}个</span>
-            </div>
-          </Show>
+      {/* 底部一行：统计在左，求值器在右（与单次结果中组件展示的
+          `求值器=…` 一致；`ml-auto` 使其在统计尚未产生时也靠右） */}
+      <div class="flex items-end text-xs text-slate-500">
+        <Show when={statis()}>
+          <div class="flex flex-col">
+            <Show when={statisText()!.samples}>
+              <div>
+                <span class="font-mono">样本：{statisText()!.samples}个</span>
+              </div>
+            </Show>
 
-          <Show when={statisText()!.duration}>
-            <div>
-              <span class="font-mono">
-                {props.report[0] === "continue"
-                  ? ""
-                  : "目前"}用时：{statisText()!
-                  .duration}秒
-              </span>
-            </div>
-          </Show>
+            <Show when={statisText()!.duration}>
+              <div>
+                <span class="font-mono">
+                  {props.report[0] === "continue"
+                    ? ""
+                    : "目前"}用时：{statisText()!
+                    .duration}秒
+                </span>
+              </div>
+            </Show>
 
-          <Show when={statisText()!.speed}>
-            <div>
-              <span class="font-mono">
-                平均效率：{statisText()!.speed}个/秒
-              </span>
-            </div>
-          </Show>
-        </div>
-      </Show>
+            <Show when={statisText()!.speed}>
+              <div>
+                <span class="font-mono">
+                  平均效率：{statisText()!.speed}个/秒
+                </span>
+              </div>
+            </Show>
+          </div>
+        </Show>
+
+        <Show when={props.environment}>
+          <span class="ml-auto font-mono">求值器={props.environment![0]}</span>
+        </Show>
+      </div>
     </Card>
   );
 };

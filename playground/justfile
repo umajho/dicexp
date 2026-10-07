@@ -2,6 +2,9 @@ set fallback
 
 prepare:
 	just build-lezer
+	# Nova wasm assets are gitignored build artifacts; the `?url` imports
+	# need them at dev/build time.
+	just build-nova-wasm
 
 build: prepare
 	pnpm exec vite build

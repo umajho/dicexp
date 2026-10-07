@@ -24,6 +24,7 @@ export type DeclarationListToDocumentationMap<DeclList extends readonly any[]> =
  */
 type DeclarationToDocumentation<Decl extends RegularFunctionDeclaration> = {
   isOperator?: true;
+  todo?: true;
   groups: string[];
   parameters: ParameterListToLabelDocumentationMap<Decl["parameters"]>;
   description: {

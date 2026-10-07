@@ -1,5 +1,5 @@
 import type * as I from "@dicexp/interface";
-import { EvaluationResult, Evaluator } from "@dicexp/naive-evaluator";
+import { EvaluationResult, Evaluator } from "@dicexp/naive-evaluator/internal";
 
 /**
  * XXX: 如果直接使用 "@dicexp/naive-evaluator" 中的 Evaluator 而不用这里的类型，

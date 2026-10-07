@@ -23,14 +23,32 @@ import {
 
 import * as store from "../../stores/store";
 import { examples } from "../../stores/examples";
+import { Implementation } from "../../types";
 import createDicexpEvaluator, {
   AllKindsOfnRestrictions,
 } from "../../hooks/dicexp-evaluator";
 
+import { BenchmarkPane } from "./benchmark-pane";
+
 const LazyDicexpEditor = lazy(() => import("./dicexp-editor"));
 
 export const ControlPane: Component = () => {
-  const [mode, setMode] = createSignal<"single" | "sampling">("single");
+  const [tab, setTab] = createSignal<"single" | "sampling" | "benchmark">(
+    "single",
+  );
+
+  // The evaluator hook only understands "single"/"sampling"; in benchmark
+  // mode every normal-roll control is hidden, so pass null there and
+  // `evaluator.roll()` simply never gets invoked.
+  const mode = () =>
+    tab() === "benchmark" ? null : tab() as "single" | "sampling";
+
+  // Deliberately NOT persisted: every session starts on the default
+  // implementation (naive) until nova becomes the default (see
+  // `nova/docs/roadmap.md` §v1.0).
+  const [implementation, setImplementation] = createSignal<Implementation>(
+    "naive",
+  );
 
   const [exampleSelectValue, setExampleSelectValue] = createSignal<string>("");
   createEffect(() => {
@@ -51,6 +69,7 @@ export const ControlPane: Component = () => {
     seed,
     isSeedFrozen,
     restrictions,
+    implementation,
   });
   const rollingMode = () => {
     const theStatus = evaluator.status();
@@ -76,114 +95,161 @@ export const ControlPane: Component = () => {
       bodyClass={"flex flex-col gap-4 pt-4 pb-8 px-4 sm:px-8"}
     >
       {/* 标签页和示例选择 */}
-      <div class="flex items-center">
+      <div class="flex flex-wrap items-center gap-2">
         {/* 选择模式用的标签页 */}
         <Tabs class="flex-1">
           <Tab
-            isActive={mode() === "single"}
-            onClick={() => setMode("single")}
+            isActive={tab() === "single"}
+            onClick={() => setTab("single")}
             size="lg"
           >
             <span class="font-bold">单次</span>
           </Tab>
           <Tab
-            isActive={mode() === "sampling"}
-            onClick={() => setMode("sampling")}
+            isActive={tab() === "sampling"}
+            onClick={() => setTab("sampling")}
             size="lg"
           >
             <span class="font-bold">抽样</span>
           </Tab>
+          <Tab
+            isActive={tab() === "benchmark"}
+            onClick={() => setTab("benchmark")}
+            size="lg"
+          >
+            <span class="font-bold">基准</span>
+          </Tab>
         </Tabs>
 
-        {/* 示例选择 */}
-        <select
-          class="w-32"
-          value={exampleSelectValue()}
-          onChange={(ev) => setExampleSelectValue(ev.target.value)}
-        >
-          <option value="" disabled>查看示例</option>
-          <For each={examples}>
-            {(example) => (
-              <option value={example.code}>
-                {example.label} § {example.code}
-              </option>
-            )}
-          </For>
-        </select>
+        <Show when={tab() !== "benchmark"}>
+          <>
+            {/* 选择实现（求值器）用的标签页；不持久化，默认 naive。
+                Not applicable in benchmark mode, which always runs both. */}
+            <Tabs>
+              <Tab
+                isActive={implementation() === "naive"}
+                onClick={() => setImplementation("naive")}
+                size="sm"
+              >
+                naive
+              </Tab>
+              <Tab
+                isActive={implementation() === "nova"}
+                onClick={() => setImplementation("nova")}
+                size="sm"
+              >
+                <span title="实验性实现">nova</span>
+              </Tab>
+            </Tabs>
+
+            {/* 示例选择 */}
+            <select
+              class="w-32"
+              value={exampleSelectValue()}
+              onChange={(ev) => setExampleSelectValue(ev.target.value)}
+            >
+              <option value="" disabled>查看示例</option>
+              <For each={examples}>
+                {(example) => (
+                  <option value={example.code}>
+                    {example.label} § {example.code}
+                  </option>
+                )}
+              </For>
+            </select>
+          </>
+        </Show>
       </div>
 
-      {/* 输入框和按钮 */}
-      <div class="flex justify-center items-center gap-6">
-        {/* 输入框 */}
-        <div class="flex flex-col justify-center h-full w-full">
-          <LazyDicexpEditorWithSuspense
-            doc={store.doc}
-            setDoc={store.setDoc}
-            onSubmit={roll}
-          />
-        </div>
+      <Show
+        when={tab() !== "benchmark"}
+        fallback={<BenchmarkPane />}
+      >
+        <>
+          {/* 输入框和按钮 */}
+          <div class="flex justify-center items-center gap-6">
+            {/* 输入框 */}
+            <div class="flex flex-col justify-center h-full w-full">
+              <LazyDicexpEditorWithSuspense
+                doc={store.doc}
+                setDoc={store.setDoc}
+                onSubmit={roll}
+              />
+            </div>
 
-        {/* 按钮 */}
-        <Switch>
-          <Match when={evaluator.status().type === "loading"}>
-            <Button type="primary" disabled={true} loading={true} />
-          </Match>
-          <Match when={evaluator.status().type === "rolling"}>
+            {/* 按钮 */}
             <Switch>
-              <Match when={rollingMode() === "single"}>
-                <Button type="error" onClick={evaluator.terminate}>
-                  终止
-                </Button>
+              <Match when={evaluator.status().type === "loading"}>
+                <Button type="primary" disabled={true} loading={true} />
               </Match>
-              <Match when={rollingMode() === "sampling"}>
-                <Button type="secondary" onClick={evaluator.stopSampling}>
-                  停止
+              <Match when={evaluator.status().type === "rolling"}>
+                <Switch>
+                  <Match when={rollingMode() === "single"}>
+                    <Button type="error" onClick={evaluator.terminate}>
+                      终止
+                    </Button>
+                  </Match>
+                  <Match when={rollingMode() === "sampling"}>
+                    <Button type="secondary" onClick={evaluator.stopSampling}>
+                      停止
+                    </Button>
+                  </Match>
+                </Switch>
+              </Match>
+              <Match when={true}>
+                <Button
+                  type="primary"
+                  disabled={evaluator.status().type !== "ready"}
+                  onClick={roll}
+                >
+                  ROLL!
                 </Button>
               </Match>
             </Switch>
-          </Match>
-          <Match when={true}>
-            <Button
-              type="primary"
-              disabled={evaluator.status().type !== "ready"}
-              onClick={roll}
+          </div>
+
+          {/* 基本的设置 */}
+          <div class="flex flex-col md:flex-row md:h-8 justify-center gap-4">
+            {/* 种子 */}
+            <Show when={tab() === "single"}>
+              <OptionalNumberInput
+                number={seed()}
+                setNumber={setSeed}
+                enabled={isSeedFrozen()}
+                setEnabled={(enabled) => setIsSeedFrozen(enabled)}
+              >
+                固定种子
+              </OptionalNumberInput>
+              <span class="max-md:hidden">|</span>
+            </Show>
+
+            {/* 限制 */}
+            <LabelButton
+              for="restrictions-modal"
+              type="info"
+              size="sm"
+              class="normal-case"
             >
-              ROLL!
-            </Button>
-          </Match>
-        </Switch>
-      </div>
-
-      {/* 基本的设置 */}
-      <div class="flex flex-col md:flex-row md:h-8 justify-center gap-4">
-        {/* 种子 */}
-        <Show when={mode() === "single"}>
-          <OptionalNumberInput
-            number={seed()}
-            setNumber={setSeed}
-            enabled={isSeedFrozen()}
-            setEnabled={(enabled) => setIsSeedFrozen(enabled)}
-          >
-            固定种子
-          </OptionalNumberInput>
-          <span class="max-md:hidden">|</span>
-        </Show>
-
-        {/* 限制 */}
-        <LabelButton
-          for="restrictions-modal"
-          type="info"
-          size="sm"
-          class="normal-case"
-        >
-          {restrictionsText()}
-        </LabelButton>
-        <RestrictionsModal
-          mode={mode()}
-          setRestrictions={setRestrictions}
-          setRestrictionsText={setRestrictionsText}
-        />
-      </div>
+              {restrictionsText()}
+            </LabelButton>
+            {/* Nova caveats (nova/docs/compat.md #8): step display is
+                unavailable (soft timeout works since v0.5). */}
+            <Show when={implementation() === "nova"}>
+              <span
+                class="text-xs text-gray-400 select-none"
+                title="步骤展示暂未在 nova 实现中提供，将在后续版本加入。"
+              >
+                （nova 下步骤展示暂不可用）
+              </span>
+            </Show>
+            <RestrictionsModal
+              mode={mode()!}
+              setRestrictions={setRestrictions}
+              setRestrictionsText={setRestrictionsText}
+            />
+          </div>
+        </>
+      </Show>
     </Card>
   );
 };

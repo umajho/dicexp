@@ -27,10 +27,30 @@ export const builtinOperatorDefinitions: DeclarationListToDefinitionMap<
     return ["ok", a !== b];
   },
 
-  "</2": (_rtm, a, b) => ["ok", a < b],
-  ">/2": (_rtm, a, b) => ["ok", a > b],
-  "<=/2": (_rtm, a, b) => ["ok", a <= b],
-  ">=/2": (_rtm, a, b) => ["ok", a >= b],
+  "</2": (rtm, a, b) => {
+    if (typeof a !== typeof b) {
+      return ["error", runtimeError_LeftRightTypeMismatch(rtm, "<")];
+    }
+    return ["ok", a < b];
+  },
+  ">/2": (rtm, a, b) => {
+    if (typeof a !== typeof b) {
+      return ["error", runtimeError_LeftRightTypeMismatch(rtm, ">")];
+    }
+    return ["ok", a > b];
+  },
+  "<=/2": (rtm, a, b) => {
+    if (typeof a !== typeof b) {
+      return ["error", runtimeError_LeftRightTypeMismatch(rtm, "<=")];
+    }
+    return ["ok", a <= b];
+  },
+  ">=/2": (rtm, a, b) => {
+    if (typeof a !== typeof b) {
+      return ["error", runtimeError_LeftRightTypeMismatch(rtm, ">=")];
+    }
+    return ["ok", a >= b];
+  },
 
   "~/2": (rtm, lower, upper) => {
     let yieldedCount = 0;

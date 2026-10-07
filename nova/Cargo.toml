@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nova-abi",
+    "crates/nova-compiler",
+    "crates/nova-builtins",
+    "crates/nova-shim-gen",
+]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

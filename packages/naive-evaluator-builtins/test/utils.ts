@@ -5,8 +5,7 @@ import {
   NewEvaluatorOptions,
 } from "@dicexp/naive-evaluator/internal";
 
-import { ScopeExplicit } from "../src/types";
-
+import { builtinScope, functionScope, operatorScope } from "../lib";
 export function makeTester(
   opts:
     & Partial<NewEvaluatorOptions>
@@ -20,13 +19,20 @@ export function makeTester(
   );
 }
 
-export function scopeWith<T extends string, U extends T>(
-  scope: ScopeExplicit<{ [ident in T]: any }>,
-  pickedNames: readonly U[],
-) {
-  const newScope: ScopeExplicit<{ [ident in string]: any }> = {};
-  for (const name of pickedNames) {
-    newScope[name] = scope[name];
-  }
-  return newScope as ScopeExplicit<{ [ident in U]: any }>;
+/**
+ * Builds a tester whose top-level scope resolves (at least) the given
+ * builtins — 先挑函数作用域中的，再挑运算符作用域中的（与原先各测试
+ * 文件中构建作用域的顺序一致）。
+ */
+export function makeTesterFor(names: readonly string[]): EvaluationTester {
+  const pick = (scope: Record<string, unknown>) =>
+    Object.fromEntries(
+      names.filter((n) => n in scope).map((n) => [n, (scope as any)[n]]),
+    );
+  return makeTester({
+    topLevelScope: {
+      ...pick(functionScope),
+      ...pick(operatorScope),
+    },
+  });
 }

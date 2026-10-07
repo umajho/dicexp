@@ -10,14 +10,27 @@ export class SamplingHandler {
 
   private shouldStop: boolean | Error | I.RuntimeError = false;
 
+  // Only a finite number > 0 activates the limit; anything else means unlimited.
+  // This stop is what makes benchmark runs exactly comparable across
+  // implementations: each run collects exactly maxSamples samples over seeds
+  // 0..maxSamples-1.
+  private readonly maxSamples: number | null;
+
   constructor(
     evaluator: NaiveEvaluator,
     private readonly id: string,
     code: string,
-    opts: I.EvaluationGenerationOptions,
+    opts: I.RemoteSamplingOptions,
     private server: Server,
     private readonly stoppedCb: () => void,
   ) {
+    const maxSamples = opts.sampling?.maxSamples;
+    this.maxSamples =
+      typeof maxSamples === "number" && Number.isFinite(maxSamples) &&
+        maxSamples > 0
+        ? maxSamples
+        : null;
+
     const nowMs = Date.now();
 
     let makeGeneratorResult = ((): I.MakeEvaluationGeneratorResult => {
@@ -105,6 +118,7 @@ export class SamplingHandler {
           throw new Unreachable();
         }
         this.markSamplingToStop(stepResult.value[2]);
+        break; // terminal error returned — do NOT fall through to value checks
       }
 
       const value = stepResult.value[1];
@@ -119,6 +133,13 @@ export class SamplingHandler {
       this.result.samples++;
       const oldCount = this.result.counts[value] ?? 0;
       this.result.counts[value] = oldCount + 1;
+
+      if (
+        this.maxSamples !== null && this.result.samples >= this.maxSamples
+      ) {
+        this.markSamplingToStop();
+        break;
+      }
     }
   }
 

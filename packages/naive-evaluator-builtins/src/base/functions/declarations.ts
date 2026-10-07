@@ -20,8 +20,20 @@ export const builtinFunctionDeclarations = ([
   },
 
   // 实用：
-  // abs/1
-  // count/1
+  {
+    name: "abs",
+    parameters: [
+      { label: "n", type: "integer" },
+    ],
+    returnValue: { type: "integer" },
+  },
+  {
+    name: "count",
+    parameters: [
+      { label: "list", type: "list" },
+    ],
+    returnValue: { type: "integer" },
+  },
   {
     name: "count",
     parameters: [
@@ -30,7 +42,14 @@ export const builtinFunctionDeclarations = ([
     ],
     returnValue: { type: "integer" },
   },
-  // has?/2
+  {
+    name: "has?",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "value", type: new Set(["integer", "boolean"]) },
+    ],
+    returnValue: { type: "boolean" },
+  },
   {
     name: "sum",
     parameters: [
@@ -45,9 +64,27 @@ export const builtinFunctionDeclarations = ([
     ],
     returnValue: { type: "integer" },
   },
-  // min/1
-  // max/1
-  // all?/1
+  {
+    name: "min",
+    parameters: [
+      { label: "list", type: "list" },
+    ],
+    returnValue: { type: "integer" },
+  },
+  {
+    name: "max",
+    parameters: [
+      { label: "list", type: "list" },
+    ],
+    returnValue: { type: "integer" },
+  },
+  {
+    name: "all?",
+    parameters: [
+      { label: "list", type: "list" },
+    ],
+    returnValue: { type: "boolean" },
+  },
   // all?/2
   {
     name: "any?",
@@ -64,10 +101,37 @@ export const builtinFunctionDeclarations = ([
     ],
     returnValue: { type: "list" },
   },
-  // sort/2
-  // reverse/1
-  // concat/2
-  // prepend/2
+  {
+    name: "sort",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
+    name: "reverse",
+    parameters: [
+      { label: "list", type: "list" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
+    name: "concat",
+    parameters: [
+      { label: "list1", type: "list" },
+      { label: "list2", type: "list" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
+    name: "prepend",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "el", type: "$lazy" },
+    ],
+    returnValue: { type: "list" },
+  },
   {
     name: "append",
     parameters: [
@@ -86,10 +150,40 @@ export const builtinFunctionDeclarations = ([
       type: { dynamic: true, lazy: true },
     },
   },
-  // at/3
-  // duplicate/2
-  // flatten/2
-  // flattenAll/1
+  {
+    name: "at",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "index", type: "integer" },
+      { label: "default", type: "$lazy" },
+    ],
+    returnValue: {
+      type: { dynamic: true, lazy: true },
+    },
+  },
+  {
+    name: "duplicate",
+    parameters: [
+      { label: "value", type: "$lazy" },
+      { label: "count", type: "integer" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
+    name: "flatten",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "depth", type: "integer" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
+    name: "flattenAll",
+    parameters: [
+      { label: "list", type: "list" },
+    ],
+    returnValue: { type: "list" },
+  },
 
   // 函数式：
   {
@@ -102,6 +196,14 @@ export const builtinFunctionDeclarations = ([
   },
   // flatMap/2
   {
+    name: "flatMap",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
     name: "filter",
     parameters: [
       { label: "list", type: "list" },
@@ -109,8 +211,44 @@ export const builtinFunctionDeclarations = ([
     ],
     returnValue: { type: "list" },
   },
-  // foldl/3
-  // foldr/3
+  {
+    name: "foldl",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "init", type: "$lazy" },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: {
+      type: { dynamic: true, lazy: true },
+    },
+  },
+  {
+    name: "foldr",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "init", type: "$lazy" },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: {
+      type: { dynamic: true, lazy: true },
+    },
+  },
+  {
+    name: "unfold",
+    parameters: [
+      { label: "seed", type: "$lazy" },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: "sequence" },
+  },
+  {
+    name: "iterate",
+    parameters: [
+      { label: "start", type: "$lazy" },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: "sequence" },
+  },
   {
     name: "head",
     parameters: [
@@ -127,12 +265,60 @@ export const builtinFunctionDeclarations = ([
     ],
     returnValue: { type: "list" },
   },
-  // last/1
-  // init/1
-  // take/2
-  // takeWhile/2
-  // drop/2
-  // dropWhile/2
+  {
+    name: "last",
+    parameters: [
+      { label: "list", type: "list" },
+    ],
+    returnValue: {
+      type: { dynamic: true, lazy: true },
+    },
+  },
+  {
+    name: "init",
+    parameters: [
+      { label: "list", type: "list" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
+    name: "take",
+    parameters: [
+      {
+        label: "list",
+        type: new Set(["list", "sequence", "sequence$sum"]),
+      },
+      { label: "n", type: "integer" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
+    name: "takeWhile",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: "list" },
+  },
+  {
+    name: "drop",
+    parameters: [
+      {
+        label: "list",
+        type: new Set(["list", "sequence", "sequence$sum"]),
+      },
+      { label: "n", type: "integer" },
+    ],
+    returnValue: { type: { dynamic: true } },
+  },
+  {
+    name: "dropWhile",
+    parameters: [
+      { label: "list", type: "list" },
+      { label: "callable", type: "callable" },
+    ],
+    returnValue: { type: "list" },
+  },
   {
     name: "zip",
     parameters: [

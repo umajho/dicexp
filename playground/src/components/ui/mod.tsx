@@ -192,13 +192,15 @@ export const Button: Component<
     ].join(" ");
 
   return (
-    <div
+    <button
+      type="button"
       class={`btn ${classes()}`}
+      disabled={props.disabled}
       onClick={props.onClick}
     >
       {props.icon}
       {props.children}
-    </div>
+    </button>
   );
 };
 

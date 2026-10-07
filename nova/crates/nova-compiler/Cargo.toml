@@ -1,0 +1,27 @@
+[package]
+name = "dicexp-nova-compiler"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "The dicexp-nova compiler: dicexp source to WASM"
+
+[features]
+default = ["checkpoints"]
+# MEASUREMENT-ONLY (see the `build-nova-wasm-nockpt` justfile recipe): with
+# this feature off, the compiler emits no plan-§3.9 checkpoint guards and
+# omits the `__checkpoint` import entirely — used to measure the per-call
+# overhead of the guard, like-for-like with the normal build. NOT a
+# supported shipping configuration: the soft timeout silently stops
+# working.
+checkpoints = []
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+dicexp-nova-abi = { path = "../nova-abi" }
+wasm-encoder = "0.261"
+unicode-ident = "1"
+
+[dev-dependencies]
+wasmparser = "0.261"

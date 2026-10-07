@@ -31,10 +31,23 @@ export interface RemoteEvaluationLocalRestrictions {
   hardTimeout?: { ms: number };
 }
 
+export interface RemoteSamplingOptions extends EvaluationGenerationOptions {
+  /**
+   * 抽样控制选项（由远程抽样通道处理；本地求值器忽略）。
+   */
+  sampling?: {
+    /**
+     * 采集到该数量的样本后自动停止抽样。种子按 0、1、2、… 依次使用，
+     * 因此 N 个样本对应种子 0 至 N-1。非正数或缺失表示不限制。
+     */
+    maxSamples?: number;
+  };
+}
+
 export interface RemoteSamplerClient {
   keepSampling: (
     code: string,
-    opts: EvaluationGenerationOptions,
+    opts: RemoteSamplingOptions,
   ) => AsyncGenerator<SamplingReport>;
 }
 

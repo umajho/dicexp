@@ -24,10 +24,16 @@ import type * as I from "@dicexp/interface";
 
 import { Button, Card, Loading } from "../../ui/mod";
 import * as store from "../../../stores/store";
-import { ResultRecord, SamplingReportForPlayground } from "../../../types";
+import {
+  BenchmarkOutcome,
+  Implementation,
+  ResultRecord,
+  SamplingReportForPlayground,
+} from "../../../types";
 import { DicexpResult } from "../../../custom-elements/dicexp";
 import { ErrorAlert } from "../ui";
 import { SamplingResultCard } from "./result-card-for-sampling";
+import { BenchmarkResultCard } from "./result-card-for-benchmark";
 
 export const ResultPane: Component<
   { class?: string; records: () => ResultRecord[] }
@@ -120,9 +126,10 @@ export const ResultPane: Component<
                       </Match>
                       <Match when={record.type === "sampling"}>
                         {(() => {
-                          const { code, report, date } = record as //
-                          Extract<ResultRecord, { type: "sampling" }>;
-                          const props = { code, report, date };
+                          const { code, report, date, environment } =
+                            record as //
+                            Extract<ResultRecord, { type: "sampling" }>;
+                          const props = { code, report, date, environment };
                           return <SamplingResultBlock i={i()} {...props} />;
                         })()}
                       </Match>
@@ -132,6 +139,14 @@ export const ResultPane: Component<
                           Extract<ResultRecord, { type: "error" }>;
                           const props = { error, date };
                           return <ErrorResultBlock i={i()} {...props} />;
+                        })()}
+                      </Match>
+                      <Match when={record.type === "benchmark"}>
+                        {(() => {
+                          const { code, outcome, date } = record as //
+                          Extract<ResultRecord, { type: "benchmark" }>;
+                          const props = { code, outcome, date };
+                          return <BenchmarkResultBlock i={i()} {...props} />;
                         })()}
                       </Match>
                       <Match when={true}>
@@ -169,6 +184,7 @@ const SingleResultBlock: Component<
     result: I.EvaluationResult;
     date: Date;
     environment?: NonNullable<DicexpEvaluation["environment"]>;
+    implementation: Implementation;
   }
 > = (
   props,
@@ -197,11 +213,24 @@ const SingleResultBlock: Component<
 
     return {
       result,
-      repr: appendix?.representation,
+      // `?? undefined`: nova's appendix carries `representation: null`
+      // (no step recording yet, nova/docs/compat.md #8); the widget treats
+      // a missing repr as "no steps".
+      repr: appendix?.representation ?? undefined,
       statistics: appendix?.statistics,
       environment: props.environment,
       location: "local",
     };
+  });
+
+  // Under nova, results that would normally carry a repr (ok and runtime
+  // errors) get an explicit notice instead — `representation` is `null`
+  // (nova/docs/compat.md #8). Parse errors and sampling results need none.
+  const needsStepNotice = createMemo(() => {
+    if (props.implementation !== "nova") return false;
+    const result = props.result;
+    return result[0] === "ok" ||
+      (result[0] === "error" && result[1] === "runtime");
   });
 
   return (
@@ -221,6 +250,11 @@ const SingleResultBlock: Component<
       </h2>
       {/* TODO: 未展现的信息：错误种类、统计中 “运行耗时” 之外的统计项（如 “调用次数”）。 */}
       <DicexpResult code={props.code} evaluation={evaluation()} />
+      <Show when={needsStepNotice()}>
+        <div class="text-sm text-gray-400 border border-dashed border-gray-500 rounded px-3 py-1 select-none">
+          步骤展示暂不支持 nova 实现（将在后续版本提供）
+        </div>
+      </Show>
     </div>
   );
 };
@@ -230,6 +264,7 @@ const SamplingResultBlock: Component<{
   code: string;
   report: () => SamplingReportForPlayground;
   date: Date;
+  environment?: NonNullable<DicexpEvaluation["environment"]>;
 }> = (
   props,
 ) => {
@@ -261,6 +296,7 @@ const SamplingResultBlock: Component<{
           <SamplingResultCard
             code={props.code}
             report={props.report() as I.SamplingReport}
+            environment={props.environment}
           />
         </Show>
       </h2>
@@ -295,6 +331,36 @@ const ErrorResultBlock: Component<{
         </div>
         <ErrorAlert error={props.error} showsStack={true} />
       </h2>
+    </div>
+  );
+};
+
+const BenchmarkResultBlock: Component<{
+  i: number;
+  code: string;
+  outcome: BenchmarkOutcome;
+  date: Date;
+}> = (
+  props,
+) => {
+  return (
+    <div class="flex flex-col gap-2">
+      <h2 class="text-xl font-semibold border-b border-gray-500 w-full">
+        <div class="inline-flex flex-wrap gap-2 items-center">
+          <Button
+            icon={<VsClose size={18} />}
+            size="xs"
+            shape="square"
+            hasOutline={true}
+            onClick={() => store.clear(props.i)}
+          />
+          <span>基准</span>
+          <span>{dateToString(props.date)}</span>
+        </div>
+      </h2>
+      {/* The outcome of one run is immutable (a starting run replaces it),
+          so no reactive signaling is needed inside the card. */}
+      <BenchmarkResultCard code={props.code} outcome={props.outcome} />
     </div>
   );
 };

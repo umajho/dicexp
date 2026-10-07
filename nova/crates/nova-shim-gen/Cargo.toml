@@ -1,0 +1,9 @@
+[package]
+name = "dicexp-nova-shim-gen"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Generates the small WASM shim that lets the builtins call compiled closures"
+
+[dependencies]
+wasm-encoder = "0.261"

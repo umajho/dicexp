@@ -42,32 +42,32 @@ export const builtinOperatorDeclarations = ([
   {
     name: "<",
     parameters: [
-      { label: "a", type: "integer" },
-      { label: "b", type: "integer" },
+      { label: "a", type: new Set(["integer", "boolean"]) },
+      { label: "b", type: new Set(["integer", "boolean"]) },
     ],
     returnValue: { type: "boolean" },
   },
   {
     name: ">",
     parameters: [
-      { label: "a", type: "integer" },
-      { label: "b", type: "integer" },
+      { label: "a", type: new Set(["integer", "boolean"]) },
+      { label: "b", type: new Set(["integer", "boolean"]) },
     ],
     returnValue: { type: "boolean" },
   },
   {
     name: "<=",
     parameters: [
-      { label: "a", type: "integer" },
-      { label: "b", type: "integer" },
+      { label: "a", type: new Set(["integer", "boolean"]) },
+      { label: "b", type: new Set(["integer", "boolean"]) },
     ],
     returnValue: { type: "boolean" },
   },
   {
     name: ">=",
     parameters: [
-      { label: "a", type: "integer" },
-      { label: "b", type: "integer" },
+      { label: "a", type: new Set(["integer", "boolean"]) },
+      { label: "b", type: new Set(["integer", "boolean"]) },
     ],
     returnValue: { type: "boolean" },
   },

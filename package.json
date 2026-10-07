@@ -5,6 +5,7 @@
   "author": "Umaĵo",
   "license": "MIT",
   "devDependencies": {
+    "binaryen": "catalog:",
     "npm-run-all": "catalog:",
     "typescript": "catalog:"
   }

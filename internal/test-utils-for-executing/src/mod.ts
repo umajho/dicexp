@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 import { assert, describe, it } from "vitest";
-import AssertionError from "assertion-error";
+import { AssertionError } from "assertion-error";
 
 import { inspect } from "util";
 
@@ -238,8 +238,20 @@ function deepEqual<T>(actual: T, expected: T, message?: string): boolean {
   try {
     assert.deepEqual(actual, expected, message);
   } catch (e) {
-    if (!(e instanceof AssertionError)) throw new Unreachable();
+    // NOTE: vitest's chai throws its own bundled AssertionError class, whose
+    // identity differs from the `assertion-error` package's — compare by
+    // name instead of `instanceof`.
+    if (!(e instanceof Error) || e.name !== "AssertionError") {
+      throw new Unreachable();
+    }
     return false;
   }
   return true;
 }
+
+/**
+ * Shared, implementation-agnostic semantic suites (plan.md §9): naive's
+ * semantic test tables as factories, with per-impl divergence tagging.
+ * See `./suites/mod.ts`.
+ */
+export * from "./suites/mod";

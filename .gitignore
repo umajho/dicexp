@@ -1,4 +1,10 @@
+.DS_Store
+
 node_modules
 dist
+nova/target
+nova/packages/nova/wasm/*.wasm
+nova/packages/nova/wasm-nockpt/
+nova/packages/nova/bench/results/
 
 /justfile_priv

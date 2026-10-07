@@ -16,6 +16,13 @@ export interface RegularFunctionDocumentation {
    */
   isOperator?: true;
   /**
+   * 文档尚待编写。
+   *
+   * 为「真」时，其余字段的内容只是草稿（不展示给用户），
+   * 应以待编写占位符代替。
+   */
+  todo?: true;
+  /**
    * 所属分组。（仅用于文档。）
    */
   groups: readonly string[];
