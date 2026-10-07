@@ -312,7 +312,11 @@ itself instead of naive's static metadata.
   e.g. parsing `#[doc]` attributes — emitting a JSON/TS metadata module),
   and switch the playground's documentation pane and editor completion
   from naive's static metadata to nova's generated metadata. naive's
-  metadata stays for naive itself.
+  metadata stays for naive itself. (v0.7 correction: the playground editor
+  has NO builtin completion at all — only the documentation pane consumes
+  scope metadata today; the v0.7 TODO-marker state (`todo?: true` on
+  `I.RegularFunctionDocumentation`, rendered as 「文档待编写」) must be
+  honored by the nova-sourced metadata too.)
 
 **Exit:** the playground's docs/completion no longer read naive's builtin
 metadata; the generated metadata covers every builtin shipped at this
