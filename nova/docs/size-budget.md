@@ -1,6 +1,7 @@
-# nova wasm size budget (v0.6)
+# nova wasm size budget (v0.6; v0.7 numbers appended)
 
-Measured 2026-10-06. Reproduce with `just build-nova-wasm && just nova-wasm-sizes`.
+Measured 2026-10-06 (v0.6) and 2026-10-07 (v0.7). Reproduce with
+`just build-nova-wasm && just nova-wasm-sizes`.
 
 - Tools: `wasm-opt` version 132 (version_132), from the npm `binaryen@^132.0.0`
   devDependency (invoked as `pnpm exec wasm-opt`; no system install).
@@ -67,6 +68,28 @@ stays the default.
   deployment-relevant number is brotli 35,282 B (over-the-wire), and further
   shrinking needs source-level work, not more `wasm-opt` flags (`--converge`
   trial below).
+
+### v0.7 measurement (25 new builtins, ids 36–60)
+
+Measured 2026-10-07 after the v0.7 builtin-completeness batch landed (the
+builtins gained the 25 implementations incl. three new sequence-source kinds
+and a hand-rolled stable merge sort for `sort/2`; the compiler grew only by
+the nova-abi `BuiltinDef` table entries — no codegen changes):
+
+| asset | raw | gzip (level 9) | brotli (max quality) |
+| --- | ---: | ---: | ---: |
+| nova-compiler.wasm | 114,884 B | 43,749 B | 35,554 B |
+| nova-builtins.wasm | 45,500 B | 19,367 B | 16,478 B |
+| nova-shim.wasm | 82 B | 94 B | 77 B |
+| **total** | 160,466 B | 63,210 B | 52,109 B |
+
+- builtins: **45,500 B ≤ 50 KB — met**, with ~4.5 KB raw headroom (brotli
+  16.5 KB). +8,754 B raw over v0.6 for 25 builtins (≈350 B/builtin average;
+  the merge sort and the sequence sources are the bulk).
+- compiler: **114,884 B ≤ 120 KB — met** (+1,196 B, the ABI table strings).
+- Watch for v0.8+: the builtins budget is now genuinely close (4.5 KB left);
+  repr trace hooks (v0.9) are feature-gated/zero-cost by design but must be
+  measured when they land.
 
 ## Allocator / codegen review (the other half of the v0.6 size bullet)
 
