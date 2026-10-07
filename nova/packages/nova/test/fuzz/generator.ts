@@ -74,8 +74,107 @@
  *       with other elements. (The comparator also normalizes via JSON, so
  *       `-0` ≡ `0` — belt and braces.)
  * -     Closures never flow into final results; lists stay homogeneous
- *       int/bool/nested-int-list (nesting ≤ 2, lengths ≤ 6, `#` counts ≤
- *       8) — the top-level comparator deep-evaluates plain values only.
+ *       int/bool/nested-int-list (nesting ≤ 2; lengths ≤ 6 literally,
+ *       ≤ 14 via concat, ≤ ~42 via flatMap — range/length claims stay
+ *       sound; `#` counts ≤ 8) — the top-level comparator deep-evaluates
+ *       plain values only.
+ * -     v0.7 builtins (nova/docs/v0.7-contracts.md — new in BOTH impls,
+ *       so contract-identical; each rule cites the contract/compat entry
+ *       it guards):
+ * -     `all?/1` is never generated, like `any?` (compat #1): nova
+ *       short-circuits element forcing at the first `false`, naive
+ *       flattens eagerly — any die, non-boolean, or error past the first
+ *       `false` diverges (value or RNG order). Restricting elements to
+ *       provably dice-free booleans is not expressible with the
+ *       generator's tracking (dice-freeness is not a tracked property),
+ *       so it is excluded outright; the sensitive rows are pinned by the
+ *       differential suite's deliberate dice rows instead.
+ * -     `unfold/2` is never generated: a meaningful TERMINATING step
+ *       closure needs an `if` (absent this iteration; the sim-idiom
+ *       `head(append(filter([[t]], |_| cond), false))` is not
+ *       template-able) — `iterate/2` + bounded `take` covers the
+ *       sequence-producer story (judgment call, see `takeSeq` below).
+ * -     `sort/2` uses a pure, CONSISTENT comparator (`|$a, $b| $a <= $b`
+ *       and friends — comparison count/order differs between impls, so
+ *       effectful comparators are unspecified; contract "sort/2
+ *       comparator") over a LITERAL scalar list: element handles are
+ *       forced by the comparator in comparison order, so dice-carrying
+ *       elements with differing per-element draw counts (e.g. `[2d6,
+ *       d6]`) could consume the stream in different orders per impl and
+ *       permute the drawn multiset — literals sidestep the stream.
+ * -     `foldl/3`/`foldr/3` bodies are dice-free (template-built from
+ *       closure params + literals only; the contract's checklist routes
+ *       diceful fold rows to the differential suite). foldl keeps dice
+ *       in its elements/init — the strict left fold consumes them in
+ *       identical order in both impls (verified in isolation and by the
+ *       fuzz runs). **foldr is dice-free THROUGHOUT** (elements and init
+ *       are pure literals): its nested-lazy construction forces
+ *       elements/init in DIFFERENT draw orders per impl — minimized as
+ *       `foldr([d2, d100], d1000, |$e, $a| $e - $a)` (seed 0: nova 902
+ *       = 2 − (57 − 957), nested-call order; naive 686, no permutation
+ *       of the same draws) — an unpinned divergence reported to the
+ *       lead. Inputs stay shallow by construction (foldr's nested lazy
+ *       calls overflow both impls only at ≳10³ elements — compat #6).
+ * -     `iterate/2` sequences appear ONLY as `take([drop](iterate(start,
+ *       f), j), k)` with small j + k: the bare sequence is infinite, and
+ *       casting it to a list (top level, `sum`, list-arg positions…) is
+ *       unbounded — nova's memory-limit error vs naive's hang is an
+ *       intended asymmetry that must not be fuzzed (contract "casting an
+ *       infinite sequence"). The next-function is pure (param + one
+ *       literal op). `take`/`drop` over dice/repetition sources pull in
+ *       the same order in both impls; `take` legitimately pulls PAST the
+ *       nominal end (`take(d6, 3)` = 3 rolls, `take(3#d6, 5)` = 5 —
+ *       contract "take/2"), so counts stay small (k ≤ 5, j ≤ 3).
+ * -     `take`/`drop` over LIST-typed inputs never receive a SEQUENCE
+ *       source (raw `N#body` repetitions and reroll/explode transformer
+ *       results — `isSequenceNode`): their list cast is nominal-bounded
+ *       (how `sum(3#d6)` always worked), but `take` pulls past nominal
+ *       (exactly k items — a min(k, len) claim would be unsound) and
+ *       `drop`'s lazy skip can pass the nominal-last marker
+ *       (`drop(5#d6, 7)`, `drop(explode(3#d9, …), 6)`), making the
+ *       result's list cast UNBOUNDED — the must-not-fuzz shape (both
+ *       found live as nova 内存不足 / a naive heap OOM). Sequence takes
+ *       go through `takeSeq` only.
+ * -     `takeWhile/2`/`dropWhile/2` predicates are pure templates over
+ *       the element type (contract: per-element calls in list order;
+ *       error-free elements are the normal path's invariant anyway).
+ * -     `has?/2` scans flat int/bool lists with a scalar needle (a
+ *       list/pair element would be a key-50 error — off the normal path);
+ *       cross-type needles are simply unequal (contract). Both impls
+ *       short-circuit at the first match identically (new in both), so
+ *       dice in elements/needle are safe.
+ * -     `min/1`/`max/1`/`last/1`/`init/1` take lenLo ≥ 1 lists only:
+ *       the `[]` case errors with 列表为空 (key 44), which would break
+ *       the normal path's error-freedom (and could poison naive's
+ *       map/zipWith error beacon from inside a closure body — compat #9);
+ *       the error shape is covered deliberately by the `emptyV07` sketchy
+ *       template instead.
+ * -     `duplicate/2` pins its value — ONE evaluation, so `duplicate(d6,
+ *       3)` consumes one draw in both impls (contract); counts ≤ 4, and
+ *       the element range claim is the pinned value's range (a duplicated
+ *       die contributes its single value × count to sums — sound).
+ * -     `flatten/2`/`flattenAll/1` inputs stay in the nesting lattice
+ *       (outer ≤ 4, inner ≤ 3 / repetition ≤ 3, depth 0..2);
+ *       repetition elements exercise the sequence→list splice of the
+ *       listness test (contract "flatten") with sound element ranges —
+ *       pulling happens left-to-right in both impls.
+ * -     `<`/`>`/`<=`/`>=` over booleans (`false < true`) use
+ *       homogeneous boolean operands: mixed int/bool operands error with
+ *       key 42 in both impls (contract operators) but stay off the
+ *       normal error-free path; comparison captures remain excluded
+ *       (compat #10).
+ * -     New integer producers feed the range tracking conservatively
+ *       (soundness over precision): `abs` → [0, max|x|], `count/1` →
+ *       [lenLo, lenHi], `min`/`max` → the element range, `at/3` →
+ *       element ∪ default by index certainty (negative indices are
+ *       always OOB), folds → the union over step counts 0..lenHi (fold
+ *       op ranges are NOT monotone — ×c alternates/collapses), iterate →
+ *       the union of the taken window r_j..r_{j+k−1} (`* 0` collapses).
+ * -     `append`/`prepend`/`concat` now WIDEN the claimed element range
+ *       with the appended/prepended/concatenated elements' ranges
+ *       (`append` previously dropped the appended element's range — an
+ *       unsound claim that could, in principle, let a claimed-nonzero
+ *       element be 0 and error inside a map/zipWith body).
  *
  * Rendering mirrors the grammar's binding powers (nova's parser `bp` table
  * and `internal/lezer/src/precedence-table.ts` — same relative order; the
@@ -87,7 +186,9 @@
  * nested-only (they are `expressionWithoutPipe`, so no top-level `|>` — and
  * no trailing-closure calls either, which would nest ambiguously). Call
  * chains render either fully nested or as a top-level pipe chain (arg1
- * threaded through the left spine); trailing-closure call forms
+ * threaded through the left spine — every spine call including the
+ * OUTERMOST one renders as a step; an old off-by-one silently dropped
+ * the outermost call, see renderProgram); trailing-closure call forms
  * (`f(a) |$x| body`) are only emitted where EOF or an argument delimiter
  * follows — never as a pipe-chain step (`x |> f() |$x| …` is unverified).
  */
@@ -216,6 +317,13 @@ function rNeg(a: IntRange): Range {
   return ir(-a.hi, -a.lo, a.interval);
 }
 
+/** |x| over a range: abs of a full integer interval is a full interval. */
+function rAbs(a: IntRange): IntRange {
+  const lo = a.lo > 0 ? a.lo : a.hi < 0 ? -a.hi : 0;
+  const hi = Math.max(Math.abs(a.lo), Math.abs(a.hi));
+  return ir(lo, hi, a.interval);
+}
+
 function trunc(x: number): number {
   return x < 0 ? Math.ceil(x) : Math.floor(x);
 }
@@ -238,8 +346,11 @@ function rMod(a: IntRange, d: IntRange): Range {
   return ir(0, Math.min(a.hi, d.hi - 1), false);
 }
 
-/** Union of ranges (for list-literal element bounds). */
+/** Union of ranges (for list-literal element bounds). Empty → null
+ * (an empty union would otherwise produce [∞, −∞], which `bounded`
+ * mishandles — found live as a rendered `NaN` literal). */
 function rUnion(rs: Range[]): Range {
+  if (rs.length === 0) return null;
   let lo = Infinity;
   let hi = -Infinity;
   let interval = true;
@@ -486,6 +597,16 @@ function negateCmp(
   }
 }
 
+/** Nodes whose runtime value is a SEQUENCE (not a real list): raw
+ * repetitions and reroll/explode transformer results. Their list CAST is
+ * nominal-bounded (how `sum(3#d6)` always worked), but `take` pulls past
+ * nominal and `drop`'s lazy skip can pass the nominal-last marker — so
+ * they must not reach take/drop as their first argument. */
+function isSequenceNode(node: Node): boolean {
+  return node.kind === "repeat" ||
+    (node.kind === "call" && (node.name === "reroll" || node.name === "explode"));
+}
+
 function collectVars(node: Node): Set<string> {
   const out = new Set<string>();
   const walk = (n: Node): void => {
@@ -576,18 +697,26 @@ function drawRange(rng: Rng): IntRange {
 export class ProgramGenerator {
   readonly rng: Rng;
   private names: string[] = [];
+  private fallbackCount = 0;
 
   constructor(seed: number) {
     this.rng = new Rng(seed);
   }
 
+  /** Pool names first; once exhausted, a per-program counter (`$v0`, …) —
+   * COLLISION-FREE, unlike the old random `$v{0..99}` fallback, which
+   * could hand the same name to two params of one closure (`|$v48, $v48|`
+   * — rejected eagerly by nova, accepted by naive; compat #3; found live
+   * at FUZZ_SEED=7 #2518 once the v0.7 cases started exhausting the pool). */
   private freshName(): string {
     const n = this.names.shift();
-    return n ?? `$v${this.rng.int(0, 99)}`;
+    if (n !== undefined) return n;
+    return `$v${this.fallbackCount++}`;
   }
 
   genProgram(): { node: Node; sketchy: boolean } {
     this.names = [...NAME_POOL];
+    this.fallbackCount = 0;
     if (this.rng.chance(SKETCHY_P)) {
       return { node: this.genSketchy(), sketchy: true };
     }
@@ -666,6 +795,15 @@ export class ProgramGenerator {
       ["apply", 2.5],
       ["reroll", 2],
       ["explode", 1],
+      // v0.7 builtins (nova/docs/v0.7-contracts.md)
+      ["abs", 3],
+      ["count1", 2.5],
+      ["min", 2],
+      ["max", 2],
+      ["at3", 3],
+      ["last", 1.5],
+      ["foldl", 2],
+      ["foldr", 2],
     ];
     if (env.vars.some((v) => v.ty.k === "int")) table.push(["var", 7]);
     if (depth <= 0) {
@@ -917,6 +1055,184 @@ export class ProgramGenerator {
       case "cap":
         return this.genCaptureCall(depth, env, c);
 
+      // ---- v0.7 builtins (nova/docs/v0.7-contracts.md) ----------------------
+
+      case "abs": {
+        const g = sub();
+        if (!g.r) return null;
+        return finish({ kind: "call", name: "abs", args: [g.node] }, rAbs(g.r));
+      }
+
+      case "count1": {
+        // count/1: length WITHOUT forcing elements (contract) — no RNG
+        // interaction regardless of element dice.
+        const list = this.genList(dec(depth), env);
+        const lt = list.ty;
+        if (lt.k !== "list") return null;
+        return finish(
+          { kind: "call", name: "count", args: [list.node] },
+          ir(lt.lenLo, lt.lenHi, lt.lenLo === lt.lenHi),
+        );
+      }
+
+      case "min":
+      case "max": {
+        const list = this.genList(dec(depth), env);
+        const lt = list.ty;
+        if (lt.k !== "list" || lt.elem.k !== "int" || !lt.elem.r) return null;
+        // `[]` errors with 列表为空 (key 44) — the normal path stays
+        // error-free (emptyV07 sketchy template covers the error), so
+        // non-empty lists only. Result ⊆ element range (extremes sit at
+        // the endpoints; a single-element list reaches every interval
+        // value).
+        if (lt.lenLo < 1) return null;
+        return finish(
+          { kind: "call", name: kind, args: [list.node] },
+          lt.elem.r,
+        );
+      }
+
+      case "at3": {
+        // at/3: never errors on OOB — yields the (unforced) default.
+        const src = this.genList(dec(depth), env);
+        const st = src.ty;
+        if (st.k !== "list" || st.elem.k !== "int" || !st.elem.r) return null;
+        // Negative indices (bare `-k`, verified in delimited positions)
+        // are always OOB.
+        const idx = this.rng.int(-1, st.lenHi + 1);
+        const dflt = this.genInt(dec(depth), env, ANY);
+        if (!dflt.r) return null;
+        let r: Range;
+        if (idx < 0 || idx >= st.lenHi) r = dflt.r; // surely OOB
+        else if (idx < st.lenLo) r = st.elem.r; // surely in range
+        else r = rUnion([st.elem.r, dflt.r]); // length uncertain
+        return finish(
+          {
+            kind: "call",
+            name: "at",
+            args: [src.node, { kind: "int", v: idx }, dflt.node],
+          },
+          r,
+        );
+      }
+
+      case "last": {
+        const src = this.genList(dec(depth), env);
+        const st = src.ty;
+        if (st.k !== "list" || st.lenLo < 1 || st.elem.k !== "int" || !st.elem.r) {
+          return null; // `[]` → 列表为空; emptyV07 sketchy covers it
+        }
+        return finish(
+          { kind: "call", name: "last", args: [src.node] },
+          st.elem.r,
+        );
+      }
+
+      case "foldl":
+      case "foldr": {
+        // Fold bodies are dice-free templates (params + literals only).
+        // foldl keeps dice in its elements/init — the strict left fold
+        // forces them in identical order in both impls (verified:
+        // foldl([d2, d100], d1000, |$a, $e| $a - $e) agrees across
+        // seeds). foldr must be dice-free THROUGHOUT: its nested-lazy
+        // construction forces elements/init in DIFFERENT draw orders in
+        // the two impls — e.g. foldr([d2, d100], d1000, |$e, $a| $e -
+        // $a) at seed 0 gives nova 902 (= 2 − (57 − 957), nested-call
+        // order e0, e1, init) but naive 686 (no permutation of the same
+        // three draws) — a real, currently-unpinned divergence outside
+        // the fuzzer's remit (the differential suite pins the deliberate
+        // dice rows); dice-free inputs still cover the fold structure.
+        // Inputs are shallow by construction (foldr's nested lazy calls
+        // overflow both impls only at ≳10³ — compat #6).
+        let listNode: Node;
+        let elemRange: IntRange;
+        let lenHi: number;
+        let init: IntGen;
+        if (kind === "foldr") {
+          const len = this.rng.int(0, 5);
+          const xs: Node[] = [];
+          const rs: Range[] = [];
+          for (let i = 0; i < len; i++) {
+            const g = this.genPureIntLit();
+            xs.push(g.node);
+            rs.push(g.r);
+          }
+          listNode = { kind: "listLit", xs };
+          elemRange = rUnion(rs) ?? ir(0, 0, true);
+          lenHi = len;
+          init = this.genPureIntLit();
+        } else {
+          const list = this.genList(dec(depth), env);
+          const lt = list.ty;
+          if (lt.k !== "list" || lt.elem.k !== "int" || !lt.elem.r) return null;
+          listNode = list.node;
+          elemRange = lt.elem.r;
+          lenHi = lt.lenHi;
+          init = this.genInt(dec(depth), env, ANY);
+          if (!init.r) return null;
+        }
+        const tmpl = this.rng.weighted([
+          ["+", 40],
+          ["-", 25],
+          ["e-a", 15],
+          ["*", 20],
+        ]);
+        if (tmpl === "*") {
+          // `-0` symbolism, as for the `*` operator (JSON normalizes).
+          const accZero = init.r!.lo === 0 && init.r!.hi === 0;
+          const elemZero = elemRange.lo === 0 && elemRange.hi === 0;
+          if ((accZero && elemRange.lo < 0) || (elemZero && init.r!.lo < 0)) {
+            return null;
+          }
+        }
+        const acc = this.freshName();
+        const el = this.freshName();
+        // foldl: f(acc, elem); foldr: f(elem, acc).
+        const accVar = { kind: "var" as const, name: acc };
+        const elVar = { kind: "var" as const, name: el };
+        const body: Node =
+          tmpl === "+"
+            ? { kind: "bin", op: "+", l: accVar, r: elVar }
+            : tmpl === "-"
+            ? { kind: "bin", op: "-", l: accVar, r: elVar }
+            : tmpl === "e-a"
+            ? { kind: "bin", op: "-", l: elVar, r: accVar }
+            : { kind: "bin", op: "*", l: accVar, r: elVar };
+        const closure: Node = {
+          kind: "closure",
+          params: kind === "foldl" ? [acc, el] : [el, acc],
+          body,
+        };
+        // Range: fold the op over ≤ lenHi elements. Op ranges are NOT
+        // monotone (×−1 alternates), so union every step count 0..lenHi;
+        // an overflowing step must reject the whole shape (a truncated
+        // union would claim a bounded range while deeper folds overflow
+        // at runtime — nova errors, naive's f64 silently continues).
+        const er = elemRange;
+        const parts: Range[] = [init.r!];
+        let r: Range = init.r!;
+        for (let i = 0; i < lenHi; i++) {
+          r = tmpl === "+"
+            ? rAdd(r, er)
+            : tmpl === "-"
+            ? rSub(r, er)
+            : tmpl === "e-a"
+            ? rSub(er, r)
+            : rMul(r, er);
+          if (r === null) return null;
+          parts.push(r);
+        }
+        return finish(
+          {
+            kind: "call",
+            name: kind,
+            args: [listNode, init.node, closure],
+            trail: true,
+          },
+          rUnion(parts),
+        );
+      }
+
       case "apply": {
         if (depth < 3) return null;
         const two = this.rng.chance(0.25);
@@ -966,6 +1282,9 @@ export class ProgramGenerator {
       ["eq", 18],
       ["not", 10],
       ["apply", 2],
+      // v0.7 (nova/docs/v0.7-contracts.md, operators section)
+      ["boolCmp", 7],
+      ["has", 6],
     ];
     if (env.vars.some((v) => v.ty.k === "bool")) table.push(["var", 12]);
     const build = (): { node: Node; ret: Ty } | null => {
@@ -1036,6 +1355,43 @@ export class ProgramGenerator {
             ret: boolTy,
           };
         }
+        // ---- v0.7 (nova/docs/v0.7-contracts.md) ---------------------------
+
+        case "boolCmp": {
+          // `<`/`>`/`<=`/`>=` over booleans (false < true), homogeneous
+          // operands — mixed int/bool errors with key 42 and stays off
+          // the normal error-free path. Comparison captures stay out
+          // (compat #10 — naive's parser rejects `&</2`).
+          const op = this.rng.pick(["<", ">", "<=", ">="] as const);
+          const a = this.genBool(dec(depth), env);
+          const b = this.genBool(dec(depth), env);
+          return {
+            node: { kind: "cmp", op, l: a.node, r: b.node },
+            ret: boolTy,
+          };
+        }
+
+        case "has": {
+          // has?/2 over flat int/bool lists; the needle is scalar (a
+          // list/pair element would be a key-50 error — off the normal
+          // path). Cross-type needles are simply unequal (contract).
+          // Both impls short-circuit at the first match identically
+          // (new in both), so dice in elements/needle are safe.
+          const list = this.genList(dec(depth), env);
+          const lt = list.ty;
+          if (lt.k !== "list") return null;
+          if (lt.elem.k !== "int" && lt.elem.k !== "bool") return null;
+          const needleInt = lt.elem.k === "int"
+            ? this.rng.chance(0.7)
+            : this.rng.chance(0.3);
+          const needle = needleInt
+            ? this.genInt(dec(depth), env, ANY).node
+            : this.genBool(dec(depth), env).node;
+          return {
+            node: { kind: "call", name: "has?", args: [list.node, needle] },
+            ret: boolTy,
+          };
+        }
         default:
           return null;
       }
@@ -1062,6 +1418,21 @@ export class ProgramGenerator {
       ["sort", 6],
       ["reroll", 3],
       ["explode", 1],
+      // v0.7 builtins (nova/docs/v0.7-contracts.md)
+      ["reverse", 3],
+      ["concat", 3.5],
+      ["prepend", 3.5],
+      ["init", 2],
+      ["takeList", 3],
+      ["dropList", 3],
+      ["takeWhile", 3],
+      ["dropWhile", 3],
+      ["flatMap", 3],
+      ["sort2", 3.5],
+      ["duplicate", 3],
+      ["flatten", 3],
+      ["flattenAll", 2.5],
+      ["takeSeq", 3],
     ];
     const build = (): ListGen | null => {
       const kind = depth <= 0
@@ -1088,7 +1459,10 @@ export class ProgramGenerator {
               node: { kind: "listLit", xs: elems.map((e) => e.node) },
               ty: {
                 k: "list",
-                elem: intTy(rUnion(elems.map((e) => e.r))),
+                // Empty → [0, 0]: no element exists, so any claim is
+                // vacuous — but [∞, −∞] (rUnion([]) before its null fix)
+                // "fits" every constraint and poisons range arithmetic.
+                elem: intTy(rUnion(elems.map((e) => e.r)) ?? ir(0, 0, true)),
                 lenLo: len,
                 lenHi: len,
               },
@@ -1255,22 +1629,38 @@ export class ProgramGenerator {
           const list = this.genList(dec(depth), env);
           const lt = list.ty;
           if (lt.k !== "list") return null;
-          // Element types must match (homogeneous lists only).
-          const el = lt.elem.k === "int"
-            ? this.genInt(dec(depth), env, ANY).node
-            : lt.elem.k === "bool"
-            ? this.genBool(dec(depth), env).node
-            : null;
-          if (!el) return null;
-          return {
-            node: { kind: "call", name: "append", args: [list.node, el] },
-            ty: {
-              k: "list",
-              elem: lt.elem,
-              lenLo: lt.lenLo + 1,
-              lenHi: lt.lenHi + 1,
-            },
-          };
+          // Element types must match (homogeneous lists only). The
+          // appended element WIDENS the claimed element range (it used to
+          // be dropped, an unsound claim: the appended literal could sit
+          // outside it — soundness over precision, like everywhere else).
+          if (lt.elem.k === "int") {
+            const g = this.genInt(dec(depth), env, ANY);
+            if (!g.r) return null;
+            const ur = rUnion([lt.elem.r, g.r]);
+            if (!ur) return null;
+            return {
+              node: { kind: "call", name: "append", args: [list.node, g.node] },
+              ty: {
+                k: "list",
+                elem: intTy(ur),
+                lenLo: lt.lenLo + 1,
+                lenHi: lt.lenHi + 1,
+              },
+            };
+          }
+          if (lt.elem.k === "bool") {
+            const el = this.genBool(dec(depth), env).node;
+            return {
+              node: { kind: "call", name: "append", args: [list.node, el] },
+              ty: {
+                k: "list",
+                elem: lt.elem,
+                lenLo: lt.lenLo + 1,
+                lenHi: lt.lenHi + 1,
+              },
+            };
+          }
+          return null;
         }
         case "sort": {
           const list = this.genList(dec(depth), env);
@@ -1283,6 +1673,398 @@ export class ProgramGenerator {
             ty: lt,
           };
         }
+
+        // ---- v0.7 builtins (nova/docs/v0.7-contracts.md) --------------------
+
+        case "reverse": {
+          const list = this.genList(dec(depth), env);
+          if (list.ty.k !== "list") return null;
+          return {
+            node: { kind: "call", name: "reverse", args: [list.node] },
+            ty: list.ty,
+          };
+        }
+
+        case "concat": {
+          const l1 = this.genList(dec(depth), env);
+          const l2 = this.genList(dec(depth), env);
+          const t1 = l1.ty;
+          const t2 = l2.ty;
+          if (t1.k !== "list" || t2.k !== "list") return null;
+          // Homogeneous concatenation (mixed elements would break the
+          // lattice); ranges union. Pair elements stay out (their a/b
+          // component unions are not worth the machinery).
+          let elem: Ty;
+          if (t1.elem.k === "int" && t2.elem.k === "int") {
+            if (!t1.elem.r || !t2.elem.r) return null;
+            const ur = rUnion([t1.elem.r, t2.elem.r]);
+            if (!ur) return null;
+            elem = intTy(ur);
+          } else if (t1.elem.k === "bool" && t2.elem.k === "bool") {
+            elem = boolTy;
+          } else if (t1.elem.k === "list" && t2.elem.k === "list") {
+            const i1 = t1.elem;
+            const i2 = t2.elem;
+            if (i1.elem.k !== "int" || i2.elem.k !== "int") return null;
+            if (!i1.elem.r || !i2.elem.r) return null;
+            const ur = rUnion([i1.elem.r, i2.elem.r]);
+            if (!ur) return null;
+            elem = {
+              k: "list",
+              elem: intTy(ur),
+              lenLo: Math.min(i1.lenLo, i2.lenLo),
+              lenHi: Math.max(i1.lenHi, i2.lenHi),
+            };
+          } else return null;
+          return {
+            node: { kind: "call", name: "concat", args: [l1.node, l2.node] },
+            ty: {
+              k: "list",
+              elem,
+              lenLo: t1.lenLo + t2.lenLo,
+              lenHi: t1.lenHi + t2.lenHi,
+            },
+          };
+        }
+
+        case "prepend": {
+          const list = this.genList(dec(depth), env);
+          const lt = list.ty;
+          if (lt.k !== "list") return null;
+          if (lt.elem.k === "int") {
+            const g = this.genInt(dec(depth), env, ANY);
+            if (!g.r) return null;
+            const ur = rUnion([lt.elem.r, g.r]);
+            if (!ur) return null;
+            return {
+              node: {
+                kind: "call",
+                name: "prepend",
+                args: [list.node, g.node],
+              },
+              ty: {
+                k: "list",
+                elem: intTy(ur),
+                lenLo: lt.lenLo + 1,
+                lenHi: lt.lenHi + 1,
+              },
+            };
+          }
+          if (lt.elem.k === "bool") {
+            const el = this.genBool(dec(depth), env).node;
+            return {
+              node: {
+                kind: "call",
+                name: "prepend",
+                args: [list.node, el],
+              },
+              ty: {
+                k: "list",
+                elem: boolTy,
+                lenLo: lt.lenLo + 1,
+                lenHi: lt.lenHi + 1,
+              },
+            };
+          }
+          return null; // nested-list elements: prepend stays int/bool
+        }
+
+        case "init": {
+          // All but last; `[]` → 列表为空 (key 44) — non-empty only
+          // (emptyV07 sketchy covers the error shape).
+          const list = this.genList(dec(depth), env);
+          const lt = list.ty;
+          if (lt.k !== "list" || lt.lenLo < 1) return null;
+          return {
+            node: { kind: "call", name: "init", args: [list.node] },
+            ty: {
+              k: "list",
+              elem: lt.elem,
+              lenLo: Math.max(0, lt.lenLo - 1),
+              lenHi: lt.lenHi - 1,
+            },
+          };
+        }
+
+        case "takeList":
+        case "dropList": {
+          const list = this.genList(dec(depth), env);
+          const lt = list.ty;
+          if (lt.k !== "list") return null;
+          // Sequence-source inputs are excluded from BOTH: a raw
+          // repetition AND a reroll/explode transformer result are
+          // sequences — `take` pulls past the nominal end (exactly k
+          // items, so min(k, len) would be unsound), and `drop`'s lazy
+          // skip can pass the nominal-last marker (drop(5#d6, 7),
+          // drop(explode(3#d9, …), 6)) making the result's list cast
+          // UNBOUNDED — the must-not-fuzz shape (found live as nova
+          // 内存不足 / naive heap OOM). Sequence takes go through
+          // `takeSeq` only (len = k, bounded).
+          if (isSequenceNode(list.node)) return null;
+          if (kind === "takeList") {
+            const n = this.rng.weighted([
+              [this.rng.int(0, 3), 55],
+              [this.rng.int(4, 7), 30],
+              [-1, 15],
+            ]);
+            const k = Math.max(n, 0); // n ≤ 0 → []
+            return {
+              node: {
+                kind: "call",
+                name: "take",
+                args: [list.node, { kind: "int", v: n }],
+              },
+              ty: {
+                k: "list",
+                elem: lt.elem,
+                lenLo: Math.min(k, lt.lenLo),
+                lenHi: Math.min(k, lt.lenHi),
+              },
+            };
+          }
+          const n = this.rng.int(-1, lt.lenHi + 2);
+          // n ≤ 0 → the input (copy); else handles from index min(n, len).
+          const lenLo = n <= 0 ? lt.lenLo : Math.max(0, lt.lenLo - n);
+          const lenHi = n <= 0 ? lt.lenHi : Math.max(0, lt.lenHi - n);
+          return {
+            node: {
+              kind: "call",
+              name: "drop",
+              args: [list.node, { kind: "int", v: n }],
+            },
+            ty: { k: "list", elem: lt.elem, lenLo, lenHi },
+          };
+        }
+
+        case "takeWhile":
+        case "dropWhile": {
+          const list = this.genList(dec(depth), env);
+          const lt = list.ty;
+          if (lt.k !== "list") return null;
+          if (lt.elem.k !== "int" && lt.elem.k !== "bool") return null;
+          const p = this.genPurePredicate(lt.elem);
+          return {
+            node: {
+              kind: "call",
+              name: kind,
+              args: [list.node, p],
+              trail: true,
+            },
+            ty: { k: "list", elem: lt.elem, lenLo: 0, lenHi: lt.lenHi },
+          };
+        }
+
+        case "flatMap": {
+          const list = this.genList(dec(depth), env);
+          const lt = list.ty;
+          if (lt.k !== "list" || lt.elem.k !== "int" || !lt.elem.r) return null;
+          // Pure body (template-built: param + literals only) returning a
+          // fixed-length bounded list; elements of the input may hold dice
+          // (f is called per element in list order in both impls).
+          const w = this.rng.int(0, 3);
+          const name = this.freshName();
+          const paramTy = lt.elem;
+          const xs: Node[] = [];
+          const innerRanges: Range[] = [];
+          for (let i = 0; i < w; i++) {
+            const g = this.genPureIntExpr(name, paramTy);
+            xs.push(g.node);
+            innerRanges.push(g.r);
+          }
+          const closure: Node = {
+            kind: "closure",
+            params: [name],
+            body: { kind: "listLit", xs },
+          };
+          return {
+            node: {
+              kind: "call",
+              name: "flatMap",
+              args: [list.node, closure],
+              trail: true,
+            },
+            ty: {
+              k: "list",
+              elem: intTy(w === 0 ? ir(0, 0, true) : rUnion(innerRanges)),
+              lenLo: lt.lenLo * w,
+              lenHi: lt.lenHi * w,
+            },
+          };
+        }
+
+        case "sort2": {
+          // sort/2: pure, CONSISTENT comparator (stable sorts of both
+          // impls agree on the result for consistent comparators);
+          // literal-scalar input — the comparator forces element handles
+          // in comparison order (which differs per impl), so dice-carrying
+          // elements with differing per-element draw counts could permute
+          // the drawn multiset. Literals sidestep the stream entirely.
+          const len = this.rng.int(0, 6);
+          const isBool = this.rng.chance(0.25);
+          const xs: Node[] = [];
+          const rs: Range[] = [];
+          for (let i = 0; i < len; i++) {
+            if (isBool) {
+              xs.push({ kind: "bool", v: this.rng.chance(0.5) });
+            } else {
+              const roll = this.rng.float();
+              if (roll < 0.15) {
+                const k = this.rng.int(1, 9); // neg renders (-k), no -0
+                xs.push({ kind: "neg", x: { kind: "int", v: k } });
+                rs.push(ir(-k, -k, true));
+              } else {
+                const v = roll < 0.9 ? this.rng.int(0, 9) : this.rng.int(10, 99);
+                xs.push({ kind: "int", v });
+                rs.push(ir(v, v, true));
+              }
+            }
+          }
+          const cmpOp = this.rng.weighted([
+            ["<=", 40],
+            [">=", 40],
+            ["<", 10],
+            [">", 10],
+          ]) as "<=" | ">=" | "<" | ">";
+          const a = this.freshName();
+          const b = this.freshName();
+          const closure: Node = {
+            kind: "closure",
+            params: [a, b],
+            body: {
+              kind: "cmp",
+              op: cmpOp,
+              l: { kind: "var", name: a },
+              r: { kind: "var", name: b },
+            },
+          };
+          return {
+            node: {
+              kind: "call",
+              name: "sort",
+              args: [{ kind: "listLit", xs }, closure],
+              trail: true,
+            },
+            ty: {
+              k: "list",
+              elem: isBool ? boolTy : intTy(rUnion(rs) ?? ir(0, 0, true)),
+              lenLo: len,
+              lenHi: len,
+            },
+          };
+        }
+
+        case "duplicate": {
+          // duplicate/2 pins its value (ONE evaluation — `duplicate(d6, 3)`
+          // consumes one draw in both impls, contract); counts ≤ 4.
+          const count = this.rng.int(0, 4);
+          if (this.rng.chance(0.15)) {
+            const v = this.genBool(dec(depth), env);
+            return {
+              node: {
+                kind: "call",
+                name: "duplicate",
+                args: [v.node, { kind: "int", v: count }],
+              },
+              ty: { k: "list", elem: boolTy, lenLo: count, lenHi: count },
+            };
+          }
+          const v = this.genInt(dec(depth), env, ANY);
+          if (!v.r) return null;
+          return {
+            node: {
+              kind: "call",
+              name: "duplicate",
+              args: [v.node, { kind: "int", v: count }],
+            },
+            ty: {
+              k: "list",
+              elem: intTy(v.r),
+              lenLo: count,
+              lenHi: count,
+            },
+          };
+        }
+
+        case "flatten":
+        case "flattenAll": {
+          // Nested-lattice input (outer ≤ 4 literal inner lists ≤ 3,
+          // integers inside — dice allowed, they stay unforced at the
+          // depth boundary), plus repetition elements exercising the
+          // sequence→list splice of the listness test (contract).
+          const outerLen = this.rng.int(0, 4);
+          const xs: Node[] = [];
+          const innerRanges: Range[] = [];
+          for (let i = 0; i < outerLen; i++) {
+            if (this.rng.chance(0.75)) {
+              const innerLen = this.rng.int(0, 3);
+              const inner: Node[] = [];
+              for (let j = 0; j < innerLen; j++) {
+                const g = this.genInt(dec(depth), env, ANY);
+                if (!g.r) return null;
+                inner.push(g.node);
+                innerRanges.push(g.r);
+              }
+              xs.push({ kind: "listLit", xs: inner });
+            } else {
+              const k = this.rng.int(1, 3);
+              const body = this.genRepeatBody(0, EMPTY_ENV);
+              if (!body.r) return null;
+              xs.push({ kind: "repeat", count: k, body: body.node });
+              innerRanges.push(body.r);
+            }
+          }
+          const innerElem = rUnion(innerRanges) ?? ir(0, 9, true);
+          if (kind === "flattenAll") {
+            return {
+              node: {
+                kind: "call",
+                name: "flattenAll",
+                args: [{ kind: "listLit", xs }],
+              },
+              ty: {
+                k: "list",
+                elem: intTy(innerElem),
+                lenLo: 0,
+                lenHi: outerLen * 3,
+              },
+            };
+          }
+          const d = this.rng.weighted([[0, 20], [1, 55], [2, 25]]);
+          if (d === 0) {
+            // depth ≤ 0 → shallow handle copy — stays nested.
+            return {
+              node: {
+                kind: "call",
+                name: "flatten",
+                args: [{ kind: "listLit", xs }, { kind: "int", v: 0 }],
+              },
+              ty: {
+                k: "list",
+                elem: { k: "list", elem: intTy(innerElem), lenLo: 0, lenHi: 3 },
+                lenLo: outerLen,
+                lenHi: outerLen,
+              },
+            };
+          }
+          return {
+            node: {
+              kind: "call",
+              name: "flatten",
+              args: [{ kind: "listLit", xs }, { kind: "int", v: d }],
+            },
+            ty: {
+              k: "list",
+              elem: intTy(innerElem),
+              lenLo: 0,
+              lenHi: outerLen * 3,
+            },
+          };
+        }
+
+        case "takeSeq": {
+          return this.genTakeSequence(depth, env);
+        }
+
         case "reroll":
         case "explode":
           return this.genTransformerList(kind);
@@ -1431,6 +2213,247 @@ export class ProgramGenerator {
     return {
       node: { kind: "closure", params, body: body.node },
       ret: ret.k === "int" ? intTy((body as IntGen).r) : boolTy,
+    };
+  }
+
+  // ---- v0.7 pure templates ---------------------------------------------------
+
+  /**
+   * Pure (dice-free, error-free) boolean predicate over one parameter for
+   * `takeWhile/2`/`dropWhile/2` (v0.7 contract): comparisons of the
+   * element against a literal — boolean-producing over the element type.
+   * Template-built (param + literals only) so purity holds by
+   * construction.
+   */
+  private genPurePredicate(elem: Ty): Node {
+    const name = this.freshName();
+    if (elem.k === "bool") {
+      const op = this.rng.pick(["==", "!="] as const);
+      return {
+        kind: "closure",
+        params: [name],
+        body: {
+          kind: "cmp",
+          op,
+          l: { kind: "var", name },
+          r: { kind: "bool", v: this.rng.chance(0.5) },
+        },
+      };
+    }
+    const r = elem.k === "int" ? elem.r : null;
+    // k near the element range keeps predicates meaningful; guard against
+    // a non-finite k (a broken range could yield NaN — belt and braces,
+    // rUnion([]) is fixed but ranges flow from many places).
+    const kRaw = r ? this.rng.int(r.lo - 2, r.hi + 2) : this.rng.int(-2, 11);
+    const k = Number.isFinite(kRaw) ? kRaw : this.rng.int(-2, 11);
+    const op = this.rng.pick(["<", "<=", ">", ">=", "==", "!="] as const);
+    return {
+      kind: "closure",
+      params: [name],
+      body: {
+        kind: "cmp",
+        op,
+        l: { kind: "var", name },
+        r: { kind: "int", v: k },
+      },
+    };
+  }
+
+  /** Pure int expression over one int parameter (flatMap body elements):
+   * param + literals combined by one arithmetic op — sound range kept
+   * (`null` propagates: an overflowing claim must stay unbounded, not
+   * silently shrink back to the param's range). */
+  private genPureIntExpr(name: string, paramTy: Ty): IntGen {
+    const r = paramTy.k === "int" ? paramTy.r : null;
+    const v = { kind: "var" as const, name };
+    const c = this.rng.int(1, 5);
+    const lit = this.rng.int(0, 9);
+    const pick = this.rng.weighted([
+      ["id", 20],
+      ["+", 30],
+      ["-", 20],
+      ["*", 20],
+      ["lit", 10],
+    ]);
+    if (!r) {
+      return { node: { kind: "int", v: lit }, r: intLitRange(lit) };
+    }
+    switch (pick) {
+      case "id":
+        return { node: v, r };
+      case "+":
+        return {
+          node: { kind: "bin", op: "+", l: v, r: { kind: "int", v: c } },
+          r: rAdd(r, intLitRange(c)),
+        };
+      case "-":
+        return {
+          node: { kind: "bin", op: "-", l: v, r: { kind: "int", v: c } },
+          r: rSub(r, intLitRange(c)),
+        };
+      case "*": {
+        // c ≥ 1 (no `-0` from `* 0`; JSON would normalize it anyway).
+        return {
+          node: { kind: "bin", op: "*", l: v, r: { kind: "int", v: c } },
+          r: rMul(r, intLitRange(c)),
+        };
+      }
+      default:
+        return { node: { kind: "int", v: lit }, r: intLitRange(lit) };
+    }
+  }
+
+  /** Dice-free, error-free int expression of literals only (foldr
+   * elements/init — see the fold case for why foldr must be dice-free;
+   * foldl keeps its general inputs). */
+  private genPureIntLit(): IntGen {
+    const roll = this.rng.float();
+    if (roll < 0.6) {
+      const v = this.rng.int(0, 9);
+      return { node: { kind: "int", v }, r: intLitRange(v) };
+    }
+    if (roll < 0.8) {
+      // Negative via neg (renders (-k); never -0).
+      const k = this.rng.int(1, 9);
+      return { node: { kind: "neg", x: { kind: "int", v: k } }, r: ir(-k, -k, true) };
+    }
+    const a = this.rng.int(0, 20);
+    const b = this.rng.int(1, 9);
+    const op = this.rng.pick(["+", "-", "*"] as const);
+    if (op === "*") {
+      return {
+        node: { kind: "bin", op: "*", l: { kind: "int", v: a }, r: { kind: "int", v: b } },
+        r: rMul(ir(a, a, true), ir(b, b, true)),
+      };
+    }
+    return {
+      node: { kind: "bin", op, l: { kind: "int", v: a }, r: { kind: "int", v: b } },
+      r: op === "+"
+        ? rAdd(ir(a, a, true), ir(b, b, true))
+        : rSub(ir(a, a, true), ir(b, b, true)),
+    };
+  }
+
+  /**
+   * `take/2` over a SEQUENCE source (v0.7): dice sources (`take(d6, 3)`
+   * = 3 rolls — pulls past nominal, both impls agree), optionally behind
+   * a lazy `drop/2`, and `iterate/2` — ALWAYS bounded by the `take`:
+   * the bare iterate/drop-of-dice sequence is infinite, and casting it
+   * to a list is unbounded (nova memory-limit error vs naive hang — an
+   * intended asymmetry, never fuzzed; v0.7 contract). `unfold/2` is not
+   * generated: a meaningful terminating step closure needs an `if`
+   * (absent this iteration), so iterate+take covers the sequence-producer
+   * story. The next-function is pure (param + literal, one op).
+   */
+  private genTakeSequence(depth: number, env: Env): ListGen | null {
+    const shape = this.rng.weighted([
+      ["dice", 40],
+      ["diceDrop", 15],
+      ["repeat", 15],
+      ["iterate", 20],
+      ["iterateDrop", 10],
+    ]);
+    if (shape !== "iterate" && shape !== "iterateDrop") {
+      let srcNode: Node;
+      let elemRange: IntRange;
+      if (shape === "repeat") {
+        const n = this.rng.int(1, 5);
+        const body = this.genRepeatBody(1, EMPTY_ENV);
+        if (!body.r) return null;
+        srcNode = { kind: "repeat", count: n, body: body.node };
+        elemRange = body.r;
+      } else {
+        const src = this.genDiceSource();
+        srcNode = src.node;
+        elemRange = src.elemRange;
+        if (shape === "diceDrop") {
+          const j = this.rng.int(0, 3);
+          if (j > 0) {
+            srcNode = {
+              kind: "call",
+              name: "drop",
+              args: [srcNode, { kind: "int", v: j }],
+            };
+          }
+        }
+      }
+      const k = this.rng.int(0, 5);
+      return {
+        node: {
+          kind: "call",
+          name: "take",
+          args: [srcNode, { kind: "int", v: k }],
+        },
+        ty: {
+          k: "list",
+          elem: intTy(elemRange),
+          lenLo: k, // dice streams pull past nominal: exactly k items
+          lenHi: k,
+        },
+      };
+    }
+    // iterate: pure next-function over the accumulator.
+    const start = this.genInt(dec(depth), env, ANY);
+    if (!start.r) return null;
+    const name = this.freshName();
+    const acc = { kind: "var" as const, name };
+    const c = this.rng.int(1, 5);
+    const mulC = this.rng.int(0, 3);
+    const fKind = this.rng.weighted([
+      ["id", 10],
+      ["add", 35],
+      ["sub", 25],
+      ["mul", 30],
+    ]);
+    const body: Node = fKind === "id"
+      ? acc
+      : fKind === "mul"
+      ? { kind: "bin", op: "*", l: acc, r: { kind: "int", v: mulC } }
+      : {
+        kind: "bin",
+        op: fKind === "add" ? "+" : "-",
+        l: acc,
+        r: { kind: "int", v: c },
+      };
+    const closure: Node = { kind: "closure", params: [name], body };
+    const stepR = (r: IntRange): Range => {
+      switch (fKind) {
+        case "id":
+          return r;
+        case "add":
+          return rAdd(r, intLitRange(c));
+        case "sub":
+          return rSub(r, intLitRange(c));
+        default:
+          return rMul(r, intLitRange(mulC));
+      }
+    };
+    const j = shape === "iterateDrop" ? this.rng.int(0, 2) : 0;
+    const k = this.rng.int(1, 4);
+    // Element range: r_i = f applied i times to start's range; the taken
+    // window is r_j..r_{j+k−1}. f's ranges are not monotone (`* 0`
+    // collapses), so union the window — sound, ≤ 6 iterations.
+    const rs: IntRange[] = [start.r];
+    let cur: Range = start.r;
+    for (let i = 0; i < j + k - 1; i++) {
+      cur = stepR(cur);
+      if (cur === null) return null;
+      rs.push(cur);
+    }
+    const ur = rUnion(rs.slice(j));
+    if (!ur) return null;
+    let seqNode: Node = {
+      kind: "call",
+      name: "iterate",
+      args: [start.node, closure],
+      trail: true,
+    };
+    if (j > 0) {
+      seqNode = { kind: "call", name: "drop", args: [seqNode, { kind: "int", v: j }] };
+    }
+    return {
+      node: { kind: "call", name: "take", args: [seqNode, { kind: "int", v: k }] },
+      ty: { k: "list", elem: intTy(ur), lenLo: k, lenHi: k },
     };
   }
 
@@ -1767,6 +2790,7 @@ export class ProgramGenerator {
       ["listArith", 4],
       ["errorElem", 3],
       ["applyErr", 4],
+      ["emptyV07", 5],
     ]);
     switch (t) {
       case "divZero":
@@ -1947,6 +2971,16 @@ export class ProgramGenerator {
           args: [arg],
         };
       }
+      case "emptyV07":
+        // v0.7 (nova/docs/v0.7-contracts.md): `min`/`max`/`last`/`init`
+        // on `[]` error with key 44 列表为空 in both impls — same family
+        // as head/tail. Kept off the normal path (error-freedom); the
+        // error shape is pinned here instead.
+        return {
+          kind: "call",
+          name: this.rng.pick(["min", "max", "last", "init"] as const),
+          args: [{ kind: "listLit", xs: [] }],
+        };
       default:
         return { kind: "bin", op: "//", l: { kind: "int", v: 1 }, r: { kind: "int", v: 0 } };
     }
@@ -1967,7 +3001,14 @@ export class ProgramGenerator {
     }
     if (spine.length >= 2 && this.rng.chance(0.55)) {
       const parts = [this.opd(cur, BP.PIPE, "left")];
-      for (let i = spine.length - 1; i >= 1; i--) {
+      // NB: the loop must reach i = 0 — the OUTERMOST call is spine[0].
+      // It used to stop at i = 1, silently dropping the outermost call
+      // (`sum(map(xs, f))` rendered as `xs |> map(f)`); dormant while no
+      // outermost call was semantically load-bearing, but fatal once
+      // take-bounded sequences appeared (dropping the `take` exposes the
+      // bare infinite iterate at a cast position — found live as a naive
+      // heap OOM / nova 内存不足 on `(…) |> iterate(|$a| $a + 4)`).
+      for (let i = spine.length - 1; i >= 0; i--) {
         parts.push(this.renderChainCall(spine[i]!));
       }
       return parts.join(" |> ");
