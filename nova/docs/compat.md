@@ -25,8 +25,11 @@ primary divergence oracle — extend it whenever semantics change.
    forced every element. Observable consequences, beyond RNG consumption
    by unforced dice: `any?([true, 1 // 0 > 0])` is `true` in nova but a
    division error in naive, and `any?([true, 5])` is `true` in nova but a
-   non-boolean-element error in naive. `all?/1` will mirror this when it
-   lands (roadmap v0.7).
+   non-boolean-element error in naive. `all?/1` (landed v0.7 in both
+   implementations) mirrors the split: nova short-circuits at the first
+   `false`; naive's fresh `all?/1` follows its own `any?/1`'s eager style
+   (changing naive's existing `any?/1` was deliberately out of scope —
+   making both short-circuit would retire this divergence; owner's call).
 
 2. **`//` and `%` use proper 64-bit semantics.**
    naive computed them via JS `| 0`, silently truncating operands to 32 bits
@@ -80,8 +83,13 @@ primary divergence oracle — extend it whenever semantics change.
    (hooks are zero-cost when disabled).
 
 9. **Crash/bug fixes in edge cases.**
-   - `any?` on nested lists: naive's `flattenListAll` silently drops elements
-     (indexing bug); nova flattens correctly (iterative DFS).
+   - ~~`any?` on nested lists: naive's `flattenListAll` silently drops
+     elements (indexing bug); nova flattens correctly (iterative DFS).~~
+     **Fixed in naive (v0.7)**: the indexing bug (`values[i] =` clobbering
+     earlier flattened elements — `[[1,2],3]` flattened to `[1,3]`) was
+     repaired in naive itself (`values.push`) when v0.7 added naive's
+     builtin counterparts; no test had pinned the buggy result, and both
+     implementations now agree. No longer a divergence.
    - `map`/`zipWith` after an element errors: naive leaves leaky
      `valueBoxUnevaluated` boxes in trailing slots (forcing them reported
      `未求值（实现细节泄漏）`); nova fills trailing slots with the same error
