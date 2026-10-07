@@ -140,6 +140,175 @@ const PROGRAMS: string[] = [
   // error-beacon divergence below — compat.md #9).
   "count([1 // 0, 2, 3], |$e| true)",
   "count(2#(1 // 0), |$e| true)",
+  // v0.7 builtins (nova/docs/v0.7-contracts.md) — agreement shapes on every
+  // seed (values AND exact error messages). The `all?/1` div1-sensitive
+  // shapes live in the deliberate-divergence blocks below.
+  // scalar / utility
+  "abs(-3)",
+  "abs(-9007199254740991)",
+  "count([1 // 0, 2])", // length without forcing elements
+  "count(3#d6)", // sequence auto-cast to a list, elements unforced
+  "has?([1, 2, 3], 2)",
+  "has?([1, 2, 3], 4)",
+  "has?([true, false], true)",
+  "has?([true], 1)", // scalar cross-type: simply unequal, no error
+  "has?([1, 2], true)",
+  "has?([1, 1 // 0], 1)", // first match short-circuits the errored tail
+  "has?([[1]], 1)", // non-scalar element → LIST_HAS_NON_SCALAR_ITEM
+  "has?([d1], 1)", // sequence$sum element casts to its sum
+  // short-circuit consumes exactly one draw, so the trailing d100 is the
+  // stream's second draw on BOTH sides (an agreement row — both impls
+  // short-circuit; unlike the all?/any? div1 rows below)
+  "[has?([1, d6], 1), d6]",
+  "min([3, 1, 2])",
+  "max([3, -1, 2])",
+  "min([5])",
+  "max([5])",
+  "min(3#d1)", // implicit cast of a sequence$sum argument
+  "max(3#d1)",
+  "min([])", // 列表为空
+  "max([])",
+  "min([true])", // LIST_HAS_NON_NUMBER_ITEM
+  "max([1, true])",
+  "all?([])",
+  "all?([true, true])",
+  "all?([true, false])",
+  // nested lists flatten correctly on both sides (naive's flattenListAll
+  // indexing bug was fixed in naive in v0.7 — compat.md #9 bullet 1 retired)
+  "all?([[true], [false, true]])",
+  "all?([1])", // non-boolean FIRST element: no skip on either side
+  "any?([[false, true], false])", // ditto for any? — agreement since the fix
+  // ordering / reshaping
+  "sort([3, 1, 2], |$a, $b| $a <= $b)",
+  "sort([3, 1, 2], |$a, $b| $a >= $b)",
+  "sort([true, false], |$a, $b| $a <= $b)",
+  // stability: equal comparison keys keep their relative order
+  "sort([[1, 2], [1, 1]], |$a, $b| at($a, 0) <= at($b, 0))",
+  "sort([[1, 1], [1, 2], [0, 3]], |$a, $b| at($a, 0) <= at($b, 0))",
+  "sort([2, 1], |$a, $b| $a + $b)", // non-boolean comparator → exact error
+  "sort([2, 1], |$a, $b| 1 // 0)", // comparator error aborts the sort
+  "count(sort([1 // 0, 2], |$a, $b| true))", // elements passed unforced
+  "reverse([1, 2, 3])",
+  "head(reverse([1 // 0, 2]))", // handles reversed, elements unforced
+  "concat([1], [2, 3])",
+  "concat([], [])",
+  "prepend([2, 3], 1)",
+  "prepend([1], [true])",
+  "at(prepend([1], 1 // 0), 1)", // prepended element stays unforced
+  "at([10, 20], 5, 7)", // OOB → default, never an error
+  "at([10, 20], -1, 7)",
+  "at([], 0, 7)",
+  "at([1], 0, 1 // 0)", // in-bounds: the default is never forced
+  "at([1], 5, 1 // 0)", // OOB: the default is forced → error
+  "at([1], 5, d6)", // the default draw aligns with the shared stream
+  "duplicate(7, 3)",
+  "duplicate(1, 0)",
+  "duplicate(1, -2)",
+  // pinned value semantics: the SAME handle repeated → ONE draw, so the sum
+  // is 3× the first roll for the seed (vs `#` below, which re-evaluates)
+  "duplicate(d6, 3) |> sum",
+  "3#d6 |> sum", // the contrast row — generally a different sum per seed
+  "count(duplicate(1 // 0, 2))", // the same handle twice, unforced
+  "duplicate(1 // 0, 2)", // casting the list forces the shared handle → error
+  "flatten([1, [2, [3]]], 1)",
+  "flatten([1, [2, [3]]], 0)", // depth ≤ 0: shallow copy
+  "flatten([1, [2], [[3]]], 5)",
+  "flatten([1, [2], [[3]]], -1)",
+  "count(flatten([[1 // 0]], 1))", // elements AT the boundary stay unforced
+  "flatten([[1 // 0]], 2)", // above the boundary: forced, error propagates
+  // implicit-cast rule at the depth boundary's test: a sequence$sum element
+  // casts to its sum (a leaf); a `#` repetition casts to its list (splices)
+  "flatten([d1], 1)",
+  "flatten([2d1], 1)",
+  "flatten([3#d1], 1)",
+  "flattenAll([1, [2, [3, [[4]]]]])",
+  "flattenAll([[1 // 0]])", // every element is eventually forced
+  // folds / unfolds
+  "flatMap([1, 2], |$x| [$x, $x])",
+  "flatMap([1], |$x| [[], [$x]])", // only one level is flattened
+  "flatMap([1], |$x| drop(3d1, 1))", // plain-sequence result casts to a list
+  "count(flatMap([1], |$x| [1 // 0, $x]))", // inner elements appended unforced
+  "flatMap([1], |$x| $x)", // non-list result → exact error
+  "flatMap([1], |$x| d6)", // sequence$sum casts to an integer — still wrong
+  "flatMap([1, 2], |$x| 1 // 0)", // closure error aborts the whole call
+  "foldl([1, 2, 3], 0, |$acc, $e| $acc + $e)",
+  "foldl([1, 2], 10, |$acc, $e| $acc - $e)",
+  "count([foldl([], 1 // 0, |$acc, $e| 0)])", // empty: init stays unforced
+  "foldl([1, 1 // 0, 3], 0, |$acc, $e| $acc + $e)", // error stops the fold
+  "foldr([1, 2, 3], 0, |$e, $acc| $e + $acc)",
+  "foldr([1, 2], 0, |$e, $acc| $e - $acc)", // right-to-left: 1 - (2 - 0)
+  "foldr([1, 2], 1 // 0, |$e, $acc| $e)", // the acc is never forced by foldr
+  // Dice in foldr elements/init: bodies execute outer-in in BOTH impls
+  // (pinned in v0.7-contracts.md; naive's foldr lazy-wraps its deferred
+  // calls after WS3b's fuzzer found its `_call` eager-body quirk shifting
+  // the draw order). These agreed post-fix on seeds 0/1/42.
+  "foldr([d2, d100], d1000, |$e, $acc| $e - $acc)",
+  "foldr([d6, d20, d100], d1000, |$e, $acc| $e * 2 + $acc)",
+  "foldl([d2, d100], d1000, |$acc, $e| $e * 100000 + $acc)",
+  "iterate(1, |$x| $x + 1) |> take(5)",
+  "iterate(1, |$x| $x + 1) |> take(0)", // no pull → no error, no draw
+  "sum(iterate(1, |$x| $x + 1) |> take(3))",
+  "iterate(1, |$x| $x + 1) |> drop(2) |> take(2)",
+  "unfold(3, |$n| [$n, $n - 1]) |> take(3)",
+  // `false` ends the stream (simulated if, no trailing `.()` — plain values
+  // are not callable)
+  "unfold(3, |$x| head(append(filter([[$x, $x - 1]], |_| $x > 0), false))) |> take(5)",
+  "unfold([0, 1], |$p| [at($p, 0), [at($p, 1), at($p, 0) + at($p, 1)]]) |> take(5)",
+  "count(unfold(1, |$x| [1 // 0, false]) |> take(1))", // item stays unforced
+  "unfold(1 // 0, |$x| false) |> take(0)", // no pull: the seed is never forced
+  "unfold(1 // 0, |$x| false) |> take(1)", // the seed is forced at pull 0
+  "unfold(1, |$x| 42) |> take(3)", // step type mismatch (整数)
+  "unfold(1, |$x| true) |> take(1)", // step type mismatch (布尔)
+  "unfold(1, |$x| [1, 2, 3]) |> take(3)", // step list length (3 个)
+  "unfold(1, |$x| []) |> take(1)", // step list length (0 个)
+  "unfold(1, |$x| 1 // 0) |> take(1)", // closure error → terminal error item
+  "iterate(1, |$x| 1 // 0) |> take(2)",
+  // drop silently discards the skipped terminal-error item
+  "unfold(1, |$x| 42) |> drop(1) |> take(1)",
+  // last / init
+  "last([1, 2, 3])",
+  "last([5])",
+  "init([1, 2, 3])",
+  "init([5])",
+  "last([1 // 0, 2])", // elements unforced
+  "last(init([1, 1 // 0]))",
+  "last([])", // 列表为空
+  "init([])",
+  // take / drop (lists AND sequences)
+  "take([1, 2, 3], 2)",
+  "take([1], 5)",
+  "take([], 2)",
+  "take([1, 2], 0)",
+  "drop([1, 2, 3], 1)",
+  "drop([1, 2, 3], 5)",
+  "drop([], 3)",
+  "drop([1, 2], -1)",
+  "take(d1, 3)", // sequences pull past the nominal end
+  "take(3d1, 2)",
+  "take(3#d1, 2)",
+  "drop(3d1, 1)", // $sum-ness dropped → plain list on the cast
+  "drop(d1, 0) |> take(2)",
+  "take(drop(5#d1, 2), 2)",
+  "take(drop(3d1, 1), 2)",
+  "take(3#d6, 0)", // n ≤ 0: pulls nothing
+  "take(d6, -1)",
+  "count([drop(d6, 1)])", // constructing the drop pulls nothing
+  // takeWhile / dropWhile
+  "takeWhile([], |$x| true)",
+  "takeWhile([1, 2, 3], |$x| $x < 3)",
+  "takeWhile([1, 2, 3], |$x| true)",
+  "takeWhile([2, 1], |$x| $x < 2)",
+  "takeWhile([1, 3, 1 // 0], |$x| $x < 2)", // stop: the errored tail is safe
+  "takeWhile([0, 1 // 0], |$x| $x > 0)",
+  "takeWhile([1], |$x| $x)", // non-boolean predicate → exact error
+  "takeWhile([1, 2], |$x| 1 // 0)", // predicate error → whole call errors
+  "dropWhile([], |$x| true)",
+  "dropWhile([1, 2, 3], |$x| $x < 3)",
+  "dropWhile([1, 2, 3], |$x| true)",
+  "dropWhile([1, 2, 3], |$x| false)",
+  "count(dropWhile([1, 3, 1 // 0], |$x| $x < 2))", // rest untouched by f
+  "dropWhile([1], |$x| $x)",
+  "dropWhile([1], |$x| 1 // 0)",
 ];
 
 const SEEDS = [0, 1, 42];
@@ -189,13 +358,16 @@ function summarize(result: I.EvaluationResult): unknown {
 
 /**
  * Deliberate evaluation divergences (compat.md #1 — `any?` short-circuits
- * element forcing in nova; naive forced every element):
+ * element forcing in nova; naive forced every element; v0.7's `all?/1`
+ * mirrors the split with nova stopping at the first `false` while naive's
+ * fresh `all?/1` flattens eagerly):
  *
- * - error precedence: nova never forces elements past the first `true`,
- *   so erroring/non-boolean trailing elements go unnoticed;
+ * - error precedence: nova never forces elements past the first `true`
+ *   (`any?`) / `false` (`all?`), so erroring/non-boolean trailing elements
+ *   go unnoticed;
  * - RNG consumption: skipping the remaining elements skips their dice
- *   draws, shifting every subsequent roll (a single `any?` result itself
- *   still agrees — the boolean is the same; only the stream position
+ *   draws, shifting every subsequent roll (a single `any?`/`all?` result
+ *   itself still agrees — the boolean is the same; only the stream position
  *   differs).
  *
  * Both sides are pinned exactly per seed. If a pinned pair ever becomes
@@ -217,6 +389,18 @@ describe(
           ["error", "runtime", "传入的列表存在非「布尔」项"],
           ["ok", true],
         ],
+        // v0.7: `all?/1` mirrors the `any?/1` split — nova short-circuits at
+        // the first `false`; naive flattens eagerly (compat.md #1).
+        [
+          "all?([false, 1 // 0 > 0])",
+          ["error", "runtime", "操作 “1 // 0” 非法：除数不能为零"],
+          ["ok", false],
+        ],
+        [
+          "all?([false, 5])",
+          ["error", "runtime", "传入的列表存在非「布尔」项"],
+          ["ok", false],
+        ],
       ];
 
     /** RNG-shift rows: [code, [seed, naive, nova][]]. */
@@ -235,6 +419,23 @@ describe(
           [0, ["ok", [false, 81]], ["ok", [false, 81]]],
           [1, ["ok", [true, 90]], ["ok", [true, 84]]],
           [42, ["ok", [false, 47]], ["ok", [false, 47]]],
+        ],
+      ],
+      [
+        // v0.7 `all?` twin of the row above (compat.md #1): nova stops
+        // forcing at the first `false` (first d100 ≤ 5, i.e. first failed
+        // `> 5`); naive draws all three. Mechanic verified per seed against
+        // the shared dice stream before pinning (draws for seeds 0/1/42 =
+        // [72,57,57,81] / [73,2,84,90] / [40,12,72,47]): the `all?` boolean
+        // is the AND of the first three draws on BOTH sides, and the
+        // trailing `d100` is draw #4 for naive but draw #(k+1) for nova
+        // when k = the first false index. Seeds 0/42 have no early false →
+        // no skip → full agreement; seed 1 skips one draw.
+        "[all?(3#(d100 > 5)), d100]",
+        [
+          [0, ["ok", [true, 81]], ["ok", [true, 81]]],
+          [1, ["ok", [false, 90]], ["ok", [false, 84]]],
+          [42, ["ok", [true, 47]], ["ok", [true, 47]]],
         ],
       ],
     ];

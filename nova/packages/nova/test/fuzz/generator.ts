@@ -104,17 +104,17 @@
  *       permute the drawn multiset — literals sidestep the stream.
  * -     `foldl/3`/`foldr/3` bodies are dice-free (template-built from
  *       closure params + literals only; the contract's checklist routes
- *       diceful fold rows to the differential suite). foldl keeps dice
- *       in its elements/init — the strict left fold consumes them in
- *       identical order in both impls (verified in isolation and by the
- *       fuzz runs). **foldr is dice-free THROUGHOUT** (elements and init
- *       are pure literals): its nested-lazy construction forces
- *       elements/init in DIFFERENT draw orders per impl — minimized as
- *       `foldr([d2, d100], d1000, |$e, $a| $e - $a)` (seed 0: nova 902
- *       = 2 − (57 − 957), nested-call order; naive 686, no permutation
- *       of the same draws) — an unpinned divergence reported to the
- *       lead. Inputs stay shallow by construction (foldr's nested lazy
- *       calls overflow both impls only at ≳10³ elements — compat #6).
+ *       diceful fold rows to the differential suite). Elements/init may
+ *       carry dice for BOTH folds: foldl is strict (identical forcing
+ *       order in both impls — verified in isolation and by the fuzz
+ *       runs); foldr's deferred calls execute outer-in in both impls —
+ *       a fuzz finding here (`foldr([d2, d100], d1000, |$e, $a| $e -
+ *       $a)`: naive forced bodies right-to-left at chain-construction
+ *       time via its closure `_call`'s eager `.get()`) was a REAL naive
+ *       bug, fixed in v0.7 (naive's foldr lazy-wraps the calls; the
+ *       contract pins outer-in). Inputs stay shallow by construction
+ *       (foldr's nested lazy calls overflow both impls only at ≳10³
+ *       elements — compat #6).
  * -     `iterate/2` sequences appear ONLY as `take([drop](iterate(start,
  *       f), j), k)` with small j + k: the bare sequence is infinite, and
  *       casting it to a list (top level, `sum`, list-arg positions…) is
@@ -1131,46 +1131,22 @@ export class ProgramGenerator {
       case "foldl":
       case "foldr": {
         // Fold bodies are dice-free templates (params + literals only).
-        // foldl keeps dice in its elements/init — the strict left fold
-        // forces them in identical order in both impls (verified:
+        // Elements/init may carry dice for BOTH folds: foldl is strict
+        // (identical forcing order in both impls — verified:
         // foldl([d2, d100], d1000, |$a, $e| $a - $e) agrees across
-        // seeds). foldr must be dice-free THROUGHOUT: its nested-lazy
-        // construction forces elements/init in DIFFERENT draw orders in
-        // the two impls — e.g. foldr([d2, d100], d1000, |$e, $a| $e -
-        // $a) at seed 0 gives nova 902 (= 2 − (57 − 957), nested-call
-        // order e0, e1, init) but naive 686 (no permutation of the same
-        // three draws) — a real, currently-unpinned divergence outside
-        // the fuzzer's remit (the differential suite pins the deliberate
-        // dice rows); dice-free inputs still cover the fold structure.
-        // Inputs are shallow by construction (foldr's nested lazy calls
-        // overflow both impls only at ≳10³ — compat #6).
-        let listNode: Node;
-        let elemRange: IntRange;
-        let lenHi: number;
-        let init: IntGen;
-        if (kind === "foldr") {
-          const len = this.rng.int(0, 5);
-          const xs: Node[] = [];
-          const rs: Range[] = [];
-          for (let i = 0; i < len; i++) {
-            const g = this.genPureIntLit();
-            xs.push(g.node);
-            rs.push(g.r);
-          }
-          listNode = { kind: "listLit", xs };
-          elemRange = rUnion(rs) ?? ir(0, 0, true);
-          lenHi = len;
-          init = this.genPureIntLit();
-        } else {
-          const list = this.genList(dec(depth), env);
-          const lt = list.ty;
-          if (lt.k !== "list" || lt.elem.k !== "int" || !lt.elem.r) return null;
-          listNode = list.node;
-          elemRange = lt.elem.r;
-          lenHi = lt.lenHi;
-          init = this.genInt(dec(depth), env, ANY);
-          if (!init.r) return null;
-        }
+        // seeds); foldr's deferred calls execute outer-in in both impls
+        // (naive's right-to-left-at-construction divergence was a real
+        // bug, fixed in v0.7 — see the header). Inputs are shallow by
+        // construction (foldr's nested lazy calls overflow both impls
+        // only at ≳10³ — compat #6).
+        const list = this.genList(dec(depth), env);
+        const lt = list.ty;
+        if (lt.k !== "list" || lt.elem.k !== "int" || !lt.elem.r) return null;
+        const listNode = list.node;
+        const elemRange = lt.elem.r;
+        const lenHi = lt.lenHi;
+        const init = this.genInt(dec(depth), env, ANY);
+        if (!init.r) return null;
         const tmpl = this.rng.weighted([
           ["+", 40],
           ["-", 25],
@@ -2301,37 +2277,6 @@ export class ProgramGenerator {
       default:
         return { node: { kind: "int", v: lit }, r: intLitRange(lit) };
     }
-  }
-
-  /** Dice-free, error-free int expression of literals only (foldr
-   * elements/init — see the fold case for why foldr must be dice-free;
-   * foldl keeps its general inputs). */
-  private genPureIntLit(): IntGen {
-    const roll = this.rng.float();
-    if (roll < 0.6) {
-      const v = this.rng.int(0, 9);
-      return { node: { kind: "int", v }, r: intLitRange(v) };
-    }
-    if (roll < 0.8) {
-      // Negative via neg (renders (-k); never -0).
-      const k = this.rng.int(1, 9);
-      return { node: { kind: "neg", x: { kind: "int", v: k } }, r: ir(-k, -k, true) };
-    }
-    const a = this.rng.int(0, 20);
-    const b = this.rng.int(1, 9);
-    const op = this.rng.pick(["+", "-", "*"] as const);
-    if (op === "*") {
-      return {
-        node: { kind: "bin", op: "*", l: { kind: "int", v: a }, r: { kind: "int", v: b } },
-        r: rMul(ir(a, a, true), ir(b, b, true)),
-      };
-    }
-    return {
-      node: { kind: "bin", op, l: { kind: "int", v: a }, r: { kind: "int", v: b } },
-      r: op === "+"
-        ? rAdd(ir(a, a, true), ir(b, b, true))
-        : rSub(ir(a, a, true), ir(b, b, true)),
-    };
   }
 
   /**

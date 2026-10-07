@@ -17,6 +17,9 @@ export type ImplTag = "naive" | "nova";
  * - `"div1-short-circuit"` — compat.md §1: nova's `and`/`or` short-circuit
  *   (builtins with a `$lazy` second parameter) and `any?/1` short-circuits
  *   element forcing; naive forced both sides / every element eagerly.
+ *   `all?/1` (v0.7) mirrors the `any?/1` split: nova stops forcing at the
+ *   first `false`; naive's fresh `all?/1` flattens eagerly (its own
+ *   `any?/1` style).
  * - `"div2-64bit-divmod"` — compat.md §2: nova's `//` and `%` use proper
  *   64-bit semantics; naive computed them via JS `| 0`, silently
  *   truncating operands to 32 bits.
@@ -36,8 +39,11 @@ export type ImplTag = "naive" | "nova";
  * - `"div8-no-repr"` — compat.md §8: nova v1 produces no
  *   `ExecutionAppendix.representation` (repr deferred to v0.9).
  * - `"div9-crash-fixes"` — compat.md §9: nova fixes naive crash/bug edge
- *   cases (`any?` on nested lists, trailing slots after an element error,
- *   i128 accumulation, negative `d`/`#` counts, `~` ranges beyond 2⁵³).
+ *   cases (trailing slots after an element error, i128 accumulation,
+ *   negative `d`/`#` counts, `~` ranges beyond 2⁵³). (The `any?`-on-nested-
+ *   lists bullet was retired in v0.7: naive's `flattenListAll` indexing bug
+ *   was fixed in naive itself, so both implementations now agree — rows are
+ *   re-pinned to the fixed behavior without a tag.)
  * - `"div10-parse-fixes"` — compat.md §10: parse-level fixes (comparison
  *   captures, astral identifiers, one-at-a-time parse errors, span
  *   rendering).
