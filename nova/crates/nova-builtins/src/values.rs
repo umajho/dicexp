@@ -18,6 +18,13 @@ pub(crate) const HDR_KIND_ERROR: u8 = abi::kind::ERROR;
 /// indices and can never collide with `u32::MAX`.
 pub(crate) const SENTINEL_REPEAT_FNIDX: u32 = u32::MAX;
 
+/// `fnidx` sentinel marking one deferred `foldr/3` step: its `env` field
+/// holds an ENV object whose slots are `[callable, elem_handle, acc_handle]`,
+/// evaluated as `f(elem, acc)` by the force trampoline (see
+/// `bf_foldr_3_impl` in builtins.rs). Real `fnidx` values are small table
+/// indices and can never collide with `u32::MAX - 1`.
+pub(crate) const SENTINEL_FOLDR_FNIDX: u32 = u32::MAX - 1;
+
 // ---------------------------------------------------------------------------
 // value handle helpers (re-exported ABI tagging)
 // ---------------------------------------------------------------------------
@@ -217,6 +224,16 @@ pub(crate) fn env_new(parent: u32, count: u32) -> u32 {
     }
 }
 
+#[inline]
+pub(crate) fn env_slot(p: u32, i: u32) -> u64 {
+    mem::read_u64(p, ENV_SLOTS + (i as usize) * 8)
+}
+
+#[inline]
+pub(crate) fn env_set_slot(p: u32, i: u32, v: u64) {
+    mem::write_u64(p, ENV_SLOTS + (i as usize) * 8, v);
+}
+
 // ---------------------------------------------------------------------------
 // LIST (5): payload { elems: [u64; len] }
 // ---------------------------------------------------------------------------
@@ -358,23 +375,30 @@ pub(crate) fn string_len(p: u32) -> u32 {
 // kind-specific layouts after the shared prefix.
 //
 // shared payload prefix:
-//   @8  source_tag: u32   (0 = dice-sum, 1 = repeat, 2 = transformer)
+//   @8  source_tag: u32   (0 = dice-sum, 1 = repeat, 2 = transformer,
+//                         3 = iterate, 4 = unfold, 5 = drop)
 //   @16 a: u64            (dice: lower; repeat: closure object offset;
-//                         transformer: source SEQUENCE value handle)
-//   @24 b: u64            (dice: upper; repeat: unused;
-//                         transformer: closure value handle)
-//   @32 nominal: u64      (nominal length; transformer: unused/0 — its end
-//                         is decided per output by the debt bookkeeping)
+//                         transformer/drop: source SEQUENCE value handle;
+//                         iterate: start handle; unfold: current seed
+//                         handle — replaced after every step)
+//   @24 b: u64            (dice: upper; repeat: unused; transformer/
+//                         iterate/unfold: closure value handle; drop:
+//                         skip count)
+//   @32 nominal: u64      (nominal length; transformer/iterate/unfold/drop:
+//                         unused/0 — the end is decided per output / never /
+//                         by the source)
 //   @40 memo_ptr: u32     (buffer of u64 slots: drawn ints / element handles)
 //   @44 memo_len: u32
 //   @48 memo_cap: u32
 //
-// transformer-only tail (source_tag = 2; object size 80, see
-// `sequence_new_transformer`):
-//   @52 t_flags: u8       (bit 0 = is_explode, bit 1 = track, bit 2 = ended)
-//   @56 t_cursor: u64     (next source position to pull)
-//   @64 t_remain: i64     (signed outstanding-output debt; may go negative
-//                         in chained-transformer cases — never clamped)
+// transformer-family tail (source_tag ∈ {2, 3, 4, 5}; object size 80, see
+// `sequence_new_transformer` / `sequence_new_lazy`):
+//   @52 t_flags: u8       (bit 0 = is_explode [2], bit 1 = track [2],
+//                         bit 2 = ended [2/3/4/5])
+//   @56 t_cursor: u64     (2/5: next source position to pull; 3/4: unused)
+//   @64 t_remain: i64     (signed outstanding-output debt, source 2 only —
+//                         may go negative in chained-transformer cases,
+//                         never clamped)
 //   @72 t_last_ptr: u32   (parallel is_last bytes, one per memo position;
 //                         t_last_len is always memo_len)
 //   @76 t_last_cap: u32
@@ -399,6 +423,9 @@ const SEQ_T_SIZE: usize = 80;
 pub(crate) const SEQ_SOURCE_DICE_SUM: u32 = 0;
 pub(crate) const SEQ_SOURCE_REPEAT: u32 = 1;
 pub(crate) const SEQ_SOURCE_TRANSFORMER: u32 = 2;
+pub(crate) const SEQ_SOURCE_ITERATE: u32 = 3;
+pub(crate) const SEQ_SOURCE_UNFOLD: u32 = 4;
+pub(crate) const SEQ_SOURCE_DROP: u32 = 5;
 
 /// Transformer `t_flags` bits.
 pub(crate) const SEQ_T_EXPLODE: u8 = 1 << 0;
@@ -469,6 +496,34 @@ pub(crate) fn sequence_new_transformer(
     }
 }
 
+/// Create an iterate/unfold/drop stream: the transformer-family layout
+/// (shared value memo + parallel is_last region, `ended` flag bit) with the
+/// per-source `a`/`b` fields; `drop` stores its skip count in the cursor
+/// field. Always a PLAIN sequence (`is_sum` = false — drop drops the
+/// source's $sum-ness); construction pulls nothing.
+pub(crate) fn sequence_new_lazy(source: u32, a: u64, b: u64, cursor: u64) -> u64 {
+    match mem::halloc(SEQ_T_SIZE) {
+        Some(p) => {
+            mem::write_u8(p, 0, abi::kind::SEQUENCE);
+            mem::write_u8(p, 1, 0);
+            mem::write_u32(p, SEQ_SOURCE, source);
+            mem::write_u64(p, SEQ_A, a);
+            mem::write_u64(p, SEQ_B, b);
+            mem::write_u64(p, SEQ_NOMINAL, 0);
+            mem::write_u32(p, SEQ_MEMO_PTR, 0);
+            mem::write_u32(p, SEQ_MEMO_LEN, 0);
+            mem::write_u32(p, SEQ_MEMO_CAP, 0);
+            mem::write_u8(p, SEQ_T_FLAGS, 0);
+            mem::write_u64(p, SEQ_T_CURSOR, cursor);
+            mem::write_u64(p, SEQ_T_REMAIN, 0);
+            mem::write_u32(p, SEQ_T_LAST_PTR, 0);
+            mem::write_u32(p, SEQ_T_LAST_CAP, 0);
+            heap_ptr_to_value(p)
+        }
+        None => oom_handle(),
+    }
+}
+
 #[inline]
 pub(crate) fn seq_is_sum_ptr(p: u32) -> bool {
     mem::read_u8(p, 1) & abi::SEQUENCE_FLAG_SUM != 0
@@ -481,6 +536,12 @@ pub(crate) fn seq_source(p: u32) -> u32 {
 #[inline]
 pub(crate) fn seq_a(p: u32) -> u64 {
     mem::read_u64(p, SEQ_A)
+}
+/// Replace the `a` field (the unfold source's current-seed handle after a
+/// successful step).
+#[inline]
+pub(crate) fn seq_set_a(p: u32, v: u64) {
+    mem::write_u64(p, SEQ_A, v);
 }
 #[inline]
 pub(crate) fn seq_b(p: u32) -> u64 {

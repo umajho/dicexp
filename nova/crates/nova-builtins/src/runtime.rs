@@ -81,6 +81,17 @@ pub(crate) fn force_impl(mut v: u64) -> u64 {
                     // `#` element thunk: call the repeat body closure (its
                     // offset is stored in the thunk's env field).
                     call_callable_impl(heap_ptr_to_value(t.env), 0, 0)
+                } else if t.fnidx == SENTINEL_FOLDR_FNIDX {
+                    // foldr/3 step thunk (v0.7): the ENV slots hold
+                    // [callable, elem, acc] — evaluate `f(elem, acc)`.
+                    // The result is returned unforced here: the trampoline
+                    // chases it (bodies returning `$acc` unforced chain
+                    // iteratively; nested forcing bodies recurse like
+                    // naive's — compat.md #6).
+                    let callable = values::env_slot(t.env, 0);
+                    let elem = values::env_slot(t.env, 1);
+                    let acc = values::env_slot(t.env, 2);
+                    call_with_args(callable, &[elem, acc])
                 } else {
                     host_call_closure(t.fnidx, t.env, 0, 0)
                 };

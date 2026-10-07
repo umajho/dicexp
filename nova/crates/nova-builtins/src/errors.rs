@@ -304,4 +304,8 @@ pub(crate) mod mask {
     pub const LIST: u8 = set_mask(&[t::LIST]);
     pub const CALLABLE: u8 = set_mask(&[t::CALLABLE]);
     pub const SEQUENCE_ANY: u8 = set_mask(&[t::SEQUENCE, t::SEQUENCE_SUM]);
+    /// `take/2` / `drop/2` arg 1: a list or either sequence flavor. The
+    /// mask INCLUDES the sequence types, so no implicit cast fires — the
+    /// builtin branches on the heap kind itself.
+    pub const LIST_OR_SEQUENCE_ANY: u8 = set_mask(&[t::LIST, t::SEQUENCE, t::SEQUENCE_SUM]);
 }

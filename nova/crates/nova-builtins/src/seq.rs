@@ -20,6 +20,23 @@
 //!   decide whether an output is produced and whether it is the nominal
 //!   last. A closure error or non-boolean closure result is a TERMINAL
 //!   error output (marked last); production ends there.
+//! - iterate streams (v0.7 `iterate/2`): infinite; item 0 is `force(start)`,
+//!   item i+1 is `force(f(item_i))` — STRICT per pull (each item is forced
+//!   and memoized before the next step runs, so deep takes never chase an
+//!   N-deep thunk chain; see v0.7-contracts.md). A start/f error is a
+//!   terminal error output, exactly like a transformer's.
+//! - unfold streams (v0.7 `unfold/2`): per pull the seed is forced, then
+//!   `f(seed)`: `false` ACTUALLY ends the stream (like a transformer's
+//!   end — nominal = actual); a 2-element list `[elem, next_seed]` yields
+//!   `elem` UNFORCED and continues with `next_seed` (forced at the next
+//!   pull); anything else (incl. `true`) is a terminal key-51/52 error
+//!   output.
+//! - drop streams (v0.7 `drop/2` on a sequence): a lazy skip wrapper —
+//!   construction pulls nothing; each output advances the source one
+//!   position further (sequentially — the first `skip` positions are
+//!   pulled and discarded, each a real draw for dice sources), memoizing
+//!   the delegated handle + is_last bit in its own region (positions must
+//!   stay re-readable). Always plain.
 //!
 //! Both base arms are INFINITE beyond their nominal end (is_last only at
 //! nominal−1, is_last=false beyond): transformers legitimately pull sources
@@ -67,6 +84,31 @@ pub(crate) fn new_transformer(is_sum: bool, source: u64, closure: u64, is_explod
     values::sequence_new_transformer(is_sum, source, closure, is_explode)
 }
 
+/// Create the plain `sequence` for `iterate/2`: infinite; item 0 is
+/// `force(start)` (at the first pull), item i+1 is `force(f(item_i))`,
+/// strict per pull. Construction pulls nothing.
+pub(crate) fn new_iterate(start: u64, closure: u64) -> u64 {
+    values::sequence_new_lazy(values::SEQ_SOURCE_ITERATE, start, closure, 0)
+}
+
+/// Create the plain `sequence` for `unfold/2`: per pull the seed is forced,
+/// then `f(seed)` — `false` ends the stream, a 2-element list
+/// `[elem, next_seed]` yields `elem` (unforced) and continues. Construction
+/// pulls nothing.
+pub(crate) fn new_unfold(seed: u64, closure: u64) -> u64 {
+    values::sequence_new_lazy(values::SEQ_SOURCE_UNFOLD, seed, closure, 0)
+}
+
+/// Create the plain `sequence` for `drop/2` over a sequence: a lazy skip
+/// wrapper. Construction pulls nothing; outputs are produced by pulling
+/// the source one position further per output, discarding the first
+/// `skip` positions (each discard is a REAL pull — dice sources draw).
+/// Every delegated result (handle + is_last bit) is memoized in the drop
+/// stream's own region so positions stay re-readable.
+pub(crate) fn new_drop(source: u64, skip: u64) -> u64 {
+    values::sequence_new_lazy(values::SEQ_SOURCE_DROP, source, skip, 0)
+}
+
 #[inline]
 pub(crate) fn is_sequence(v: u64) -> bool {
     values::heap_kind(v) == Some(abi::kind::SEQUENCE)
@@ -90,20 +132,23 @@ pub(crate) enum Pull {
 /// re-read in any order).
 ///
 /// Returns the drawn integer (dice-sum source), an unevaluated element
-/// handle (repeat source) or a produced output (transformer source), plus
-/// the nominal-last bit; `Pull::Ended` once a transformer stream has ended.
-/// `Err` propagates an error handle (only allocation failures can fail
-/// here; closure errors are values — terminal error *outputs*).
-fn pull(seq_ptr: u32, index: u64) -> Result<Pull, u64> {
+/// handle (repeat source) or a produced output (transformer-family
+/// sources), plus the nominal-last bit; `Pull::Ended` once a
+/// transformer-family stream has ended. `Err` propagates an error handle
+/// (only allocation failures can fail here; closure errors are values —
+/// terminal error *outputs*).
+pub(crate) fn pull(seq_ptr: u32, index: u64) -> Result<Pull, u64> {
     let memo_len = values::seq_memo_len(seq_ptr) as u64;
     if index < memo_len {
         let slot = values::seq_memo_get(seq_ptr, index as u32);
         let is_last = match values::seq_source(seq_ptr) {
-            // Transformer outputs memoize their is_last bit (the debt
-            // bookkeeping cannot be recomputed).
-            values::SEQ_SOURCE_TRANSFORMER => values::seq_t_is_last_at(seq_ptr, index as u32),
             // Dice/repeat: the nominal-last bit is positional.
-            _ => index + 1 == values::seq_nominal(seq_ptr),
+            values::SEQ_SOURCE_DICE_SUM | values::SEQ_SOURCE_REPEAT => {
+                index + 1 == values::seq_nominal(seq_ptr)
+            }
+            // Transformer-family outputs memoize their is_last bit (the
+            // debt bookkeeping / drop delegation cannot be recomputed).
+            _ => values::seq_t_is_last_at(seq_ptr, index as u32),
         };
         return Ok(Pull::Item(slot, is_last));
     }
@@ -132,6 +177,9 @@ fn pull(seq_ptr: u32, index: u64) -> Result<Pull, u64> {
             ),
             index + 1 == values::seq_nominal(seq_ptr),
         ),
+        values::SEQ_SOURCE_ITERATE => return produce_iterate(seq_ptr),
+        values::SEQ_SOURCE_UNFOLD => return produce_unfold(seq_ptr),
+        values::SEQ_SOURCE_DROP => return produce_drop(seq_ptr),
         _ => {
             if values::seq_t_flag(seq_ptr, values::SEQ_T_ENDED) {
                 return Ok(Pull::Ended);
@@ -233,6 +281,108 @@ fn terminal_error(p: u32, err: u64) -> Result<Pull, u64> {
     }
     values::seq_t_set_flag(p, values::SEQ_T_ENDED, true);
     Ok(Pull::Item(err, true))
+}
+
+/// Produce the next `iterate` output. Position 0 forces the start handle;
+/// every later position forces `f(item)` where `item` is the previous
+/// memoized output — STRICT per pull: the forced value is what gets
+/// memoized, so the next step receives a value and never has to chase a
+/// thunk chain (v0.7-contracts.md §iterate). Never `is_last`; infinite.
+fn produce_iterate(p: u32) -> Result<Pull, u64> {
+    if values::seq_t_flag(p, values::SEQ_T_ENDED) {
+        return Ok(Pull::Ended);
+    }
+    let item = if values::seq_memo_len(p) == 0 {
+        force_impl(values::seq_a(p))
+    } else {
+        let cur = values::seq_memo_get(p, values::seq_memo_len(p) - 1);
+        force_impl(call_with_args(values::seq_b(p), &[cur]))
+    };
+    if values::is_error_handle(item) {
+        return terminal_error(p, item);
+    }
+    if !values::seq_t_memo_push(p, item, false) {
+        return Err(errors::memory_limit());
+    }
+    Ok(Pull::Item(item, false))
+}
+
+/// Produce the next `unfold` output: force the current seed, then
+/// `f(seed)`. `false` ends the stream (an ACTUAL end); a 2-element list
+/// yields `pair[0]` UNFORCED and stores `pair[1]` as the next seed (forced
+/// at the next pull); anything else — including `true` — is a terminal
+/// key-51/52 error output. Produced items are never `is_last`.
+fn produce_unfold(p: u32) -> Result<Pull, u64> {
+    if values::seq_t_flag(p, values::SEQ_T_ENDED) {
+        return Ok(Pull::Ended);
+    }
+    let seed = force_impl(values::seq_a(p));
+    if values::is_error_handle(seed) {
+        return terminal_error(p, seed);
+    }
+    let r = force_impl(call_with_args(values::seq_b(p), &[seed]));
+    if values::is_error_handle(r) {
+        return terminal_error(p, r);
+    }
+    if values::value_tag(r) == values::TAG_BOOLEAN {
+        if values::value_to_boolean(r) {
+            // Only `false` is a step terminator; `true` is a step error.
+            return terminal_error(p, errors::unfold_step_type_mismatch(abi::value_type::BOOLEAN));
+        }
+        values::seq_t_set_flag(p, values::SEQ_T_ENDED, true);
+        return Ok(Pull::Ended);
+    }
+    if values::heap_kind(r) == Some(abi::kind::LIST) {
+        let pair = values::value_to_heap_ptr(r);
+        let n = values::list_len(pair);
+        if n != 2 {
+            return terminal_error(p, errors::unfold_step_list_length_mismatch(n as i64));
+        }
+        // Memo first, then commit the new seed (an OOM mid-step must leave
+        // the stream's state untouched for the error to be reproducible).
+        let elem = values::list_elem(pair, 0);
+        if !values::seq_t_memo_push(p, elem, false) {
+            return Err(errors::memory_limit());
+        }
+        values::seq_set_a(p, values::list_elem(pair, 1));
+        return Ok(Pull::Item(elem, false));
+    }
+    terminal_error(p, errors::unfold_step_type_mismatch(values::value_type_of(r)))
+}
+
+/// Produce the next `drop` output: advance the source ONE position per
+/// output (the cursor tracks the next source position to pull — pulls must
+/// be sequential from the source's perspective), discarding positions
+/// before the skip point (each discard is a real pull: dice sources draw,
+/// repeat sources allocate their body thunks). The delegated handle +
+/// is_last bit are memoized here (pass-through of the source's status —
+/// nominal-last markers shift accordingly). The source actually ending
+/// ends the drop stream too.
+fn produce_drop(p: u32) -> Result<Pull, u64> {
+    if values::seq_t_flag(p, values::SEQ_T_ENDED) {
+        return Ok(Pull::Ended);
+    }
+    let src = values::value_to_heap_ptr(values::seq_a(p));
+    let skip = values::seq_b(p);
+    loop {
+        let cursor = values::seq_t_cursor(p);
+        match pull(src, cursor)? {
+            Pull::Item(h, last) => {
+                values::seq_t_set_cursor(p, cursor + 1);
+                if cursor < skip {
+                    continue; // discarded skip pull
+                }
+                if !values::seq_t_memo_push(p, h, last) {
+                    return Err(errors::memory_limit());
+                }
+                return Ok(Pull::Item(h, last));
+            }
+            Pull::Ended => {
+                values::seq_t_set_flag(p, values::SEQ_T_ENDED, true);
+                return Ok(Pull::Ended);
+            }
+        }
+    }
 }
 
 /// Implicit cast of a `sequence$sum` to its sum (naive: reduce over the
