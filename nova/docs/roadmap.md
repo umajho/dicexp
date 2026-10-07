@@ -234,25 +234,40 @@ climbs steadily (~430k samples/s on `d6`).
 
 Every builtin intended for 1.0 exists in nova.
 
-- **Implement the missing builtins intended for 1.0.** The intended set is
-  issue #18's tables ("默认作用域中的通常函数的实现进展记录"); the ❌/部分
-  entries include: `abs`, `count/1` (length), `has?`, `min`, `max`, `all?`,
-  `sort/2` (closure comparator), `reverse`, `concat`, `prepend`,
-  `at/3` (with default), `duplicate`, `flatten`, `flattenAll`, `flatMap`,
-  `foldl`, `foldr`, `unfold`, `iterate`, `last`, `init`, `take`,
-  `takeWhile`, `drop`, `dropWhile`, and `if/*` (note: #18's
-  `if(a, b, else: c)` shape depends on labeled arguments, #17 — decide the
-  positional-vs-labeled shape when implementing). Also in scope: the
-  partial entries' missing halves where they are 1.0-worthy (`all?`/`any?`
-  short-circuit per v0.4's decision; comparison operators accepting
-  booleans, as `sort/1` already does). Explicitly NOT in scope: `inspect`
-  (abandoned in #18), the range-operator forms of `reroll`/`explode`
-  (low-priority, depend on #8), `d%` (being considered for removal in #18).
-  Anything else deliberately NOT making 1.0 moves to v1.1+ explicitly, with
-  the reason recorded here.
+- **Implement the missing builtins intended for 1.0** — in BOTH
+  implementations (owner's directive: naive gains the counterparts so the
+  shared suites need no new conditionals). The intended set is issue #18's
+  tables ("默认作用域中的通常函数的实现进展记录"); the ❌/部分 entries:
+  `abs`, `count/1` (length), `has?`, `min`, `max`, `all?`, `sort/2`
+  (closure comparator), `reverse`, `concat`, `prepend`, `at/3` (with
+  default), `duplicate`, `flatten`, `flattenAll`, `flatMap`, `foldl`,
+  `foldr`, `unfold`, `iterate`, `last`, `init`, `take`, `takeWhile`,
+  `drop`, `dropWhile`. Also in scope: the partial entries' missing halves
+  (`all?` short-circuits element forcing in nova per v0.4's decision;
+  comparison operators accept booleans in BOTH impls, as `sort/1` already
+  did). Semantics contracts (these are new in both impls, so they are
+  DEFINED, not probed): [`v0.7-contracts.md`](./v0.7-contracts.md).
+- **`if/*` is NOT in this milestone** (owner's call, 2026-10-07): it lands
+  later together with statements and Elixir-syntax sugars
+  (`if foo do … end`); the positional-vs-labeled question is moot until
+  then. The shared-suite `if/3` Y-combinator row stays `todoFor` nova.
+- **Range operators (#8) and the range-based `reroll`/`explode` fast
+  paths** (#18's 投骰子 remarks: direct conditional-distribution draws
+  instead of rejection sampling): owner-permitted for this iteration,
+  deferred by the lead to their own milestone — they touch BOTH parsers
+  (the Lezer grammar shared with the playground editor + nova's port), the
+  precedence table, a new value kind in both runtimes, and finalize rules;
+  a milestone of their own (see v1.1+). Revisit if a concrete need arises.
+- Explicitly NOT in scope: `inspect` (abandoned in #18), `d%` (being
+  considered for removal in #18). Moved to v1.1+ explicitly (reasons in
+  the v1.1+ section): `any?/2`/`all?/2`/closure-`has?` (#18's
+  "应该考虑" remarks, uncommitted), #18's 补遗 wishlist (`identity/1`,
+  `shuffle/1`, `rem/2`, `mod/2`, `sortDesc/*`, `keep*/drop*`, `++/2`),
+  sequence-accepting `takeWhile`/`dropWhile` (1.0 extends only
+  `take`/`drop` to sequences, to make `iterate`/`unfold` consumable).
 
-**Exit:** every builtin intended for 1.0 is implemented and covered by the
-shared/differential suites.
+**Exit:** every builtin intended for 1.0 is implemented in both
+implementations and covered by the shared/differential suites.
 
 ## v0.8 — Builtin docs sourced from nova
 
@@ -331,8 +346,15 @@ Roughly prioritized, each its own small design doc when picked up:
 - Feature flags (#24): closures-off language subset; steps-off switch
   (formalizes v0.9's trace gating).
 - Language growth (nova-first or both-implementations, decide per feature):
-  labeled/keyword args (#17), range literals (#8), Unicode operator aliases
-  (#21), strings-as-labels, maps, tuples.
+  labeled/keyword args (#17), range literals/operators (#8 — incl. the
+  range-based `reroll`/`explode` fast paths from #18's remarks; deferred
+  out of v0.7: touches both parsers + editor grammar + a new value kind),
+  Unicode operator aliases (#21), strings-as-labels, maps, tuples.
+- Deferred-out-of-v0.7 builtins (see v0.7): `any?/2`, `all?/2`,
+  closure-`has?` (#18's uncommitted "应该考虑" remarks); #18's 补遗
+  wishlist (`identity/1`, `shuffle/1`, `rem/2`, `mod/2`, `sortDesc/*`,
+  `keepHighest/*`/`keepLowest/*`/`dropHighest/*`/`dropLowest/*` + aliases,
+  `++/2`); sequence-accepting `takeWhile`/`dropWhile`.
 - WASM tail-call proposal (`return_call_indirect`) as a trampoline
   replacement once support is universal — invisible optimization.
 
