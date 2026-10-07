@@ -17,6 +17,8 @@
  * timings; `acquireBenchLock`/`releaseBenchLock` serialize entire test
  * files (whichever file starts first holds the lock until it has written
  * its results). The same lock also guards the `results/latest.*` merge.
+ * Locks left behind by killed runs are detected (holder pid + mtime age)
+ * and broken automatically — see `acquireBenchLock`.
  */
 
 import * as fs from "node:fs";
@@ -219,29 +221,106 @@ function currentMeta(): BenchMeta {
 const lockDir = () => path.join(resultsDir, ".lock");
 let lockHeld = false;
 
+// Stale-lock policy. A plain mkdir-lock has no heartbeat: a run killed
+// hard (SIGKILL ⇒ no `finally`, no `afterAll`) leaves the dir behind, and
+// the original code then made every later run spin for the full 30-min
+// wait deadline before erroring — indistinguishable from a hang. So:
+// - The holder writes its pid into the lock dir immediately after mkdir.
+// - A waiter BREAKS the lock when the recorded pid is no longer alive, or
+//   when there is no pid file and the dir is older than
+//   LOCK_STALE_GRACE_MS (covers old-format locks and holders that died in
+//   the mkdir→pid-write window).
+// - A live pid means a genuinely concurrent run: keep waiting, since the
+//   lock exists precisely to keep timings unpolluted. `process.kill(pid,
+//   0)` can false-positive on pid reuse; staying quiet (waiting) is the
+//   conservative failure there, capped by LOCK_WAIT_TIMEOUT_MS.
+const LOCK_STALE_GRACE_MS = 10_000;
+const LOCK_WAIT_TIMEOUT_MS = 10 * 60_000;
+const LOCK_POLL_MS = 50;
+
+function readLockPid(): number | null {
+  try {
+    const pid = Number.parseInt(
+      fs.readFileSync(path.join(lockDir(), "pid"), "utf8").trim(),
+      10,
+    );
+    return Number.isInteger(pid) && pid > 0 ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+function pidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    // EPERM ⇒ the process exists but we may not signal it: alive.
+    return (e as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+function lockAgeMs(): number {
+  try {
+    return Date.now() - fs.statSync(lockDir()).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+/** Why the current lock is breakable; null ⇒ it looks live, keep waiting. */
+function staleLockReason(): string | null {
+  const pid = readLockPid();
+  if (pid !== null) {
+    return pidAlive(pid) ? null : `holder pid ${pid} is dead`;
+  }
+  const age = lockAgeMs();
+  if (age < LOCK_STALE_GRACE_MS) {
+    return null; // mkdir just won the race; the pid file isn't written yet
+  }
+  return `no pid file and the dir is ${Math.round(age / 1000)}s old`;
+}
+
 /**
  * Serialize whole bench test files against each other (mkdir is atomic, so
  * this works across vitest's workers/processes). Holds until
  * `releaseBenchLock` — see the module header for why parallel files would
- * pollute the timings.
+ * pollute the timings. Locks left by killed runs are broken automatically
+ * (see the stale-lock policy above the helpers); a lock held by a LIVE
+ * process is waited on, up to `LOCK_WAIT_TIMEOUT_MS`, then this fails
+ * loudly instead of hanging.
  */
 export async function acquireBenchLock(): Promise<void> {
   fs.mkdirSync(resultsDir, { recursive: true });
-  const deadline = Date.now() + 30 * 60_000;
+  const deadline = Date.now() + LOCK_WAIT_TIMEOUT_MS;
   for (;;) {
     try {
       fs.mkdirSync(lockDir());
-      lockHeld = true;
-      return;
     } catch {
+      const reason = staleLockReason();
+      if (reason !== null) {
+        console.error(`[bench] breaking stale lock ${lockDir()} (${reason})`);
+        fs.rmSync(lockDir(), { recursive: true, force: true });
+        continue; // reclaim immediately
+      }
       if (Date.now() > deadline) {
         throw new Error(
-          `bench lock ${lockDir()} still held after 30 min — ` +
-            `another bench run is active, or the dir is stale (remove it)`,
+          `bench lock ${lockDir()} still held after ` +
+            `${LOCK_WAIT_TIMEOUT_MS / 60_000} min by live process pid ` +
+            `${readLockPid() ?? "?"} — another bench run appears to be ` +
+            `active; wait for it or remove the dir if that is wrong`,
         );
       }
-      await new Promise((resolve) => setTimeout(resolve, 25));
+      await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
+      continue;
     }
+    try {
+      fs.writeFileSync(path.join(lockDir(), "pid"), `${process.pid}\n`);
+    } catch {
+      // Best effort; without a pid file the age rule reclaims the lock.
+    }
+    lockHeld = true;
+    return;
   }
 }
 
