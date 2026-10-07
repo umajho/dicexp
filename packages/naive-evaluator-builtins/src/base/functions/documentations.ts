@@ -45,6 +45,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
 
   // 实用：
   "abs/1": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "n": "一个整数",
@@ -56,6 +57,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "count/1": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "要计数的列表",
@@ -81,6 +83,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "has?/2": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "目标列表",
@@ -118,6 +121,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "min/1": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "由整数组成的列表",
@@ -131,6 +135,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "max/1": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "由整数组成的列表",
@@ -144,6 +149,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "all?/1": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "由布尔值组成的列表",
@@ -186,6 +192,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "sort/2": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "要排序的列表",
@@ -202,6 +209,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "reverse/1": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "要反转的列表",
@@ -212,6 +220,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "concat/2": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list1": "第一个列表",
@@ -223,6 +232,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "prepend/2": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "要添加元素的列表",
@@ -262,6 +272,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "at/3": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "要取出元素的列表",
@@ -282,6 +293,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "duplicate/2": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "value": "要重复的值",
@@ -300,6 +312,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "flatten/2": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "要扁平化的列表",
@@ -318,6 +331,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "flattenAll/1": {
+    todo: true,
     groups: ["实用"],
     parameters: {
       "list": "要扁平化的列表",
@@ -348,6 +362,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "flatMap/2": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表",
@@ -381,6 +396,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "foldl/3": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表",
@@ -398,6 +414,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "foldr/3": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表",
@@ -415,6 +432,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "unfold/2": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "seed": "初始种子值",
@@ -430,6 +448,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "iterate/2": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "start": "首项的值",
@@ -470,6 +489,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "last/1": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表",
@@ -484,6 +504,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "init/1": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表",
@@ -497,6 +518,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "take/2": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表或序列",
@@ -515,6 +537,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "takeWhile/2": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表",
@@ -529,6 +552,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "drop/2": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表或序列",
@@ -548,6 +572,7 @@ export const builtinFunctionDocumentations: DeclarationListToDocumentationMap<
     ],
   },
   "dropWhile/2": {
+    todo: true,
     groups: ["函数式"],
     parameters: {
       "list": "目标列表",

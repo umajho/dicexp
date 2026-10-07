@@ -287,9 +287,17 @@ export const FunctionCard: Component<{
       >
         <div class={`${Ankor.ANCHOR_CLASS} relative z-10`} />
         <div class={Ankor.CONTENT_CLASS}>
-          <div class="flex justify-center w-full font-bold">
-            {props.doc.description.brief}
-          </div>
+          <Show
+            when={!props.doc.todo}
+            fallback={
+              <div class="flex justify-center w-full py-4 font-bold text-base-content/50">
+                文档待编写
+              </div>
+            }
+          >
+            <div class="flex justify-center w-full font-bold">
+              {props.doc.description.brief}
+            </div>
           <dl>
             <Show when={props.doc.aliases}>
               {(aliases) => (
@@ -387,6 +395,7 @@ export const FunctionCard: Component<{
               </>
             </Show>
           </dl>
+          </Show>
         </div>
       </div>
     </Card>

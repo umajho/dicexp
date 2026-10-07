@@ -65,6 +65,7 @@ function makeScopeDocumentation<
         name: decl.name,
         ...(decl.aliases?.length ? { aliases: decl.aliases } : {}),
         ...(doc.isOperator ? { isOperator: true } : {}),
+        ...(doc.todo ? { todo: true } : {}),
         groups: doc.groups,
         parameters: decl.parameters.map((p) => {
           // @ts-ignore

@@ -68,6 +68,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
 
   "</2": {
     isOperator: true,
+    todo: true,
     groups: ["比较"],
     parameters: {
       "a": "第一个值",
@@ -81,6 +82,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   ">/2": {
     isOperator: true,
+    todo: true,
     groups: ["比较"],
     parameters: {
       "a": "第一个值",
@@ -94,6 +96,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   "<=/2": {
     isOperator: true,
+    todo: true,
     groups: ["比较"],
     parameters: {
       "a": "第一个值",
@@ -107,6 +110,7 @@ export const builtinOperatorDocumentations: DeclarationListToDocumentationMap<
   },
   ">=/2": {
     isOperator: true,
+    todo: true,
     groups: ["比较"],
     parameters: {
       "a": "第一个值",
